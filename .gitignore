@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+
+# bkit internal
+.bkit/
+
+# Environment
+.env
+.env.local
+
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+.idea/
