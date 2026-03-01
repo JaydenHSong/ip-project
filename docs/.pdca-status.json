@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-01T12:07:24.976Z",
+  "lastUpdated": "2026-03-01T23:16:44.258Z",
   "activeFeatures": [
     "ai-analysis",
     "crawler",
@@ -29,7 +29,8 @@
     "rewrite",
     "learn",
     "[type]",
-    "sync"
+    "sync",
+    "auth-status"
   ],
   "primaryFeature": "ai-analysis",
   "features": {
@@ -78,7 +79,7 @@
     },
     "extension": {
       "phase": "archived",
-      "matchRate": 91,
+      "matchRate": 96,
       "iterationCount": 0,
       "startedAt": "2026-03-01T09:00:00.000Z",
       "archivedAt": "2026-03-01T14:00:00.000Z",
@@ -437,6 +438,19 @@
         "lastUpdated": "2026-03-01T11:57:30.981Z"
       },
       "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/api/patents/sync/route.ts"
+    },
+    "auth-status": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-01T23:16:44.258Z",
+        "lastUpdated": "2026-03-01T23:16:44.258Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/api/ext/auth-status/route.ts"
     }
   },
   "pipeline": {
@@ -447,7 +461,7 @@
   "session": {
     "startedAt": "2026-02-28T07:40:00.000Z",
     "onboardingCompleted": true,
-    "lastActivity": "2026-03-01T12:07:24.976Z"
+    "lastActivity": "2026-03-01T23:16:44.258Z"
   },
   "history": [
     {
@@ -1324,6 +1338,12 @@
     {
       "timestamp": "2026-03-01T12:07:24.976Z",
       "feature": "skills",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-01T23:16:44.258Z",
+      "feature": "auth-status",
       "phase": "do",
       "action": "updated"
     }

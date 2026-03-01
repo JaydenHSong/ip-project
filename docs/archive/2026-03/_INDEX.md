@@ -4,5 +4,5 @@
 |---------|-----------|----------|-----------|
 | sentinel | 97% | 2026-03-01 | plan, design, analysis, report |
 | report-detail-ui | 97% | 2026-03-01 | analysis, report |
-| extension | 91% | 2026-03-01 | plan, design, analysis, report |
+| extension | 96% | 2026-03-01 | plan, design, analysis, report |
 | ai-analysis | 96% | 2026-03-01 | plan, design, analysis, report |
