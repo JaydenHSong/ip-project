@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Bell, LogOut, ChevronDown, Sun, Moon } from 'lucide-react'
+import { Bell, LogOut, ChevronDown, Sun, Moon, Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { getStoredTheme, toggleTheme } from '@/lib/theme'
+import { useI18n } from '@/lib/i18n/context'
 import type { User } from '@/types/users'
 
 type HeaderProps = {
@@ -14,6 +15,7 @@ export const Header = ({ user }: HeaderProps) => {
   const [showDropdown, setShowDropdown] = useState(false)
   const [isDark, setIsDark] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const { locale, t, changeLocale } = useI18n()
 
   useEffect(() => {
     setIsDark(getStoredTheme() === 'dark')
@@ -30,6 +32,10 @@ export const Header = ({ user }: HeaderProps) => {
   const handleToggleTheme = () => {
     const next = toggleTheme()
     setIsDark(next === 'dark')
+  }
+
+  const handleToggleLocale = () => {
+    changeLocale(locale === 'ko' ? 'en' : 'ko')
   }
 
   const handleLogout = async () => {
@@ -49,12 +55,23 @@ export const Header = ({ user }: HeaderProps) => {
       <div />
 
       <div className="flex items-center gap-3">
+        {/* Language Toggle */}
+        <button
+          type="button"
+          onClick={handleToggleLocale}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
+          aria-label="Toggle language"
+        >
+          <Globe className="h-4 w-4" />
+          <span className="text-xs font-medium">{locale === 'ko' ? 'KO' : 'EN'}</span>
+        </button>
+
         {/* Theme Toggle */}
         <button
           type="button"
           onClick={handleToggleTheme}
           className="rounded-lg p-2 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
-          aria-label={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+          aria-label={isDark ? t('common.lightMode') : t('common.darkMode')}
         >
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
@@ -63,7 +80,7 @@ export const Header = ({ user }: HeaderProps) => {
         <button
           type="button"
           className="relative rounded-lg p-2 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
-          aria-label="알림"
+          aria-label={t('common.notifications')}
         >
           <Bell className="h-5 w-5" />
         </button>
@@ -104,7 +121,7 @@ export const Header = ({ user }: HeaderProps) => {
                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-th-text-secondary hover:bg-th-bg-hover"
               >
                 <LogOut className="h-4 w-4" />
-                로그아웃
+                {t('common.logout')}
               </button>
             </div>
           )}

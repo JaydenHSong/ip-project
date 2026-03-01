@@ -15,10 +15,11 @@ import {
   PanelLeftOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { useI18n } from '@/lib/i18n/context'
 import type { Role } from '@/types/users'
 
 type NavItem = {
-  label: string
+  labelKey: string
   href: string
   icon: React.ComponentType<{ className?: string }>
   minRole?: Role
@@ -26,16 +27,16 @@ type NavItem = {
 }
 
 const MAIN_NAV: NavItem[] = [
-  { label: '대시보드', href: '/dashboard', icon: LayoutDashboard },
-  { label: '캠페인', href: '/campaigns', icon: Search },
-  { label: '신고 대기열', href: '/reports', icon: FileWarning },
-  { label: '신고 완료', href: '/reports/completed', icon: CheckCircle2 },
-  { label: '특허', href: '/patents', icon: BookOpen, milestone: 2 },
+  { labelKey: 'nav.dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { labelKey: 'nav.campaigns', href: '/campaigns', icon: Search },
+  { labelKey: 'nav.reportQueue', href: '/reports', icon: FileWarning },
+  { labelKey: 'nav.completedReports', href: '/reports/completed', icon: CheckCircle2 },
+  { labelKey: 'nav.patents', href: '/patents', icon: BookOpen, milestone: 2 },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
-  { label: '감사 로그', href: '/audit-logs', icon: ScrollText, minRole: 'admin' },
-  { label: '설정', href: '/settings', icon: Settings, minRole: 'admin', milestone: 3 },
+  { labelKey: 'nav.auditLogs', href: '/audit-logs', icon: ScrollText, minRole: 'admin' },
+  { labelKey: 'nav.settings', href: '/settings', icon: Settings, minRole: 'admin', milestone: 3 },
 ]
 
 const CURRENT_MILESTONE = 1
@@ -61,6 +62,7 @@ const filterItems = (items: NavItem[], userRole: Role): NavItem[] =>
 
 export const Sidebar = ({ userRole, collapsed, onToggle }: SidebarProps) => {
   const pathname = usePathname()
+  const { t } = useI18n()
 
   const mainItems = filterItems(MAIN_NAV, userRole)
   const bottomItems = filterItems(BOTTOM_NAV, userRole)
@@ -69,12 +71,13 @@ export const Sidebar = ({ userRole, collapsed, onToggle }: SidebarProps) => {
     const isActive =
       pathname === item.href || pathname.startsWith(`${item.href}/`)
     const Icon = item.icon
+    const label = t(item.labelKey)
 
     return (
       <Link
         key={item.href}
         href={item.href}
-        title={collapsed ? item.label : undefined}
+        title={collapsed ? label : undefined}
         className={cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
           collapsed && 'justify-center px-2',
@@ -84,7 +87,7 @@ export const Sidebar = ({ userRole, collapsed, onToggle }: SidebarProps) => {
         )}
       >
         <Icon className="h-5 w-5 shrink-0" />
-        {!collapsed && <span>{item.label}</span>}
+        {!collapsed && <span>{label}</span>}
       </Link>
     )
   }
@@ -125,7 +128,7 @@ export const Sidebar = ({ userRole, collapsed, onToggle }: SidebarProps) => {
           type="button"
           onClick={onToggle}
           className="rounded-lg p-1.5 text-th-text-muted hover:bg-th-sidebar-hover hover:text-th-text-secondary"
-          aria-label={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+          aria-label={collapsed ? t('common.expandSidebar') : t('common.collapseSidebar')}
         >
           {collapsed ? (
             <PanelLeftOpen className="h-4 w-4" />

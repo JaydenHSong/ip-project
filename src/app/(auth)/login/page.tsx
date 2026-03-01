@@ -1,8 +1,12 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
+import { useI18n } from '@/lib/i18n/context'
+import { I18nProvider } from '@/lib/i18n/context'
 
-const LoginPage = () => {
+const LoginContent = () => {
+  const { t } = useI18n()
+
   const handleGoogleLogin = async () => {
     const supabase = createClient()
 
@@ -21,9 +25,9 @@ const LoginPage = () => {
     <div className="flex min-h-screen items-center justify-center bg-th-bg-secondary">
       <div className="w-full max-w-md space-y-8 rounded-xl border border-th-border bg-surface-card p-8 shadow-lg">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-th-text">Sentinel</h1>
+          <h1 className="text-3xl font-bold text-th-text">{t('login.title')}</h1>
           <p className="mt-2 text-sm text-th-text-secondary">
-            Spigen Brand Protection Platform
+            {t('login.subtitle')}
           </p>
         </div>
 
@@ -49,14 +53,22 @@ const LoginPage = () => {
               fill="#EA4335"
             />
           </svg>
-          Sign in with Google (@spigen.com)
+          {t('login.signIn')}
         </button>
 
         <p className="text-center text-xs text-th-text-muted">
-          Spigen 사내 계정만 접속 가능합니다
+          {t('login.restriction')}
         </p>
       </div>
     </div>
+  )
+}
+
+const LoginPage = () => {
+  return (
+    <I18nProvider>
+      <LoginContent />
+    </I18nProvider>
   )
 }
 

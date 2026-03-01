@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { MARKETPLACE_CODES, MARKETPLACES } from '@/constants/marketplaces'
 import { CAMPAIGN_FREQUENCIES } from '@/types/campaigns'
+import { useI18n } from '@/lib/i18n/context'
 
 type CampaignFormProps = {
   initialData?: {
@@ -32,6 +33,7 @@ const FREQUENCY_OPTIONS = CAMPAIGN_FREQUENCIES.map((f) => ({
 
 export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => {
   const router = useRouter()
+  const { t } = useI18n()
   const isEdit = !!campaignId
 
   const [loading, setLoading] = useState(false)
@@ -69,7 +71,7 @@ export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => 
 
     if (!res.ok) {
       const data = await res.json()
-      setError(data.error?.message ?? 'Failed to save campaign')
+      setError(data.error?.message ?? t('campaigns.form.failed'))
       setLoading(false)
       return
     }
@@ -88,7 +90,7 @@ export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => 
       )}
 
       <Input
-        label="Keyword"
+        label={t('campaigns.form.keyword')}
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
         placeholder="spigen case"
@@ -97,13 +99,13 @@ export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => 
 
       <div className="grid grid-cols-2 gap-4">
         <Select
-          label="Marketplace"
+          label={t('campaigns.form.marketplace')}
           value={marketplace}
           onChange={(e) => setMarketplace(e.target.value)}
           options={MARKETPLACE_OPTIONS}
         />
         <Select
-          label="Frequency"
+          label={t('campaigns.form.frequency')}
           value={frequency}
           onChange={(e) => setFrequency(e.target.value)}
           options={FREQUENCY_OPTIONS}
@@ -112,14 +114,14 @@ export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => 
 
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Start Date"
+          label={t('campaigns.form.startDate')}
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
           required
         />
         <Input
-          label="End Date (optional)"
+          label={t('campaigns.form.endDate')}
           type="date"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
@@ -127,7 +129,7 @@ export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => 
       </div>
 
       <Input
-        label="Max Pages"
+        label={t('campaigns.form.maxPages')}
         type="number"
         value={String(maxPages)}
         onChange={(e) => setMaxPages(Number(e.target.value))}
@@ -137,10 +139,10 @@ export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => 
 
       <div className="flex justify-end gap-3">
         <Button type="button" variant="ghost" onClick={() => router.back()}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button type="submit" loading={loading}>
-          {isEdit ? 'Update Campaign' : 'Create Campaign'}
+          {isEdit ? t('campaigns.form.update') : t('campaigns.form.create')}
         </Button>
       </div>
     </form>

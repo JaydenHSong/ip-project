@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { initTheme } from '@/lib/theme'
+import { I18nProvider } from '@/lib/i18n/context'
 import type { User } from '@/types/users'
 
 type AppLayoutProps = {
@@ -29,18 +30,20 @@ export const AppLayout = ({ user, children }: AppLayoutProps) => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-th-bg-secondary">
-      <Sidebar
-        userRole={user.role}
-        collapsed={sidebarCollapsed}
-        onToggle={handleToggleSidebar}
-      />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header user={user} />
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
+    <I18nProvider>
+      <div className="flex h-screen overflow-hidden bg-th-bg-secondary">
+        <Sidebar
+          userRole={user.role}
+          collapsed={sidebarCollapsed}
+          onToggle={handleToggleSidebar}
+        />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header user={user} />
+          <main className="flex-1 overflow-y-auto p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </I18nProvider>
   )
 }
