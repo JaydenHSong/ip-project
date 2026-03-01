@@ -51,7 +51,7 @@ export const Header = ({ user }: HeaderProps) => {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-th-border bg-surface-card px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-th-border bg-surface-card px-4 md:h-16 md:px-6">
       <div />
 
       <div className="flex items-center gap-3">
