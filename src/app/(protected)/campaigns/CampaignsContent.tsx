@@ -35,22 +35,23 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-th-text">{t('campaigns.title')}</h1>
+        <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('campaigns.title')}</h1>
         {canCreate && (
           <Link href="/campaigns/new">
-            <Button>{t('campaigns.newCampaign')}</Button>
+            <Button size="sm" className="md:hidden">{t('campaigns.newCampaign')}</Button>
+            <Button className="hidden md:inline-flex">{t('campaigns.newCampaign')}</Button>
           </Link>
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto">
         {statusFilters.map((s) => (
           <Link
             key={s.value}
             href={s.value ? `/campaigns?status=${s.value}` : '/campaigns'}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium ${
               statusFilter === s.value
                 ? 'bg-th-accent-soft text-th-accent-text'
                 : 'text-th-text-tertiary hover:bg-th-bg-hover'
@@ -61,7 +62,33 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-th-border">
+      {/* Mobile: card list */}
+      <div className="space-y-3 md:hidden">
+        {(!campaigns || campaigns.length === 0) ? (
+          <div className="rounded-lg border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
+            {t('campaigns.noCampaigns')}
+          </div>
+        ) : (
+          campaigns.map((campaign) => (
+            <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
+              <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
+                <div className="flex items-start justify-between">
+                  <p className="font-medium text-th-text">{campaign.keyword}</p>
+                  <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
+                </div>
+                <div className="mt-2 flex items-center gap-3 text-xs text-th-text-muted">
+                  <span>{MARKETPLACES[campaign.marketplace as MarketplaceCode]?.name ?? campaign.marketplace}</span>
+                  <span>{campaign.frequency}</span>
+                  <span>{new Date(campaign.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden overflow-hidden rounded-lg border border-th-border md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
@@ -76,9 +103,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
           <tbody className="divide-y divide-th-border">
             {(!campaigns || campaigns.length === 0) ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-th-text-muted">
-                  {t('campaigns.noCampaigns')}
-                </td>
+                <td colSpan={6} className="px-4 py-12 text-center text-th-text-muted">{t('campaigns.noCampaigns')}</td>
               </tr>
             ) : (
               campaigns.map((campaign) => (
@@ -96,9 +121,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                   <td className="px-4 py-3">
                     <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
                   </td>
-                  <td className="px-4 py-3 text-th-text-muted">
-                    {new Date(campaign.created_at).toLocaleDateString('ko-KR')}
-                  </td>
+                  <td className="px-4 py-3 text-th-text-muted">{new Date(campaign.created_at).toLocaleDateString()}</td>
                 </tr>
               ))
             )}

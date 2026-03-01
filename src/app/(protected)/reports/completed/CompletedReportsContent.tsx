@@ -33,8 +33,8 @@ export const CompletedReportsContent = ({ reports, statusFilter }: CompletedRepo
   ]
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-th-text">{t('reports.completedTitle')}</h1>
+    <div className="space-y-4 md:space-y-6">
+      <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.completedTitle')}</h1>
 
       <div className="flex gap-2 overflow-x-auto">
         {STATUS_TABS.map((tab) => (
@@ -52,7 +52,34 @@ export const CompletedReportsContent = ({ reports, statusFilter }: CompletedRepo
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-th-border">
+      {/* Mobile: card list */}
+      <div className="space-y-3 md:hidden">
+        {(!reports || reports.length === 0) ? (
+          <div className="rounded-lg border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
+            {t('reports.noCompleted')}
+          </div>
+        ) : (
+          reports.map((report) => (
+            <Link key={report.id} href={`/reports/${report.id}`}>
+              <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
+                <div className="flex items-start justify-between">
+                  <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
+                  <StatusBadge status={report.status as ReportStatus} type="report" />
+                </div>
+                <p className="mt-2 font-mono text-sm text-th-text">{report.listings?.asin ?? '—'}</p>
+                <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
+                <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
+                  <span>{report.sc_case_id ? `SC: ${report.sc_case_id}` : '—'}</span>
+                  <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden overflow-hidden rounded-lg border border-th-border md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">

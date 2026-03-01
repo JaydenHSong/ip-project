@@ -43,12 +43,12 @@ export const ReportsContent = ({
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-th-text">{t('reports.queueTitle')}</h1>
+        <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.queueTitle')}</h1>
         <Link
           href={`/reports?${disagreementFilter ? '' : 'disagreement=true'}`}
-          className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${
+          className={`rounded-lg border px-2 py-1 text-xs font-medium md:px-3 md:py-1.5 md:text-sm ${
             disagreementFilter
               ? 'border-st-warning-text/30 bg-st-warning-bg text-st-warning-text'
               : 'border-th-border text-th-text-tertiary hover:bg-th-bg-hover'
@@ -74,7 +74,40 @@ export const ReportsContent = ({
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-th-border">
+      {/* Mobile: card list */}
+      <div className="space-y-3 md:hidden">
+        {(!reports || reports.length === 0) ? (
+          <div className="rounded-lg border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
+            {t('reports.noReports')}
+          </div>
+        ) : (
+          reports.map((report) => (
+            <Link key={report.id} href={`/reports/${report.id}`}>
+              <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
+                    {report.disagreement_flag && <Badge variant="warning">!</Badge>}
+                  </div>
+                  <StatusBadge status={report.status as ReportStatus} type="report" />
+                </div>
+                <p className="mt-2 font-mono text-sm text-th-text">{report.listings?.asin ?? '—'}</p>
+                <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
+                <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
+                  <span>{report.listings?.seller_name ?? '—'}</span>
+                  <div className="flex items-center gap-2">
+                    {report.ai_confidence_score !== null && <span>AI: {report.ai_confidence_score}%</span>}
+                    <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden overflow-hidden rounded-lg border border-th-border md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
@@ -90,9 +123,7 @@ export const ReportsContent = ({
           <tbody className="divide-y divide-th-border">
             {(!reports || reports.length === 0) ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-th-text-muted">
-                  {t('reports.noReports')}
-                </td>
+                <td colSpan={7} className="px-4 py-12 text-center text-th-text-muted">{t('reports.noReports')}</td>
               </tr>
             ) : (
               reports.map((report) => (
@@ -116,9 +147,7 @@ export const ReportsContent = ({
                   <td className="px-4 py-3">
                     <StatusBadge status={report.status as ReportStatus} type="report" />
                   </td>
-                  <td className="px-4 py-3 text-th-text-muted">
-                    {new Date(report.created_at).toLocaleDateString()}
-                  </td>
+                  <td className="px-4 py-3 text-th-text-muted">{new Date(report.created_at).toLocaleDateString()}</td>
                 </tr>
               ))
             )}

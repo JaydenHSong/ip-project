@@ -30,6 +30,7 @@ export const ko = {
     darkMode: '다크 모드로 전환',
     notifications: '알림',
     demoMode: 'Demo Mode — 목업 데이터로 실행 중입니다',
+    more: '더보기',
   },
   login: {
     title: 'Sentinel',

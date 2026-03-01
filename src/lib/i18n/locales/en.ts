@@ -30,6 +30,7 @@ export const en = {
     darkMode: 'Switch to dark mode',
     notifications: 'Notifications',
     demoMode: 'Demo Mode — Running with mock data',
+    more: 'More',
   },
   login: {
     title: 'Sentinel',

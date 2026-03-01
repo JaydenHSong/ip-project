@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { MobileTabBar } from './MobileTabBar'
 import { initTheme } from '@/lib/theme'
 import { I18nProvider } from '@/lib/i18n/context'
 import type { User } from '@/types/users'
@@ -32,17 +33,22 @@ export const AppLayout = ({ user, children }: AppLayoutProps) => {
   return (
     <I18nProvider>
       <div className="flex h-screen overflow-hidden bg-th-bg-secondary">
-        <Sidebar
-          userRole={user.role}
-          collapsed={sidebarCollapsed}
-          onToggle={handleToggleSidebar}
-        />
+        {/* Desktop sidebar - hidden on mobile */}
+        <div className="hidden md:block">
+          <Sidebar
+            userRole={user.role}
+            collapsed={sidebarCollapsed}
+            onToggle={handleToggleSidebar}
+          />
+        </div>
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header user={user} />
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6">
             {children}
           </main>
         </div>
+        {/* Mobile tab bar */}
+        <MobileTabBar userRole={user.role} />
       </div>
     </I18nProvider>
   )
