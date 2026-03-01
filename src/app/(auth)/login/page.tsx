@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useI18n } from '@/lib/i18n/context'
 import { I18nProvider } from '@/lib/i18n/context'
+import { SpigenLogo } from '@/components/ui/SpigenLogo'
 
 const LoginContent = () => {
   const { t } = useI18n()
@@ -24,8 +25,9 @@ const LoginContent = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-th-bg-secondary">
       <div className="w-full max-w-md space-y-8 rounded-xl border border-th-border bg-surface-card p-8 shadow-lg">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-th-text">{t('login.title')}</h1>
+        <div className="flex flex-col items-center text-center">
+          <SpigenLogo className="h-10 w-9 text-th-accent" />
+          <h1 className="mt-3 text-3xl font-bold text-th-text">{t('login.title')}</h1>
           <p className="mt-2 text-sm text-th-text-secondary">
             {t('login.subtitle')}
           </p>

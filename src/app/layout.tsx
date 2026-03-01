@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Sentinel — Spigen Brand Protection',
   description: 'Amazon marketplace brand protection platform',
+  icons: {
+    icon: '/favicon.png',
+  },
 }
 
 const RootLayout = ({

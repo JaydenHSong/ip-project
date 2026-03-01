@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { SpigenLogo } from '@/components/ui/SpigenLogo'
 import {
   LayoutDashboard,
   Search,
@@ -10,7 +11,6 @@ import {
   BookOpen,
   Settings,
   ScrollText,
-  Shield,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react'
@@ -100,8 +100,8 @@ export const Sidebar = ({ userRole, collapsed, onToggle }: SidebarProps) => {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b border-th-sidebar-border px-4">
-        <Shield className="h-6 w-6 shrink-0 text-th-accent" />
+      <div className="flex h-16 items-center gap-2.5 border-b border-th-sidebar-border px-4">
+        <SpigenLogo className="h-7 w-6 shrink-0 text-th-accent" />
         {!collapsed && (
           <span className="text-lg font-bold text-th-text">Sentinel</span>
         )}
