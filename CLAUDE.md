@@ -17,7 +17,7 @@
 | Database / Auth / Storage | Supabase (PostgreSQL + Google OAuth + Storage) |
 | Crawler + SC 자동화 | Node.js + Playwright |
 | Chrome Extension | Manifest V3 |
-| AI 분석 엔진 | Anthropic Claude API (claude-opus-4-6) |
+| AI 분석 엔진 | Anthropic Claude API (Opus: 학습, Sonnet: 드래프트, Haiku: 모니터링) |
 | 작업 큐 / 스케줄링 | BullMQ |
 | 특허 데이터 동기화 | Monday.com GraphQL API (단방향, 하루 1회) |
 | 프록시 | Bright Data / Oxylabs |
@@ -46,7 +46,7 @@
 
 - **Campaign**: 키워드 + 기간 + 국가 + 빈도로 등록하는 자동 크롤링 단위
 - **Violation (V01~V19)**: 5카테고리 19개 위반 유형 체계
-- **Report Lifecycle**: Draft → Pending Review → Approved → Submitted → Monitoring → Resolved/Unresolved
+- **Report Lifecycle**: Draft → Review → Approve/Re-write → Submitted → Pending (AI 모니터링) → Done/Re-submitted
 - **Patent Registry**: Monday.com에서 동기화하는 Spigen 특허 데이터
 
 ## Development Workflow
@@ -131,6 +131,16 @@ extension/                # Sentinel Extension (Chrome Extension)
 - default export 지양 → named export 사용 (page.tsx 제외)
 - 하드코딩된 위반 유형 금지 → `constants/violations.ts`에서 관리
 - API 키/시크릿 코드에 직접 작성 금지 → 환경변수 사용
+
+## Notification (Stop Moments)
+
+작업 중 아래 상황이 발생하면 터미널 벨을 울려서 사용자에게 알린다:
+- 사용자 승인/확인이 필요할 때
+- 작업이 완료되었을 때
+- 에러가 발생하여 진행이 멈췄을 때
+- 긴 작업 (빌드, 배포 등) 이 끝났을 때
+
+벨 울리는 방법: 응답 텍스트에 `\a` (BEL character) 포함 또는 Bash로 `printf '\a'` 실행
 
 ## Reference Documents
 

@@ -1,69 +1,42 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-01T05:06:31.263Z",
+  "lastUpdated": "2026-03-01T07:17:18.407Z",
   "activeFeatures": [
-    "sentinel",
-    "demo",
-    "auth",
+    "extension",
     "IP project ",
-    "dashboard",
-    "campaigns",
-    "listings",
-    "reports",
-    "audit-logs",
-    "[id]",
     "layout",
     "ui",
-    "CampaignStats.tsx",
-    "completed",
     "login",
-    "new",
-    "CampaignForm.tsx"
+    "dashboard"
   ],
-  "primaryFeature": "sentinel",
+  "primaryFeature": "extension",
   "features": {
-    "sentinel": {
-      "phase": "report",
-      "phaseNumber": 8,
-      "matchRate": 97,
+    "extension": {
+      "phase": "plan",
+      "phaseNumber": 1,
+      "matchRate": null,
       "iterationCount": 0,
-      "requirements": [],
+      "requirements": [
+        "F06",
+        "F07",
+        "F08",
+        "F09"
+      ],
       "documents": {
-        "plan": "Sentinel_Project_Context.md",
-        "design": "docs/02-design/features/sentinel.design.md",
-        "analysis": "docs/03-analysis/sentinel.analysis.md",
-        "report": "docs/04-report/features/sentinel.report.md"
+        "plan": "docs/01-plan/features/extension.plan.md"
       },
       "timestamps": {
-        "started": "2026-02-27T00:00:00.000Z",
-        "lastUpdated": "2026-03-01T01:00:00.000Z"
+        "started": "2026-03-01T09:00:00.000Z",
+        "lastUpdated": "2026-03-01T09:00:00.000Z"
       }
     },
-    "demo": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
+    "sentinel": {
+      "phase": "archived",
+      "matchRate": 97,
       "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T00:03:36.584Z",
-        "lastUpdated": "2026-03-01T00:19:11.165Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/lib/demo/index.ts"
-    },
-    "auth": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T00:19:20.364Z",
-        "lastUpdated": "2026-03-01T00:19:20.364Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/lib/auth/session.ts"
+      "startedAt": "2026-02-27T00:00:00.000Z",
+      "archivedAt": "2026-03-01T08:00:00.000Z",
+      "archivedTo": "docs/archive/2026-03/sentinel/"
     },
     "IP project ": {
       "phase": "do",
@@ -73,88 +46,10 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-03-01T00:19:33.391Z",
-        "lastUpdated": "2026-03-01T03:42:42.308Z"
+        "started": "2026-03-01T07:10:23.001Z",
+        "lastUpdated": "2026-03-01T07:10:23.001Z"
       },
       "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/layout.tsx"
-    },
-    "dashboard": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T00:27:57.668Z",
-        "lastUpdated": "2026-03-01T04:19:41.140Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/dashboard/page.tsx"
-    },
-    "campaigns": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T00:28:20.770Z",
-        "lastUpdated": "2026-03-01T03:54:47.221Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/campaigns/page.tsx"
-    },
-    "listings": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T00:28:41.845Z",
-        "lastUpdated": "2026-03-01T00:28:41.845Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/listings/page.tsx"
-    },
-    "reports": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T00:30:47.479Z",
-        "lastUpdated": "2026-03-01T03:55:18.996Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/reports/page.tsx"
-    },
-    "audit-logs": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T00:31:05.203Z",
-        "lastUpdated": "2026-03-01T04:20:02.149Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/audit-logs/page.tsx"
-    },
-    "[id]": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T00:32:43.557Z",
-        "lastUpdated": "2026-03-01T03:58:00.128Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/reports/[id]/page.tsx"
     },
     "layout": {
       "phase": "do",
@@ -164,10 +59,10 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-03-01T01:23:41.513Z",
-        "lastUpdated": "2026-03-01T03:47:13.242Z"
+        "started": "2026-03-01T07:10:55.347Z",
+        "lastUpdated": "2026-03-01T07:11:57.806Z"
       },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/components/layout/Header.tsx"
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/components/layout/Sidebar.tsx"
     },
     "ui": {
       "phase": "do",
@@ -177,36 +72,10 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-03-01T03:47:39.199Z",
-        "lastUpdated": "2026-03-01T05:06:31.263Z"
+        "started": "2026-03-01T07:11:44.351Z",
+        "lastUpdated": "2026-03-01T07:11:44.351Z"
       },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/components/ui/Textarea.tsx"
-    },
-    "CampaignStats.tsx": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T03:52:20.063Z",
-        "lastUpdated": "2026-03-01T03:52:20.063Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/components/features/CampaignStats.tsx"
-    },
-    "completed": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T04:06:11.864Z",
-        "lastUpdated": "2026-03-01T04:06:11.864Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/reports/completed/page.tsx"
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/components/ui/SpigenLogo.tsx"
     },
     "login": {
       "phase": "do",
@@ -216,12 +85,12 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-03-01T04:20:11.520Z",
-        "lastUpdated": "2026-03-01T04:20:11.520Z"
+        "started": "2026-03-01T07:12:31.456Z",
+        "lastUpdated": "2026-03-01T07:12:34.088Z"
       },
       "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(auth)/login/page.tsx"
     },
-    "new": {
+    "dashboard": {
       "phase": "do",
       "phaseNumber": 3,
       "matchRate": null,
@@ -229,23 +98,10 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-03-01T04:21:40.139Z",
-        "lastUpdated": "2026-03-01T04:21:40.139Z"
+        "started": "2026-03-01T07:16:32.612Z",
+        "lastUpdated": "2026-03-01T07:17:18.407Z"
       },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/campaigns/new/page.tsx"
-    },
-    "CampaignForm.tsx": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-03-01T04:21:44.836Z",
-        "lastUpdated": "2026-03-01T04:21:44.836Z"
-      },
-      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/components/features/CampaignForm.tsx"
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/dashboard/DashboardContent.tsx"
     }
   },
   "pipeline": {
@@ -256,7 +112,7 @@
   "session": {
     "startedAt": "2026-02-28T07:40:00.000Z",
     "onboardingCompleted": true,
-    "lastActivity": "2026-03-01T05:06:31.263Z"
+    "lastActivity": "2026-03-01T07:17:18.407Z"
   },
   "history": [
     {
@@ -273,383 +129,97 @@
       "note": "Design v0.3 — 16 tables, 11 API groups, 3 components"
     },
     {
-      "timestamp": "2026-02-28T15:00:00.000Z",
-      "feature": "sentinel",
-      "phase": "report",
-      "action": "completed",
-      "note": "PDCA #1 Report — Plan+Design cycle"
-    },
-    {
-      "timestamp": "2026-02-28T16:00:00.000Z",
-      "feature": "sentinel",
-      "phase": "do",
-      "action": "started",
-      "note": "MS1 Phase A: DB Schema, Types, Constants, Auth"
-    },
-    {
-      "timestamp": "2026-02-28T22:30:00.000Z",
-      "feature": "sentinel",
-      "phase": "do",
-      "action": "updated",
-      "note": "Phase A complete — 22 files"
-    },
-    {
-      "timestamp": "2026-02-28T23:00:00.000Z",
-      "feature": "sentinel",
-      "phase": "check",
-      "action": "completed",
-      "note": "Phase A Gap Analysis: 97% (2 minor gaps fixed)"
-    },
-    {
-      "timestamp": "2026-02-28T23:15:00.000Z",
-      "feature": "sentinel",
-      "phase": "do",
-      "action": "updated",
-      "note": "Phase B complete — AppLayout + Listings API (3) + Campaigns API (8) + suspect-filter"
-    },
-    {
-      "timestamp": "2026-02-28T23:45:00.000Z",
-      "feature": "sentinel",
-      "phase": "check",
-      "action": "completed",
-      "note": "Phase A+B Gap Analysis: 96% (3 gaps fixed → 100%). MS1 progress 7/15 (47%)"
-    },
-    {
       "timestamp": "2026-03-01T00:00:00.000Z",
       "feature": "sentinel",
       "phase": "do",
-      "action": "updated",
-      "note": "Phase C complete — UI Components (12) + Campaign UI (5) + Reports API (7) + Reports UI (2) + Listings UI (2) + Audit Log (2) = 28 files"
+      "action": "completed",
+      "note": "Phase A/B/C complete — 66 files, 4886 LoC"
     },
     {
       "timestamp": "2026-03-01T00:30:00.000Z",
       "feature": "sentinel",
       "phase": "check",
       "action": "completed",
-      "note": "Phase A+B+C Gap Analysis: 97% (4 gaps fixed → 100%). MS1 progress 11/15 (73%)"
+      "note": "Match Rate 97%"
     },
     {
       "timestamp": "2026-03-01T01:00:00.000Z",
       "feature": "sentinel",
       "phase": "report",
       "action": "completed",
-      "note": "PDCA #2 Report — Plan+Design+Do(A/B/C)+Check cycle. 66 files, 4886 LoC, 148 items checked"
+      "note": "PDCA #2 Report — 66 files, 148 items checked"
     },
     {
-      "timestamp": "2026-03-01T00:03:36.584Z",
-      "feature": "demo",
-      "phase": "do",
-      "action": "updated"
+      "timestamp": "2026-03-01T08:00:00.000Z",
+      "feature": "sentinel",
+      "phase": "archived",
+      "action": "completed",
+      "note": "Archived to docs/archive/2026-03/sentinel/"
     },
     {
-      "timestamp": "2026-03-01T00:19:11.165Z",
-      "feature": "demo",
-      "phase": "do",
-      "action": "updated"
+      "timestamp": "2026-03-01T09:00:00.000Z",
+      "feature": "extension",
+      "phase": "plan",
+      "action": "completed",
+      "note": "Plan created — Chrome Extension (Manifest V3), F06~F09"
     },
     {
-      "timestamp": "2026-03-01T00:19:20.364Z",
-      "feature": "auth",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:19:33.391Z",
+      "timestamp": "2026-03-01T07:10:23.001Z",
       "feature": "IP project ",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-03-01T00:27:57.668Z",
-      "feature": "dashboard",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:28:20.770Z",
-      "feature": "campaigns",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:28:41.845Z",
-      "feature": "listings",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:30:47.479Z",
-      "feature": "reports",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:31:05.203Z",
-      "feature": "audit-logs",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:32:43.557Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:33:08.415Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:33:22.285Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:33:33.164Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:33:46.727Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T00:34:53.740Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T01:04:06.341Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T01:04:40.447Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T01:05:24.234Z",
-      "feature": "campaigns",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T01:05:46.477Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T01:23:41.513Z",
+      "timestamp": "2026-03-01T07:10:55.347Z",
       "feature": "layout",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-03-01T01:23:55.827Z",
+      "timestamp": "2026-03-01T07:11:14.678Z",
       "feature": "layout",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-03-01T03:39:10.346Z",
-      "feature": "IP project ",
+      "timestamp": "2026-03-01T07:11:44.351Z",
+      "feature": "ui",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-03-01T03:42:42.308Z",
-      "feature": "IP project ",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:43:10.641Z",
+      "timestamp": "2026-03-01T07:11:52.603Z",
       "feature": "layout",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-03-01T03:46:54.479Z",
+      "timestamp": "2026-03-01T07:11:57.806Z",
       "feature": "layout",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-03-01T03:47:13.242Z",
-      "feature": "layout",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:47:39.199Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:50:05.011Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:50:19.631Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:50:31.386Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:50:47.792Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:51:01.101Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:51:10.826Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:51:24.205Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:51:35.312Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:51:43.548Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:52:04.677Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:52:20.063Z",
-      "feature": "CampaignStats.tsx",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:54:21.132Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:54:47.221Z",
-      "feature": "campaigns",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:55:18.997Z",
-      "feature": "reports",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:55:58.423Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T03:58:00.128Z",
-      "feature": "[id]",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T04:06:11.864Z",
-      "feature": "completed",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T04:19:41.140Z",
-      "feature": "dashboard",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T04:20:02.149Z",
-      "feature": "audit-logs",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T04:20:11.520Z",
+      "timestamp": "2026-03-01T07:12:31.456Z",
       "feature": "login",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-03-01T04:21:40.139Z",
-      "feature": "new",
+      "timestamp": "2026-03-01T07:12:34.088Z",
+      "feature": "login",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-03-01T04:21:44.836Z",
-      "feature": "CampaignForm.tsx",
+      "timestamp": "2026-03-01T07:16:32.612Z",
+      "feature": "dashboard",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-03-01T04:22:11.400Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T05:06:30.361Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T05:06:30.948Z",
-      "feature": "ui",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-03-01T05:06:31.263Z",
-      "feature": "ui",
+      "timestamp": "2026-03-01T07:17:18.407Z",
+      "feature": "dashboard",
       "phase": "do",
       "action": "updated"
     }

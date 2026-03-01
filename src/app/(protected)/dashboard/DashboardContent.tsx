@@ -41,10 +41,10 @@ export const DashboardContent = ({ userName, stats, recentReports, activeCampaig
   const { t } = useI18n()
 
   const statItems = [
-    { label: t('dashboard.activeCampaigns'), value: stats.activeCampaigns, icon: Search, color: 'text-blue-400' },
-    { label: t('dashboard.pendingReports'), value: stats.pendingReports, icon: AlertTriangle, color: 'text-amber-400' },
-    { label: t('dashboard.collectedListings'), value: stats.totalListings, icon: FileText, color: 'text-emerald-400' },
-    { label: t('dashboard.resolutionRate'), value: stats.resolvedRate, icon: BarChart3, color: 'text-violet-400' },
+    { label: t('dashboard.activeCampaigns'), value: stats.activeCampaigns, icon: Search, color: 'text-blue-400', href: '/campaigns' },
+    { label: t('dashboard.pendingReports'), value: stats.pendingReports, icon: AlertTriangle, color: 'text-amber-400', href: '/reports' },
+    { label: t('dashboard.collectedListings'), value: stats.totalListings, icon: FileText, color: 'text-emerald-400', href: '/campaigns' },
+    { label: t('dashboard.resolutionRate'), value: stats.resolvedRate, icon: BarChart3, color: 'text-violet-400', href: '/reports/completed' },
   ]
 
   return (
@@ -66,13 +66,13 @@ export const DashboardContent = ({ userName, stats, recentReports, activeCampaig
         {statItems.map((stat) => {
           const Icon = stat.icon
           return (
-            <div key={stat.label} className="rounded-lg border border-th-border bg-surface-card p-3 md:p-6">
+            <Link key={stat.label} href={stat.href} className="rounded-lg border border-th-border bg-surface-card p-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover md:p-6">
               <div className="flex items-center gap-2">
                 <Icon className={`h-4 w-4 ${stat.color} md:h-5 md:w-5`} />
                 <p className="text-xs font-medium text-th-text-tertiary md:text-sm">{stat.label}</p>
               </div>
               <p className="mt-1.5 text-2xl font-bold text-th-text md:mt-2 md:text-3xl">{stat.value}</p>
-            </div>
+            </Link>
           )
         })}
       </div>
