@@ -40,4 +40,51 @@ const notifyDraftReady = async (
   await sendGoogleChatMessage(text)
 }
 
-export { sendGoogleChatMessage, notifyNewSubmission, notifyDraftReady }
+// 신고서 승인 알림 (MS2)
+const notifyApproved = async (
+  reportId: string,
+  asin: string,
+): Promise<void> => {
+  const text = [
+    `✅ *[Sentinel]* 신고서 승인됨`,
+    `Report: ${reportId} | ASIN: ${asin}`,
+    `→ SC 신고 제출이 가능합니다.`,
+  ].join('\n')
+  await sendGoogleChatMessage(text)
+}
+
+// 신고서 반려 알림 (MS2)
+const notifyRejected = async (
+  reportId: string,
+  asin: string,
+  reason: string,
+): Promise<void> => {
+  const text = [
+    `❌ *[Sentinel]* 신고서 반려됨`,
+    `Report: ${reportId} | ASIN: ${asin}`,
+    `사유: ${reason.slice(0, 100)}${reason.length > 100 ? '...' : ''}`,
+  ].join('\n')
+  await sendGoogleChatMessage(text)
+}
+
+// SC 접수 알림 (MS2)
+const notifySubmittedToSC = async (
+  reportId: string,
+  asin: string,
+): Promise<void> => {
+  const text = [
+    `📮 *[Sentinel]* SC 신고 접수됨`,
+    `Report: ${reportId} | ASIN: ${asin}`,
+    `→ Seller Central에 접수되었습니다.`,
+  ].join('\n')
+  await sendGoogleChatMessage(text)
+}
+
+export {
+  sendGoogleChatMessage,
+  notifyNewSubmission,
+  notifyDraftReady,
+  notifyApproved,
+  notifyRejected,
+  notifySubmittedToSC,
+}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Textarea'
 import { useI18n } from '@/lib/i18n/context'
+import { REJECTION_CATEGORIES } from '@/types/reports'
 
 type ReportActionsProps = {
   reportId: string
@@ -19,45 +20,147 @@ export const ReportActions = ({ reportId, status, userRole }: ReportActionsProps
   const [loading, setLoading] = useState<string | null>(null)
   const [showRewriteModal, setShowRewriteModal] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [showRejectModal, setShowRejectModal] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [cancelReason, setCancelReason] = useState('')
+  const [rejectionCategory, setRejectionCategory] = useState('')
+  const [rejectionReason, setRejectionReason] = useState('')
 
   const canAct = userRole === 'admin' || userRole === 'editor'
   if (!canAct) return null
 
   const handleApprove = async () => {
     setLoading('approve')
-    // Demo mode: just refresh
-    router.refresh()
-    setLoading(null)
+    try {
+      const res = await fetch(`/api/reports/${reportId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Approve failed')
+      }
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
   }
 
   const handleSubmitReview = async () => {
     setLoading('submitReview')
-    router.refresh()
-    setLoading(null)
+    try {
+      const res = await fetch(`/api/reports/${reportId}/submit-review`, {
+        method: 'POST',
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Submit failed')
+      }
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
   }
 
   const handleSubmitSC = async () => {
     setLoading('submitSC')
-    router.refresh()
-    setLoading(null)
+    try {
+      const res = await fetch(`/api/reports/${reportId}/submit-sc`, {
+        method: 'POST',
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Submit to SC failed')
+      }
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
   }
 
   const handleRewrite = async () => {
+    if (!feedback.trim()) return
     setLoading('rewrite')
-    router.refresh()
-    setLoading(null)
-    setShowRewriteModal(false)
-    setFeedback('')
+    try {
+      const res = await fetch('/api/ai/rewrite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          report_id: reportId,
+          feedback: feedback.trim(),
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Rewrite failed')
+      }
+      setShowRewriteModal(false)
+      setFeedback('')
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!rejectionCategory || !rejectionReason.trim()) return
+    setLoading('reject')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rejection_reason: rejectionReason.trim(),
+          rejection_category: rejectionCategory,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Reject failed')
+      }
+      setShowRejectModal(false)
+      setRejectionCategory('')
+      setRejectionReason('')
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
   }
 
   const handleCancel = async () => {
+    if (!cancelReason.trim()) return
     setLoading('cancel')
-    router.refresh()
-    setLoading(null)
-    setShowCancelModal(false)
-    setCancelReason('')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cancellation_reason: cancelReason.trim(),
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Cancel failed')
+      }
+      setShowCancelModal(false)
+      setCancelReason('')
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
   }
 
   return (
@@ -84,9 +187,34 @@ export const ReportActions = ({ reportId, status, userRole }: ReportActionsProps
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setShowRejectModal(true)}
+            >
+              {t('reports.detail.reject')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowRewriteModal(true)}
             >
               {t('reports.detail.rewrite')}
+            </Button>
+          </>
+        )}
+        {status === 'rejected' && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowRewriteModal(true)}
+            >
+              {t('reports.detail.rewrite')}
+            </Button>
+            <Button
+              size="sm"
+              loading={loading === 'submitReview'}
+              onClick={handleSubmitReview}
+            >
+              {t('reports.detail.submitReview')}
             </Button>
           </>
         )}
@@ -99,15 +227,18 @@ export const ReportActions = ({ reportId, status, userRole }: ReportActionsProps
             {t('reports.detail.submitSC')}
           </Button>
         )}
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => setShowCancelModal(true)}
-        >
-          {t('reports.detail.cancelReport')}
-        </Button>
+        {['draft', 'pending_review', 'approved'].includes(status) && (
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => setShowCancelModal(true)}
+          >
+            {t('reports.detail.cancelReport')}
+          </Button>
+        )}
       </div>
 
+      {/* Rewrite Modal */}
       <Modal
         open={showRewriteModal}
         onClose={() => setShowRewriteModal(false)}
@@ -134,6 +265,55 @@ export const ReportActions = ({ reportId, status, userRole }: ReportActionsProps
         </div>
       </Modal>
 
+      {/* Reject Modal */}
+      <Modal
+        open={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        title={t('reports.detail.reject')}
+      >
+        <fieldset className="mb-4 space-y-2">
+          <legend className="mb-2 text-sm font-medium text-th-text-secondary">
+            {t('reports.detail.rejectionCategory')}
+          </legend>
+          {REJECTION_CATEGORIES.map((cat) => (
+            <label key={cat} className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="rejection_category"
+                value={cat}
+                checked={rejectionCategory === cat}
+                onChange={(e) => setRejectionCategory(e.target.value)}
+                className="accent-th-accent"
+              />
+              <span className="text-sm text-th-text">
+                {t(`reports.detail.rejectionCategories.${cat}` as Parameters<typeof t>[0])}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <Textarea
+          label={t('reports.detail.rejectionReasonLabel')}
+          value={rejectionReason}
+          onChange={(e) => setRejectionReason(e.target.value)}
+          rows={3}
+        />
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowRejectModal(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            loading={loading === 'reject'}
+            disabled={!rejectionCategory || !rejectionReason.trim()}
+            onClick={handleReject}
+          >
+            {t('reports.detail.rejectConfirm')}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Cancel Modal */}
       <Modal
         open={showCancelModal}
         onClose={() => setShowCancelModal(false)}

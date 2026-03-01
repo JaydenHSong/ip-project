@@ -149,6 +149,18 @@ export const en = {
       cancelReason: 'Cancellation Reason',
       saveChanges: 'Save Changes',
       editing: 'Editing',
+      reject: 'Reject',
+      rejectConfirm: 'Reject Report',
+      rejectionCategory: 'Rejection Category',
+      rejectionReasonLabel: 'Rejection Reason (required)',
+      rejectionCategories: {
+        insufficient_evidence: 'Insufficient Evidence',
+        wrong_violation_type: 'Wrong Violation Type',
+        inaccurate_policy_reference: 'Inaccurate Policy Reference',
+        over_detection: 'Over Detection (False Positive)',
+        duplicate: 'Duplicate Report',
+        other: 'Other',
+      },
     },
   },
   auditLogs: {

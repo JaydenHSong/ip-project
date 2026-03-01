@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { notifyRejected } from '@/lib/notifications/google-chat'
-import type { RejectReportRequest } from '@/types/api'
+import { notifyDraftReady } from '@/lib/notifications/google-chat'
 
-// POST /api/reports/:id/reject — 반려
+// POST /api/reports/:id/submit-review — draft/rejected → pending_review
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -16,21 +15,12 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  const body = (await req.json()) as RejectReportRequest
-
-  if (!body.rejection_reason || !body.rejection_category) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: '반려 사유와 카테고리는 필수입니다.' } },
-      { status: 400 },
-    )
-  }
-
   const supabase = await createClient()
 
   // 현재 상태 확인
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('status, listing_id')
+    .select('status, draft_title, draft_body, listing_id, user_violation_type')
     .eq('id', id)
     .single()
 
@@ -41,26 +31,29 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  if (report.status !== 'draft' && report.status !== 'pending_review') {
+  const allowedStatuses = ['draft', 'rejected']
+  if (!allowedStatuses.includes(report.status)) {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: '반려할 수 없는 상태입니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: '검토 요청할 수 없는 상태입니다.' } },
       { status: 400 },
     )
   }
 
-  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!report.draft_title?.trim() || !report.draft_body?.trim()) {
+    return NextResponse.json(
+      { error: { code: 'VALIDATION_ERROR', message: '드래프트 제목과 본문이 필요합니다.' } },
+      { status: 400 },
+    )
+  }
 
   const { data, error } = await supabase
     .from('reports')
     .update({
-      status: 'rejected',
-      rejected_by: authUser!.id,
-      rejected_at: new Date().toISOString(),
-      rejection_reason: body.rejection_reason,
-      rejection_category: body.rejection_category,
+      status: 'pending_review',
+      updated_at: new Date().toISOString(),
     })
     .eq('id', id)
-    .select('id, status, rejected_at')
+    .select('id, status, updated_at')
     .single()
 
   if (error) {
@@ -77,7 +70,7 @@ export const POST = withAuth(async (req) => {
     .eq('id', report.listing_id)
     .single()
 
-  notifyRejected(id, listing?.asin ?? 'N/A', body.rejection_reason).catch(() => {})
+  notifyDraftReady(id, listing?.asin ?? 'N/A', report.user_violation_type).catch(() => {})
 
   return NextResponse.json(data)
 }, ['admin', 'editor'])

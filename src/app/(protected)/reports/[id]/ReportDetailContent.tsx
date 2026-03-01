@@ -56,9 +56,25 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
 
   const handleSave = async () => {
     setSaving(true)
-    // Demo mode: just refresh
-    router.refresh()
-    setSaving(false)
+    try {
+      const res = await fetch(`/api/reports/${report.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draft_title: editTitle,
+          draft_body: editBody,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Save failed')
+      }
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

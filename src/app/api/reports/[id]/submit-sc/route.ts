@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { notifyRejected } from '@/lib/notifications/google-chat'
-import type { RejectReportRequest } from '@/types/api'
+import { notifySubmittedToSC } from '@/lib/notifications/google-chat'
 
-// POST /api/reports/:id/reject — 반려
+// POST /api/reports/:id/submit-sc — approved → submitted
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -12,15 +11,6 @@ export const POST = withAuth(async (req) => {
   if (!id) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'ID가 필요합니다.' } },
-      { status: 400 },
-    )
-  }
-
-  const body = (await req.json()) as RejectReportRequest
-
-  if (!body.rejection_reason || !body.rejection_category) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: '반려 사유와 카테고리는 필수입니다.' } },
       { status: 400 },
     )
   }
@@ -41,26 +31,24 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  if (report.status !== 'draft' && report.status !== 'pending_review') {
+  if (report.status !== 'approved') {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: '반려할 수 없는 상태입니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'SC 접수는 승인된 신고만 가능합니다.' } },
       { status: 400 },
     )
   }
 
-  const { data: { user: authUser } } = await supabase.auth.getUser()
+  const now = new Date().toISOString()
 
   const { data, error } = await supabase
     .from('reports')
     .update({
-      status: 'rejected',
-      rejected_by: authUser!.id,
-      rejected_at: new Date().toISOString(),
-      rejection_reason: body.rejection_reason,
-      rejection_category: body.rejection_category,
+      status: 'submitted',
+      sc_submitted_at: now,
+      updated_at: now,
     })
     .eq('id', id)
-    .select('id, status, rejected_at')
+    .select('id, status, sc_submitted_at')
     .single()
 
   if (error) {
@@ -77,7 +65,7 @@ export const POST = withAuth(async (req) => {
     .eq('id', report.listing_id)
     .single()
 
-  notifyRejected(id, listing?.asin ?? 'N/A', body.rejection_reason).catch(() => {})
+  notifySubmittedToSC(id, listing?.asin ?? 'N/A').catch(() => {})
 
   return NextResponse.json(data)
-}, ['admin', 'editor'])
+}, ['admin'])

@@ -149,6 +149,18 @@ export const ko = {
       cancelReason: '취소 사유',
       saveChanges: '변경 저장',
       editing: '편집 중',
+      reject: '반려',
+      rejectConfirm: '신고 반려',
+      rejectionCategory: '반려 카테고리',
+      rejectionReasonLabel: '반려 사유 (필수)',
+      rejectionCategories: {
+        insufficient_evidence: '증거 불충분',
+        wrong_violation_type: '위반 유형 오류',
+        inaccurate_policy_reference: '정책 참조 부정확',
+        over_detection: '과잉 탐지 (거짓 양성)',
+        duplicate: '중복 신고',
+        other: '기타',
+      },
     },
   },
   auditLogs: {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { notifyApproved } from '@/lib/notifications/google-chat'
 import type { ApproveReportRequest } from '@/types/api'
 
 // POST /api/reports/:id/approve — 승인
@@ -21,7 +22,7 @@ export const POST = withAuth(async (req) => {
   // 현재 상태 확인
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('status, draft_body, draft_title')
+    .select('status, draft_body, draft_title, original_draft_body, listing_id')
     .eq('id', id)
     .single()
 
@@ -70,6 +71,30 @@ export const POST = withAuth(async (req) => {
       { error: { code: 'DB_ERROR', message: error.message } },
       { status: 500 },
     )
+  }
+
+  // 알림 (fire-and-forget)
+  const { data: listing } = await supabase
+    .from('listings')
+    .select('asin')
+    .eq('id', report.listing_id)
+    .single()
+
+  notifyApproved(id, listing?.asin ?? 'N/A').catch(() => {})
+
+  // Opus 학습 트리거 (fire-and-forget): 수정된 경우에만
+  const hasOriginal = !!report.original_draft_body
+  const bodyChanged = hasOriginal && report.original_draft_body !== report.draft_body
+  if (wasEdited || bodyChanged) {
+    const baseUrl = req.nextUrl.origin
+    fetch(`${baseUrl}/api/ai/learn`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: req.headers.get('cookie') ?? '',
+      },
+      body: JSON.stringify({ report_id: id }),
+    }).catch(() => {})
   }
 
   return NextResponse.json({ ...data, was_edited: wasEdited })

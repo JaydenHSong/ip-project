@@ -6,3 +6,4 @@
 | report-detail-ui | 97% | 2026-03-01 | analysis, report |
 | extension | 96% | 2026-03-01 | plan, design, analysis, report |
 | ai-analysis | 96% | 2026-03-01 | plan, design, analysis, report |
+| report-workflow | 100% | 2026-03-01 | plan, design, analysis, report |
