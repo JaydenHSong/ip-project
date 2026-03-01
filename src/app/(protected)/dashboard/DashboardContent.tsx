@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Shield, FileText, Search, BarChart3, Plus, AlertTriangle, ChevronRight } from 'lucide-react'
+import { FileText, Search, BarChart3, Plus, AlertTriangle, ChevronRight } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { isDemoMode } from '@/lib/demo'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -51,11 +51,7 @@ export const DashboardContent = ({ userName, stats, recentReports, activeCampaig
     <div className="space-y-4 md:space-y-6">
       {/* Greeting */}
       <div>
-        <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-th-accent md:h-6 md:w-6" />
-          <h1 className="text-lg font-bold text-th-text md:text-2xl">{t('dashboard.title')}</h1>
-        </div>
-        <p className="mt-1 text-sm text-th-text-secondary">
+        <p className="text-sm text-th-text-secondary md:text-base">
           {t('dashboard.greeting', { name: userName })}
         </p>
         {isDemoMode() && (
