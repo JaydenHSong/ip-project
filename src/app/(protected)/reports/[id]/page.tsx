@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/auth/session'
+import { getCurrentUser, hasRole } from '@/lib/auth/session'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_REPORTS } from '@/lib/demo/data'
 import { ReportDetailContent } from './ReportDetailContent'
@@ -65,11 +65,15 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
 
   if (!report) notFound()
 
+  const canEdit = hasRole(user, 'editor')
+
   return (
     <ReportDetailContent
       report={report}
       listing={listing}
       creatorName={creator?.name ?? null}
+      canEdit={canEdit}
+      userRole={user.role}
     />
   )
 }

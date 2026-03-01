@@ -1,10 +1,16 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
+import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/Textarea'
+import { Button } from '@/components/ui/Button'
+import { ReportActions } from './ReportActions'
 import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus } from '@/types/reports'
 
@@ -32,14 +38,33 @@ type ReportDetailContentProps = {
     seller_name: string | null
   } | null
   creatorName: string | null
+  canEdit: boolean
+  userRole: string
 }
 
-export const ReportDetailContent = ({ report, listing, creatorName }: ReportDetailContentProps) => {
+export const ReportDetailContent = ({ report, listing, creatorName, canEdit, userRole }: ReportDetailContentProps) => {
   const { t } = useI18n()
+  const router = useRouter()
+
+  const isDraftEditable = canEdit && (report.status === 'draft' || report.status === 'pending_review')
+
+  const [editTitle, setEditTitle] = useState(report.draft_title ?? '')
+  const [editBody, setEditBody] = useState(report.draft_body ?? '')
+  const [saving, setSaving] = useState(false)
+
+  const hasChanges = editTitle !== (report.draft_title ?? '') || editBody !== (report.draft_body ?? '')
+
+  const handleSave = async () => {
+    setSaving(true)
+    // Demo mode: just refresh
+    router.refresh()
+    setSaving(false)
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      {/* Header with back, title, status, and actions */}
+      <div className="flex flex-wrap items-center gap-3">
         <Link href="/reports" className="text-th-text-muted hover:text-th-text-secondary">
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -47,6 +72,14 @@ export const ReportDetailContent = ({ report, listing, creatorName }: ReportDeta
         </Link>
         <h1 className="text-2xl font-bold text-th-text">{t('reports.detail.title')}</h1>
         <StatusBadge status={report.status as ReportStatus} type="report" />
+        {isDraftEditable && (
+          <span className="rounded-full bg-th-accent-soft px-2 py-0.5 text-xs font-medium text-th-accent-text">
+            {t('reports.detail.editing')}
+          </span>
+        )}
+        <div className="ml-auto">
+          <ReportActions reportId={report.id} status={report.status} userRole={userRole} />
+        </div>
       </div>
 
       <Card>
@@ -121,23 +154,52 @@ export const ReportDetailContent = ({ report, listing, creatorName }: ReportDeta
         </Card>
       )}
 
-      {report.draft_title && (
+      {(report.draft_title || isDraftEditable) && (
         <Card>
           <CardHeader>
             <h2 className="font-semibold text-th-text">{t('reports.detail.reportDraft')}</h2>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div>
-              <p className="text-sm text-th-text-tertiary">{t('reports.detail.draftTitle')}</p>
-              <p className="mt-1 text-sm font-medium text-th-text">{report.draft_title}</p>
-            </div>
-            {report.draft_body && (
-              <div>
-                <p className="text-sm text-th-text-tertiary">{t('reports.detail.draftBody')}</p>
-                <div className="mt-1 rounded-lg bg-th-bg-tertiary p-4 text-sm text-th-text-secondary whitespace-pre-wrap">
-                  {report.draft_body}
+            {isDraftEditable ? (
+              <>
+                <Input
+                  label={t('reports.detail.draftTitle')}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+                <Textarea
+                  label={t('reports.detail.draftBody')}
+                  value={editBody}
+                  onChange={(e) => setEditBody(e.target.value)}
+                  rows={8}
+                />
+                {hasChanges && (
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      loading={saving}
+                      onClick={handleSave}
+                    >
+                      {t('reports.detail.saveChanges')}
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="text-sm text-th-text-tertiary">{t('reports.detail.draftTitle')}</p>
+                  <p className="mt-1 text-sm font-medium text-th-text">{report.draft_title}</p>
                 </div>
-              </div>
+                {report.draft_body && (
+                  <div>
+                    <p className="text-sm text-th-text-tertiary">{t('reports.detail.draftBody')}</p>
+                    <div className="mt-1 rounded-lg bg-th-bg-tertiary p-4 text-sm text-th-text-secondary whitespace-pre-wrap">
+                      {report.draft_body}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

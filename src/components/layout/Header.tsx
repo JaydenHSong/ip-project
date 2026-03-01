@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import { Bell, LogOut, ChevronDown, Sun, Moon, Globe } from 'lucide-react'
+import { SpigenLogo } from '@/components/ui/SpigenLogo'
 import { createClient } from '@/lib/supabase/client'
 import { getStoredTheme, toggleTheme } from '@/lib/theme'
 import { useI18n } from '@/lib/i18n/context'
@@ -52,7 +54,11 @@ export const Header = ({ user }: HeaderProps) => {
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-th-border bg-surface-card px-4 md:h-16 md:px-6">
-      <div />
+      <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
+        <SpigenLogo className="h-6 w-5 text-th-accent" />
+        <span className="text-lg font-bold text-th-text">Sentinel</span>
+      </Link>
+      <div className="hidden md:block" />
 
       <div className="flex items-center gap-3">
         {/* Language Toggle */}

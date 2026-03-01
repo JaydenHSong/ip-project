@@ -1,0 +1,155 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { withAuth } from '@/lib/auth/middleware'
+import { createClient } from '@/lib/supabase/server'
+import { VIOLATION_TYPES, VIOLATION_CATEGORIES } from '@/constants/violations'
+import type { SubmitReportRequest, SubmitReportResponse } from '@/types/api'
+
+const VALID_VIOLATION_CODES = new Set(Object.keys(VIOLATION_TYPES))
+const VALID_CATEGORIES = new Set(Object.keys(VIOLATION_CATEGORIES))
+const MAX_SCREENSHOT_BASE64_LENGTH = 3_000_000 // ~2.25MB decoded
+
+// POST /api/ext/submit-report — Extension에서 위반 제보 제출
+export const POST = withAuth(async (req, { user }) => {
+  const body = (await req.json()) as SubmitReportRequest
+  const { asin, marketplace, title, violation_type, violation_category } = body
+
+  // 필수 필드 검증
+  if (!asin || !marketplace || !title || !violation_type || !violation_category) {
+    return NextResponse.json(
+      { error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: asin, marketplace, title, violation_type, violation_category' } },
+      { status: 400 },
+    )
+  }
+
+  // 위반 유형 유효성 검증
+  if (!VALID_VIOLATION_CODES.has(violation_type)) {
+    return NextResponse.json(
+      { error: { code: 'VALIDATION_ERROR', message: `Invalid violation_type: ${violation_type}` } },
+      { status: 400 },
+    )
+  }
+
+  if (!VALID_CATEGORIES.has(violation_category)) {
+    return NextResponse.json(
+      { error: { code: 'VALIDATION_ERROR', message: `Invalid violation_category: ${violation_category}` } },
+      { status: 400 },
+    )
+  }
+
+  // 스크린샷 크기 제한
+  if (body.screenshot_base64 && body.screenshot_base64.length > MAX_SCREENSHOT_BASE64_LENGTH) {
+    return NextResponse.json(
+      { error: { code: 'PAYLOAD_TOO_LARGE', message: 'Screenshot exceeds 2MB limit' } },
+      { status: 413 },
+    )
+  }
+
+  const supabase = await createClient()
+
+  // 1. 기존 listing 조회 또는 새로 생성
+  const { data: existingListing } = await supabase
+    .from('listings')
+    .select('id')
+    .eq('asin', asin)
+    .eq('marketplace', marketplace)
+    .limit(1)
+    .single()
+
+  let listingId: string
+
+  if (existingListing) {
+    listingId = existingListing.id
+  } else {
+    const images = (body.images ?? []).map((url, i) => ({
+      url,
+      position: i,
+    }))
+
+    const { data: newListing, error: listingError } = await supabase
+      .from('listings')
+      .insert({
+        asin,
+        marketplace,
+        title,
+        seller_name: body.seller_name ?? null,
+        seller_id: body.seller_id ?? null,
+        images,
+        source: 'extension',
+      })
+      .select('id')
+      .single()
+
+    if (listingError || !newListing) {
+      return NextResponse.json(
+        { error: { code: 'DB_ERROR', message: listingError?.message ?? 'Failed to create listing' } },
+        { status: 500 },
+      )
+    }
+
+    listingId = newListing.id
+  }
+
+  // 2. 중복 신고 확인
+  const { data: duplicates } = await supabase
+    .from('reports')
+    .select('id')
+    .eq('listing_id', listingId)
+    .not('status', 'in', '("cancelled","resolved")')
+    .limit(1)
+
+  const isDuplicate = (duplicates?.length ?? 0) > 0
+
+  // 3. Report 생성
+  const { data: report, error: reportError } = await supabase
+    .from('reports')
+    .insert({
+      listing_id: listingId,
+      user_violation_type: violation_type,
+      violation_category,
+      status: 'draft',
+      created_by: user.id,
+      note: body.note ?? null,
+      source: 'extension',
+    })
+    .select('id')
+    .single()
+
+  if (reportError || !report) {
+    return NextResponse.json(
+      { error: { code: 'DB_ERROR', message: reportError?.message ?? 'Failed to create report' } },
+      { status: 500 },
+    )
+  }
+
+  // 4. 스크린샷 업로드 (있으면)
+  if (body.screenshot_base64) {
+    const base64Data = body.screenshot_base64.replace(/^data:image\/\w+;base64,/, '')
+    const buffer = Buffer.from(base64Data, 'base64')
+
+    const { error: uploadError } = await supabase.storage
+      .from('screenshots')
+      .upload(`${report.id}.png`, buffer, {
+        contentType: 'image/png',
+        upsert: true,
+      })
+
+    if (!uploadError) {
+      const { data: publicUrl } = supabase.storage
+        .from('screenshots')
+        .getPublicUrl(`${report.id}.png`)
+
+      await supabase
+        .from('reports')
+        .update({ screenshot_url: publicUrl.publicUrl })
+        .eq('id', report.id)
+    }
+  }
+
+  const response: SubmitReportResponse = {
+    report_id: report.id,
+    listing_id: listingId,
+    is_duplicate: isDuplicate,
+  }
+
+  return NextResponse.json(response, { status: 201 })
+}, ['admin', 'editor', 'viewer'])

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=360" />
+  <title>Sentinel</title>
+  <link rel="stylesheet" href="/assets/styles/popup.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="popup-header">
+    <div class="popup-header__brand">
+      <svg class="popup-header__logo" viewBox="0 0 24.8 28" fill="#F97316" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14,0c2.6,0,4.6,2.1,4.6,4.7S16.5,9.3,14,9.3c-2.6,0-4.7,2.1-4.7,4.7s2,4.8,4.7,4.8s4.6,2.1,4.6,4.6c0,2.6-2.1,4.6-4.6,4.6c-2.6,0-4.7-2.1-4.7-4.6c0-2.6-2.1-4.6-4.6-4.6l0,0c-2.6,0-4.6-2.1-4.6-4.7s2.1-4.6,4.7-4.6l0,0c2.6,0,4.6-2.1,4.6-4.7C9.3,2.1,11.4,0,14,0z"/>
+        <path d="M21,10.2c2.1,0,3.8,1.7,3.8,3.7c0,2.1-1.7,3.8-3.8,3.8s-3.7-1.7-3.7-3.8C17.2,11.9,18.9,10.2,21,10.2z"/>
+      </svg>
+      <span class="popup-header__title">Sentinel</span>
+    </div>
+    <img id="user-avatar" class="popup-header__avatar hidden" src="" alt="" />
+  </header>
+
+  <!-- Views -->
+  <main>
+    <div id="view-loading" class="view view--active">
+      <!-- LoadingView injected here -->
+    </div>
+    <div id="view-login" class="view">
+      <!-- LoginView injected here -->
+    </div>
+    <div id="view-form" class="view">
+      <!-- ReportFormView injected here -->
+    </div>
+    <div id="view-success" class="view">
+      <!-- SuccessView injected here -->
+    </div>
+  </main>
+
+  <script type="module" src="./popup.ts"></script>
+</body>
+</html>
