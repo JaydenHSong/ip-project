@@ -4,13 +4,35 @@
 # bkit internal
 .bkit/
 
+# Claude Code
+.claude/
+
+# Screenshots (reference only)
+Screenshot/
+
 # Environment
 .env
 .env.local
+.env.production.local
 
 # Dependencies
 node_modules/
 
+# Build
+.next/
+out/
+
 # IDE
 .vscode/
 .idea/
+
+# Debug
+npm-debug.log*
+pnpm-debug.log*
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts

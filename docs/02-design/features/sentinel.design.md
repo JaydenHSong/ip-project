@@ -4,7 +4,7 @@
 >
 > **Project**: Sentinel (센티널)
 > **Date**: 2026-02-28
-> **Status**: Draft
+> **Status**: Draft v0.3
 > **Planning Doc**: [Sentinel_Project_Context.md](../../../Sentinel_Project_Context.md)
 
 ---
@@ -242,8 +242,16 @@ CREATE TABLE campaign_listings (
 CREATE TABLE reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID NOT NULL REFERENCES listings(id),
-  violation_type TEXT NOT NULL
-    CHECK (violation_type ~ '^V[0-9]{2}$'),   -- V01~V19
+  -- 위반 유형 판단 (AI vs 사용자 불일치 처리 — D45)
+  user_violation_type TEXT NOT NULL
+    CHECK (user_violation_type ~ '^V[0-9]{2}$'),   -- 오퍼레이터/크롤러가 지정한 위반 유형
+  ai_violation_type TEXT
+    CHECK (ai_violation_type ~ '^V[0-9]{2}$'),     -- AI가 판정한 위반 유형
+  confirmed_violation_type TEXT
+    CHECK (confirmed_violation_type ~ '^V[0-9]{2}$'), -- Editor/Admin이 최종 확정한 위반 유형
+  violation_type TEXT GENERATED ALWAYS AS (
+    COALESCE(confirmed_violation_type, ai_violation_type, user_violation_type)
+  ) STORED,                                          -- 최종 위반 유형 (자동 산출)
   violation_category TEXT NOT NULL
     CHECK (violation_category IN (
       'intellectual_property',
@@ -252,6 +260,9 @@ CREATE TABLE reports (
       'selling_practice',
       'regulatory_safety'
     )),
+  disagreement_flag BOOLEAN GENERATED ALWAYS AS (
+    ai_violation_type IS NOT NULL AND user_violation_type != ai_violation_type
+  ) STORED,                                          -- AI vs 사용자 의견 불일치 자동 플래그
   status TEXT NOT NULL DEFAULT 'draft'
     CHECK (status IN (
       'draft',
@@ -341,6 +352,7 @@ CREATE INDEX idx_reports_status ON reports(status);
 CREATE INDEX idx_reports_listing ON reports(listing_id);
 CREATE INDEX idx_reports_violation ON reports(violation_type);
 CREATE INDEX idx_reports_created_by ON reports(created_by);
+CREATE INDEX idx_reports_disagreement ON reports(disagreement_flag) WHERE disagreement_flag = true;
 ```
 
 #### report_snapshots (팔로업 스냅샷)
@@ -472,16 +484,95 @@ CREATE INDEX idx_audit_created ON audit_logs(created_at);
 ```sql
 CREATE TABLE report_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  violation_type TEXT NOT NULL UNIQUE
+  violation_type TEXT NOT NULL
     CHECK (violation_type ~ '^V[0-9]{2}$'),
+  sub_type TEXT,                        -- 하위 분류 (Size Variation, Color Variation 등)
   template_title TEXT NOT NULL,
-  template_body TEXT NOT NULL,         -- 신고서 템플릿 본문 (변수 포함)
+  template_body TEXT NOT NULL,           -- 신고서 템플릿 본문 (변수 포함)
   policy_references JSONB DEFAULT '[]',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  sort_order INTEGER DEFAULT 0,
+  updated_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  UNIQUE (violation_type, sub_type)      -- 복합 유니크 키: 위반 유형 + 하위 분류
+);
+
+-- OMS 67개 템플릿 수용을 위한 복합 키 (G-01 해결)
+-- 예: V01 + 'Main Image' / V01 + 'Size Variation' 등 위반 유형당 복수 템플릿 가능
+CREATE INDEX idx_templates_violation ON report_templates(violation_type);
+```
+
+#### trademarks (Spigen 등록 상표 — D42)
+
+```sql
+CREATE TABLE trademarks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,                   -- 'Rugged Armor', 'Ultra Hybrid' 등
+  mark_type TEXT NOT NULL
+    CHECK (mark_type IN ('design_mark', 'standard_character', 'character_logo')),
+  registration_number TEXT,             -- 상표 등록 번호
+  country TEXT NOT NULL DEFAULT 'US',
+  image_url TEXT,                       -- 마크 이미지 (Design Mark용)
+  variations JSONB DEFAULT '[]',        -- 유사/변형 표기 배열 (AI 탐지용)
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_trademarks_name ON trademarks(name);
+```
+
+> **AI 활용**: AI 분석 시 trademarks 테이블을 프롬프트 컨텍스트로 주입하여 상표 침해(V01) 자동 탐지
+
+#### product_categories (제품 카테고리 — D41)
+
+```sql
+CREATE TABLE product_categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL UNIQUE,            -- 'Cell Phone Screen Protector', 'Case' 등
+  description TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
   updated_by UUID REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- 기존 OMS 13개 카테고리 초기 데이터
+INSERT INTO product_categories (name, sort_order) VALUES
+  ('GPS Screen Protector Foils (Auto, Smart Watch)', 1),
+  ('Golf Accessories', 2),
+  ('Game Console Screen Protector', 3),
+  ('Case', 4),
+  ('Cell Phone Screen Protector', 5),
+  ('Lens Protectors', 6),
+  ('Auto Screen Protector', 7),
+  ('Auto Accessories', 8),
+  ('EV Screen Protector', 9),
+  ('EV Accessories', 10),
+  ('Wearable', 11),
+  ('Others', 12);
+```
+
+#### oms_violation_mapping (기존 OMS 위반 유형 매핑 참조 — D41)
+
+> 마이그레이션용 참조 테이블. OMS 10개 유형 → Sentinel V01~V19 매핑
+
+```sql
+-- 참조용 (실제 테이블 생성 불필요, constants/violations.ts에서 관리)
+-- OMS: Variation (18t)      → V10 Variation 정책 위반
+-- OMS: Main Image (18t)     → V08 이미지 정책 위반
+-- OMS: Wrong Category (2t)  → V07 부정확한 상품 정보
+-- OMS: Review Violation (7t)→ V11 리뷰 조작, V12 리뷰 하이재킹
+-- OMS: Pre-announcement (3t)→ V07 부정확한 상품 정보 (리스팅 활성화 위반)
+-- OMS: Duplicate Listing (6t)→ V10 Variation 정책 위반 (중복 리스팅)
+-- OMS: Counterfeit (1t)     → V04 위조품 판매
+-- OMS: Trademark (3t)       → V01 상표권 침해
+-- OMS: Copyright (4t)       → V02 저작권 침해
+-- OMS: Other Concerns (5t)  → V05/V06/V07 (세분화)
+-- Monday.com Patent         → V03 특허 침해 (Sentinel로 통합)
 ```
 
 #### changelog_entries
@@ -588,6 +679,62 @@ CREATE POLICY "notifications_own" ON notifications FOR ALL USING (user_id = auth
 -- audit_logs: Admin만 읽기, INSERT는 서비스 롤
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "audit_admin_read" ON audit_logs FOR SELECT USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- system_configs: 모두 읽기, Admin만 수정 (G-03 해결)
+ALTER TABLE system_configs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "system_configs_select" ON system_configs FOR SELECT USING (true);
+CREATE POLICY "system_configs_update" ON system_configs FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- report_templates: 모두 읽기, Admin만 CUD (G-03 해결)
+ALTER TABLE report_templates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "templates_select" ON report_templates FOR SELECT USING (true);
+CREATE POLICY "templates_insert" ON report_templates FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "templates_update" ON report_templates FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "templates_delete" ON report_templates FOR DELETE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- trademarks: 모두 읽기, Admin만 CUD (G-03 해결)
+ALTER TABLE trademarks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "trademarks_select" ON trademarks FOR SELECT USING (true);
+CREATE POLICY "trademarks_insert" ON trademarks FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "trademarks_update" ON trademarks FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "trademarks_delete" ON trademarks FOR DELETE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- product_categories: 모두 읽기, Admin만 CUD (G-03 해결)
+ALTER TABLE product_categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "categories_select" ON product_categories FOR SELECT USING (true);
+CREATE POLICY "categories_insert" ON product_categories FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "categories_update" ON product_categories FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "categories_delete" ON product_categories FOR DELETE USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+
+-- changelog_entries: 모두 읽기, Admin만 작성 (G-03 해결)
+ALTER TABLE changelog_entries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "changelog_select" ON changelog_entries FOR SELECT USING (true);
+CREATE POLICY "changelog_insert" ON changelog_entries FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "changelog_update" ON changelog_entries FOR UPDATE USING (
   EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
 );
 ```
@@ -783,6 +930,83 @@ type AiAnalyzeResponse = {
 | PATCH | /api/notifications/:id/read | 읽음 처리 | Required | viewer+ |
 | POST | /api/notifications/read-all | 전체 읽음 | Required | viewer+ |
 
+#### Settings API (G-02 해결: 상표/카테고리 관리)
+
+| Method | Path | Description | Auth | Role |
+|--------|------|-------------|------|------|
+| GET | /api/settings/trademarks | 등록 상표 목록 | Required | viewer+ |
+| POST | /api/settings/trademarks | 상표 추가 | Required | admin |
+| PATCH | /api/settings/trademarks/:id | 상표 수정 | Required | admin |
+| DELETE | /api/settings/trademarks/:id | 상표 삭제 (soft) | Required | admin |
+| GET | /api/settings/categories | 제품 카테고리 목록 | Required | viewer+ |
+| POST | /api/settings/categories | 카테고리 추가 | Required | admin |
+| PATCH | /api/settings/categories/:id | 카테고리 수정 | Required | admin |
+| DELETE | /api/settings/categories/:id | 카테고리 삭제 (soft) | Required | admin |
+
+**GET /api/settings/trademarks**
+
+```typescript
+// Response
+type TrademarksListResponse = {
+  trademarks: Trademark[]
+}
+
+type Trademark = {
+  id: string
+  name: string
+  mark_type: 'design_mark' | 'standard_character' | 'character_logo'
+  registration_number: string | null
+  country: string
+  image_url: string | null
+  variations: string[]
+  is_active: boolean
+}
+```
+
+**POST /api/settings/trademarks**
+
+```typescript
+// Request
+type CreateTrademarkRequest = {
+  name: string
+  mark_type: 'design_mark' | 'standard_character' | 'character_logo'
+  registration_number?: string
+  country?: string          // default: 'US'
+  image_url?: string
+  variations?: string[]
+}
+```
+
+**GET /api/settings/categories**
+
+```typescript
+// Response
+type CategoriesListResponse = {
+  categories: ProductCategory[]
+}
+
+type ProductCategory = {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  sort_order: number
+  is_active: boolean
+}
+```
+
+**POST /api/settings/categories**
+
+```typescript
+// Request
+type CreateCategoryRequest = {
+  name: string
+  slug: string
+  description?: string
+  sort_order?: number
+}
+```
+
 #### System API
 
 | Method | Path | Description | Auth | Role |
@@ -865,6 +1089,129 @@ type AiAnalyzeResponse = {
 | Input | src/components/ui/ | 공통 입력 필드 |
 | Modal | src/components/ui/ | 공통 모달 |
 | DataTable | src/components/ui/ | 공통 테이블 (정렬/필터/페이징) |
+
+### 5.4 Extension UI Design (Sentinel Extension — D47)
+
+#### 플로팅 버튼
+- amazon.com 도메인에서만 활성화
+- 우측 하단 고정 위치, Sentinel 아이콘
+- 클릭 시 팝업 오픈
+
+#### 팝업 구조
+
+```
+┌─────────────────────────────┐
+│  🛡️ Sentinel Violation Report │
+│                               │
+│  [자동 캡처 정보]              │
+│  ASIN: B0G91HMY4Z             │
+│  상품명: (자동 파싱)            │
+│  Seller: (자동 파싱)           │
+│  스크린샷: 자동 캡처 ✓          │
+│                               │
+│  위반 유형 선택 *              │
+│  ┌───────────────────────┐   │
+│  │ ▼ 5카테고리 그룹 선택   │   │
+│  │  지식재산권 (V01~V04)  │   │
+│  │  리스팅콘텐츠 (V05~V10)│   │
+│  │  리뷰조작 (V11~V13)    │   │
+│  │  판매행위 (V14~V16)    │   │
+│  │  규제안전 (V17~V19)    │   │
+│  └───────────────────────┘   │
+│                               │
+│  메모 (선택)                   │
+│  ┌───────────────────────┐   │
+│  │                       │   │
+│  └───────────────────────┘   │
+│                               │
+│  ⚠️ 동일 ASIN 기존 신고 있음!  │ ← 중복 체크 (F26)
+│                               │
+│  [Cancel]        [📤 Report]  │
+└─────────────────────────────┘
+```
+
+#### Report 완료 후 AI 미리보기
+
+```
+┌──────────────────────────────┐
+│ 제보 완료!                     │
+│                               │
+│ 🤖 AI 분석 미리보기:           │
+│  AI 판단: Main Image (92%)    │
+│  👤 내 선택: Variation         │
+│  ⚠️ 의견 불일치               │
+│  → Editor 리뷰에서 확정됩니다  │
+│                               │
+│  [내 제보 상태 확인 →]         │
+└──────────────────────────────┘
+```
+
+#### Extension → Web API 통신
+
+```typescript
+// extension/src/lib/api-client.ts
+
+type SubmitReportRequest = {
+  asin: string
+  marketplace: string
+  title: string
+  seller_name?: string
+  seller_id?: string
+  images: { url: string; position: number }[]
+  user_violation_type: string  // V01~V19
+  note?: string
+  screenshot_base64?: string   // 자동 캡처된 스크린샷
+  source: 'extension'
+}
+
+type SubmitReportResponse = {
+  listing_id: string
+  report_id: string
+  is_duplicate: boolean
+  existing_report_id?: string  // 중복 시 기존 신고 ID
+  ai_preview?: {               // AI 미리보기 (비동기 처리 후)
+    ai_violation_type: string
+    ai_confidence: number
+    disagreement: boolean
+  }
+}
+```
+
+### 5.5 Reports Page — 불일치 표시 UI (D45)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  신고 대기열                                                   │
+│                                                               │
+│  [필터: 전체 ▼] [의견 불일치만 ☐] [상태: 전체 ▼]              │
+│                                                               │
+│  #27449  Variation  ⚠️ 불일치  US  ASIN: B0G91HMY4Z          │
+│          👤 Trademark → 🤖 Variation (85%)  Requested         │
+│                                                               │
+│  #27336  Pre-announcement  ✓ 일치  CA  ASIN: B0G91HMY4Z     │
+│          👤 V07 = 🤖 V07 (92%)             Submitted          │
+│                                                               │
+│  (불일치 건은 ⚠️ 배지 + 상단 정렬)                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 불일치 상세 (ReportDetail 패널)
+
+```
+┌─────────────────────────────────────────┐
+│  위반 유형 판정                            │
+│  ┌─────────────────────────────────────┐│
+│  │ 👤 사용자: Trademark (V01)          ││
+│  │ 🤖 AI:    Variation (V10) — 85%     ││
+│  │ ⚠️ 의견 불일치                      ││
+│  │                                     ││
+│  │ [✓ 사용자 판단 채택] [✓ AI 판단 채택] ││
+│  │ 또는 직접 선택: [위반유형 ▼]         ││
+│  └─────────────────────────────────────┘│
+│                                          │
+│  → 선택 시 confirmed_violation_type 저장  │
+└─────────────────────────────────────────┘
+```
 
 ---
 
@@ -1194,3 +1541,4 @@ NEXT_PUBLIC_APP_URL=https://sentinel.spigen.com
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
 | 0.1 | 2026-02-28 | Initial draft — 전체 시스템 설계 | Claude |
+| 0.2 | 2026-02-28 | OMS 분석 반영 — AI vs 사용자 불일치 처리 (D45), 상표 테이블 (D42), 제품 카테고리 (D41), OMS 위반 유형 매핑, Extension UI 설계, 불일치 UI | Claude |

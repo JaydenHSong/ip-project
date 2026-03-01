@@ -3,7 +3,7 @@
 > **이 문서는 프로젝트의 모든 배경, 결정사항, 맥락을 담고 있습니다.**
 > 새로운 Claude 세션, 팀원, 또는 외부 개발자가 이 문서를 읽으면 프로젝트를 이어갈 수 있습니다.
 >
-> 최종 업데이트: 2026-02-27
+> 최종 업데이트: 2026-02-28
 
 ---
 
@@ -41,6 +41,109 @@
 - 사람의 눈으로는 모든 리스팅 커버 불가능 → 위반 사례 누락
 - 담당자마다 다른 형식과 품질 → 비표준화된 신고
 - 신고 이력/결과 추적 체계 없음
+
+### 기존 시스템 분석: OMS (oms.spigen.com)
+
+> Sentinel은 기존 **OMS (Order Management System) 내 Violation Report 기능**을 대체/발전시키는 시스템입니다.
+> 기존 OMS와 Monday.com에 분산되어 있던 신고 도구를 **Sentinel 하나로 통합**합니다.
+
+#### 기존 신고 도구 분산 현황 (AS-IS)
+
+| 도구 | 담당 위반 유형 | 한계 |
+|------|--------------|------|
+| **OMS** (oms.spigen.com) | Trademark, Copyright, 기타 Policy 위반 | AI 분석 없음, 수동 판단, 템플릿 기반 수동 작성 |
+| **Monday.com** | Patent (특허 침해) 전용 | 별도 관리, OMS와 데이터 연동 없음, 이력 추적 분리 |
+
+**Sentinel 통합 효과 (TO-BE)**: OMS의 Trademark/Copyright/Policy 신고 + Monday.com의 Patent 신고를 **단일 플랫폼에서 AI 기반으로 통합 관리**
+
+#### OMS Violation Report 기능 상세
+
+**메인 화면 (리포트 리스트)**
+- 탭 구성: All Reports / My Reports / Archived
+- 테이블 컬럼: Report No, Status, Channel (US/CA 등 국기 아이콘), Violation Type, Category, ASIN, Seller Name, No of Attempt (신고 시도 횟수), Requested By, Requested Date, Last Updated Date, Closed Date, Last Edited By
+- 상태 값: Submitted, Closed, Cancelled, Requested
+- 부가 기능: Outdated Reports 체크박스 필터, 검색
+
+**신고서 상세 (좌측 리스트 + 우측 슬라이드 패널)**
+- 3탭 구성: Report / Files / Activity Log
+- Report 탭: Violated Items (이미지+이름+ASIN), Case IDs, Case Account Assign (이메일), Category, Specify the case, Case Template (위반 유형별 신고 문구), Seller's Name, Product Detail Page URL, Explain in detail (상세 설명)
+- Files 탭: 이미지 업로드 (JPG/JPEG/PNG, 15MB 제한)
+- Activity Log 탭: 누가 언제 생성/수정했는지 이력
+
+**리포트 생성 (모달)**
+- 필수 필드: Violation Type, Channel (국가, 국기 아이콘), Product ASIN or URL
+- 선택 필드: Note (메모)
+
+**액션 버튼**
+- Set as Submitted, Cancel Report, Close Report, Archive Report
+
+**Settings (3탭)**
+- Schedule 탭: Daily/Weekly 설정, 시간대 최대 3개 선택
+- Categories 탭: 13개 제품 카테고리 관리
+- Type & Templates 탭: 위반 유형별 신고 템플릿 관리
+
+**OMS Chrome Extension**
+- 아마존 상품 페이지에서 직접 위반 유형 선택 + 추가 메모 + Report 버튼으로 즉시 신고
+
+#### OMS 위반 유형 (기존 10개)
+
+| # | OMS 위반 유형 | 템플릿 수 |
+|---|-------------|----------|
+| 1 | Variation | 18 |
+| 2 | Main Image | 18 |
+| 3 | Wrong Category | 2 |
+| 4 | Review Violation | 7 |
+| 5 | Pre-announcement Listing | 3 |
+| 6 | Duplicate Listing | 6 |
+| 7 | Counterfeit | 1 |
+| 8 | Trademark Infringement | 3 |
+| 9 | Copyright Infringement | 4 |
+| 10 | Other Concerns | 5 |
+
+> 총 67개 템플릿이 위반 유형별로 미리 정의되어 있음. Sentinel에서는 AI가 이 템플릿을 참조하되, **실제 리스팅 데이터 기반으로 맞춤형 신고서를 자동 생성**
+
+#### Spigen 제품 카테고리 (기존 OMS 13개)
+
+| # | 카테고리 |
+|---|---------|
+| 1 | GPS Screen Protector Foils |
+| 2 | Golf Accessories |
+| 3 | Game Console Screen Protector |
+| 4 | Case |
+| 5 | Cell Phone Screen Protector |
+| 6 | Lens Protectors |
+| 7 | Auto Screen Protector |
+| 8 | Auto Accessories |
+| 9 | EV Screen Protector |
+| 10 | EV Accessories |
+| 11 | Wearable |
+| 12 | Others |
+
+> Sentinel에서도 이 카테고리를 유지하며, Campaign 설정 및 AI 분석 프롬프트에서 제품군 맥락 정보로 활용
+
+#### OMS UX 패턴 및 Sentinel 계승/개선 포인트
+
+| OMS 패턴 | Sentinel 계승 | Sentinel 개선 |
+|---------|-------------|-------------|
+| 좌측 리스트 + 우측 슬라이드 패널 | 유지 (익숙한 UX 유지) | 패널 내 AI 분석 결과 탭 추가 |
+| 3탭 (Report/Files/Activity Log) | 유지 | AI Analysis 탭 추가 (4탭) |
+| 수동 Case Template 선택 | 참조용으로 유지 | AI가 자동 생성, 템플릿은 참고 자료 |
+| No of Attempt 컬럼 | 유지 | AI 강화 재신고 기능과 연계 |
+| Channel 국기 아이콘 | 유지 | 다국가 확장 시 국가 추가 |
+| Outdated Reports 필터 | 유지 | 팔로업 모니터링과 자동 연계 |
+| Activity Log | 유지 | 감사 로그(F27)와 통합 강화 |
+
+#### OMS 제약사항 (Sentinel이 해결하는 문제)
+
+| 제약사항 | Sentinel 해결 방안 |
+|---------|------------------|
+| AI 분석 없음 — 사람이 모든 위반을 직접 판단 | Claude AI가 위반 판단 + 신고서 드래프트 자동 생성 |
+| 수동 템플릿 선택 — 67개 템플릿 중 직접 골라 채우기 | AI가 리스팅 데이터 기반 맞춤형 신고서 자동 작성 |
+| OMS + Monday.com 분리 — 특허 신고는 별도 도구 | Sentinel 하나로 통합 (Monday.com은 특허 SSOT로만 유지) |
+| 자동 크롤링 없음 — 리스팅 수집은 전적으로 수동 | 키워드 캠페인 기반 자동 크롤링 + AI 필터링 |
+| 신고 성공률 최적화 없음 | AI가 정책 인용, 증거 기반, 고객 피해 관점으로 최적화 |
+| 팔로업 모니터링 없음 — 신고 후 결과 수동 확인 | 자동 재방문 + 변화 감지 + 인앱 알림 |
+| 재신고 자동화 없음 | AI 강화 재신고서 자동 생성 (에스컬레이션 톤 조절) |
 
 ### 모니터링 대상
 - **마켓플레이스**: Amazon 여러 국가 (US, UK, JP 등)
@@ -104,6 +207,52 @@
 | V18 | **안전 인증 미비 (Safety Compliance)** | 필수 안전 인증(CE, FCC, UL 등) 없이 판매 | 사람 확인 |
 | V19 | **유통기한 위반 (Expiration Violations)** | 만료되었거나 곧 만료될 제품 판매 | 상품 정보 확인 |
 
+#### Sentinel V01~V19 ↔ 기존 OMS 위반 유형 매핑
+
+> Sentinel의 19개 위반 유형은 기존 OMS 10개 유형을 **확장 및 세분화**한 것입니다.
+> 기존 OMS 사용자가 Sentinel으로 전환할 때 혼란을 최소화하기 위해 매핑을 명시합니다.
+
+| Sentinel 코드 | Sentinel 위반 유형 | 기존 OMS 유형 | 비고 |
+|-------------|------------------|-------------|------|
+| V01 | 상표권 침해 | Trademark Infringement (3 templates) | 1:1 매핑 |
+| V02 | 저작권 침해 | Copyright Infringement (4 templates) | 1:1 매핑 |
+| V03 | 특허 침해 | *(Monday.com 별도 관리)* | OMS에 없었음 — Monday.com에서 이관 |
+| V04 | 위조품 판매 | Counterfeit (1 template) | 1:1 매핑 |
+| V05 | 허위/과장 문구 | Other Concerns 일부 | OMS에서는 기타로 분류됨 → Sentinel에서 독립 |
+| V06 | 금지 키워드 사용 | Other Concerns 일부 | OMS에서는 기타로 분류됨 → Sentinel에서 독립 |
+| V07 | 부정확한 상품 정보 | Other Concerns 일부 | OMS에서는 기타로 분류됨 → Sentinel에서 독립 |
+| V08 | 이미지 정책 위반 | Main Image (18 templates) | 1:1 매핑 (템플릿 풍부) |
+| V09 | 타이틀 정책 위반 | *(없음)* | Sentinel 신규 — 아마존 정책 강화 대응 |
+| V10 | Variation 정책 위반 | Variation (18 templates) | 1:1 매핑 (Size/Color Variation 포함) |
+| V11 | 리뷰 조작 | Review Violation (7 templates) | 1:1 매핑 |
+| V12 | 리뷰 하이재킹 | Review Violation 일부 | OMS에서는 Review Violation에 포함 → Sentinel에서 분리 |
+| V13 | 경쟁사 리뷰 악용 | *(없음)* | Sentinel 신규 |
+| V14 | 비인가 판매자 | *(없음)* | Sentinel 신규 |
+| V15 | 리스팅 하이재킹 | Duplicate Listing (6 templates) | OMS Duplicate ≈ Sentinel Hijacking + 중복 |
+| V16 | 가격 조작 | *(없음)* | Sentinel 신규 |
+| V17 | 제한 상품 판매 | Wrong Category (2 templates) | 유사 개념 — Sentinel에서 범위 확장 |
+| V18 | 안전 인증 미비 | *(없음)* | Sentinel 신규 |
+| V19 | 유통기한 위반 | *(없음)* | Sentinel 신규 |
+| — | *(해당 없음)* | Pre-announcement Listing (3 templates) | Sentinel에서는 V07(부정확한 상품 정보) 또는 별도 판단 |
+
+> **요약**: OMS 10개 → Sentinel 19개로 확장. 기존 OMS "Other Concerns" (5 templates)에 뭉뚱그려진 유형들을 V05, V06, V07로 세분화. Monday.com의 Patent를 V03으로 통합. Pre-announcement Listing은 V07 범주로 흡수.
+
+#### 기존 OMS 템플릿 시스템과 Sentinel AI 신고서의 관계
+
+> OMS에는 위반 유형별로 총 **67개 신고 템플릿**이 미리 정의되어 있습니다.
+> Sentinel에서는 이 템플릿을 다음과 같이 활용합니다.
+
+| 항목 | OMS (기존) | Sentinel (신규) |
+|------|----------|---------------|
+| 신고서 작성 | 사람이 템플릿 선택 → 필드 수동 입력 | **AI가 자동 생성** (템플릿 참조 + 실제 데이터 조합) |
+| 템플릿 역할 | 신고서의 **주요 틀** (사람이 채움) | AI 프롬프트의 **참고 자료** (AI가 최적화) |
+| 템플릿 관리 | Settings > Type & Templates | Admin이 관리 (F29), AI 프롬프트에 주입 |
+| 맞춤화 | 사람이 "Explain in detail" 필드에 수동 작성 | AI가 리스팅별 구체적 증거 기반 맞춤 서술 |
+| 성공률 최적화 | 없음 | AI가 승인/반려/수정 피드백을 학습하여 점진 향상 |
+
+> **이행 전략**: 기존 67개 OMS 템플릿을 Sentinel DB에 마이그레이션하여 AI 프롬프트 컨텍스트로 활용.
+> Admin은 템플릿을 수정/추가할 수 있으며, AI는 해당 템플릿 + 과거 성공 사례를 참조하여 신고서를 생성.
+
 #### 주요 금지 키워드/문구 목록 (Restricted Keywords Reference)
 
 탐지 시스템에서 플래그로 사용할 수 있는 금지/의심 키워드:
@@ -154,6 +303,46 @@
 | V17 제한 상품 판매 | 카테고리별 규제 확인 필요 |
 | V18 안전 인증 미비 | 인증서 존재 여부 확인 필요 |
 | V19 유통기한 위반 | 상품 상세 확인 필요 |
+
+### Spigen 등록 상표 레지스트리 (Trademark Registry)
+
+> PDF 교육자료 "PV / IP Violation for Tesla EV" 기반.
+> AI 분석 엔진이 V01(상표권 침해) 판단 시 이 목록을 참조합니다.
+
+#### Spigen 등록 상표명 (Registered Trademarks)
+
+| # | 상표명 | 카테고리 |
+|---|--------|---------|
+| 1 | Rugged Armor | 케이스 시리즈 |
+| 2 | Tough Armor | 케이스 시리즈 |
+| 3 | Thin Fit | 케이스 시리즈 |
+| 4 | Ultra Hybrid | 케이스 시리즈 |
+| 5 | Liquid Crystal | 케이스 시리즈 |
+| 6 | EZ FIT | 액세서리/부착 기술 |
+| 7 | Flip Armor | 케이스 시리즈 |
+| 8 | Retro Fit | 케이스 시리즈 |
+| 9 | Mag Fit | 케이스 시리즈 (MagSafe 호환) |
+| 10 | Air Cushion | 보호 기술 |
+
+> **TODO**: 전체 등록 상표 목록은 Spigen 법무팀/IP팀에서 확인 필요. 위 목록은 교육자료 기반 일부이며, 실제 등록 상표는 더 많을 수 있음.
+
+#### Spigen 상표 유형 (3가지 마크 형태)
+
+| 마크 유형 | 설명 | AI 탐지 방법 |
+|---------|------|-------------|
+| **Design Mark** | 로고/도형 상표 (시각적 디자인) | Claude Vision 이미지 분석으로 유사 로고 탐지 |
+| **Standard Character** | 문자열 상표 (텍스트 기반) | 리스팅 텍스트에서 키워드 매칭 |
+| **Character Logo** | 문자+디자인 결합 상표 | 이미지 + 텍스트 복합 분석 |
+
+#### AI 상표 침해 탐지 활용 방법
+
+1. **텍스트 매칭**: 리스팅 제목/설명/Bullet Points에서 Spigen 등록 상표명 검출
+2. **이미지 분석**: Claude Vision으로 리스팅 이미지에서 Spigen 로고/디자인 마크 유사도 판단
+3. **변형 탐지**: 상표명 변형 사용 탐지 (예: "Rugged Armour", "ToughArmor", "Thin-Fit" 등 의도적 변형)
+4. **맥락 판단**: 단순 언급(호환성 표기)과 침해(브랜드 사칭) 구분 — AI가 문맥 기반 판단
+
+> 등록 상표 목록은 Admin이 Sentinel Web Settings에서 관리 (추가/수정/삭제).
+> 상표 데이터 변경 시 AI 프롬프트에 자동 반영.
 
 ### Spigen 특허 레지스트리 (Patent Registry)
 
@@ -208,13 +397,38 @@ Sentinel DB (특허 레지스트리 테이블)
 - 기존: 키워드 플래그 → 사람이 판단 → 사람이 신고서 작성
 - 변경: 키워드 플래그 + **AI가 판단 + 신고서 작성** → 사람은 승인만
 
+#### AI 분석 기반 지식 체계
+
+> AI 분석 엔진이 참조하는 2가지 핵심 지식: **Amazon Policy 5가지** + **Spigen IP 3대 축**
+
+**Amazon Policy 5가지 (AI 프롬프트 내장)**
+
+| # | 정책 | 핵심 규칙 | 관련 Sentinel 위반 유형 |
+|---|------|----------|----------------------|
+| 1 | Main Image | 흰색 배경, 판매 제품만 표시, 텍스트/워터마크/그래픽 금지 | V08 |
+| 2 | Variation | 관련 제품만 묶기 (Size/Color), 무관한 제품 조합 금지 | V10 |
+| 3 | Category | 올바른 카테고리에 등록 | V17 |
+| 4 | Listing Activation Date | 디바이스 공식 발표 후에만 리스팅 활성화 | V07 (Pre-announcement) |
+| 5 | Product Review | 진실된 고객 경험만, 조작/인센티브 금지 | V11, V12, V13 |
+
+**Spigen IP 3대 축 (AI 프롬프트 내장)**
+
+| # | IP 유형 | 설명 | AI 탐지 방법 | 데이터 소스 |
+|---|--------|------|-------------|-----------|
+| 1 | **Trademark** (상표) | Spigen 등록 상표명 + 3가지 마크 형태 | 텍스트 매칭 + 이미지 분석 | Sentinel 상표 레지스트리 (Settings) |
+| 2 | **Image Copyright** (이미지 저작권) | Spigen 웹사이트 제품 이미지 저작권 | Claude Vision 이미지 유사도 비교 | Spigen 공식 이미지 DB (향후 구축) |
+| 3 | **Patent** (특허) | Design Patent + Utility Patent | 특허 레지스트리 대비 유사도 분석 | Monday.com 동기화 |
+
+> PDF 교육자료 "PV / IP Violation for Tesla EV" 기반 정리.
+> 실제 위반 사례: Main Image에 차량 이미지 포함, Size/Color Variation으로 무관 제품 묶기, 미출시 제품에 리뷰 존재, AliExpress에서 Spigen 비디오 무단 사용, "Essential Storage" 등 상표 침해 등
+
 #### AI 분석 영역 (3가지)
 
 | # | 영역 | 입력 데이터 | AI 분석 내용 | 출력 |
 |---|------|-----------|-------------|------|
-| 1 | **이미지 위반 확인** | 리스팅 이미지 (메인/서브) | Spigen 로고/이미지 무단 사용 여부, 이미지 내 금지 텍스트, 이미지 정책 위반 | 위반 여부 + 근거 설명 |
-| 2 | **특허 침해 유사도 판단** | 리스팅 제목/설명/이미지 + Spigen 특허 레지스트리 | 등록된 특허와 리스팅 제품의 유사도 분석 | 유사도 점수 + 침해 근거 |
-| 3 | **신고서 드래프트 자동 작성** | 위반 분석 결과 + 리스팅 데이터 + 신고 템플릿 | Seller Central 신고 양식에 맞는 신고서 생성 | 제출 가능한 신고서 드래프트 |
+| 1 | **이미지 위반 확인** | 리스팅 이미지 (메인/서브) | Spigen 로고/이미지 무단 사용 여부, 이미지 내 금지 텍스트, 이미지 정책 위반 (흰 배경, 텍스트 오버레이 등) | 위반 여부 + 근거 설명 |
+| 2 | **특허 침해 유사도 판단** | 리스팅 제목/설명/이미지 + Spigen 특허 레지스트리 | 등록된 특허(Design/Utility)와 리스팅 제품의 유사도 분석 | 유사도 점수 + 침해 근거 |
+| 3 | **신고서 드래프트 자동 작성** | 위반 분석 결과 + 리스팅 데이터 + 기존 OMS 템플릿(67개) + 성공 사례 | Seller Central 신고 양식에 맞는 신고서 생성 | 제출 가능한 신고서 드래프트 |
 
 #### AI 신고서 작성 전략 (Outcome-Driven Case Writing)
 
@@ -298,6 +512,51 @@ AI가 신고서를 작성할 때 다음 원칙을 따릅니다:
 - Medium: 검토 필요 → Editor 상세 확인
 - Low: AI 불확실 → 수동 판단 권장
 - AI 판단 정확도를 지속적으로 모니터링 (승인/반려 비율 추적)
+
+#### AI vs 사용자 위반 판단 불일치 처리 (Disagreement Handling)
+
+> Extension 경유 신고에서 오퍼레이터가 선택한 위반 유형과 AI가 판정한 위반 유형이 다를 수 있습니다.
+> 이 불일치를 투명하게 표시하고, Editor/Admin이 최종 확정하는 워크플로우입니다.
+
+**Report 필드 구조 (위반 유형 관련)**
+
+| 필드명 | 설명 | 설정 시점 |
+|--------|------|----------|
+| `user_violation_type` | 오퍼레이터/크롤러가 지정한 위반 유형 (Extension: 오퍼레이터 선택, Crawler: 시스템 판단) | 신고 요청 시 |
+| `ai_violation_type` | AI(Claude)가 판정한 위반 유형 | AI 분석 완료 시 |
+| `ai_confidence` | AI 판정 신뢰도 (0~100) | AI 분석 완료 시 |
+| `confirmed_violation_type` | Editor/Admin이 최종 확정한 위반 유형 | 승인 시 |
+| `disagreement_flag` | user_violation_type != ai_violation_type 여부 (boolean) | AI 분석 완료 시 자동 계산 |
+
+**불일치 시 UI 표시**
+- 신고 대기열 리스트에 **"의견 불일치" 배지** 표시 (시각적으로 눈에 띄게)
+- 불일치 건은 리뷰 우선순위 **자동 상향** (Editor에게 우선 표시)
+- 신고서 상세 패널에서 사용자 판단 vs AI 판단 **나란히 비교** 표시
+- AI가 왜 다른 유형으로 판정했는지 **근거 설명** 함께 표시
+
+**리뷰 워크플로우**
+```
+Extension/Crawler → 위반 유형 지정 (user_violation_type)
+    ↓
+AI 분석 → 위반 유형 판정 (ai_violation_type + ai_confidence)
+    ↓
+일치 여부 자동 판별 → disagreement_flag 설정
+    ↓
+[일치] → 일반 리뷰 큐에 등록
+[불일치] → 우선 리뷰 큐에 등록 + "의견 불일치" 배지
+    ↓
+Editor/Admin 리뷰:
+  - 사용자 의견 채택 → confirmed = user_violation_type
+  - AI 의견 채택 → confirmed = ai_violation_type
+  - 제3의 판단 → confirmed = 별도 유형 선택
+    ↓
+confirmed_violation_type 확정 → 신고서 드래프트에 반영
+```
+
+**불일치 데이터 활용**
+- 불일치 패턴 분석: 어떤 위반 유형에서 불일치가 많은지 추적 → AI 프롬프트 개선 트리거
+- 사용자별 판단 정확도 추적: confirmed와 user/ai 중 어느 쪽이 더 자주 채택되는지 통계
+- 대시보드에서 불일치율 모니터링 (전체, 위반 유형별, 사용자별)
 
 #### AI 피드백 학습 (Human Feedback Loop)
 
@@ -489,6 +748,21 @@ Draft (초안)
 - 위반 유형 선택 UI 및 메모 입력
 - 스크린샷 자동 캡처 (증거 보존)
 - Sentinel Web API 연동 (신고 요청 전송)
+
+**OMS Extension → Sentinel Extension 진화 포인트**
+
+| 기능 | OMS Extension (기존) | Sentinel Extension (신규) |
+|------|---------------------|--------------------------|
+| 위반 유형 선택 | OMS 10개 유형 드롭다운 | Sentinel 19개 유형 (카테고리별 그룹화 UI) |
+| 메모 입력 | 자유 텍스트 메모 | 자유 텍스트 + **구조화된 증거 태그** (이미지/텍스트/URL 지정) |
+| 데이터 캡처 | 기본 DOM 파싱 | DOM 파싱 + **스크린샷 자동 캡처** + 셀러 정보 자동 추출 |
+| AI 분석 | 없음 | 제보 후 AI가 자동 분석 → **실시간 AI 분석 결과 미리보기** (Extension 팝업 내) |
+| 신고서 작성 | 없음 (OMS Web에서 수동 작성) | AI가 자동 생성 (Extension에서는 제보만) |
+| 상태 확인 | 없음 | **내 제보 상태 확인** 기능 (신고 진행 현황) |
+| 인증 | OMS 자체 인증 | Supabase Auth (Google OAuth @spigen.com) |
+| 중복 체크 | 없음 | 제보 시 **동일 ASIN 기존 신고 여부 경고** 표시 |
+
+> **이행 전략**: 기존 OMS Extension 사용자(오퍼레이터 20명+)에게 Sentinel Extension 설치를 안내하고, 전환 기간 동안 양쪽 Extension을 병행 사용 가능하도록 지원. OMS Extension은 Sentinel 안정화 후 폐기.
 
 #### Sentinel Web (신고 관리 웹사이트)
 - **인증**: @spigen.com Google OAuth 로그인 (도메인 한정)
@@ -862,6 +1136,15 @@ Editor/Admin이 검토 → 승인 → 자동 신고
 | D37 | 2026-02-28 | 보안 요구사항 대폭 보강: SC 암호화 상세, 감사 로그 상세, 데이터 보존 정책, Extension 통신 보안, 프롬프트 인젝션 방어 | 3차 보안 검증 (A-) 피드백 반영 |
 | D38 | 2026-02-28 | AI 피드백 학습을 "반려 학습"에서 "수정본 학습"까지 확장. 원본 vs 수정본 diff를 저장하고 AI 프롬프트에 반영 | Editor/Admin의 직접 수정도 AI 학습 대상으로 포함 |
 | D39 | 2026-02-28 | SC 케이스 오픈 공식 API 부재 확인 → Playwright 브라우저 자동화가 유일한 방법 | 웹 검색 확인 결과 SP-API에 케이스 관리 기능 없음 |
+| D40 | 2026-02-28 | 기존 OMS 시스템 분석 완료, Sentinel 기획서에 AS-IS/TO-BE 매핑 반영 | OMS 17개 스크린샷 + PDF 교육자료 분석 결과 |
+| D41 | 2026-02-28 | OMS 10개 위반 유형 ↔ Sentinel V01~V19 매핑 테이블 확정 | OMS "Other Concerns" 세분화, Monday.com Patent 통합 |
+| D42 | 2026-02-28 | Spigen 등록 상표 목록 기획서에 추가 (AI 분석용) | PDF 교육자료 기반 10개 상표명 + 3가지 마크 유형 |
+| D43 | 2026-02-28 | 제품 카테고리 13개 명시 (OMS Settings 기반) | Campaign/AI 분석에서 제품군 맥락 정보로 활용 |
+| D44 | 2026-02-28 | 기존 OMS 템플릿 시스템(67개) → Sentinel AI 신고서 참조 체계 정의 | AI가 템플릿을 프롬프트 컨텍스트로 활용, Admin이 관리 |
+| D45 | 2026-02-28 | AI vs 사용자 위반 판단 불일치 처리 워크플로우 정의 | Report 필드 구조, 불일치 배지 UI, 리뷰 우선순위 상향 |
+| D46 | 2026-02-28 | 신고 도구 통합 확정: OMS + Monday.com → Sentinel 단일 플랫폼 | 특허는 Monday.com SSOT 유지, 나머지 전부 Sentinel |
+| D47 | 2026-02-28 | OMS Extension → Sentinel Extension 진화 포인트 8가지 정의 | AI 분석 미리보기, 중복 체크, 내 제보 상태 확인 등 |
+| D48 | 2026-02-28 | Amazon Policy 5가지 + Spigen IP 3대 축 AI 프롬프트 내장 체계 정의 | PDF 교육자료 기반 지식 체계 |
 
 ---
 
@@ -897,6 +1180,9 @@ Editor/Admin이 검토 → 승인 → 자동 신고
 7. **Google OAuth @spigen.com 도메인 제한 구현 방식 확인**
 8. **Seller Central 신고 양식(Report a Violation) 필드 매핑 조사**
 9. **Chrome Extension 배포 방식 최종 결정**: .crx vs Google Workspace Admin Console
+10. **Spigen 등록 상표 전체 목록 확보**: 법무팀/IP팀에서 전체 등록 상표 + 마크 유형 확인 (현재 10개는 교육자료 기반 일부)
+11. **기존 OMS 67개 템플릿 데이터 확보**: OMS 관리자에게 위반 유형별 템플릿 전체 export 요청 → Sentinel DB 마이그레이션용
+12. **OMS → Sentinel 전환 계획 수립**: 기존 OMS 사용자(오퍼레이터 20명+) 전환 일정, 교육, 병행 운영 기간 결정
 
 ### 개발 착수 시 (마일스톤 순서)
 1. 개발 환경 셋업 (Node.js, Playwright, Supabase, Redis 등)
@@ -948,8 +1234,17 @@ Editor/Admin이 검토 → 승인 → 자동 신고
 | Project Zero | 아마존의 위조품 자동 제거 프로그램 |
 | Deduplication | 동일한 데이터의 중복을 제거하는 처리 |
 | Audit Log (감사 로그) | 시스템 내 주요 활동(인증, 권한 변경, 승인 등)의 변경 불가한 기록 |
+| OMS | Order Management System - Spigen의 기존 위반 신고 관리 시스템 (oms.spigen.com) |
+| Trademark (상표) | 등록된 브랜드명/로고/디자인으로 법적 보호를 받는 식별 표시 |
+| Design Mark | 시각적 디자인(로고/도형)으로 구성된 상표 유형 |
+| Standard Character | 문자열(텍스트)로 구성된 상표 유형 |
+| Character Logo | 문자와 디자인이 결합된 상표 유형 |
+| Design Patent | 제품의 외관 디자인을 보호하는 특허 |
+| Utility Patent | 제품의 기능/구조를 보호하는 특허 |
+| Disagreement Flag | AI와 사용자의 위반 유형 판단이 불일치할 때 자동 설정되는 플래그 |
+| Template (템플릿) | OMS에서 사용하던 위반 유형별 미리 정의된 신고서 양식 (총 67개). Sentinel에서는 AI 프롬프트 참조용 |
 
 ---
 
 *이 문서는 프로젝트 진행에 따라 지속적으로 업데이트되어야 합니다.*
-*최종 업데이트: 2026-02-28 (3차 기획 검증 결과 반영 — PM A/설계 92점/보안 A- + 반려 학습/직접 수정 승인 추가)*
+*최종 업데이트: 2026-02-28 (기존 OMS 분석 + PDF 교육자료 반영 — D40~D48 추가)*

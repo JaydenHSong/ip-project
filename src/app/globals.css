@@ -1,0 +1,189 @@
+@import "tailwindcss";
+
+/* ─── Light Theme (default) ─── */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --bg-hover: #f3f4f6;
+  --bg-active: #eff6ff;
+
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-inverse: #ffffff;
+  --text-active: #1d4ed8;
+
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+  --border-active: #3b82f6;
+
+  --surface-card: #ffffff;
+  --surface-overlay: rgba(0, 0, 0, 0.5);
+  --surface-panel: #ffffff;
+
+  --accent-primary: #3b82f6;
+  --accent-primary-hover: #2563eb;
+  --accent-primary-soft: #eff6ff;
+  --accent-primary-text: #1d4ed8;
+
+  --status-success-bg: #dcfce7;
+  --status-success-text: #15803d;
+  --status-warning-bg: #fef9c3;
+  --status-warning-text: #854d0e;
+  --status-danger-bg: #fee2e2;
+  --status-danger-text: #b91c1c;
+  --status-info-bg: #dbeafe;
+  --status-info-text: #1d4ed8;
+  --status-violet-bg: #ede9fe;
+  --status-violet-text: #6d28d9;
+  --status-default-bg: #f3f4f6;
+  --status-default-text: #4b5563;
+
+  --sidebar-bg: #ffffff;
+  --sidebar-hover: #f3f4f6;
+  --sidebar-active-bg: #eff6ff;
+  --sidebar-active-text: #1d4ed8;
+  --sidebar-text: #4b5563;
+  --sidebar-border: #e5e7eb;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}
+
+/* ─── Dark Theme ─── */
+[data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-hover: #1e293b;
+  --bg-active: #1e3a5f;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-muted: #64748b;
+  --text-inverse: #0f172a;
+  --text-active: #60a5fa;
+
+  --border-primary: #334155;
+  --border-secondary: #475569;
+  --border-active: #3b82f6;
+
+  --surface-card: #1e293b;
+  --surface-overlay: rgba(0, 0, 0, 0.7);
+  --surface-panel: #1e293b;
+
+  --accent-primary: #3b82f6;
+  --accent-primary-hover: #60a5fa;
+  --accent-primary-soft: #1e3a5f;
+  --accent-primary-text: #60a5fa;
+
+  --status-success-bg: #052e16;
+  --status-success-text: #4ade80;
+  --status-warning-bg: #422006;
+  --status-warning-text: #facc15;
+  --status-danger-bg: #450a0a;
+  --status-danger-text: #f87171;
+  --status-info-bg: #172554;
+  --status-info-text: #60a5fa;
+  --status-violet-bg: #2e1065;
+  --status-violet-text: #a78bfa;
+  --status-default-bg: #334155;
+  --status-default-text: #94a3b8;
+
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: #1e293b;
+  --sidebar-active-bg: #1e3a5f;
+  --sidebar-active-text: #60a5fa;
+  --sidebar-text: #94a3b8;
+  --sidebar-border: #334155;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+}
+
+@theme inline {
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* Surface colors */
+  --color-surface-card: var(--surface-card);
+  --color-surface-panel: var(--surface-panel);
+
+  /* Theme colors as Tailwind utilities */
+  --color-th-bg: var(--bg-primary);
+  --color-th-bg-secondary: var(--bg-secondary);
+  --color-th-bg-tertiary: var(--bg-tertiary);
+  --color-th-bg-hover: var(--bg-hover);
+  --color-th-bg-active: var(--bg-active);
+
+  --color-th-text: var(--text-primary);
+  --color-th-text-secondary: var(--text-secondary);
+  --color-th-text-tertiary: var(--text-tertiary);
+  --color-th-text-muted: var(--text-muted);
+  --color-th-text-active: var(--text-active);
+
+  --color-th-border: var(--border-primary);
+  --color-th-border-secondary: var(--border-secondary);
+
+  --color-th-accent: var(--accent-primary);
+  --color-th-accent-hover: var(--accent-primary-hover);
+  --color-th-accent-soft: var(--accent-primary-soft);
+  --color-th-accent-text: var(--accent-primary-text);
+
+  --color-th-sidebar-bg: var(--sidebar-bg);
+  --color-th-sidebar-hover: var(--sidebar-hover);
+  --color-th-sidebar-active: var(--sidebar-active-bg);
+  --color-th-sidebar-active-text: var(--sidebar-active-text);
+  --color-th-sidebar-text: var(--sidebar-text);
+  --color-th-sidebar-border: var(--sidebar-border);
+
+  /* Status colors */
+  --color-st-success-bg: var(--status-success-bg);
+  --color-st-success-text: var(--status-success-text);
+  --color-st-warning-bg: var(--status-warning-bg);
+  --color-st-warning-text: var(--status-warning-text);
+  --color-st-danger-bg: var(--status-danger-bg);
+  --color-st-danger-text: var(--status-danger-text);
+  --color-st-info-bg: var(--status-info-bg);
+  --color-st-info-text: var(--status-info-text);
+  --color-st-violet-bg: var(--status-violet-bg);
+  --color-st-violet-text: var(--status-violet-text);
+  --color-st-default-bg: var(--status-default-bg);
+  --color-st-default-text: var(--status-default-text);
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Smooth theme transition */
+* {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+/* Scrollbar styling for dark mode */
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
