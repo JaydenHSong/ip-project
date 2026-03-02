@@ -1,12 +1,53 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import { FileText, Search, BarChart3, Plus, AlertTriangle, ChevronRight } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import {
+  FileText,
+  Search,
+  BarChart3,
+  Plus,
+  AlertTriangle,
+  ChevronRight,
+  Brain,
+  Eye,
+} from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { isDemoMode } from '@/lib/demo'
+import { getDemoDashboardStats } from '@/lib/demo/dashboard'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
 import type { ViolationCode } from '@/constants/violations'
+import type { DashboardStats, PeriodFilter } from '@/types/dashboard'
+
+const ReportTrendChart = dynamic(
+  () => import('@/components/features/charts/ReportTrendChart').then((m) => m.ReportTrendChart),
+  { ssr: false, loading: () => <ChartSkeleton height={280} /> }
+)
+const ViolationDistChart = dynamic(
+  () => import('@/components/features/charts/ViolationDistChart').then((m) => m.ViolationDistChart),
+  { ssr: false, loading: () => <ChartSkeleton height={280} /> }
+)
+const StatusPipelineChart = dynamic(
+  () => import('@/components/features/charts/StatusPipelineChart').then((m) => m.StatusPipelineChart),
+  { ssr: false, loading: () => <ChartSkeleton height={280} /> }
+)
+const TopViolationsChart = dynamic(
+  () => import('@/components/features/charts/TopViolationsChart').then((m) => m.TopViolationsChart),
+  { ssr: false, loading: () => <ChartSkeleton height={350} /> }
+)
+const AiPerformanceCard = dynamic(
+  () => import('@/components/features/charts/AiPerformanceCard').then((m) => m.AiPerformanceCard),
+  { ssr: false, loading: () => <ChartSkeleton height={280} /> }
+)
+
+const ChartSkeleton = ({ height }: { height: number }) => (
+  <div
+    className="animate-pulse rounded-lg border border-th-border bg-surface-card"
+    style={{ height }}
+  />
+)
 
 type RecentReport = {
   id: string
@@ -27,51 +68,123 @@ type ActiveCampaign = {
 
 type DashboardContentProps = {
   userName: string
-  stats: {
-    activeCampaigns: number
-    pendingReports: number
-    totalListings: number
-    resolvedRate: string
-  }
+  initialStats: DashboardStats | null
   recentReports: RecentReport[]
   activeCampaigns: ActiveCampaign[]
 }
 
-export const DashboardContent = ({ userName, stats, recentReports, activeCampaigns }: DashboardContentProps) => {
+const PERIODS: PeriodFilter[] = ['7d', '30d', '90d']
+
+export const DashboardContent = ({
+  userName,
+  initialStats,
+  recentReports,
+  activeCampaigns,
+}: DashboardContentProps) => {
   const { t } = useI18n()
+  const [period, setPeriod] = useState<PeriodFilter>('30d')
+  const [stats, setStats] = useState<DashboardStats | null>(initialStats)
+
+  const handlePeriodChange = useCallback((newPeriod: PeriodFilter) => {
+    setPeriod(newPeriod)
+    if (isDemoMode()) {
+      setStats(getDemoDashboardStats(newPeriod))
+    }
+  }, [])
+
+  const summary = stats?.summary
 
   const statItems = [
-    { label: t('dashboard.activeCampaigns'), value: stats.activeCampaigns, icon: Search, color: 'text-blue-400', href: '/campaigns' },
-    { label: t('dashboard.pendingReports'), value: stats.pendingReports, icon: AlertTriangle, color: 'text-amber-400', href: '/reports' },
-    { label: t('dashboard.collectedListings'), value: stats.totalListings, icon: FileText, color: 'text-emerald-400', href: '/campaigns' },
-    { label: t('dashboard.resolutionRate'), value: stats.resolvedRate, icon: BarChart3, color: 'text-violet-400', href: '/reports/completed' },
+    {
+      label: t('dashboard.activeCampaigns'),
+      value: summary?.activeCampaigns ?? 0,
+      icon: Search,
+      color: 'text-blue-400',
+      href: '/campaigns',
+    },
+    {
+      label: t('dashboard.pendingReports'),
+      value: summary?.pendingReports ?? 0,
+      icon: AlertTriangle,
+      color: 'text-amber-400',
+      href: '/reports',
+    },
+    {
+      label: t('dashboard.collectedListings'),
+      value: summary?.totalListings ?? 0,
+      icon: FileText,
+      color: 'text-emerald-400',
+      href: '/campaigns',
+    },
+    {
+      label: t('dashboard.resolutionRate'),
+      value: summary ? `${summary.resolvedRate}%` : '—',
+      icon: BarChart3,
+      color: 'text-violet-400',
+      href: '/reports/completed',
+    },
+    {
+      label: t('dashboard.charts.aiAccuracy' as Parameters<typeof t>[0]),
+      value: summary ? `${summary.aiAccuracy}%` : '—',
+      icon: Brain,
+      color: 'text-cyan-400',
+      href: '/reports',
+    },
+    {
+      label: t('dashboard.charts.monitoring' as Parameters<typeof t>[0]),
+      value: summary?.monitoringCount ?? 0,
+      icon: Eye,
+      color: 'text-orange-400',
+      href: '/reports',
+    },
   ]
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Greeting */}
-      <div>
-        <p className="text-sm text-th-text-secondary md:text-base">
-          {t('dashboard.greeting', { name: userName })}
-        </p>
-        {isDemoMode() && (
-          <div className="mt-2 rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-1.5">
-            <p className="text-xs text-st-warning-text">{t('common.demoMode')}</p>
-          </div>
-        )}
+      {/* Greeting + Period Filter */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm text-th-text-secondary md:text-base">
+            {t('dashboard.greeting', { name: userName })}
+          </p>
+          {isDemoMode() && (
+            <div className="mt-2 rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-1.5">
+              <p className="text-xs text-st-warning-text">{t('common.demoMode')}</p>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-1 rounded-lg border border-th-border bg-surface-card p-1">
+          {PERIODS.map((p) => (
+            <button
+              key={p}
+              onClick={() => handlePeriodChange(p)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                period === p
+                  ? 'bg-th-accent text-white'
+                  : 'text-th-text-secondary hover:bg-th-bg-hover'
+              }`}
+            >
+              {t(`dashboard.charts.period.${p}` as Parameters<typeof t>[0])}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Stats Grid - 2x2 on mobile, 4 cols on desktop */}
-      <div className="grid grid-cols-2 gap-3 md:gap-6 lg:grid-cols-4">
+      {/* Stats Grid - 2x3 on mobile, 6 cols on desktop */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-6">
         {statItems.map((stat) => {
           const Icon = stat.icon
           return (
-            <Link key={stat.label} href={stat.href} className="rounded-lg border border-th-border bg-surface-card p-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover md:p-6">
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="rounded-lg border border-th-border bg-surface-card p-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover md:p-4"
+            >
               <div className="flex items-center gap-2">
-                <Icon className={`h-4 w-4 ${stat.color} md:h-5 md:w-5`} />
-                <p className="text-xs font-medium text-th-text-tertiary md:text-sm">{stat.label}</p>
+                <Icon className={`h-4 w-4 ${stat.color}`} />
+                <p className="text-xs font-medium text-th-text-tertiary">{stat.label}</p>
               </div>
-              <p className="mt-1.5 text-2xl font-bold text-th-text md:mt-2 md:text-3xl">{stat.value}</p>
+              <p className="mt-1.5 text-xl font-bold text-th-text md:text-2xl">{stat.value}</p>
             </Link>
           )
         })}
@@ -95,7 +208,30 @@ export const DashboardContent = ({ userName, stats, recentReports, activeCampaig
         </Link>
       </div>
 
-      {/* Two column layout on desktop */}
+      {/* Charts Row 1: Report Trend (2/3) + Violation Dist (1/3) */}
+      {stats && (
+        <>
+          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <ReportTrendChart data={stats.reportTrend} />
+            </div>
+            <div>
+              <ViolationDistChart data={stats.violationDist} />
+            </div>
+          </div>
+
+          {/* Charts Row 2: Status Pipeline (1/2) + AI Performance (1/2) */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+            <StatusPipelineChart data={stats.statusPipeline} />
+            <AiPerformanceCard data={stats.aiPerformance} />
+          </div>
+
+          {/* Charts Row 3: Top Violations (full width) */}
+          <TopViolationsChart data={stats.topViolations} />
+        </>
+      )}
+
+      {/* Two column layout: Recent Reports + Active Campaigns */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         {/* Recent Reports */}
         <div className="rounded-lg border border-th-border bg-surface-card">

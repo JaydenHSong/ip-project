@@ -8,6 +8,7 @@ import {
   Search,
   FileWarning,
   CheckCircle2,
+  Archive,
   BookOpen,
   Settings,
   ScrollText,
@@ -31,6 +32,7 @@ const MAIN_NAV: NavItem[] = [
   { labelKey: 'nav.campaigns', href: '/campaigns', icon: Search },
   { labelKey: 'nav.reportQueue', href: '/reports', icon: FileWarning },
   { labelKey: 'nav.completedReports', href: '/reports/completed', icon: CheckCircle2 },
+  { labelKey: 'nav.archivedReports', href: '/reports/archived', icon: Archive },
   { labelKey: 'nav.patents', href: '/patents', icon: BookOpen, milestone: 2 },
 ]
 

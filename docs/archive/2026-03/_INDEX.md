@@ -11,3 +11,5 @@
 | report-history-timeline | 95% | 2026-03-02 | plan, design, analysis, report |
 | sc-semi-auto-submit | 97% | 2026-03-02 | plan, design, analysis, report |
 | follow-up-monitoring | 96% | 2026-03-02 | plan, design, analysis, report |
+| report-archive | 100% | 2026-03-02 | plan, design, analysis |
+| dashboard | 95% | 2026-03-02 | plan, design, analysis, report |

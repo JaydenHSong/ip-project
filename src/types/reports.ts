@@ -3,7 +3,7 @@ import type { ViolationCategory, ViolationCode } from '@/constants/violations'
 export const REPORT_STATUSES = [
   'draft', 'pending_review', 'approved', 'rejected', 'cancelled',
   'submitted', 'monitoring', 'resolved', 'unresolved',
-  'resubmitted', 'escalated',
+  'resubmitted', 'escalated', 'archived',
 ] as const
 export type ReportStatus = (typeof REPORT_STATUSES)[number]
 
@@ -88,6 +88,11 @@ export type Report = {
   monitoring_started_at: string | null
   resolved_at: string | null
   resolution_type: ResolutionType | null
+
+  // Archive
+  archived_at: string | null
+  archive_reason: string | null
+  pre_archive_status: ReportStatus | null
 
   // 재신고
   parent_report_id: string | null

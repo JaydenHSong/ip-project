@@ -12,6 +12,7 @@ type ReportStatus =
   | 'unresolved'
   | 'resubmitted'
   | 'escalated'
+  | 'archived'
 
 type CampaignStatus = 'active' | 'paused' | 'completed' | 'scheduled'
 
@@ -27,6 +28,7 @@ const REPORT_STATUS_MAP = {
   unresolved: { label: 'Unresolved', variant: 'danger' },
   resubmitted: { label: 'Resubmitted', variant: 'info' },
   escalated: { label: 'Escalated', variant: 'danger' },
+  archived: { label: 'Archived', variant: 'default' },
 } as const
 
 const CAMPAIGN_STATUS_MAP = {

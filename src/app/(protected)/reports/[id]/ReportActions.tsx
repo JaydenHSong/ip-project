@@ -34,12 +34,14 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [showManualConfirmModal, setShowManualConfirmModal] = useState(false)
   const [showResolveModal, setShowResolveModal] = useState(false)
+  const [showArchiveModal, setShowArchiveModal] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [cancelReason, setCancelReason] = useState('')
   const [rejectionCategory, setRejectionCategory] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
   const [manualCaseId, setManualCaseId] = useState('')
   const [resolutionType, setResolutionType] = useState('')
+  const [archiveReason, setArchiveReason] = useState('')
 
   const canAct = userRole === 'admin' || userRole === 'editor'
   if (!canAct) return null
@@ -250,6 +252,44 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
     }
   }
 
+  const handleArchive = async () => {
+    setLoading('archive')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/archive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archive_reason: archiveReason.trim() || undefined }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Archive failed')
+      }
+      setShowArchiveModal(false)
+      setArchiveReason('')
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleUnarchive = async () => {
+    setLoading('unarchive')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/unarchive`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Unarchive failed')
+      }
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const handleResolve = async (type?: string) => {
     const rt = type ?? resolutionType
     if (!rt) return
@@ -375,6 +415,25 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
               {t('reports.monitoring.markUnresolved' as Parameters<typeof t>[0])}
             </Button>
           </>
+        )}
+        {['monitoring', 'unresolved', 'resolved'].includes(status) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowArchiveModal(true)}
+          >
+            {t('reports.detail.forceArchive' as Parameters<typeof t>[0])}
+          </Button>
+        )}
+        {status === 'archived' && (
+          <Button
+            variant="outline"
+            size="sm"
+            loading={loading === 'unarchive'}
+            onClick={handleUnarchive}
+          >
+            {t('reports.detail.unarchive' as Parameters<typeof t>[0])}
+          </Button>
         )}
         {['draft', 'pending_review', 'approved'].includes(status) && (
           <Button
@@ -528,6 +587,37 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
             onClick={() => handleResolve()}
           >
             {t('reports.monitoring.resolve' as Parameters<typeof t>[0])}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Archive Modal */}
+      <Modal
+        open={showArchiveModal}
+        onClose={() => setShowArchiveModal(false)}
+        title={t('reports.detail.forceArchive' as Parameters<typeof t>[0])}
+      >
+        <p className="mb-3 text-sm text-th-text-secondary">
+          {t('reports.detail.archiveConfirm' as Parameters<typeof t>[0])}
+        </p>
+        <Textarea
+          label={t('reports.detail.archiveReason' as Parameters<typeof t>[0])}
+          value={archiveReason}
+          onChange={(e) => setArchiveReason(e.target.value)}
+          placeholder={t('reports.detail.archiveReasonPlaceholder' as Parameters<typeof t>[0])}
+          rows={3}
+        />
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowArchiveModal(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            loading={loading === 'archive'}
+            onClick={handleArchive}
+          >
+            {t('reports.detail.forceArchive' as Parameters<typeof t>[0])}
           </Button>
         </div>
       </Modal>

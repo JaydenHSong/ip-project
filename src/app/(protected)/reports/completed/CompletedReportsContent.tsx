@@ -1,11 +1,17 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
+import { SortableHeader } from '@/components/ui/SortableHeader'
+import { TableFilters } from '@/components/ui/TableFilters'
+import { useSortableTable } from '@/hooks/useSortableTable'
+import { useFilterableTable } from '@/hooks/useFilterableTable'
 import type { ReportStatus } from '@/types/reports'
 import type { ViolationCode } from '@/constants/violations'
+import type { TableFilters as TableFiltersType } from '@/types/table'
 
 type ReportRow = {
   id: string
@@ -23,6 +29,31 @@ type CompletedReportsContentProps = {
 
 export const CompletedReportsContent = ({ reports, statusFilter }: CompletedReportsContentProps) => {
   const { t } = useI18n()
+  const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
+
+  const getSearchableText = useCallback(
+    (item: ReportRow) =>
+      [item.listings?.asin, item.listings?.title, item.listings?.seller_name, item.sc_case_id].filter(Boolean).join(' '),
+    [],
+  )
+  const getViolationType = useCallback((item: ReportRow) => item.violation_type, [])
+  const getMarketplace = useCallback((item: ReportRow) => item.listings?.marketplace ?? '', [])
+
+  const filteredData = useFilterableTable(reports ?? [], filters, getSearchableText, getViolationType, getMarketplace)
+
+  const getSortValue = useCallback((item: ReportRow, field: string): string | number | null => {
+    switch (field) {
+      case 'violation': return item.violation_type
+      case 'asin': return item.listings?.asin ?? null
+      case 'title': return item.listings?.title ?? null
+      case 'scCase': return item.sc_case_id ?? null
+      case 'status': return item.status
+      case 'date': return new Date(item.created_at).getTime()
+      default: return null
+    }
+  }, [])
+
+  const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'date', direction: 'desc' }, getSortValue)
 
   const STATUS_TABS = [
     { value: '', label: t('common.all') },
@@ -52,14 +83,18 @@ export const CompletedReportsContent = ({ reports, statusFilter }: CompletedRepo
         ))}
       </div>
 
+      <TableFilters filters={filters} onFiltersChange={setFilters} />
+
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
-        {(!reports || reports.length === 0) ? (
+        {sortedData.length === 0 ? (
           <div className="rounded-lg border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
-            {t('reports.noCompleted')}
+            {filters.search || filters.violationType || filters.marketplace
+              ? t('table.noResults' as Parameters<typeof t>[0])
+              : t('reports.noCompleted')}
           </div>
         ) : (
-          reports.map((report) => (
+          sortedData.map((report) => (
             <Link key={report.id} href={`/reports/${report.id}`}>
               <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
@@ -83,23 +118,25 @@ export const CompletedReportsContent = ({ reports, statusFilter }: CompletedRepo
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('reports.violation')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('reports.asin')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('reports.title')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('reports.scCase')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('common.status')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('common.date')}</th>
+              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label={t('reports.title')} field="title" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label={t('reports.scCase')} field="scCase" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
-            {(!reports || reports.length === 0) ? (
+            {sortedData.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-12 text-center text-th-text-muted">
-                  {t('reports.noCompleted')}
+                  {filters.search || filters.violationType || filters.marketplace
+                    ? t('table.noResults' as Parameters<typeof t>[0])
+                    : t('reports.noCompleted')}
                 </td>
               </tr>
             ) : (
-              reports.map((report) => (
+              sortedData.map((report) => (
                 <tr key={report.id} className="bg-surface-card transition-colors hover:bg-th-bg-hover">
                   <td className="px-4 py-3">
                     <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />

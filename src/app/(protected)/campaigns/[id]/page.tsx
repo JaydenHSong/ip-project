@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/session'
 import { isDemoMode } from '@/lib/demo'
-import { DEMO_CAMPAIGNS, DEMO_LISTINGS } from '@/lib/demo/data'
+import { DEMO_CAMPAIGNS, DEMO_LISTINGS, DEMO_REPORTS } from '@/lib/demo/data'
 import { MARKETPLACES, type MarketplaceCode } from '@/constants/marketplaces'
 import { CampaignDetailContent } from './CampaignDetailContent'
 
@@ -30,6 +30,24 @@ type ListingRow = {
   source: string
 }
 
+type ReportRow = {
+  id: string
+  listing_id: string
+  status: string
+  user_violation_type: string
+  ai_violation_type: string | null
+  ai_confidence_score: number | null
+  confirmed_violation_type: string | null
+  disagreement_flag: boolean
+  draft_title: string | null
+  draft_body: string | null
+  rejection_reason: string | null
+  sc_case_id: string | null
+  created_at: string
+  approved_at: string | null
+  rejected_at: string | null
+}
+
 const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> }) => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
@@ -40,6 +58,7 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
   let totalListings = 0
   let suspectCount = 0
   let listings: ListingRow[] = []
+  let reports: ReportRow[] = []
 
   if (isDemoMode()) {
     const found = DEMO_CAMPAIGNS.find((c) => c.id === id)
@@ -55,6 +74,27 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
     }))
     totalListings = listings.length
     suspectCount = listings.filter((l) => l.is_suspect).length
+    // Get reports for listings in this campaign
+    const listingIds = new Set(listings.map((l) => l.id))
+    reports = DEMO_REPORTS
+      .filter((r) => listingIds.has(r.listing_id))
+      .map((r) => ({
+        id: r.id,
+        listing_id: r.listing_id,
+        status: r.status,
+        user_violation_type: r.user_violation_type,
+        ai_violation_type: r.ai_violation_type,
+        ai_confidence_score: r.ai_confidence_score,
+        confirmed_violation_type: r.confirmed_violation_type,
+        disagreement_flag: r.disagreement_flag,
+        draft_title: r.draft_title,
+        draft_body: r.draft_body,
+        rejection_reason: r.rejection_reason,
+        sc_case_id: r.sc_case_id,
+        created_at: r.created_at,
+        approved_at: r.approved_at,
+        rejected_at: r.rejected_at,
+      }))
   } else {
     const supabase = await createClient()
 
@@ -95,6 +135,13 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
         .order('is_suspect', { ascending: false })
         .limit(50)
       listings = (listingData ?? []) as ListingRow[]
+
+      // Fetch reports for these listings
+      const { data: reportData } = await supabase
+        .from('reports')
+        .select('id, listing_id, status, user_violation_type, ai_violation_type, ai_confidence_score, confirmed_violation_type, disagreement_flag, draft_title, draft_body, rejection_reason, sc_case_id, created_at, approved_at, rejected_at')
+        .in('listing_id', listingIds)
+      reports = (reportData ?? []) as ReportRow[]
     }
   }
 
@@ -117,6 +164,7 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
         creatorName: campaign.users?.name ?? null,
       }}
       listings={listings}
+      reports={reports}
       totalListings={totalListings}
       suspectCount={suspectCount}
       canEdit={user.role === 'admin' || user.role === 'editor'}

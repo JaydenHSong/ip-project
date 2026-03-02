@@ -1,12 +1,18 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Badge } from '@/components/ui/Badge'
+import { ViolationBadge } from '@/components/ui/ViolationBadge'
+import { SlidePanel } from '@/components/ui/SlidePanel'
 import { CampaignStats } from '@/components/features/CampaignStats'
 import { CampaignActions } from './CampaignActions'
+import { ReportActions } from '@/app/(protected)/reports/[id]/ReportActions'
+import type { ViolationCode } from '@/constants/violations'
+import type { ReportStatus } from '@/types/reports'
 
 type ListingRow = {
   id: string
@@ -15,6 +21,24 @@ type ListingRow = {
   seller_name: string | null
   is_suspect: boolean
   source: string
+}
+
+type ReportRow = {
+  id: string
+  listing_id: string
+  status: string
+  user_violation_type: string
+  ai_violation_type: string | null
+  ai_confidence_score: number | null
+  confirmed_violation_type: string | null
+  disagreement_flag: boolean
+  draft_title: string | null
+  draft_body: string | null
+  rejection_reason: string | null
+  sc_case_id: string | null
+  created_at: string
+  approved_at: string | null
+  rejected_at: string | null
 }
 
 type CampaignDetailContentProps = {
@@ -31,6 +55,7 @@ type CampaignDetailContentProps = {
     creatorName: string | null
   }
   listings: ListingRow[]
+  reports: ReportRow[]
   totalListings: number
   suspectCount: number
   canEdit: boolean
@@ -40,12 +65,19 @@ type CampaignDetailContentProps = {
 export const CampaignDetailContent = ({
   campaign,
   listings,
+  reports,
   totalListings,
   suspectCount,
   canEdit,
   userRole,
 }: CampaignDetailContentProps) => {
   const { t } = useI18n()
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null)
+
+  const selectedListing = selectedListingId ? listings.find((l) => l.id === selectedListingId) ?? null : null
+  const selectedReports = selectedListingId ? reports.filter((r) => r.listing_id === selectedListingId) : []
+
+  const handleClosePanel = useCallback(() => setSelectedListingId(null), [])
 
   return (
     <div className="space-y-6">
@@ -128,30 +160,45 @@ export const CampaignDetailContent = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-th-border">
-                {listings.map((listing) => (
-                  <tr key={listing.id} className="bg-surface-card hover:bg-th-bg-hover">
-                    <td className="px-4 py-2 font-mono text-th-text">{listing.asin}</td>
-                    <td className="max-w-xs truncate px-4 py-2 text-th-text-secondary">{listing.title}</td>
-                    <td className="px-4 py-2 text-th-text-secondary">{listing.seller_name ?? '—'}</td>
-                    <td className="px-4 py-2">
-                      {listing.is_suspect ? (
-                        <Badge variant="danger">{t('campaigns.detail.suspect')}</Badge>
-                      ) : (
-                        <Badge variant="success">{t('campaigns.detail.normal')}</Badge>
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      {listing.is_suspect && (
-                        <button
-                          type="button"
-                          className="rounded px-2 py-1 text-xs font-medium text-th-accent-text hover:bg-th-accent-soft"
-                        >
-                          {t('campaigns.detail.report')}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {listings.map((listing) => {
+                  const hasReport = reports.some((r) => r.listing_id === listing.id)
+                  return (
+                    <tr key={listing.id} className="bg-surface-card hover:bg-th-bg-hover">
+                      <td className="px-4 py-2">
+                        {hasReport ? (
+                          <button
+                            type="button"
+                            className="font-mono text-th-accent-text underline decoration-th-accent-text/30 underline-offset-2 hover:decoration-th-accent-text"
+                            onClick={() => setSelectedListingId(listing.id)}
+                          >
+                            {listing.asin}
+                          </button>
+                        ) : (
+                          <span className="font-mono text-th-text">{listing.asin}</span>
+                        )}
+                      </td>
+                      <td className="max-w-xs truncate px-4 py-2 text-th-text-secondary">{listing.title}</td>
+                      <td className="px-4 py-2 text-th-text-secondary">{listing.seller_name ?? '—'}</td>
+                      <td className="px-4 py-2">
+                        {listing.is_suspect ? (
+                          <Badge variant="danger">{t('campaigns.detail.suspect')}</Badge>
+                        ) : (
+                          <Badge variant="success">{t('campaigns.detail.normal')}</Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        {listing.is_suspect && (
+                          <button
+                            type="button"
+                            className="rounded px-2 py-1 text-xs font-medium text-th-accent-text hover:bg-th-accent-soft"
+                          >
+                            {t('campaigns.detail.report')}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -161,6 +208,159 @@ export const CampaignDetailContent = ({
           </CardContent>
         )}
       </Card>
+
+      {/* Report Detail Slide Panel */}
+      <SlidePanel
+        open={!!selectedListingId}
+        onClose={handleClosePanel}
+        title={t('reports.detail.title')}
+        status={selectedReports[0] ? (
+          <StatusBadge status={selectedReports[0].status as ReportStatus} type="report" />
+        ) : undefined}
+        className="max-w-[50vw]"
+      >
+        {selectedListing && (
+          <div className="space-y-6 p-6">
+            {selectedReports.length === 0 ? (
+              <p className="text-sm text-th-text-muted">{t('reports.noReports')}</p>
+            ) : (
+              selectedReports.map((report) => (
+                <div key={report.id} className="space-y-4">
+                  {/* Actions */}
+                  {canEdit && (
+                    <div className="flex items-center justify-between">
+                      <StatusBadge status={report.status as ReportStatus} type="report" />
+                      <ReportActions
+                        reportId={report.id}
+                        status={report.status}
+                        userRole={userRole}
+                        scCaseId={report.sc_case_id}
+                      />
+                    </div>
+                  )}
+
+                  {/* Violation Info */}
+                  <Card>
+                    <CardHeader>
+                      <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.violationInfo')}</h3>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-xs text-th-text-tertiary">{t('reports.detail.userViolationType')}</p>
+                          <div className="mt-1">
+                            <ViolationBadge code={report.user_violation_type as ViolationCode} />
+                          </div>
+                        </div>
+                        {report.ai_violation_type && (
+                          <div>
+                            <p className="text-xs text-th-text-tertiary">{t('reports.detail.aiViolationType')}</p>
+                            <div className="mt-1 flex items-center gap-2">
+                              <ViolationBadge code={report.ai_violation_type as ViolationCode} />
+                              {report.ai_confidence_score !== null && (
+                                <span className="text-xs text-th-text-muted">{report.ai_confidence_score}%</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {report.disagreement_flag && (
+                        <div className="rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-2">
+                          <p className="text-xs font-medium text-st-warning-text">
+                            {t('reports.detail.disagreementWarning')}
+                          </p>
+                        </div>
+                      )}
+                      {report.confirmed_violation_type && (
+                        <div>
+                          <p className="text-xs text-th-text-tertiary">{t('reports.detail.confirmedViolationType')}</p>
+                          <div className="mt-1">
+                            <ViolationBadge code={report.confirmed_violation_type as ViolationCode} />
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Listing Info */}
+                  <Card>
+                    <CardHeader>
+                      <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.listing')}</h3>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <dt className="text-xs text-th-text-tertiary">ASIN</dt>
+                          <dd className="mt-0.5 font-mono font-medium text-th-text">{selectedListing.asin}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-th-text-tertiary">{t('campaigns.detail.seller')}</dt>
+                          <dd className="mt-0.5 font-medium text-th-text">{selectedListing.seller_name ?? '—'}</dd>
+                        </div>
+                        <div className="col-span-2">
+                          <dt className="text-xs text-th-text-tertiary">{t('reports.title')}</dt>
+                          <dd className="mt-0.5 font-medium text-th-text">{selectedListing.title}</dd>
+                        </div>
+                      </dl>
+                    </CardContent>
+                  </Card>
+
+                  {/* Draft */}
+                  {report.draft_title && (
+                    <Card>
+                      <CardHeader>
+                        <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.reportDraft')}</h3>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div>
+                          <p className="text-xs text-th-text-tertiary">{t('reports.detail.draftTitle')}</p>
+                          <p className="mt-0.5 text-sm font-medium text-th-text">{report.draft_title}</p>
+                        </div>
+                        {report.draft_body && (
+                          <div>
+                            <p className="text-xs text-th-text-tertiary">{t('reports.detail.draftBody')}</p>
+                            <div className="mt-0.5 rounded-lg bg-th-bg-tertiary p-3 text-xs text-th-text-secondary whitespace-pre-wrap">
+                              {report.draft_body}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Rejection Reason */}
+                  {report.rejection_reason && (
+                    <Card>
+                      <CardContent>
+                        <p className="text-xs text-th-text-tertiary">{t('reports.detail.rejectionReason')}</p>
+                        <div className="mt-1 rounded-lg border border-st-danger-text/20 bg-st-danger-bg p-3 text-xs text-st-danger-text">
+                          {report.rejection_reason}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Metadata */}
+                  <div className="flex items-center justify-between text-xs text-th-text-muted">
+                    <span>{t('reports.detail.createdAt')}: {new Date(report.created_at).toLocaleString()}</span>
+                    <Link
+                      href={`/reports/${report.id}`}
+                      className="text-th-accent-text hover:underline"
+                    >
+                      {t('common.details')} →
+                    </Link>
+                  </div>
+
+                  {/* Separator between multiple reports */}
+                  {selectedReports.length > 1 && selectedReports.indexOf(report) < selectedReports.length - 1 && (
+                    <hr className="border-th-border" />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </SlidePanel>
     </div>
   )
 }

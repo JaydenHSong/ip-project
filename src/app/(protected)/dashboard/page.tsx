@@ -1,22 +1,18 @@
 import { getCurrentUser } from '@/lib/auth/session'
 import { isDemoMode } from '@/lib/demo'
-import { DEMO_CAMPAIGNS, DEMO_REPORTS, DEMO_LISTINGS } from '@/lib/demo/data'
+import { DEMO_CAMPAIGNS, DEMO_REPORTS } from '@/lib/demo/data'
+import { getDemoDashboardStats } from '@/lib/demo/dashboard'
 import { DashboardContent } from './DashboardContent'
 
 const DashboardPage = async () => {
   const user = await getCurrentUser()
 
-  const activeCampaigns = isDemoMode()
-    ? DEMO_CAMPAIGNS.filter((c) => c.status === 'active').length
-    : 0
-  const pendingReports = isDemoMode()
-    ? DEMO_REPORTS.filter((r) => r.status === 'draft' || r.status === 'pending_review').length
-    : 0
-  const totalListings = isDemoMode() ? DEMO_LISTINGS.length : 0
-  const resolvedRate = isDemoMode() ? '25%' : '—'
+  const initialStats = isDemoMode()
+    ? getDemoDashboardStats('30d')
+    : null
 
   const recentReports = isDemoMode()
-    ? DEMO_REPORTS.slice(0, 3).map((r) => ({
+    ? DEMO_REPORTS.filter((r) => r.status !== 'archived').slice(0, 3).map((r) => ({
         id: r.id,
         violation_type: r.violation_type,
         status: r.status,
@@ -39,7 +35,7 @@ const DashboardPage = async () => {
   return (
     <DashboardContent
       userName={user?.name ?? ''}
-      stats={{ activeCampaigns, pendingReports, totalListings, resolvedRate }}
+      initialStats={initialStats}
       recentReports={recentReports}
       activeCampaigns={activeCampaignsList}
     />
