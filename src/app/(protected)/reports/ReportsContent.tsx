@@ -46,16 +46,24 @@ export const ReportsContent = ({
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.queueTitle')}</h1>
-        <Link
-          href={`/reports?${disagreementFilter ? '' : 'disagreement=true'}`}
-          className={`rounded-lg border px-2 py-1 text-xs font-medium md:px-3 md:py-1.5 md:text-sm ${
-            disagreementFilter
-              ? 'border-st-warning-text/30 bg-st-warning-bg text-st-warning-text'
-              : 'border-th-border text-th-text-tertiary hover:bg-th-bg-hover'
-          }`}
-        >
-          {t('reports.disagreementOnly')}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/reports?${disagreementFilter ? '' : 'disagreement=true'}`}
+            className={`rounded-lg border px-2 py-1 text-xs font-medium md:px-3 md:py-1.5 md:text-sm ${
+              disagreementFilter
+                ? 'border-st-warning-text/30 bg-st-warning-bg text-st-warning-text'
+                : 'border-th-border text-th-text-tertiary hover:bg-th-bg-hover'
+            }`}
+          >
+            {t('reports.disagreementOnly')}
+          </Link>
+          <Link
+            href="/reports/new"
+            className="rounded-lg bg-th-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 md:text-sm"
+          >
+            + {t('reports.new.title')}
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto">

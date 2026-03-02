@@ -77,6 +77,24 @@ export type RejectReportRequest = {
   rejection_category: string
 }
 
+export type ManualReportRequest = {
+  asin: string
+  marketplace: string
+  title?: string
+  seller_name?: string
+  user_violation_type: ViolationCode
+  violation_category: string
+  note?: string
+}
+
+export type ManualReportResponse = {
+  report_id: string
+  listing_id: string
+  is_new_listing: boolean
+  is_duplicate: boolean
+  existing_report_id?: string
+}
+
 // ============================================================
 // AI API
 // ============================================================
