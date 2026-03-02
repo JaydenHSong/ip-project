@@ -217,7 +217,7 @@ export const CampaignDetailContent = ({
         status={selectedReports[0] ? (
           <StatusBadge status={selectedReports[0].status as ReportStatus} type="report" />
         ) : undefined}
-        className="max-w-[50vw]"
+        size="xl"
       >
         {selectedListing && (
           <div className="space-y-6 p-6">

@@ -23,7 +23,12 @@ const CATEGORY_OPTIONS = Object.entries(VIOLATION_CATEGORIES).map(([key, label])
   label: label as string,
 }))
 
-export const NewReportForm = () => {
+type NewReportFormProps = {
+  embedded?: boolean
+  onSuccess?: () => void
+}
+
+export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
   const router = useRouter()
   const { t } = useI18n()
 
@@ -92,7 +97,11 @@ export const NewReportForm = () => {
       }
 
       const data = await res.json()
-      router.push(`/reports/${data.report_id}`)
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        router.push(`/reports/${data.report_id}`)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed')
     } finally {
@@ -102,14 +111,16 @@ export const NewReportForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/reports" className="text-th-text-muted hover:text-th-text-secondary">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <h1 className="text-2xl font-bold text-th-text">{t('reports.new.title')}</h1>
-      </div>
+      {!embedded && (
+        <div className="flex items-center gap-3">
+          <Link href="/reports" className="text-th-text-muted hover:text-th-text-secondary">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </Link>
+          <h1 className="text-2xl font-bold text-th-text">{t('reports.new.title')}</h1>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-st-danger-text/30 bg-st-danger-bg px-4 py-3 text-sm text-st-danger-text">
@@ -201,7 +212,7 @@ export const NewReportForm = () => {
       </Card>
 
       <div className="flex justify-end gap-3">
-        <Button type="button" variant="ghost" onClick={() => router.back()}>
+        <Button type="button" variant="ghost" onClick={onSuccess ?? (() => router.back())}>
           {t('common.cancel')}
         </Button>
         <Button type="submit" loading={loading} disabled={!canSubmit}>

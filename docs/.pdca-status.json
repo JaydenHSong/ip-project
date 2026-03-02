@@ -1,23 +1,28 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-02T06:37:45.587Z",
+  "lastUpdated": "2026-03-01T23:59:59.000Z",
   "activeFeatures": [
     "reports",
     "charts",
-    "dashboard"
+    "dashboard",
+    "ui",
+    "[id]",
+    "new",
+    "CampaignForm.tsx",
+    "campaigns"
   ],
   "primaryFeature": "reports",
   "features": {
     "reports": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
+      "phase": "completed",
+      "phaseNumber": 5,
+      "matchRate": 100,
       "iterationCount": 0,
       "requirements": [],
       "documents": {},
       "timestamps": {
         "started": "2026-03-02T06:25:27.974Z",
-        "lastUpdated": "2026-03-02T06:35:38.148Z"
+        "lastUpdated": "2026-03-02T06:55:42.229Z"
       },
       "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/reports/ReportsContent.tsx"
     },
@@ -46,6 +51,71 @@
         "lastUpdated": "2026-03-02T06:37:45.587Z"
       },
       "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/dashboard/DashboardContent.tsx"
+    },
+    "ui": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-02T06:51:18.542Z",
+        "lastUpdated": "2026-03-02T07:06:11.167Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/components/ui/TableFilters.tsx"
+    },
+    "[id]": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-02T06:54:17.468Z",
+        "lastUpdated": "2026-03-02T06:54:17.468Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/campaigns/[id]/CampaignDetailContent.tsx"
+    },
+    "new": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-02T06:54:29.285Z",
+        "lastUpdated": "2026-03-02T06:54:45.294Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/reports/new/NewReportForm.tsx"
+    },
+    "CampaignForm.tsx": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-02T06:55:52.630Z",
+        "lastUpdated": "2026-03-02T07:01:15.777Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/components/features/CampaignForm.tsx"
+    },
+    "campaigns": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-02T07:01:48.628Z",
+        "lastUpdated": "2026-03-02T07:01:48.628Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/campaigns/CampaignsContent.tsx"
     }
   },
   "pipeline": {
@@ -56,7 +126,7 @@
   "session": {
     "startedAt": "2026-02-28T07:40:00.000Z",
     "onboardingCompleted": true,
-    "lastActivity": "2026-03-02T06:37:45.587Z"
+    "lastActivity": "2026-03-02T07:06:11.167Z"
   },
   "history": [
     {
@@ -176,6 +246,84 @@
     {
       "timestamp": "2026-03-02T06:37:45.587Z",
       "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T06:51:18.542Z",
+      "feature": "ui",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T06:54:17.468Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T06:54:29.285Z",
+      "feature": "new",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T06:54:34.202Z",
+      "feature": "new",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T06:54:40.531Z",
+      "feature": "new",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T06:54:45.294Z",
+      "feature": "new",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T06:55:42.229Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T06:55:52.630Z",
+      "feature": "CampaignForm.tsx",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T07:01:07.738Z",
+      "feature": "CampaignForm.tsx",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T07:01:11.504Z",
+      "feature": "CampaignForm.tsx",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T07:01:15.777Z",
+      "feature": "CampaignForm.tsx",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T07:01:48.628Z",
+      "feature": "campaigns",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T07:06:11.167Z",
+      "feature": "ui",
       "phase": "do",
       "action": "updated"
     }

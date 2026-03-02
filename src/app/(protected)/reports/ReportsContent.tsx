@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -9,6 +10,9 @@ import { ViolationBadge } from '@/components/ui/ViolationBadge'
 import { Badge } from '@/components/ui/Badge'
 import { SortableHeader } from '@/components/ui/SortableHeader'
 import { TableFilters } from '@/components/ui/TableFilters'
+import { SlidePanel } from '@/components/ui/SlidePanel'
+import { Card, CardHeader, CardContent } from '@/components/ui/Card'
+import { NewReportForm } from './new/NewReportForm'
 import { useSortableTable } from '@/hooks/useSortableTable'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import { VIOLATION_CATEGORIES } from '@/constants/violations'
@@ -24,6 +28,8 @@ type ReportRow = {
   ai_confidence_score: number | null
   disagreement_flag: boolean
   created_at: string
+  draft_title?: string | null
+  draft_body?: string | null
   listings: { asin: string; title: string; marketplace: string; seller_name: string | null } | null
 }
 
@@ -45,7 +51,10 @@ export const ReportsContent = ({
   disagreementFilter,
 }: ReportsContentProps) => {
   const { t } = useI18n()
+  const router = useRouter()
   const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
+  const [showNewReport, setShowNewReport] = useState(false)
+  const [previewReportId, setPreviewReportId] = useState<string | null>(null)
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
@@ -71,6 +80,15 @@ export const ReportsContent = ({
   }, [])
 
   const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'date', direction: 'desc' }, getSortValue)
+
+  const previewReport = previewReportId ? sortedData.find((r) => r.id === previewReportId) ?? null : null
+
+  const handleNewReportSuccess = useCallback(() => {
+    setShowNewReport(false)
+    router.refresh()
+  }, [router])
+
+  const handleClosePreview = useCallback(() => setPreviewReportId(null), [])
 
   const STATUS_TABS = [
     { value: '', label: t('common.all') },
@@ -105,12 +123,13 @@ export const ReportsContent = ({
           >
             {t('reports.disagreementOnly')}
           </Link>
-          <Link
-            href="/reports/new"
+          <button
+            type="button"
+            onClick={() => setShowNewReport(true)}
             className="rounded-lg bg-th-accent px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 md:text-sm"
           >
             + {t('reports.new.title')}
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -142,7 +161,12 @@ export const ReportsContent = ({
           </div>
         ) : (
           sortedData.map((report) => (
-            <Link key={report.id} href={`/reports/${report.id}`}>
+            <button
+              key={report.id}
+              type="button"
+              onClick={() => setPreviewReportId(report.id)}
+              className="w-full text-left"
+            >
               <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
@@ -161,7 +185,7 @@ export const ReportsContent = ({
                   </div>
                 </div>
               </div>
-            </Link>
+            </button>
           ))
         )}
       </div>
@@ -191,7 +215,11 @@ export const ReportsContent = ({
               </tr>
             ) : (
               sortedData.map((report) => (
-                <tr key={report.id} className="bg-surface-card transition-colors hover:bg-th-bg-hover">
+                <tr
+                  key={report.id}
+                  className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
+                  onClick={() => setPreviewReportId(report.id)}
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
@@ -199,9 +227,9 @@ export const ReportsContent = ({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <Link href={`/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text">
+                    <span className="font-mono text-th-text">
                       {report.listings?.asin ?? '—'}
-                    </Link>
+                    </span>
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-th-text-secondary">{report.listings?.title ?? '—'}</td>
                   <td className="px-4 py-3 text-th-text-secondary">{report.listings?.seller_name ?? '—'}</td>
@@ -234,6 +262,122 @@ export const ReportsContent = ({
           ))}
         </div>
       )}
+
+      {/* New Report SlidePanel */}
+      <SlidePanel
+        open={showNewReport}
+        onClose={() => setShowNewReport(false)}
+        title={t('reports.new.title')}
+      >
+        <div className="p-6">
+          <NewReportForm embedded onSuccess={handleNewReportSuccess} />
+        </div>
+      </SlidePanel>
+
+      {/* Report Quick View SlidePanel */}
+      <SlidePanel
+        open={!!previewReportId}
+        onClose={handleClosePreview}
+        title={t('reports.detail.title')}
+        size="xl"
+        status={previewReport ? <StatusBadge status={previewReport.status as ReportStatus} type="report" /> : undefined}
+      >
+        {previewReport && (
+          <div className="space-y-6 p-6">
+            {/* Violation Info */}
+            <Card>
+              <CardHeader>
+                <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.violationInfo')}</h3>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-xs text-th-text-tertiary">{t('reports.detail.userViolationType')}</p>
+                  <div className="mt-1">
+                    <ViolationBadge code={previewReport.violation_type as ViolationCode} />
+                  </div>
+                </div>
+                {previewReport.disagreement_flag && (
+                  <div className="rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-2">
+                    <p className="text-xs font-medium text-st-warning-text">
+                      {t('reports.detail.disagreementWarning')}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Listing Info */}
+            {previewReport.listings && (
+              <Card>
+                <CardHeader>
+                  <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.listing')}</h3>
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">ASIN</dt>
+                      <dd className="mt-0.5 font-mono font-medium text-th-text">{previewReport.listings.asin}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.detail.marketplace')}</dt>
+                      <dd className="mt-0.5 font-medium text-th-text">{previewReport.listings.marketplace}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.seller')}</dt>
+                      <dd className="mt-0.5 font-medium text-th-text">{previewReport.listings.seller_name ?? '—'}</dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.title')}</dt>
+                      <dd className="mt-0.5 font-medium text-th-text">{previewReport.listings.title}</dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Draft */}
+            {previewReport.draft_title && (
+              <Card>
+                <CardHeader>
+                  <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.reportDraft')}</h3>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div>
+                    <p className="text-xs text-th-text-tertiary">{t('reports.detail.draftTitle')}</p>
+                    <p className="mt-0.5 text-sm font-medium text-th-text">{previewReport.draft_title}</p>
+                  </div>
+                  {previewReport.draft_body && (
+                    <div>
+                      <p className="text-xs text-th-text-tertiary">{t('reports.detail.draftBody')}</p>
+                      <div className="mt-0.5 whitespace-pre-wrap rounded-lg bg-th-bg-tertiary p-3 text-xs text-th-text-secondary">
+                        {previewReport.draft_body}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* AI Confidence */}
+            {previewReport.ai_confidence_score !== null && (
+              <div className="flex items-center gap-2 text-sm text-th-text-muted">
+                <span>AI Confidence: {previewReport.ai_confidence_score}%</span>
+              </div>
+            )}
+
+            {/* Metadata + Link */}
+            <div className="flex items-center justify-between text-xs text-th-text-muted">
+              <span>{t('reports.detail.createdAt')}: {new Date(previewReport.created_at).toLocaleString()}</span>
+              <Link
+                href={`/reports/${previewReport.id}`}
+                className="text-th-accent-text hover:underline"
+              >
+                {t('common.details')} →
+              </Link>
+            </div>
+          </div>
+        )}
+      </SlidePanel>
     </div>
   )
 }

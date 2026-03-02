@@ -1,9 +1,14 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { SlidePanel } from '@/components/ui/SlidePanel'
+import { Card, CardHeader, CardContent } from '@/components/ui/Card'
+import { CampaignForm } from '@/components/features/CampaignForm'
 import { MARKETPLACES, type MarketplaceCode } from '@/constants/marketplaces'
 
 type Campaign = {
@@ -26,6 +31,18 @@ type CampaignsContentProps = {
 
 export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, canCreate }: CampaignsContentProps) => {
   const { t } = useI18n()
+  const router = useRouter()
+  const [showNewCampaign, setShowNewCampaign] = useState(false)
+  const [previewCampaignId, setPreviewCampaignId] = useState<string | null>(null)
+
+  const previewCampaign = previewCampaignId ? campaigns?.find((c) => c.id === previewCampaignId) ?? null : null
+
+  const handleNewCampaignSuccess = useCallback(() => {
+    setShowNewCampaign(false)
+    router.refresh()
+  }, [router])
+
+  const handleClosePreview = useCallback(() => setPreviewCampaignId(null), [])
 
   const statusFilters = [
     { value: '', label: t('common.all') },
@@ -39,10 +56,14 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('campaigns.title')}</h1>
         {canCreate && (
-          <Link href="/campaigns/new">
-            <Button size="sm" className="md:hidden">{t('campaigns.newCampaign')}</Button>
-            <Button className="hidden md:inline-flex">{t('campaigns.newCampaign')}</Button>
-          </Link>
+          <div>
+            <Button size="sm" className="md:hidden" onClick={() => setShowNewCampaign(true)}>
+              {t('campaigns.newCampaign')}
+            </Button>
+            <Button className="hidden md:inline-flex" onClick={() => setShowNewCampaign(true)}>
+              {t('campaigns.newCampaign')}
+            </Button>
+          </div>
         )}
       </div>
 
@@ -70,7 +91,12 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
           </div>
         ) : (
           campaigns.map((campaign) => (
-            <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
+            <button
+              key={campaign.id}
+              type="button"
+              onClick={() => setPreviewCampaignId(campaign.id)}
+              className="w-full text-left"
+            >
               <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
                   <p className="font-medium text-th-text">{campaign.keyword}</p>
@@ -82,7 +108,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                   <span>{new Date(campaign.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
-            </Link>
+            </button>
           ))
         )}
       </div>
@@ -107,11 +133,15 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
               </tr>
             ) : (
               campaigns.map((campaign) => (
-                <tr key={campaign.id} className="bg-surface-card transition-colors hover:bg-th-bg-hover">
+                <tr
+                  key={campaign.id}
+                  className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
+                  onClick={() => setPreviewCampaignId(campaign.id)}
+                >
                   <td className="px-4 py-3">
-                    <Link href={`/campaigns/${campaign.id}`} className="font-medium text-th-text hover:text-th-accent-text">
+                    <span className="font-medium text-th-text">
                       {campaign.keyword}
-                    </Link>
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-th-text-secondary">
                     {MARKETPLACES[campaign.marketplace as MarketplaceCode]?.name ?? campaign.marketplace}
@@ -144,6 +174,69 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
           ))}
         </div>
       )}
+
+      {/* New Campaign SlidePanel */}
+      <SlidePanel
+        open={showNewCampaign}
+        onClose={() => setShowNewCampaign(false)}
+        title={t('campaigns.form.newTitle')}
+      >
+        <div className="p-6">
+          <p className="mb-6 text-sm text-th-text-secondary">{t('campaigns.form.description')}</p>
+          <CampaignForm embedded onSuccess={handleNewCampaignSuccess} />
+        </div>
+      </SlidePanel>
+
+      {/* Campaign Quick View SlidePanel */}
+      <SlidePanel
+        open={!!previewCampaignId}
+        onClose={handleClosePreview}
+        title={t('campaigns.detail.title')}
+        size="xl"
+        status={previewCampaign ? <StatusBadge status={previewCampaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" /> : undefined}
+      >
+        {previewCampaign && (
+          <div className="space-y-6 p-6">
+            <Card>
+              <CardHeader>
+                <h3 className="text-sm font-semibold text-th-text">{previewCampaign.keyword}</h3>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">{t('campaigns.marketplace')}</dt>
+                    <dd className="mt-0.5 font-medium text-th-text">
+                      {MARKETPLACES[previewCampaign.marketplace as MarketplaceCode]?.name ?? previewCampaign.marketplace}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">{t('campaigns.frequency')}</dt>
+                    <dd className="mt-0.5 font-medium text-th-text">{previewCampaign.frequency}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">{t('campaigns.pages')}</dt>
+                    <dd className="mt-0.5 font-medium text-th-text">{previewCampaign.max_pages}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">{t('campaigns.created')}</dt>
+                    <dd className="mt-0.5 font-medium text-th-text">{new Date(previewCampaign.created_at).toLocaleDateString()}</dd>
+                  </div>
+                </dl>
+              </CardContent>
+            </Card>
+
+            <div className="flex items-center justify-between text-xs text-th-text-muted">
+              <span>{t('common.status')}: {previewCampaign.status}</span>
+              <Link
+                href={`/campaigns/${previewCampaign.id}`}
+                className="text-th-accent-text hover:underline"
+              >
+                {t('common.details')} →
+              </Link>
+            </div>
+          </div>
+        )}
+      </SlidePanel>
     </div>
   )
 }

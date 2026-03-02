@@ -1026,10 +1026,11 @@ type CreateCategoryRequest = {
 /                           → 리다이렉트 (/dashboard 또는 /login)
 /login                      → Google OAuth 로그인
 /dashboard                  → 대시보드 (통계 카드 + 차트)
-/campaigns                  → 캠페인 목록
-/campaigns/new              → 캠페인 생성
+/campaigns                  → 캠페인 목록 (행 클릭: Quick View SlidePanel)
+/campaigns/new              → 캠페인 생성 (리스트에서 SlidePanel으로도 접근 가능)
 /campaigns/:id              → 캠페인 상세 (수집 현황)
-/reports                    → 신고 대기열 (핵심 페이지)
+/reports                    → 신고 대기열 (행 클릭: Quick View SlidePanel)
+/reports/new                → 신고 생성 (리스트에서 SlidePanel으로도 접근 가능)
 /reports/:id                → 신고 상세 (AI 분석 + 드래프트 + 승인)
 /listings                   → 리스팅 목록 (전체/의심)
 /listings/:id               → 리스팅 상세
@@ -1087,7 +1088,9 @@ type CreateCategoryRequest = {
 | StatusBadge | src/components/ui/ | 신고 상태 뱃지 (색상별) |
 | Button | src/components/ui/ | 공통 버튼 |
 | Input | src/components/ui/ | 공통 입력 필드 |
-| Modal | src/components/ui/ | 공통 모달 |
+| Modal | src/components/ui/ | 공통 모달 (확인/승인/반려 등 작은 대화상자) |
+| SlidePanel | src/components/ui/ | 오른쪽 슬라이드인 패널 (생성 폼, Quick View, 필터 Drawer) |
+| TableFilters | src/components/ui/ | 테이블 필터 (검색+위반유형+마켓, 모바일 Drawer 지원) |
 | DataTable | src/components/ui/ | 공통 테이블 (정렬/필터/페이징) |
 
 ### 5.4 Extension UI Design (Sentinel Extension — D47)
@@ -1211,6 +1214,103 @@ type SubmitReportResponse = {
 │                                          │
 │  → 선택 시 confirmed_violation_type 저장  │
 └─────────────────────────────────────────┘
+```
+
+### 5.6 SlidePanel 패턴 (인앱 패널 UX)
+
+기존 `/reports/new`, `/campaigns/new` 등 별도 페이지로 이동하는 패턴 대신, **리스트 컨텍스트를 유지**하면서 오른쪽에서 슬라이드인되는 패널을 사용한다.
+
+#### SlidePanel 컴포넌트 (`src/components/ui/SlidePanel.tsx`)
+
+```typescript
+type SlidePanelSize = 'sm' | 'md' | 'lg' | 'xl'
+
+type SlidePanelProps = {
+  open: boolean
+  onClose: () => void
+  title?: string
+  status?: ReactNode    // 헤더 우측 StatusBadge 등
+  children: ReactNode
+  size?: SlidePanelSize // 기본값: 'lg'
+  className?: string    // 너비 오버라이드 (하위 호환)
+}
+```
+
+| Size | CSS | 사용 용도 |
+|------|-----|----------|
+| `sm` | `max-w-sm` (384px) | 모바일 필터 Drawer |
+| `md` | `max-w-md` (448px) | 간단한 폼 |
+| `lg` | `max-w-xl` (576px) | 생성 폼 (기본값) |
+| `xl` | `max-w-[50vw]` | Quick View 미리보기 |
+
+**공통 동작**:
+- Backdrop: `bg-black/50` 반투명 오버레이, 클릭 시 `onClose`
+- Body scroll lock: `open` 시 `document.body.style.overflow = 'hidden'`
+- ESC 키로 닫힘
+- z-index: backdrop `z-40`, panel `z-50`
+
+#### Modal vs SlidePanel 사용 기준
+
+| 패턴 | 언제 사용 | 예시 |
+|------|----------|------|
+| **Modal** | 짧은 확인/입력 대화상자 (1~2개 필드) | Approve, Reject, Rewrite 확인, Archive 사유 |
+| **SlidePanel (lg)** | 생성/편집 폼 (여러 필드) | New Report, New Campaign |
+| **SlidePanel (xl)** | 상세 미리보기 (리스트에서 빠른 확인) | Report Quick View, Campaign Quick View |
+| **SlidePanel (sm)** | 모바일 필터/설정 | TableFilters 모바일 Drawer |
+| **전체 페이지** | 복잡한 상세 화면 + 여러 서브 섹션 | Report Detail (타임라인+스냅샷+모니터링) |
+
+#### 적용 현황
+
+```
+Reports 리스트 (/reports)
+├── "+" 버튼 클릭 → SlidePanel(lg) — NewReportForm (embedded)
+├── 행 클릭 → SlidePanel(xl) — Report Quick View (위반정보+리스팅+드래프트)
+│   └── "상세 보기 →" → /reports/:id 전체 페이지
+└── 모바일 "Filter" 버튼 → SlidePanel(sm) — 필터 옵션
+
+Campaigns 리스트 (/campaigns)
+├── "New Campaign" 버튼 → SlidePanel(lg) — CampaignForm (embedded)
+└── 행 클릭 → SlidePanel(xl) — Campaign Quick View
+    └── "상세 보기 →" → /campaigns/:id 전체 페이지
+
+Campaign 상세 (/campaigns/:id)
+└── ASIN 클릭 (리포트 있는 경우) → SlidePanel(xl) — 리포트 미리보기
+```
+
+#### 폼 컴포넌트 embedded 모드
+
+생성 폼(`NewReportForm`, `CampaignForm`)은 SlidePanel 내에서도, 독립 페이지(`/reports/new`, `/campaigns/new`)에서도 사용 가능하다.
+
+```typescript
+// NewReportForm, CampaignForm 공통 패턴
+type FormProps = {
+  embedded?: boolean   // true: 페이지 헤더 숨김
+  onSuccess?: () => void // 생성 완료 시 콜백 (패널 닫기 + refresh)
+}
+```
+
+- `embedded=false` (기본): 페이지 헤더 표시, 완료 후 `router.push`
+- `embedded=true`: 헤더 숨김, Cancel 클릭 시 `onSuccess` 호출 (패널 닫기)
+
+#### 모바일 필터 Drawer (`TableFilters`)
+
+```
+┌─────────────────────────────────┐
+│ 데스크탑 (sm 이상)                │
+│  [🔍 검색...] [위반유형 ▼] [마켓 ▼] │  ← 인라인 필터
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│ 모바일 (sm 미만)                  │
+│  [🔍 검색...]  [⚙ Filter (2)]   │  ← 버튼 + 활성 필터 수 배지
+│                                   │
+│  버튼 클릭 → SlidePanel(sm)       │
+│  ┌───────────────────────────┐  │
+│  │ 위반 유형: [전체 유형 ▼]    │  │
+│  │ 마켓: [전체 마켓 ▼]        │  │
+│  │ [적용]                     │  │
+│  └───────────────────────────┘  │
+└─────────────────────────────────┘
 ```
 
 ---
@@ -1542,3 +1642,4 @@ NEXT_PUBLIC_APP_URL=https://sentinel.spigen.com
 |---------|------|---------|--------|
 | 0.1 | 2026-02-28 | Initial draft — 전체 시스템 설계 | Claude |
 | 0.2 | 2026-02-28 | OMS 분석 반영 — AI vs 사용자 불일치 처리 (D45), 상표 테이블 (D42), 제품 카테고리 (D41), OMS 위반 유형 매핑, Extension UI 설계, 불일치 UI | Claude |
+| 0.3 | 2026-03-01 | SlidePanel 패턴 추가 — 5.6절 신설. SlidePanel 컴포넌트 (backdrop, scroll lock, size prop), 생성 폼 embedded 모드, Quick View 패턴, 모바일 필터 Drawer, Modal vs SlidePanel 사용 기준 | Claude |

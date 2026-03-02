@@ -19,6 +19,8 @@ type CampaignFormProps = {
     max_pages: number
   }
   campaignId?: string
+  embedded?: boolean
+  onSuccess?: () => void
 }
 
 const MARKETPLACE_OPTIONS = MARKETPLACE_CODES.map((code) => ({
@@ -31,7 +33,7 @@ const FREQUENCY_OPTIONS = CAMPAIGN_FREQUENCIES.map((f) => ({
   label: f === 'daily' ? 'Daily' : f === 'every_12h' ? 'Every 12h' : 'Every 6h',
 }))
 
-export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => {
+export const CampaignForm = ({ initialData, campaignId, embedded, onSuccess }: CampaignFormProps) => {
   const router = useRouter()
   const { t } = useI18n()
   const isEdit = !!campaignId
@@ -77,8 +79,12 @@ export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => 
     }
 
     const data = await res.json()
-    router.push(`/campaigns/${data.id}`)
-    router.refresh()
+    if (onSuccess) {
+      onSuccess()
+    } else {
+      router.push(`/campaigns/${data.id}`)
+      router.refresh()
+    }
   }
 
   return (
@@ -138,7 +144,7 @@ export const CampaignForm = ({ initialData, campaignId }: CampaignFormProps) => 
       />
 
       <div className="flex justify-end gap-3">
-        <Button type="button" variant="ghost" onClick={() => router.back()}>
+        <Button type="button" variant="ghost" onClick={onSuccess ?? (() => router.back())}>
           {t('common.cancel')}
         </Button>
         <Button type="submit" loading={loading}>
