@@ -40,6 +40,8 @@ export const ReportsContent = ({
     { value: 'draft', label: t('reports.tabs.draft') },
     { value: 'pending_review', label: t('reports.tabs.pending') },
     { value: 'approved', label: t('reports.tabs.approved') },
+    { value: 'submitted', label: t('reports.tabs.submitted') },
+    { value: 'monitoring', label: t('reports.tabs.monitoring') },
   ]
 
   return (

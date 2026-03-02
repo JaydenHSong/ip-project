@@ -1,0 +1,189 @@
+{
+  "timestamp": "2026-03-02T04:23:46.751Z",
+  "reason": "compaction",
+  "status": {
+    "version": "2.0",
+    "lastUpdated": "2026-03-02T07:00:00.000Z",
+    "activeFeatures": [
+      "follow-up-monitoring"
+    ],
+    "primaryFeature": "follow-up-monitoring",
+    "features": {
+      "follow-up-monitoring": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [
+          "F19",
+          "F20b",
+          "F21",
+          "F35",
+          "F36"
+        ],
+        "documents": {
+          "plan": "docs/01-plan/features/follow-up-monitoring.plan.md",
+          "design": "docs/02-design/features/follow-up-monitoring.design.md"
+        },
+        "timestamps": {
+          "started": "2026-03-02T07:00:00.000Z",
+          "lastUpdated": "2026-03-02T07:00:00.000Z"
+        }
+      },
+      "crawler": {
+        "phase": "completed",
+        "phaseNumber": 6,
+        "matchRate": 95,
+        "iterationCount": 0,
+        "requirements": [
+          "F01",
+          "F02",
+          "F03",
+          "F04a",
+          "F05"
+        ],
+        "documents": {
+          "plan": "docs/01-plan/features/crawler.plan.md",
+          "design": "docs/02-design/features/crawler.design.md",
+          "report": "docs/04-report/features/crawler.report.md"
+        },
+        "timestamps": {
+          "started": "2026-03-01T14:30:00.000Z",
+          "lastUpdated": "2026-03-01T12:00:00.000Z"
+        }
+      }
+    },
+    "pipeline": {
+      "currentPhase": 1,
+      "level": "Dynamic",
+      "phaseHistory": []
+    },
+    "session": {
+      "startedAt": "2026-02-28T07:40:00.000Z",
+      "onboardingCompleted": true,
+      "lastActivity": "2026-03-02T02:48:28.894Z"
+    },
+    "history": [
+      {
+        "timestamp": "2026-03-02T02:35:14.442Z",
+        "feature": "pending-sc-submit",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:35:32.490Z",
+        "feature": "confirm-submitted",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:35:44.155Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:35:50.463Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:36:02.389Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:36:08.488Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:36:14.826Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:36:20.755Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:36:29.648Z",
+        "feature": "locales",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:36:39.924Z",
+        "feature": "locales",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:36:54.562Z",
+        "feature": "[id]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:46:40.705Z",
+        "feature": "extension",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:47:02.884Z",
+        "feature": "pending-sc-submit",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:47:16.487Z",
+        "feature": "submit-sc",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:47:38.367Z",
+        "feature": "confirm-submitted",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:47:44.675Z",
+        "feature": "confirm-submitted",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:47:50.446Z",
+        "feature": "locales",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:47:55.465Z",
+        "feature": "locales",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:48:04.204Z",
+        "feature": "extension",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-03-02T02:48:28.893Z",
+        "feature": "confirm-submitted",
+        "phase": "do",
+        "action": "updated"
+      }
+    ]
+  }
+}

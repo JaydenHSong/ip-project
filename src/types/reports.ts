@@ -123,6 +123,11 @@ export const TIMELINE_EVENT_TYPES = [
   'cancelled',
   'submitted_sc',
   'rewritten',
+  'monitoring_started',
+  'snapshot_taken',
+  'change_detected',
+  'resolved',
+  'unresolved',
 ] as const
 
 export type TimelineEventType = (typeof TIMELINE_EVENT_TYPES)[number]

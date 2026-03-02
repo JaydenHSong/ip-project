@@ -3,9 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser, hasRole } from '@/lib/auth/session'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_REPORTS, buildDemoTimeline } from '@/lib/demo/data'
+import { DEMO_SNAPSHOTS, DEMO_MONITORING_REPORTS } from '@/lib/demo/monitoring'
 import { buildTimelineEvents } from '@/lib/timeline'
 import { ReportDetailContent } from './ReportDetailContent'
 import type { TimelineEvent } from '@/types/reports'
+import type { ReportSnapshot } from '@/types/monitoring'
 
 type ReportData = {
   id: string
@@ -30,6 +32,10 @@ type ReportData = {
   cancellation_reason: string | null
   sc_submitted_at: string | null
   rejected_by: string | null
+  // Monitoring fields
+  monitoring_started_at: string | null
+  resolved_at: string | null
+  resolution_type: string | null
 }
 
 type ListingInfo = {
@@ -49,14 +55,18 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
   let listing: ListingInfo | null = null
   let creator: { name: string; email: string } | null = null
   let timeline: TimelineEvent[] = []
+  let snapshots: ReportSnapshot[] = []
 
   if (isDemoMode()) {
-    const found = DEMO_REPORTS.find((r) => r.id === id)
+    // Check monitoring reports first, then regular reports
+    const monitoringFound = DEMO_MONITORING_REPORTS.find((r) => r.id === id)
+    const found = monitoringFound ?? DEMO_REPORTS.find((r) => r.id === id)
     if (!found) notFound()
     report = found as unknown as ReportData
     listing = found.listings as ListingInfo
     creator = found.users
-    timeline = buildDemoTimeline(found)
+    timeline = buildDemoTimeline(found as unknown as (typeof DEMO_REPORTS)[number])
+    snapshots = DEMO_SNAPSHOTS[id] ?? []
   } else {
     const supabase = await createClient()
 
@@ -91,6 +101,9 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
         cancellation_reason: report.cancellation_reason,
         sc_case_id: report.sc_case_id,
         sc_submitted_at: report.sc_submitted_at,
+        monitoring_started_at: report.monitoring_started_at,
+        resolved_at: report.resolved_at,
+        resolution_type: report.resolution_type,
       },
       {
         creator: creator?.name ?? null,
@@ -100,6 +113,17 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
         editor: null,
       },
     )
+
+    // Fetch snapshots for monitoring reports
+    if (['monitoring', 'resolved', 'unresolved'].includes(report.status)) {
+      const { data: snapshotData } = await supabase
+        .from('report_snapshots')
+        .select('*')
+        .eq('report_id', id)
+        .order('crawled_at', { ascending: true })
+
+      snapshots = (snapshotData ?? []) as unknown as ReportSnapshot[]
+    }
   }
 
   if (!report) notFound()
@@ -114,6 +138,8 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
       canEdit={canEdit}
       userRole={user.role}
       timeline={timeline}
+      snapshots={snapshots}
+      monitoringStartedAt={report.monitoring_started_at}
     />
   )
 }

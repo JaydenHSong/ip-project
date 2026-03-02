@@ -17,6 +17,11 @@ const EVENT_STYLES: Record<TimelineEventType, { color: string; icon: string }> =
   cancelled: { color: 'text-th-text-muted bg-th-bg-tertiary', icon: '\u2015' },
   submitted_sc: { color: 'text-purple-500 bg-purple-500/10', icon: 'SC' },
   rewritten: { color: 'text-amber-500 bg-amber-500/10', icon: 'R' },
+  monitoring_started: { color: 'text-blue-500 bg-blue-500/10', icon: 'M' },
+  snapshot_taken: { color: 'text-cyan-500 bg-cyan-500/10', icon: 'S' },
+  change_detected: { color: 'text-amber-500 bg-amber-500/10', icon: '!' },
+  resolved: { color: 'text-st-success-text bg-st-success-bg', icon: '\u2713' },
+  unresolved: { color: 'text-st-danger-text bg-st-danger-bg', icon: '\u2717' },
 }
 
 const EVENT_I18N_KEYS: Record<TimelineEventType, string> = {
@@ -29,6 +34,11 @@ const EVENT_I18N_KEYS: Record<TimelineEventType, string> = {
   cancelled: 'reports.timeline.cancelled',
   submitted_sc: 'reports.timeline.submittedSC',
   rewritten: 'reports.timeline.rewritten',
+  monitoring_started: 'reports.timeline.monitoringStarted',
+  snapshot_taken: 'reports.timeline.snapshotTaken',
+  change_detected: 'reports.timeline.changeDetected',
+  resolved: 'reports.timeline.resolved',
+  unresolved: 'reports.timeline.unresolved',
 }
 
 export const ReportTimeline = ({ events }: ReportTimelineProps) => {

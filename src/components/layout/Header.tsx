@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { Bell, LogOut, ChevronDown, Sun, Moon, Globe } from 'lucide-react'
+import { LogOut, ChevronDown, Sun, Moon, Globe } from 'lucide-react'
 import { SpigenLogo } from '@/components/ui/SpigenLogo'
+import { NotificationBell } from './NotificationBell'
 import { createClient } from '@/lib/supabase/client'
 import { getStoredTheme, toggleTheme } from '@/lib/theme'
 import { useI18n } from '@/lib/i18n/context'
@@ -83,13 +84,7 @@ export const Header = ({ user }: HeaderProps) => {
         </button>
 
         {/* Notification Bell */}
-        <button
-          type="button"
-          className="relative rounded-lg p-2 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
-          aria-label={t('common.notifications')}
-        >
-          <Bell className="h-5 w-5" />
-        </button>
+        <NotificationBell />
 
         {/* Profile Dropdown */}
         <div ref={dropdownRef} className="relative">

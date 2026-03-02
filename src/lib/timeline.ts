@@ -17,6 +17,9 @@ type ReportForTimeline = {
   cancellation_reason: string | null
   sc_case_id: string | null
   sc_submitted_at: string | null
+  monitoring_started_at?: string | null
+  resolved_at?: string | null
+  resolution_type?: string | null
 }
 
 type ActorNames = {
@@ -113,6 +116,27 @@ export const buildTimelineEvents = (
       timestamp: report.sc_submitted_at ?? report.approved_at ?? report.created_at,
       actor: null,
       detail: `Case: ${report.sc_case_id}`,
+    })
+  }
+
+  // 9. Monitoring Started
+  if (report.monitoring_started_at) {
+    events.push({
+      type: 'monitoring_started',
+      timestamp: report.monitoring_started_at,
+      actor: null,
+      detail: null,
+    })
+  }
+
+  // 10. Resolved / Unresolved
+  if (report.resolved_at) {
+    const isResolved = report.status === 'resolved'
+    events.push({
+      type: isResolved ? 'resolved' : 'unresolved',
+      timestamp: report.resolved_at,
+      actor: null,
+      detail: report.resolution_type ?? null,
     })
   }
 

@@ -12,8 +12,10 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Button } from '@/components/ui/Button'
 import { ReportActions } from './ReportActions'
 import { ReportTimeline } from './ReportTimeline'
+import { SnapshotViewer } from './SnapshotViewer'
 import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
+import type { ReportSnapshot } from '@/types/monitoring'
 
 type ReportDetailContentProps = {
   report: {
@@ -42,9 +44,11 @@ type ReportDetailContentProps = {
   canEdit: boolean
   userRole: string
   timeline: TimelineEvent[]
+  snapshots?: ReportSnapshot[]
+  monitoringStartedAt?: string | null
 }
 
-export const ReportDetailContent = ({ report, listing, creatorName, canEdit, userRole, timeline }: ReportDetailContentProps) => {
+export const ReportDetailContent = ({ report, listing, creatorName, canEdit, userRole, timeline, snapshots, monitoringStartedAt }: ReportDetailContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
 
@@ -221,6 +225,30 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Monitoring Snapshots (only show for monitoring/resolved/unresolved) */}
+      {snapshots && snapshots.length > 0 && ['monitoring', 'resolved', 'unresolved'].includes(report.status) && (
+        <SnapshotViewer
+          initialSnapshot={snapshots.find((s) => s.snapshot_type === 'initial') ?? null}
+          followupSnapshots={snapshots.filter((s) => s.snapshot_type === 'followup')}
+        />
+      )}
+
+      {/* Monitoring Info */}
+      {monitoringStartedAt && ['monitoring', 'resolved', 'unresolved'].includes(report.status) && (
+        <div className="flex items-center gap-3 text-sm text-th-text-muted">
+          <span>
+            {t('reports.monitoring.daysMonitored' as Parameters<typeof t>[0]).replace('{days}', String(
+              Math.floor((Date.now() - new Date(monitoringStartedAt).getTime()) / (1000 * 60 * 60 * 24))
+            ))}
+          </span>
+          {snapshots && (
+            <span>
+              {t('reports.monitoring.snapshotCount' as Parameters<typeof t>[0]).replace('{count}', String(snapshots.length))}
+            </span>
+          )}
+        </div>
       )}
 
       <Card>

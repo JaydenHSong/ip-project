@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Textarea'
 import { useI18n } from '@/lib/i18n/context'
-import { REJECTION_CATEGORIES } from '@/types/reports'
+import { REJECTION_CATEGORIES, RESOLUTION_TYPES } from '@/types/reports'
 
 type ScSubmitData = {
   asin: string
@@ -33,11 +33,13 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [showManualConfirmModal, setShowManualConfirmModal] = useState(false)
+  const [showResolveModal, setShowResolveModal] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [cancelReason, setCancelReason] = useState('')
   const [rejectionCategory, setRejectionCategory] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
   const [manualCaseId, setManualCaseId] = useState('')
+  const [resolutionType, setResolutionType] = useState('')
 
   const canAct = userRole === 'admin' || userRole === 'editor'
   if (!canAct) return null
@@ -230,6 +232,48 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
     }
   }
 
+  const handleStartMonitoring = async () => {
+    setLoading('startMonitoring')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/start-monitoring`, {
+        method: 'POST',
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Start monitoring failed')
+      }
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleResolve = async (type?: string) => {
+    const rt = type ?? resolutionType
+    if (!rt) return
+    setLoading('resolve')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolution_type: rt }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Resolve failed')
+      }
+      setShowResolveModal(false)
+      setResolutionType('')
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
+  }
+
   return (
     <>
       <div className="flex flex-wrap gap-2">
@@ -294,14 +338,43 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
             {t('reports.detail.submitSC')}
           </Button>
         )}
-        {status === 'submitted' && !scCaseId && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowManualConfirmModal(true)}
-          >
-            {t('reports.detail.confirmSubmitted')}
-          </Button>
+        {status === 'submitted' && (
+          <>
+            <Button
+              size="sm"
+              loading={loading === 'startMonitoring'}
+              onClick={handleStartMonitoring}
+            >
+              {t('reports.monitoring.startMonitoring' as Parameters<typeof t>[0])}
+            </Button>
+            {!scCaseId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowManualConfirmModal(true)}
+              >
+                {t('reports.detail.confirmSubmitted')}
+              </Button>
+            )}
+          </>
+        )}
+        {status === 'monitoring' && (
+          <>
+            <Button
+              size="sm"
+              onClick={() => setShowResolveModal(true)}
+            >
+              {t('reports.monitoring.resolve' as Parameters<typeof t>[0])}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              loading={loading === 'resolve'}
+              onClick={() => handleResolve('no_change')}
+            >
+              {t('reports.monitoring.markUnresolved' as Parameters<typeof t>[0])}
+            </Button>
+          </>
         )}
         {['draft', 'pending_review', 'approved'].includes(status) && (
           <Button
@@ -414,6 +487,47 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
             onClick={handleConfirmSubmitted}
           >
             {t('reports.detail.confirmSubmitted')}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Resolve Modal */}
+      <Modal
+        open={showResolveModal}
+        onClose={() => setShowResolveModal(false)}
+        title={t('reports.monitoring.resolveTitle' as Parameters<typeof t>[0])}
+      >
+        <p className="mb-3 text-sm text-th-text-secondary">
+          {t('reports.monitoring.resolveDesc' as Parameters<typeof t>[0])}
+        </p>
+        <fieldset className="space-y-2">
+          {RESOLUTION_TYPES.filter((rt) => rt !== 'no_change').map((rt) => (
+            <label key={rt} className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="resolution_type"
+                value={rt}
+                checked={resolutionType === rt}
+                onChange={(e) => setResolutionType(e.target.value)}
+                className="accent-th-accent"
+              />
+              <span className="text-sm text-th-text">
+                {t(`reports.monitoring.resolutionTypes.${rt}` as Parameters<typeof t>[0])}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowResolveModal(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            loading={loading === 'resolve'}
+            disabled={!resolutionType}
+            onClick={() => handleResolve()}
+          >
+            {t('reports.monitoring.resolve' as Parameters<typeof t>[0])}
           </Button>
         </div>
       </Modal>

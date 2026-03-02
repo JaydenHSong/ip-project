@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-03-02T04:43:25.319Z",
+  "reason": "compaction",
+  "status": {
+    "version": "2.0",
+    "lastUpdated": "2026-03-02T09:00:00.000Z",
+    "activeFeatures": [
+      "follow-up-monitoring"
+    ],
+    "primaryFeature": "follow-up-monitoring",
+    "features": {
+      "follow-up-monitoring": {
+        "phase": "check",
+        "phaseNumber": 4,
+        "matchRate": 96,
+        "iterationCount": 0,
+        "requirements": [
+          "F19",
+          "F20b",
+          "F21",
+          "F35",
+          "F36"
+        ],
+        "documents": {
+          "plan": "docs/01-plan/features/follow-up-monitoring.plan.md",
+          "design": "docs/02-design/features/follow-up-monitoring.design.md",
+          "analysis": "docs/03-analysis/follow-up-monitoring.analysis.md"
+        },
+        "timestamps": {
+          "started": "2026-03-02T07:00:00.000Z",
+          "lastUpdated": "2026-03-02T09:00:00.000Z"
+        }
+      },
+      "crawler": {
+        "phase": "completed",
+        "phaseNumber": 6,
+        "matchRate": 95,
+        "iterationCount": 0,
+        "requirements": [
+          "F01",
+          "F02",
+          "F03",
+          "F04a",
+          "F05"
+        ],
+        "documents": {
+          "plan": "docs/01-plan/features/crawler.plan.md",
+          "design": "docs/02-design/features/crawler.design.md",
+          "report": "docs/04-report/features/crawler.report.md"
+        },
+        "timestamps": {
+          "started": "2026-03-01T14:30:00.000Z",
+          "lastUpdated": "2026-03-01T12:00:00.000Z"
+        }
+      }
+    },
+    "pipeline": {
+      "currentPhase": 1,
+      "level": "Dynamic",
+      "phaseHistory": []
+    },
+    "session": {
+      "startedAt": "2026-02-28T07:40:00.000Z",
+      "onboardingCompleted": true,
+      "lastActivity": "2026-03-02T09:00:00.000Z"
+    },
+    "history": [
+      {
+        "timestamp": "2026-03-02T07:00:00.000Z",
+        "feature": "follow-up-monitoring",
+        "phase": "plan",
+        "action": "created"
+      },
+      {
+        "timestamp": "2026-03-02T07:30:00.000Z",
+        "feature": "follow-up-monitoring",
+        "phase": "design",
+        "action": "created"
+      },
+      {
+        "timestamp": "2026-03-02T08:00:00.000Z",
+        "feature": "follow-up-monitoring",
+        "phase": "do",
+        "action": "started"
+      },
+      {
+        "timestamp": "2026-03-02T09:00:00.000Z",
+        "feature": "follow-up-monitoring",
+        "phase": "check",
+        "action": "completed",
+        "details": {
+          "matchRate": 96
+        }
+      }
+    ]
+  }
+}
