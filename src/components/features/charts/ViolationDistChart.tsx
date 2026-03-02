@@ -13,6 +13,7 @@ import { useI18n } from '@/lib/i18n/context'
 
 type ViolationDistChartProps = {
   data: { category: string; categoryLabel: string; count: number }[]
+  onClickItem?: (category: string) => void
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -23,7 +24,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   regulatory_safety: CHART_COLORS.regulatory_safety,
 }
 
-export const ViolationDistChart = ({ data }: ViolationDistChartProps) => {
+export const ViolationDistChart = ({ data, onClickItem }: ViolationDistChartProps) => {
   const { t } = useI18n()
   const total = data.reduce((sum, d) => sum + d.count, 0)
 
@@ -42,6 +43,11 @@ export const ViolationDistChart = ({ data }: ViolationDistChartProps) => {
               innerRadius={60}
               outerRadius={100}
               paddingAngle={2}
+              style={onClickItem ? { cursor: 'pointer' } : undefined}
+              onClick={onClickItem ? (_: unknown, index: number) => {
+                const entry = data[index]
+                if (entry) onClickItem(entry.category)
+              } : undefined}
             >
               {data.map((entry) => (
                 <Cell

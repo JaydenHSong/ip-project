@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
+import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
@@ -10,6 +11,8 @@ import { SortableHeader } from '@/components/ui/SortableHeader'
 import { TableFilters } from '@/components/ui/TableFilters'
 import { useSortableTable } from '@/hooks/useSortableTable'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
+import { VIOLATION_CATEGORIES } from '@/constants/violations'
+import type { ViolationCategory } from '@/constants/violations'
 import type { ReportStatus } from '@/types/reports'
 import type { ViolationCode } from '@/constants/violations'
 import type { TableFilters as TableFiltersType } from '@/types/table'
@@ -29,6 +32,7 @@ type ReportsContentProps = {
   totalPages: number
   page: number
   statusFilter: string
+  categoryFilter: ViolationCategory | ''
   disagreementFilter: boolean
 }
 
@@ -37,6 +41,7 @@ export const ReportsContent = ({
   totalPages,
   page,
   statusFilter,
+  categoryFilter,
   disagreementFilter,
 }: ReportsContentProps) => {
   const { t } = useI18n()
@@ -81,6 +86,15 @@ export const ReportsContent = ({
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.queueTitle')}</h1>
         <div className="flex items-center gap-2">
+          {categoryFilter && (
+            <Link
+              href="/reports"
+              className="flex items-center gap-1 rounded-lg border border-th-accent/30 bg-th-accent/10 px-2 py-1 text-xs font-medium text-th-accent-text md:px-3 md:py-1.5 md:text-sm"
+            >
+              {VIOLATION_CATEGORIES[categoryFilter]}
+              <X className="h-3 w-3" />
+            </Link>
+          )}
           <Link
             href={`/reports?${disagreementFilter ? '' : 'disagreement=true'}`}
             className={`rounded-lg border px-2 py-1 text-xs font-medium md:px-3 md:py-1.5 md:text-sm ${

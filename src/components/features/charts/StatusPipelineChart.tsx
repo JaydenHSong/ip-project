@@ -14,9 +14,10 @@ import { useI18n } from '@/lib/i18n/context'
 
 type StatusPipelineChartProps = {
   data: { status: string; statusLabel: string; count: number }[]
+  onClickItem?: (status: string) => void
 }
 
-export const StatusPipelineChart = ({ data }: StatusPipelineChartProps) => {
+export const StatusPipelineChart = ({ data, onClickItem }: StatusPipelineChartProps) => {
   const { t } = useI18n()
 
   return (
@@ -44,7 +45,15 @@ export const StatusPipelineChart = ({ data }: StatusPipelineChartProps) => {
                 fontSize: 12,
               }}
             />
-            <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+            <Bar
+              dataKey="count"
+              radius={[0, 4, 4, 0]}
+              style={onClickItem ? { cursor: 'pointer' } : undefined}
+              onClick={onClickItem ? (_: unknown, index: number) => {
+                const entry = data[index]
+                if (entry) onClickItem(entry.status)
+              } : undefined}
+            >
               {data.map((entry) => (
                 <Cell
                   key={entry.status}

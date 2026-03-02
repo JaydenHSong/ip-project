@@ -10,6 +10,7 @@ type AiPerformanceCardProps = {
     rewriteRate: number
     rejectRate: number
   }
+  onClickDisagreement?: () => void
 }
 
 const ProgressBar = ({ value, color, label }: { value: number; color: string; label: string }) => (
@@ -27,7 +28,7 @@ const ProgressBar = ({ value, color, label }: { value: number; color: string; la
   </div>
 )
 
-export const AiPerformanceCard = ({ data }: AiPerformanceCardProps) => {
+export const AiPerformanceCard = ({ data, onClickDisagreement }: AiPerformanceCardProps) => {
   const { t } = useI18n()
 
   return (
@@ -42,11 +43,19 @@ export const AiPerformanceCard = ({ data }: AiPerformanceCardProps) => {
           color="#3b82f6"
           label={t('dashboard.charts.avgConfidence' as Parameters<typeof t>[0])}
         />
-        <ProgressBar
-          value={data.disagreementRate}
-          color={data.disagreementRate > 20 ? '#f59e0b' : '#10b981'}
-          label={t('dashboard.charts.disagreementRate' as Parameters<typeof t>[0])}
-        />
+        <div
+          onClick={onClickDisagreement}
+          className={onClickDisagreement ? 'cursor-pointer rounded-md p-1 -m-1 transition-colors hover:bg-th-bg-hover' : ''}
+          role={onClickDisagreement ? 'button' : undefined}
+          tabIndex={onClickDisagreement ? 0 : undefined}
+          onKeyDown={onClickDisagreement ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClickDisagreement() } : undefined}
+        >
+          <ProgressBar
+            value={data.disagreementRate}
+            color={data.disagreementRate > 20 ? '#f59e0b' : '#10b981'}
+            label={t('dashboard.charts.disagreementRate' as Parameters<typeof t>[0])}
+          />
+        </div>
 
         <div className="pt-2">
           <p className="mb-2 text-xs font-medium text-th-text-secondary">

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
   FileText,
@@ -82,8 +83,14 @@ export const DashboardContent = ({
   activeCampaigns,
 }: DashboardContentProps) => {
   const { t } = useI18n()
+  const router = useRouter()
   const [period, setPeriod] = useState<PeriodFilter>('30d')
   const [stats, setStats] = useState<DashboardStats | null>(initialStats)
+
+  const navigateToReports = useCallback((params: Record<string, string>) => {
+    const search = new URLSearchParams(params).toString()
+    router.push(`/reports?${search}`)
+  }, [router])
 
   const handlePeriodChange = useCallback((newPeriod: PeriodFilter) => {
     setPeriod(newPeriod)
@@ -216,18 +223,30 @@ export const DashboardContent = ({
               <ReportTrendChart data={stats.reportTrend} />
             </div>
             <div>
-              <ViolationDistChart data={stats.violationDist} />
+              <ViolationDistChart
+                data={stats.violationDist}
+                onClickItem={(category) => navigateToReports({ category })}
+              />
             </div>
           </div>
 
           {/* Charts Row 2: Status Pipeline (1/2) + AI Performance (1/2) */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-            <StatusPipelineChart data={stats.statusPipeline} />
-            <AiPerformanceCard data={stats.aiPerformance} />
+            <StatusPipelineChart
+              data={stats.statusPipeline}
+              onClickItem={(status) => navigateToReports({ status })}
+            />
+            <AiPerformanceCard
+              data={stats.aiPerformance}
+              onClickDisagreement={() => navigateToReports({ disagreement: 'true' })}
+            />
           </div>
 
           {/* Charts Row 3: Top Violations (full width) */}
-          <TopViolationsChart data={stats.topViolations} />
+          <TopViolationsChart
+            data={stats.topViolations}
+            onClickItem={(code) => navigateToReports({ violation_type: code })}
+          />
         </>
       )}
 

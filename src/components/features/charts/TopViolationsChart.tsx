@@ -13,9 +13,10 @@ import { useI18n } from '@/lib/i18n/context'
 
 type TopViolationsChartProps = {
   data: { code: string; name: string; count: number }[]
+  onClickItem?: (code: string) => void
 }
 
-export const TopViolationsChart = ({ data }: TopViolationsChartProps) => {
+export const TopViolationsChart = ({ data, onClickItem }: TopViolationsChartProps) => {
   const { t } = useI18n()
 
   return (
@@ -49,7 +50,16 @@ export const TopViolationsChart = ({ data }: TopViolationsChartProps) => {
                 return [`${v} cases`, p?.payload?.name ?? '']
               }}
             />
-            <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+            <Bar
+              dataKey="count"
+              fill="#3b82f6"
+              radius={[0, 4, 4, 0]}
+              style={onClickItem ? { cursor: 'pointer' } : undefined}
+              onClick={onClickItem ? (_: unknown, index: number) => {
+                const entry = data[index]
+                if (entry) onClickItem(entry.code)
+              } : undefined}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
