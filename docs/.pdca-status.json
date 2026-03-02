@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-02T01:15:18.883Z",
+  "lastUpdated": "2026-03-02T02:48:28.894Z",
   "activeFeatures": [
     "ai-analysis",
     "crawler",
@@ -39,9 +39,14 @@
     "manual",
     "new",
     "reports",
-    "demo"
+    "demo",
+    "content",
+    "extension",
+    "constants",
+    "pending-sc-submit",
+    "confirm-submitted"
   ],
-  "primaryFeature": null,
+  "primaryFeature": "sc-semi-auto-submit",
   "features": {
     "crawler": {
       "phase": "completed",
@@ -100,12 +105,17 @@
       }
     },
     "extension": {
-      "phase": "archived",
+      "phase": "do",
       "matchRate": 96,
       "iterationCount": 0,
       "startedAt": "2026-03-01T09:00:00.000Z",
       "archivedAt": "2026-03-01T14:00:00.000Z",
-      "archivedTo": "docs/archive/2026-03/extension/"
+      "archivedTo": "docs/archive/2026-03/extension/",
+      "phaseNumber": 3,
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /extension/src/shared/sc-violation-map.ts",
+      "timestamps": {
+        "lastUpdated": "2026-03-02T02:48:04.204Z"
+      }
     },
     "sentinel": {
       "phase": "archived",
@@ -197,7 +207,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-01T08:19:14.302Z",
-        "lastUpdated": "2026-03-02T01:15:18.883Z"
+        "lastUpdated": "2026-03-02T02:47:55.465Z"
       },
       "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/lib/i18n/locales/ko.ts"
     },
@@ -210,7 +220,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-01T08:20:09.605Z",
-        "lastUpdated": "2026-03-02T01:07:01.178Z"
+        "lastUpdated": "2026-03-02T02:36:54.562Z"
       },
       "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/(protected)/reports/[id]/ReportDetailContent.tsx"
     },
@@ -496,7 +506,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-01T23:30:01.032Z",
-        "lastUpdated": "2026-03-01T23:30:01.032Z"
+        "lastUpdated": "2026-03-02T02:47:16.487Z"
       },
       "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/api/reports/[id]/submit-sc/route.ts"
     },
@@ -581,6 +591,14 @@
       "archivedAt": "2026-03-02T02:10:00.000Z",
       "archivedTo": "docs/archive/2026-03/report-history-timeline/"
     },
+    "sc-semi-auto-submit": {
+      "phase": "archived",
+      "matchRate": 97,
+      "iterationCount": 1,
+      "startedAt": "2026-03-02T02:15:00.000Z",
+      "archivedAt": "2026-03-02T05:45:00.000Z",
+      "archivedTo": "docs/archive/2026-03/sc-semi-auto-submit/"
+    },
     "demo": {
       "phase": "do",
       "phaseNumber": 3,
@@ -593,6 +611,58 @@
         "lastUpdated": "2026-03-02T01:07:48.074Z"
       },
       "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/lib/demo/data.ts"
+    },
+    "content": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-02T02:33:05.543Z",
+        "lastUpdated": "2026-03-02T02:34:01.231Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /extension/src/content/sc-form-filler.ts"
+    },
+    "constants": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-02T02:34:43.834Z",
+        "lastUpdated": "2026-03-02T02:34:43.834Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/constants/violations.ts"
+    },
+    "pending-sc-submit": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-02T02:35:14.442Z",
+        "lastUpdated": "2026-03-02T02:47:02.884Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/api/reports/pending-sc-submit/route.ts"
+    },
+    "confirm-submitted": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-02T02:35:32.490Z",
+        "lastUpdated": "2026-03-02T02:48:28.893Z"
+      },
+      "lastFile": "/Users/hoon/Documents/Claude/code/IP project /src/app/api/reports/[id]/confirm-submitted/route.ts"
     }
   },
   "pipeline": {
@@ -603,7 +673,7 @@
   "session": {
     "startedAt": "2026-02-28T07:40:00.000Z",
     "onboardingCompleted": true,
-    "lastActivity": "2026-03-02T01:15:18.883Z"
+    "lastActivity": "2026-03-02T02:48:28.894Z"
   },
   "history": [
     {
@@ -1702,6 +1772,168 @@
     {
       "timestamp": "2026-03-02T01:15:18.883Z",
       "feature": "locales",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:33:05.543Z",
+      "feature": "content",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:33:15.230Z",
+      "feature": "extension",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:33:19.313Z",
+      "feature": "extension",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:33:25.430Z",
+      "feature": "extension",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:34:01.231Z",
+      "feature": "content",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:34:43.834Z",
+      "feature": "constants",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:35:00.713Z",
+      "feature": "submit-sc",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:35:14.442Z",
+      "feature": "pending-sc-submit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:35:32.490Z",
+      "feature": "confirm-submitted",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:35:44.155Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:35:50.463Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:36:02.389Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:36:08.488Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:36:14.826Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:36:20.755Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:36:29.648Z",
+      "feature": "locales",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:36:39.924Z",
+      "feature": "locales",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:36:54.562Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:46:40.705Z",
+      "feature": "extension",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:47:02.884Z",
+      "feature": "pending-sc-submit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:47:16.487Z",
+      "feature": "submit-sc",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:47:38.367Z",
+      "feature": "confirm-submitted",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:47:44.675Z",
+      "feature": "confirm-submitted",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:47:50.446Z",
+      "feature": "locales",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:47:55.465Z",
+      "feature": "locales",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:48:04.204Z",
+      "feature": "extension",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-02T02:48:28.893Z",
+      "feature": "confirm-submitted",
       "phase": "do",
       "action": "updated"
     }

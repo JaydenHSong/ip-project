@@ -161,6 +161,11 @@ export const en = {
         duplicate: 'Duplicate Report',
         other: 'Other',
       },
+      submitSCDesc: 'Opens SC Report a Violation page. Extension will auto-fill the form.',
+      confirmSubmitted: 'Confirm Submitted',
+      confirmSubmittedDesc: 'If you submitted to SC manually, enter the Case ID to confirm.',
+      scCaseIdPlaceholder: 'e.g., 1234567890',
+      clipboardCopied: 'Report data copied to clipboard. Paste in SC form.',
     },
     timeline: {
       title: 'Activity Timeline',

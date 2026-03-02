@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { notifySubmittedToSC } from '@/lib/notifications/google-chat'
+import { SC_VIOLATION_MAP, SC_RAV_URLS } from '@/constants/violations'
+import type { ViolationCode } from '@/constants/violations'
 
-// POST /api/reports/:id/submit-sc — approved → submitted
+// POST /api/reports/:id/submit-sc — approved → submitted + SC submit 데이터 저장
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -17,10 +19,14 @@ export const POST = withAuth(async (req) => {
 
   const supabase = await createClient()
 
-  // 현재 상태 확인
+  // report + listing 데이터 조회
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('status, listing_id')
+    .select(`
+      id, status, listing_id,
+      violation_type, draft_body, draft_evidence,
+      listings!inner(asin, marketplace)
+    `)
     .eq('id', id)
     .single()
 
@@ -38,6 +44,26 @@ export const POST = withAuth(async (req) => {
     )
   }
 
+  const listing = report.listings as unknown as { asin: string; marketplace: string }
+  const violationType = report.violation_type as ViolationCode
+  const violationTypeSc = SC_VIOLATION_MAP[violationType] ?? 'other'
+  const marketplace = listing.marketplace ?? 'US'
+  const scRavUrl = SC_RAV_URLS[marketplace] ?? SC_RAV_URLS.US
+
+  // SC submit 데이터 구성
+  const scSubmitData = {
+    asin: listing.asin,
+    violation_type_sc: violationTypeSc,
+    description: report.draft_body ?? '',
+    evidence_urls: Array.isArray(report.draft_evidence)
+      ? (report.draft_evidence as { url: string }[])
+          .map((e) => e.url)
+          .filter(Boolean)
+      : [],
+    marketplace,
+    prepared_at: new Date().toISOString(),
+  }
+
   const now = new Date().toISOString()
 
   const { data, error } = await supabase
@@ -45,6 +71,7 @@ export const POST = withAuth(async (req) => {
     .update({
       status: 'submitted',
       sc_submitted_at: now,
+      sc_submit_data: scSubmitData,
       updated_at: now,
     })
     .eq('id', id)
@@ -59,13 +86,11 @@ export const POST = withAuth(async (req) => {
   }
 
   // 알림 (fire-and-forget)
-  const { data: listing } = await supabase
-    .from('listings')
-    .select('asin')
-    .eq('id', report.listing_id)
-    .single()
+  notifySubmittedToSC(id, listing.asin).catch(() => {})
 
-  notifySubmittedToSC(id, listing?.asin ?? 'N/A').catch(() => {})
-
-  return NextResponse.json(data)
-}, ['admin'])
+  return NextResponse.json({
+    ...data,
+    sc_rav_url: scRavUrl,
+    sc_submit_data: scSubmitData,
+  })
+}, ['editor', 'admin'])

@@ -3,28 +3,41 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Textarea'
 import { useI18n } from '@/lib/i18n/context'
 import { REJECTION_CATEGORIES } from '@/types/reports'
 
+type ScSubmitData = {
+  asin: string
+  violation_type_sc: string
+  description: string
+  evidence_urls: string[]
+  marketplace: string
+  prepared_at: string
+}
+
 type ReportActionsProps = {
   reportId: string
   status: string
   userRole: string
+  scCaseId?: string | null
 }
 
-export const ReportActions = ({ reportId, status, userRole }: ReportActionsProps) => {
+export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportActionsProps) => {
   const router = useRouter()
   const { t } = useI18n()
   const [loading, setLoading] = useState<string | null>(null)
   const [showRewriteModal, setShowRewriteModal] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
+  const [showManualConfirmModal, setShowManualConfirmModal] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [cancelReason, setCancelReason] = useState('')
   const [rejectionCategory, setRejectionCategory] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
+  const [manualCaseId, setManualCaseId] = useState('')
 
   const canAct = userRole === 'admin' || userRole === 'editor'
   if (!canAct) return null
@@ -67,6 +80,19 @@ export const ReportActions = ({ reportId, status, userRole }: ReportActionsProps
     }
   }
 
+  const formatClipboardText = (data: ScSubmitData): string => {
+    return [
+      `ASIN: ${data.asin}`,
+      `Violation Type: ${data.violation_type_sc}`,
+      '',
+      '--- Description ---',
+      data.description,
+      data.evidence_urls.length > 0
+        ? `\n--- Evidence ---\n${data.evidence_urls.join('\n')}`
+        : '',
+    ].filter(Boolean).join('\n')
+  }
+
   const handleSubmitSC = async () => {
     setLoading('submitSC')
     try {
@@ -77,6 +103,47 @@ export const ReportActions = ({ reportId, status, userRole }: ReportActionsProps
         const err = await res.json()
         throw new Error(err.error?.message ?? 'Submit to SC failed')
       }
+
+      const data = await res.json() as {
+        sc_rav_url: string
+        sc_submit_data: ScSubmitData
+      }
+
+      // SC RAV 페이지 새 탭 열기
+      if (data.sc_rav_url) {
+        window.open(data.sc_rav_url, '_blank')
+      }
+
+      // 클립보드 fallback (Extension 없을 때 대비)
+      if (data.sc_submit_data) {
+        const clipboardText = formatClipboardText(data.sc_submit_data)
+        await navigator.clipboard.writeText(clipboardText).catch(() => {})
+      }
+
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleConfirmSubmitted = async () => {
+    setLoading('confirmSubmitted')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/confirm-submitted`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sc_case_id: manualCaseId.trim() || undefined,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Confirm failed')
+      }
+      setShowManualConfirmModal(false)
+      setManualCaseId('')
       router.refresh()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed')
@@ -227,6 +294,15 @@ export const ReportActions = ({ reportId, status, userRole }: ReportActionsProps
             {t('reports.detail.submitSC')}
           </Button>
         )}
+        {status === 'submitted' && !scCaseId && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowManualConfirmModal(true)}
+          >
+            {t('reports.detail.confirmSubmitted')}
+          </Button>
+        )}
         {['draft', 'pending_review', 'approved'].includes(status) && (
           <Button
             variant="danger"
@@ -309,6 +385,35 @@ export const ReportActions = ({ reportId, status, userRole }: ReportActionsProps
             onClick={handleReject}
           >
             {t('reports.detail.rejectConfirm')}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Manual Confirm Modal */}
+      <Modal
+        open={showManualConfirmModal}
+        onClose={() => setShowManualConfirmModal(false)}
+        title={t('reports.detail.confirmSubmitted')}
+      >
+        <p className="mb-3 text-sm text-th-text-secondary">
+          {t('reports.detail.confirmSubmittedDesc')}
+        </p>
+        <Input
+          label={t('reports.detail.scCaseId')}
+          value={manualCaseId}
+          onChange={(e) => setManualCaseId(e.target.value)}
+          placeholder={t('reports.detail.scCaseIdPlaceholder')}
+        />
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowManualConfirmModal(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            loading={loading === 'confirmSubmitted'}
+            onClick={handleConfirmSubmitted}
+          >
+            {t('reports.detail.confirmSubmitted')}
           </Button>
         </div>
       </Modal>

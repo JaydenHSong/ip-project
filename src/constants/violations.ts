@@ -55,6 +55,42 @@ export const VIOLATION_GROUPS = Object.entries(VIOLATION_TYPES).reduce(
   {} as Record<ViolationCategory, (typeof VIOLATION_TYPES)[ViolationCode][]>,
 )
 
+// V01~V19 → SC "Report a Violation" 위반 유형 매핑
+// SC 드롭다운 value는 실제 SC 페이지 확인 후 업데이트
+export const SC_VIOLATION_MAP: Record<ViolationCode, string> = {
+  V01: 'trademark',
+  V02: 'copyright',
+  V03: 'patent',
+  V04: 'counterfeit',
+  V05: 'misleading_claims',
+  V06: 'prohibited_content',
+  V07: 'inaccurate_information',
+  V08: 'image_violation',
+  V09: 'comparative_advertising',
+  V10: 'variation_abuse',
+  V11: 'review_manipulation',
+  V12: 'review_hijacking',
+  V13: 'pricing_abuse',
+  V14: 'unauthorized_reseller',
+  V15: 'bundling_violation',
+  V16: 'missing_certification',
+  V17: 'safety_violation',
+  V18: 'missing_warnings',
+  V19: 'import_violation',
+} as const
+
+// SC RAV 페이지 URL (마켓플레이스별)
+export const SC_RAV_URLS: Record<string, string> = {
+  US: 'https://sellercentral.amazon.com/abuse-submission/report-abuse',
+  UK: 'https://sellercentral.amazon.co.uk/abuse-submission/report-abuse',
+  JP: 'https://sellercentral.amazon.co.jp/abuse-submission/report-abuse',
+  DE: 'https://sellercentral.amazon.de/abuse-submission/report-abuse',
+  FR: 'https://sellercentral.amazon.fr/abuse-submission/report-abuse',
+  IT: 'https://sellercentral.amazon.it/abuse-submission/report-abuse',
+  ES: 'https://sellercentral.amazon.es/abuse-submission/report-abuse',
+  CA: 'https://sellercentral.amazon.ca/abuse-submission/report-abuse',
+} as const
+
 // OMS 위반 유형 매핑 (마이그레이션 참조용)
 export const OMS_VIOLATION_MAPPING = {
   'Variation': ['V10'],

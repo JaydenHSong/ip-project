@@ -161,6 +161,11 @@ export const ko = {
         duplicate: '중복 신고',
         other: '기타',
       },
+      submitSCDesc: 'SC "Report a Violation" 페이지를 엽니다. Extension이 자동으로 폼을 채웁니다.',
+      confirmSubmitted: '제출 완료 확인',
+      confirmSubmittedDesc: 'SC에 수동으로 제출한 경우, Case ID를 입력하여 확인하세요.',
+      scCaseIdPlaceholder: '예: 1234567890',
+      clipboardCopied: '신고 내용이 클립보드에 복사되었습니다. SC 폼에 붙여넣으세요.',
     },
     timeline: {
       title: '활동 타임라인',

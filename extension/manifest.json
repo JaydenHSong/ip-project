@@ -17,7 +17,8 @@
     "https://www.amazon.fr/*",
     "https://www.amazon.it/*",
     "https://www.amazon.es/*",
-    "https://www.amazon.ca/*"
+    "https://www.amazon.ca/*",
+    "https://sellercentral.amazon.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -46,6 +47,13 @@
       ],
       "js": ["content.js"],
       "css": ["content.css"]
+    },
+    {
+      "matches": [
+        "https://sellercentral.amazon.com/abuse-submission/*"
+      ],
+      "js": ["sc-content.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {

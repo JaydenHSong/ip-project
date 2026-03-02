@@ -40,6 +40,15 @@ export type AuthUser = {
   role: string
 }
 
+export type ScSubmitData = {
+  asin: string
+  violation_type_sc: string
+  description: string
+  evidence_urls: string[]
+  marketplace: string
+  prepared_at: string
+}
+
 export type ExtensionStorage = {
   'auth.access_token': string
   'auth.refresh_token': string

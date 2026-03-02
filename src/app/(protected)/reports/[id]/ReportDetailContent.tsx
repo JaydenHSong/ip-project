@@ -96,7 +96,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           </span>
         )}
         <div className="ml-auto">
-          <ReportActions reportId={report.id} status={report.status} userRole={userRole} />
+          <ReportActions reportId={report.id} status={report.status} userRole={userRole} scCaseId={report.sc_case_id} />
         </div>
       </div>
 

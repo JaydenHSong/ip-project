@@ -32,3 +32,8 @@ export type SubmitResponse = SubmitReportResponse
 export type ContentMessage =
   | { type: 'PAGE_DATA_READY'; data: ParsedPageData }
   | { type: 'OPEN_POPUP' }
+
+// SC Form Filler → Service Worker
+export type ScContentMessage =
+  | { type: 'SC_FORM_FILLED'; reportId: string }
+  | { type: 'SC_SUBMIT_DETECTED'; reportId: string; caseId: string | null }
