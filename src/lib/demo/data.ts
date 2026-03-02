@@ -1,3 +1,5 @@
+import type { TimelineEvent } from '@/types/reports'
+
 // Demo mock data for testing UI without Supabase
 
 export const DEMO_USER = {
@@ -354,3 +356,63 @@ export const DEMO_AUDIT_LOGS = [
     users: { name: 'Demo Admin', email: 'demo@spigen.com' },
   },
 ]
+
+// Build demo timeline events from a demo report
+export const buildDemoTimeline = (report: (typeof DEMO_REPORTS)[number]): TimelineEvent[] => {
+  const events: TimelineEvent[] = []
+
+  events.push({
+    type: 'created',
+    timestamp: report.created_at,
+    actor: report.users.name,
+    detail: null,
+  })
+
+  if (report.ai_violation_type) {
+    const confidence = report.ai_confidence_score !== null ? ` (${report.ai_confidence_score}%)` : ''
+    const disagreement = report.disagreement_flag
+      ? ` | User: ${report.user_violation_type} \u2260 AI: ${report.ai_violation_type}`
+      : ''
+    events.push({
+      type: 'ai_analyzed',
+      timestamp: new Date(new Date(report.created_at).getTime() + 1000).toISOString(),
+      actor: null,
+      detail: `${report.ai_violation_type}${confidence}${disagreement}`,
+    })
+  }
+
+  if (report.status !== 'draft') {
+    const created = new Date(report.created_at).getTime()
+    const nextTs = report.approved_at ?? report.rejected_at
+    const reviewTs = nextTs
+      ? new Date(Math.floor((created + new Date(nextTs).getTime()) / 2)).toISOString()
+      : new Date(created + 3600000).toISOString()
+    events.push({
+      type: 'submitted_review',
+      timestamp: reviewTs,
+      actor: report.users.name,
+      detail: null,
+    })
+  }
+
+  if (report.approved_at) {
+    events.push({
+      type: 'approved',
+      timestamp: report.approved_at,
+      actor: 'Demo Admin',
+      detail: null,
+    })
+  }
+
+  if (report.rejected_at) {
+    events.push({
+      type: 'rejected',
+      timestamp: report.rejected_at,
+      actor: 'Demo Admin',
+      detail: report.rejection_reason,
+    })
+  }
+
+  events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+  return events
+}

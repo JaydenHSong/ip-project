@@ -11,8 +11,9 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Button } from '@/components/ui/Button'
 import { ReportActions } from './ReportActions'
+import { ReportTimeline } from './ReportTimeline'
 import type { ViolationCode } from '@/constants/violations'
-import type { ReportStatus } from '@/types/reports'
+import type { ReportStatus, TimelineEvent } from '@/types/reports'
 
 type ReportDetailContentProps = {
   report: {
@@ -40,9 +41,10 @@ type ReportDetailContentProps = {
   creatorName: string | null
   canEdit: boolean
   userRole: string
+  timeline: TimelineEvent[]
 }
 
-export const ReportDetailContent = ({ report, listing, creatorName, canEdit, userRole }: ReportDetailContentProps) => {
+export const ReportDetailContent = ({ report, listing, creatorName, canEdit, userRole, timeline }: ReportDetailContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
 
@@ -223,49 +225,10 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
 
       <Card>
         <CardHeader>
-          <h2 className="font-semibold text-th-text">{t('reports.detail.reportHistory')}</h2>
+          <h2 className="font-semibold text-th-text">{t('reports.timeline.title' as Parameters<typeof t>[0])}</h2>
         </CardHeader>
         <CardContent>
-          <dl className="grid grid-cols-2 gap-4">
-            <div>
-              <dt className="text-sm text-th-text-tertiary">{t('reports.detail.createdBy')}</dt>
-              <dd className="mt-1 text-sm font-medium text-th-text">{creatorName ?? t('reports.detail.unknown')}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-th-text-tertiary">{t('reports.detail.createdAt')}</dt>
-              <dd className="mt-1 text-sm font-medium text-th-text">
-                {new Date(report.created_at).toLocaleString()}
-              </dd>
-            </div>
-            {report.approved_at && (
-              <div>
-                <dt className="text-sm text-th-text-tertiary">{t('reports.detail.approvedAt')}</dt>
-                <dd className="mt-1 text-sm font-medium text-th-text">
-                  {new Date(report.approved_at).toLocaleString()}
-                </dd>
-              </div>
-            )}
-            {report.rejected_at && (
-              <>
-                <div>
-                  <dt className="text-sm text-th-text-tertiary">{t('reports.detail.rejectedAt')}</dt>
-                  <dd className="mt-1 text-sm font-medium text-th-text">
-                    {new Date(report.rejected_at).toLocaleString()}
-                  </dd>
-                </div>
-                <div className="col-span-2">
-                  <dt className="text-sm text-th-text-tertiary">{t('reports.detail.rejectionReason')}</dt>
-                  <dd className="mt-1 text-sm text-st-danger-text">{report.rejection_reason}</dd>
-                </div>
-              </>
-            )}
-            {report.sc_case_id && (
-              <div>
-                <dt className="text-sm text-th-text-tertiary">{t('reports.detail.scCaseId')}</dt>
-                <dd className="mt-1 text-sm font-medium text-th-text">{report.sc_case_id}</dd>
-              </div>
-            )}
-          </dl>
+          <ReportTimeline events={timeline} />
         </CardContent>
       </Card>
     </div>

@@ -111,3 +111,25 @@ export type AiEvidence = {
   location: string
   description: string
 }
+
+// Timeline (F16)
+export const TIMELINE_EVENT_TYPES = [
+  'created',
+  'ai_analyzed',
+  'submitted_review',
+  'draft_edited',
+  'approved',
+  'rejected',
+  'cancelled',
+  'submitted_sc',
+  'rewritten',
+] as const
+
+export type TimelineEventType = (typeof TIMELINE_EVENT_TYPES)[number]
+
+export type TimelineEvent = {
+  type: TimelineEventType
+  timestamp: string
+  actor: string | null
+  detail: string | null
+}
