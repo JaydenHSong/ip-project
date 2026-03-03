@@ -36,3 +36,15 @@ pnpm-debug.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Crawl output (local test data)
+crawl-results/
+
+# Supabase CLI temp
+supabase/.temp/
