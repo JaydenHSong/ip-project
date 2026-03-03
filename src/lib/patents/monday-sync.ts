@@ -1,6 +1,9 @@
-// Monday.com 특허 데이터 동기화
-// GraphQL API → patents 테이블 upsert (단방향)
+// Monday.com IP 자산 멀티보드 동기화
+// GraphQL API → ip_assets 테이블 upsert (단방향, Monday = SSOT)
 
+import { createAdminClient } from '@/lib/supabase/admin'
+import { ALL_BOARDS, type BoardConfig } from './board-config'
+import type { IpAssetStatus } from '@/types/ip-assets'
 import type { MondaySyncResult } from '@/types/ai'
 
 type MondayColumnValue = {
@@ -15,131 +18,172 @@ type MondayItem = {
   column_values: MondayColumnValue[]
 }
 
-type MondayResponse = {
-  data: {
-    boards: {
-      items_page: {
-        items: MondayItem[]
-      }
-    }[]
-  }
+type MondayItemsPage = {
+  cursor: string | null
+  items: MondayItem[]
 }
 
-// Monday.com 컬럼 ID → 필드 매핑 (보드 구조에 따라 조정 필요)
-const COLUMN_MAP = {
-  patent_number: 'text', // 특허번호 컬럼 ID
-  country: 'text0',      // 국가 컬럼 ID
-  status: 'status',      // 상태 컬럼 ID
-  expiry_date: 'date',   // 만료일 컬럼 ID
-  keywords: 'long_text', // 키워드 컬럼 ID
-} as const
+type MondayResponse = {
+  data?: {
+    boards: {
+      items_page: MondayItemsPage
+    }[]
+  }
+  errors?: { message: string }[]
+}
 
-const getColumnValue = (item: MondayItem, columnId: string): string => {
-  const col = item.column_values.find(c => c.id === columnId)
+const MONDAY_API_URL = 'https://api.monday.com/v2'
+const PAGE_LIMIT = 500
+
+const getColumnValue = (item: MondayItem, columnId: string | null): string => {
+  if (!columnId) return ''
+  const col = item.column_values.find((c) => c.id === columnId)
   return col?.text ?? ''
 }
 
-const parseKeywords = (raw: string): string[] => {
-  if (!raw) return []
-  return raw.split(',').map(k => k.trim()).filter(Boolean)
+const parseDateValue = (raw: string): string | null => {
+  if (!raw) return null
+  // Monday.com date format: "YYYY-MM-DD" or sometimes with time
+  const match = raw.match(/\d{4}-\d{2}-\d{2}/)
+  return match ? match[0] : null
 }
 
-const fetchMondayPatents = async (
+const fetchBoardItems = async (
   apiKey: string,
   boardId: string,
 ): Promise<MondayItem[]> => {
-  const query = `
-    query ($boardId: [ID!]) {
-      boards(ids: $boardId) {
-        items_page(limit: 500) {
-          items {
-            id
-            name
-            column_values {
-              id
-              text
-              value
+  const allItems: MondayItem[] = []
+  let cursor: string | null = null
+  let isFirstPage = true
+
+  while (isFirstPage || cursor) {
+    isFirstPage = false
+
+    const query = cursor
+      ? `query ($boardId: [ID!], $cursor: String!) {
+          boards(ids: $boardId) {
+            items_page(limit: ${PAGE_LIMIT}, cursor: $cursor) {
+              cursor
+              items { id name column_values { id text value } }
             }
           }
-        }
-      }
+        }`
+      : `query ($boardId: [ID!]) {
+          boards(ids: $boardId) {
+            items_page(limit: ${PAGE_LIMIT}) {
+              cursor
+              items { id name column_values { id text value } }
+            }
+          }
+        }`
+
+    const variables: Record<string, unknown> = { boardId: [boardId] }
+    if (cursor) variables.cursor = cursor
+
+    const response = await fetch(MONDAY_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': apiKey,
+        'API-Version': '2024-01',
+      },
+      body: JSON.stringify({ query, variables }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Monday.com API error: ${response.status} ${response.statusText}`)
     }
-  `
 
-  const response = await fetch('https://api.monday.com/v2', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': apiKey,
-      'API-Version': '2024-01',
-    },
-    body: JSON.stringify({
-      query,
-      variables: { boardId: [boardId] },
-    }),
-  })
+    const data = (await response.json()) as MondayResponse
 
-  if (!response.ok) {
-    throw new Error(`Monday.com API error: ${response.status} ${response.statusText}`)
+    if (data.errors?.length) {
+      throw new Error(`Monday.com GraphQL error: ${data.errors[0].message}`)
+    }
+
+    const page = data.data?.boards[0]?.items_page
+    if (!page) break
+
+    allItems.push(...page.items)
+    cursor = page.cursor
   }
 
-  const data = await response.json() as MondayResponse
-  return data.data.boards[0]?.items_page.items ?? []
+  return allItems
 }
 
-// 특허 데이터를 Supabase patents 테이블에 upsert
-const syncToDatabase = async (
-  items: MondayItem[],
-  supabaseUrl: string,
-  supabaseKey: string,
-): Promise<MondaySyncResult> => {
-  const result: MondaySyncResult = {
-    total: items.length,
-    created: 0,
-    updated: 0,
-    unchanged: 0,
-    errors: [],
-    syncedAt: new Date().toISOString(),
+const transformItem = (
+  item: MondayItem,
+  boardConfig: BoardConfig,
+  boardId: string,
+): Record<string, unknown> => {
+  const cols = boardConfig.columns
+  const rawStatus = getColumnValue(item, cols.status)
+  const mappedStatus: IpAssetStatus = boardConfig.statusMap[rawStatus] ?? 'filed'
+
+  return {
+    ip_type: boardConfig.ipType,
+    management_number: item.name.trim(),
+    name: getColumnValue(item, cols.name) || item.name.trim(),
+    description: getColumnValue(item, cols.description) || null,
+    country: getColumnValue(item, cols.country) || (boardConfig.ipType === 'copyright' ? 'KR' : 'US'),
+    status: mappedStatus,
+    application_number: getColumnValue(item, cols.applicationNumber) || null,
+    application_date: parseDateValue(getColumnValue(item, cols.applicationDate)),
+    registration_number: getColumnValue(item, cols.registrationNumber) || null,
+    registration_date: parseDateValue(getColumnValue(item, cols.registrationDate)),
+    expiry_date: parseDateValue(getColumnValue(item, cols.expiryDate)),
+    assignee: getColumnValue(item, cols.assignee) || null,
+    notes: getColumnValue(item, cols.notes) || null,
+    report_url: getColumnValue(item, cols.reportUrl) || null,
+    monday_item_id: item.id,
+    monday_board_id: boardId,
+    synced_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   }
+}
+
+const syncBoardToDatabase = async (
+  apiKey: string,
+  boardId: string,
+  boardConfig: BoardConfig,
+  result: MondaySyncResult,
+): Promise<void> => {
+  const items = await fetchBoardItems(apiKey, boardId)
+  const supabase = createAdminClient()
 
   for (const item of items) {
     try {
-      const patentData = {
-        monday_item_id: item.id,
-        patent_name: item.name,
-        patent_number: getColumnValue(item, COLUMN_MAP.patent_number),
-        country: getColumnValue(item, COLUMN_MAP.country) || 'US',
-        status: getColumnValue(item, COLUMN_MAP.status).toLowerCase() || 'active',
-        expiry_date: getColumnValue(item, COLUMN_MAP.expiry_date) || null,
-        keywords: parseKeywords(getColumnValue(item, COLUMN_MAP.keywords)),
-        synced_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
+      const row = transformItem(item, boardConfig, boardId)
 
-      // Supabase REST API를 통한 upsert
-      const upsertResponse = await fetch(`${supabaseUrl}/rest/v1/patents`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Prefer': 'resolution=merge-duplicates',
-        },
-        body: JSON.stringify(patentData),
-      })
+      // monday_item_id 기준 기존 행 확인
+      const { data: existing } = await supabase
+        .from('ip_assets')
+        .select('id, updated_at')
+        .eq('monday_item_id', item.id)
+        .single()
 
-      if (upsertResponse.ok) {
-        const status = upsertResponse.status
-        if (status === 201) {
-          result.created++
+      if (existing) {
+        // 업데이트
+        const { error } = await supabase
+          .from('ip_assets')
+          .update(row)
+          .eq('id', existing.id)
+
+        if (error) {
+          result.errors.push({ itemId: item.id, error: error.message })
         } else {
           result.updated++
         }
       } else {
-        result.errors.push({
-          itemId: item.id,
-          error: `HTTP ${upsertResponse.status}`,
-        })
+        // 새로 생성
+        const { error } = await supabase
+          .from('ip_assets')
+          .insert(row)
+
+        if (error) {
+          result.errors.push({ itemId: item.id, error: error.message })
+        } else {
+          result.created++
+        }
       }
     } catch (error: unknown) {
       result.errors.push({
@@ -149,41 +193,54 @@ const syncToDatabase = async (
     }
   }
 
+  result.total += items.length
+}
+
+const runMondaySync = async (): Promise<MondaySyncResult> => {
+  const apiKey = process.env.MONDAY_API_KEY
+  if (!apiKey) {
+    return {
+      total: 0,
+      created: 0,
+      updated: 0,
+      unchanged: 0,
+      errors: [{ itemId: '', error: 'MONDAY_API_KEY not configured' }],
+      syncedAt: new Date().toISOString(),
+    }
+  }
+
+  const result: MondaySyncResult = {
+    total: 0,
+    created: 0,
+    updated: 0,
+    unchanged: 0,
+    errors: [],
+    syncedAt: new Date().toISOString(),
+  }
+
+  for (const boardConfig of ALL_BOARDS) {
+    const boardId = process.env[boardConfig.envKey]
+    if (!boardId) {
+      result.errors.push({
+        itemId: '',
+        error: `${boardConfig.envKey} not configured (${boardConfig.ipType} board skipped)`,
+      })
+      continue
+    }
+
+    try {
+      await syncBoardToDatabase(apiKey, boardId, boardConfig, result)
+    } catch (error: unknown) {
+      result.errors.push({
+        itemId: '',
+        error: `${boardConfig.ipType} board sync failed: ${error instanceof Error ? error.message : 'Unknown'}`,
+      })
+    }
+  }
+
   result.unchanged = result.total - result.created - result.updated - result.errors.length
 
   return result
 }
 
-const runMondaySync = async (): Promise<MondaySyncResult> => {
-  const apiKey = process.env.MONDAY_API_KEY
-  const boardId = process.env.MONDAY_BOARD_ID
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!apiKey || !boardId) {
-    return {
-      total: 0,
-      created: 0,
-      updated: 0,
-      unchanged: 0,
-      errors: [{ itemId: '', error: 'MONDAY_API_KEY or MONDAY_BOARD_ID not configured' }],
-      syncedAt: new Date().toISOString(),
-    }
-  }
-
-  if (!supabaseUrl || !supabaseKey) {
-    return {
-      total: 0,
-      created: 0,
-      updated: 0,
-      unchanged: 0,
-      errors: [{ itemId: '', error: 'Supabase credentials not configured' }],
-      syncedAt: new Date().toISOString(),
-    }
-  }
-
-  const items = await fetchMondayPatents(apiKey, boardId)
-  return syncToDatabase(items, supabaseUrl, supabaseKey)
-}
-
-export { runMondaySync, fetchMondayPatents }
+export { runMondaySync, fetchBoardItems }

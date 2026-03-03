@@ -40,8 +40,8 @@ const buildPatentPrompt = (listing: Listing, patent: Patent): string => {
     .replace('{{title}}', listing.title ?? '(unknown)')
     .replace('{{brand}}', listing.brand ?? '(unknown)')
     .replace('{{description}}', listing.description ?? '(none)')
-    .replace('{{patentNumber}}', patent.patent_number)
-    .replace('{{patentName}}', patent.patent_name)
+    .replace('{{patentNumber}}', patent.management_number)
+    .replace('{{patentName}}', patent.name)
     .replace('{{country}}', patent.country)
     .replace('{{keywords}}', patent.keywords.join(', ') || '(none)')
 }
@@ -51,7 +51,7 @@ const parsePatentResponse = (raw: string, patent: Patent): PatentSimilarityResul
   if (!jsonMatch) {
     return {
       patentId: patent.id,
-      patentNumber: patent.patent_number,
+      patentNumber: patent.management_number,
       similarityScore: 0,
       matchedFeatures: [],
       reasoning: 'Failed to parse response',
@@ -67,7 +67,7 @@ const parsePatentResponse = (raw: string, patent: Patent): PatentSimilarityResul
 
     return {
       patentId: patent.id,
-      patentNumber: patent.patent_number,
+      patentNumber: patent.management_number,
       similarityScore: parsed.similarity_score ?? 0,
       matchedFeatures: parsed.matched_features ?? [],
       reasoning: parsed.reasoning ?? '',
@@ -75,7 +75,7 @@ const parsePatentResponse = (raw: string, patent: Patent): PatentSimilarityResul
   } catch {
     return {
       patentId: patent.id,
-      patentNumber: patent.patent_number,
+      patentNumber: patent.management_number,
       similarityScore: 0,
       matchedFeatures: [],
       reasoning: 'JSON parse error',
@@ -91,7 +91,7 @@ const checkPatentSimilarity = async (
   const results: PatentSimilarityResult[] = []
 
   // 활성 특허만 체크
-  const activePatents = patents.filter(p => p.status === 'active')
+  const activePatents = patents.filter(p => p.status === 'registered')
 
   for (const patent of activePatents) {
     const prompt = buildPatentPrompt(listing, patent)
