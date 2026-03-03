@@ -30,13 +30,11 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
   const { t } = useI18n()
   const [loading, setLoading] = useState<string | null>(null)
   const [showRewriteModal, setShowRewriteModal] = useState(false)
-  const [showCancelModal, setShowCancelModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [showManualConfirmModal, setShowManualConfirmModal] = useState(false)
   const [showResolveModal, setShowResolveModal] = useState(false)
   const [showArchiveModal, setShowArchiveModal] = useState(false)
   const [feedback, setFeedback] = useState('')
-  const [cancelReason, setCancelReason] = useState('')
   const [rejectionCategory, setRejectionCategory] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
   const [manualCaseId, setManualCaseId] = useState('')
@@ -209,23 +207,35 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
     }
   }
 
-  const handleCancel = async () => {
-    if (!cancelReason.trim()) return
-    setLoading('cancel')
+  const handleApproveAndSubmit = async () => {
+    setLoading('approveSubmit')
     try {
-      const res = await fetch(`/api/reports/${reportId}/cancel`, {
+      const res = await fetch(`/api/reports/${reportId}/approve-submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cancellation_reason: cancelReason.trim(),
-        }),
+        body: JSON.stringify({}),
       })
+      const data = await res.json()
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Cancel failed')
+        if (data.partial?.approved) {
+          alert(data.error?.message ?? 'Approved but SC submit failed')
+          router.refresh()
+          return
+        }
+        throw new Error(data.error?.message ?? 'Approve & Submit failed')
       }
-      setShowCancelModal(false)
-      setCancelReason('')
+
+      // SC RAV 페이지 새 탭 열기
+      if (data.sc_rav_url) {
+        window.open(data.sc_rav_url, '_blank')
+      }
+
+      // 클립보드 fallback
+      if (data.sc_submit_data) {
+        const clipboardText = formatClipboardText(data.sc_submit_data)
+        await navigator.clipboard.writeText(clipboardText).catch(() => {})
+      }
+
       router.refresh()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed')
@@ -266,7 +276,7 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
       }
       setShowArchiveModal(false)
       setArchiveReason('')
-      router.refresh()
+      router.push('/reports/archived')
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed')
     } finally {
@@ -329,6 +339,14 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
         {status === 'pending_review' && (
           <>
             <Button
+              size="sm"
+              loading={loading === 'approveSubmit'}
+              onClick={handleApproveAndSubmit}
+            >
+              {t('reports.detail.approveAndSubmit')}
+            </Button>
+            <Button
+              variant="outline"
               size="sm"
               loading={loading === 'approve'}
               onClick={handleApprove}
@@ -416,13 +434,15 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
             </Button>
           </>
         )}
-        {['monitoring', 'unresolved', 'resolved'].includes(status) && (
+        {['draft', 'pending_review', 'approved', 'monitoring', 'unresolved', 'resolved'].includes(status) && (
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowArchiveModal(true)}
           >
-            {t('reports.detail.forceArchive' as Parameters<typeof t>[0])}
+            {['monitoring', 'unresolved', 'resolved'].includes(status)
+              ? t('reports.detail.forceArchive' as Parameters<typeof t>[0])
+              : t('reports.detail.archiveReport')}
           </Button>
         )}
         {status === 'archived' && (
@@ -433,15 +453,6 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
             onClick={handleUnarchive}
           >
             {t('reports.detail.unarchive' as Parameters<typeof t>[0])}
-          </Button>
-        )}
-        {['draft', 'pending_review', 'approved'].includes(status) && (
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => setShowCancelModal(true)}
-          >
-            {t('reports.detail.cancelReport')}
           </Button>
         )}
       </div>
@@ -622,36 +633,6 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
         </div>
       </Modal>
 
-      {/* Cancel Modal */}
-      <Modal
-        open={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
-        title={t('reports.detail.cancelReport')}
-      >
-        <p className="mb-3 text-sm text-th-text-secondary">
-          {t('reports.detail.cancelConfirm')}
-        </p>
-        <Textarea
-          label={t('reports.detail.cancelReason')}
-          value={cancelReason}
-          onChange={(e) => setCancelReason(e.target.value)}
-          rows={3}
-        />
-        <div className="mt-4 flex justify-end gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setShowCancelModal(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            loading={loading === 'cancel'}
-            disabled={!cancelReason.trim()}
-            onClick={handleCancel}
-          >
-            {t('reports.detail.cancelReport')}
-          </Button>
-        </div>
-      </Modal>
     </>
   )
 }

@@ -43,7 +43,8 @@ const CampaignsPage = async ({
       query = query.eq('marketplace', params.marketplace)
     }
 
-    const { data, count } = await query
+    const { data, error, count } = await query
+    if (error) console.error('Campaigns query error:', error.message)
     campaigns = data as typeof DEMO_CAMPAIGNS | null
     totalPages = Math.ceil((count ?? 0) / limit)
   }

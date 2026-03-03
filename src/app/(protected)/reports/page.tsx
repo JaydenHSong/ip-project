@@ -55,12 +55,13 @@ const ReportsPage = async ({
         '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
         { count: 'exact' },
       )
-      .in('status', ['draft', 'pending_review', 'approved', 'rejected'])
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
     if (params.status) {
       query = query.eq('status', params.status)
+    } else {
+      query = query.in('status', ['draft', 'pending_review', 'approved', 'rejected'])
     }
     if (params.violation_type) {
       query = query.eq('violation_type', params.violation_type)
@@ -72,7 +73,8 @@ const ReportsPage = async ({
       query = query.eq('disagreement_flag', true)
     }
 
-    const { data, count } = await query
+    const { data, error, count } = await query
+    if (error) console.error('Reports query error:', error.message)
     reports = data as typeof DEMO_REPORTS | null
     totalPages = Math.ceil((count ?? 0) / limit)
   }

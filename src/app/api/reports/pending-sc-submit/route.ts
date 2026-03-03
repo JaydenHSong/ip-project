@@ -24,8 +24,20 @@ export const GET = withAuth(async (_req, { user }) => {
     return new NextResponse(null, { status: 204 })
   }
 
+  // Web 자동 제출 설정 확인
+  const { data: configRow } = await supabase
+    .from('system_configs')
+    .select('value')
+    .eq('key', 'sc_automation_settings')
+    .single()
+
+  const autoSubmitEnabled = configRow?.value
+    ? (configRow.value as { auto_submit_enabled?: boolean }).auto_submit_enabled ?? false
+    : false
+
   return NextResponse.json({
     report_id: report.id,
     sc_submit_data: report.sc_submit_data,
+    auto_submit_enabled: autoSubmitEnabled,
   })
 }, ['editor', 'admin'])

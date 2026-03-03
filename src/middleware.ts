@@ -34,6 +34,13 @@ export const middleware = async (req: NextRequest): Promise<NextResponse> => {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Cron / Crawler / Extension API는 자체 인증 사용 — 미들웨어 스킵
+  if (req.nextUrl.pathname.startsWith('/api/cron/') ||
+      req.nextUrl.pathname.startsWith('/api/crawler/') ||
+      req.nextUrl.pathname.startsWith('/api/ext/')) {
+    return res
+  }
+
   // 인증 없이 보호 경로 접근 시 로그인으로 리다이렉트
   if (!user && !req.nextUrl.pathname.startsWith('/login') && !req.nextUrl.pathname.startsWith('/api/auth')) {
     return NextResponse.redirect(new URL('/login', req.url))

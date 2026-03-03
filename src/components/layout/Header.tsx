@@ -1,31 +1,42 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { LogOut, ChevronDown, Sun, Moon, Globe } from 'lucide-react'
+import { Sun, Moon, Globe, ScrollText, ExternalLink } from 'lucide-react'
 import { SpigenLogo } from '@/components/ui/SpigenLogo'
 import { NotificationBell } from './NotificationBell'
-import { createClient } from '@/lib/supabase/client'
 import { getStoredTheme, toggleTheme } from '@/lib/theme'
 import { useI18n } from '@/lib/i18n/context'
+import { DEMO_AUDIT_LOGS } from '@/lib/demo/data'
 import type { User } from '@/types/users'
 
 type HeaderProps = {
   user: User
 }
 
+const ACTION_COLORS: Record<string, string> = {
+  create: 'bg-emerald-500',
+  approve: 'bg-blue-500',
+  reject: 'bg-red-500',
+  update: 'bg-amber-500',
+  delete: 'bg-red-600',
+  login: 'bg-violet-500',
+}
+
 export const Header = ({ user }: HeaderProps) => {
-  const [showDropdown, setShowDropdown] = useState(false)
   const [isDark, setIsDark] = useState(true)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [showAuditDropdown, setShowAuditDropdown] = useState(false)
+  const auditRef = useRef<HTMLDivElement>(null)
   const { locale, t, changeLocale } = useI18n()
 
   useEffect(() => {
     setIsDark(getStoredTheme() === 'dark')
+  }, [])
 
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false)
+      if (auditRef.current && !auditRef.current.contains(e.target as Node)) {
+        setShowAuditDropdown(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -41,20 +52,8 @@ export const Header = ({ user }: HeaderProps) => {
     changeLocale(locale === 'ko' ? 'en' : 'ko')
   }
 
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    window.location.href = '/login'
-  }
-
-  const roleLabel: Record<string, string> = {
-    admin: 'Admin',
-    editor: 'Editor',
-    viewer: 'Viewer',
-  }
-
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-th-border bg-surface-card px-4 md:h-16 md:px-6">
+    <header className="glass sticky top-0 z-40 flex h-14 items-center justify-between border-b px-4 md:h-16 md:px-6">
       <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
         <SpigenLogo className="h-6 w-5 text-th-accent" />
         <span className="text-lg font-bold text-th-text">Sentinel</span>
@@ -62,6 +61,65 @@ export const Header = ({ user }: HeaderProps) => {
       <div className="hidden md:block" />
 
       <div className="flex items-center gap-3">
+        {/* Version Badge */}
+        <span className="hidden text-xs text-th-text-muted sm:block">v0.1.0</span>
+
+        {/* Audit Logs Dropdown (admin only) */}
+        {user.role === 'admin' && (
+          <div ref={auditRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowAuditDropdown((prev) => !prev)}
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
+              title={t('nav.auditLogs')}
+            >
+              <ScrollText className="h-4 w-4" />
+              <span className="hidden text-xs font-medium sm:block">{t('nav.auditLogs')}</span>
+            </button>
+
+            {showAuditDropdown && (
+              <div className="glass-dropdown absolute right-0 top-full z-50 mt-1 w-80 rounded-lg border">
+                <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
+                  <h3 className="text-sm font-semibold text-th-text">{t('nav.auditLogs')}</h3>
+                  <Link
+                    href="/audit-logs"
+                    onClick={() => setShowAuditDropdown(false)}
+                    className="flex items-center gap-1 text-xs text-th-accent-text hover:underline"
+                  >
+                    View All
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {DEMO_AUDIT_LOGS.slice(0, 5).map((log) => (
+                    <div
+                      key={log.id}
+                      className="border-b border-th-border px-4 py-3 last:border-b-0 hover:bg-th-bg-hover/50"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ACTION_COLORS[log.action] ?? 'bg-gray-500'}`} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold uppercase text-th-text">{log.action}</span>
+                            <span className="text-xs text-th-text-muted">{log.resource_type}</span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-th-text-secondary">{log.users.name}</p>
+                          <p className="mt-0.5 text-xs text-th-text-muted">
+                            {new Date(log.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Separator */}
+        <div className="h-5 w-px bg-th-border" />
+
         {/* Language Toggle */}
         <button
           type="button"
@@ -83,50 +141,8 @@ export const Header = ({ user }: HeaderProps) => {
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
 
-        {/* Notification Bell */}
-        <NotificationBell />
-
-        {/* Profile Dropdown */}
-        <div ref={dropdownRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setShowDropdown((prev) => !prev)}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-th-bg-hover"
-          >
-            {user.avatar_url ? (
-              <img
-                src={user.avatar_url}
-                alt={user.name}
-                className="h-8 w-8 rounded-full"
-              />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-th-accent-soft text-sm font-medium text-th-accent-text">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <div className="hidden text-left sm:block">
-              <p className="text-sm font-medium text-th-text">{user.name}</p>
-              <p className="text-xs text-th-text-muted">{roleLabel[user.role]}</p>
-            </div>
-            <ChevronDown className="h-4 w-4 text-th-text-muted" />
-          </button>
-
-          {showDropdown && (
-            <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-th-border bg-surface-card py-1 shadow-lg">
-              <div className="border-b border-th-border px-4 py-2">
-                <p className="text-sm font-medium text-th-text">{user.email}</p>
-              </div>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-th-text-secondary hover:bg-th-bg-hover"
-              >
-                <LogOut className="h-4 w-4" />
-                {t('common.logout')}
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Notification Bell — Admin only */}
+        {user.role === 'admin' && <NotificationBell userId={user.id} />}
       </div>
     </header>
   )

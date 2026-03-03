@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -87,15 +87,33 @@ export const DashboardContent = ({
   const [period, setPeriod] = useState<PeriodFilter>('30d')
   const [stats, setStats] = useState<DashboardStats | null>(initialStats)
 
+  useEffect(() => {
+    if (initialStats || isDemoMode()) return
+    fetch('/api/dashboard/stats?period=30d')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data) setStats(data) })
+      .catch(() => {})
+  }, [initialStats])
+
   const navigateToReports = useCallback((params: Record<string, string>) => {
     const search = new URLSearchParams(params).toString()
     router.push(`/reports?${search}`)
   }, [router])
 
-  const handlePeriodChange = useCallback((newPeriod: PeriodFilter) => {
+  const handlePeriodChange = useCallback(async (newPeriod: PeriodFilter) => {
     setPeriod(newPeriod)
     if (isDemoMode()) {
       setStats(getDemoDashboardStats(newPeriod))
+      return
+    }
+    try {
+      const res = await fetch(`/api/dashboard/stats?period=${newPeriod}`)
+      if (res.ok) {
+        const data = await res.json()
+        setStats(data)
+      }
+    } catch {
+      // keep previous stats on error
     }
   }, [])
 

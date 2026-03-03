@@ -7,9 +7,16 @@ import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { SlidePanel } from '@/components/ui/SlidePanel'
-import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { CampaignForm } from '@/components/features/CampaignForm'
 import { MARKETPLACES, type MarketplaceCode } from '@/constants/marketplaces'
+
+const FREQ_LABEL: Record<string, string> = {
+  daily: 'Daily',
+  every_12h: 'Every 12h',
+  every_6h: 'Every 6h',
+  every_3d: 'Every 3 Days',
+  weekly: 'Weekly',
+}
 
 type Campaign = {
   id: string
@@ -33,16 +40,11 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
   const { t } = useI18n()
   const router = useRouter()
   const [showNewCampaign, setShowNewCampaign] = useState(false)
-  const [previewCampaignId, setPreviewCampaignId] = useState<string | null>(null)
-
-  const previewCampaign = previewCampaignId ? campaigns?.find((c) => c.id === previewCampaignId) ?? null : null
 
   const handleNewCampaignSuccess = useCallback(() => {
     setShowNewCampaign(false)
     router.refresh()
   }, [router])
-
-  const handleClosePreview = useCallback(() => setPreviewCampaignId(null), [])
 
   const statusFilters = [
     { value: '', label: t('common.all') },
@@ -91,11 +93,10 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
           </div>
         ) : (
           campaigns.map((campaign) => (
-            <button
+            <Link
               key={campaign.id}
-              type="button"
-              onClick={() => setPreviewCampaignId(campaign.id)}
-              className="w-full text-left"
+              href={`/campaigns/${campaign.id}`}
+              className="block"
             >
               <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
@@ -104,11 +105,11 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                 </div>
                 <div className="mt-2 flex items-center gap-3 text-xs text-th-text-muted">
                   <span>{MARKETPLACES[campaign.marketplace as MarketplaceCode]?.name ?? campaign.marketplace}</span>
-                  <span>{campaign.frequency}</span>
+                  <span>{FREQ_LABEL[campaign.frequency] ?? campaign.frequency}</span>
                   <span>{new Date(campaign.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
-            </button>
+            </Link>
           ))
         )}
       </div>
@@ -136,7 +137,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                 <tr
                   key={campaign.id}
                   className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
-                  onClick={() => setPreviewCampaignId(campaign.id)}
+                  onClick={() => router.push(`/campaigns/${campaign.id}`)}
                 >
                   <td className="px-4 py-3">
                     <span className="font-medium text-th-text">
@@ -146,7 +147,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                   <td className="px-4 py-3 text-th-text-secondary">
                     {MARKETPLACES[campaign.marketplace as MarketplaceCode]?.name ?? campaign.marketplace}
                   </td>
-                  <td className="px-4 py-3 text-th-text-secondary">{campaign.frequency}</td>
+                  <td className="px-4 py-3 text-th-text-secondary">{FREQ_LABEL[campaign.frequency] ?? campaign.frequency}</td>
                   <td className="px-4 py-3 text-th-text-secondary">{campaign.max_pages}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
@@ -187,56 +188,6 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
         </div>
       </SlidePanel>
 
-      {/* Campaign Quick View SlidePanel */}
-      <SlidePanel
-        open={!!previewCampaignId}
-        onClose={handleClosePreview}
-        title={t('campaigns.detail.title')}
-        size="xl"
-        status={previewCampaign ? <StatusBadge status={previewCampaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" /> : undefined}
-      >
-        {previewCampaign && (
-          <div className="space-y-6 p-6">
-            <Card>
-              <CardHeader>
-                <h3 className="text-sm font-semibold text-th-text">{previewCampaign.keyword}</h3>
-              </CardHeader>
-              <CardContent>
-                <dl className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('campaigns.marketplace')}</dt>
-                    <dd className="mt-0.5 font-medium text-th-text">
-                      {MARKETPLACES[previewCampaign.marketplace as MarketplaceCode]?.name ?? previewCampaign.marketplace}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('campaigns.frequency')}</dt>
-                    <dd className="mt-0.5 font-medium text-th-text">{previewCampaign.frequency}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('campaigns.pages')}</dt>
-                    <dd className="mt-0.5 font-medium text-th-text">{previewCampaign.max_pages}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('campaigns.created')}</dt>
-                    <dd className="mt-0.5 font-medium text-th-text">{new Date(previewCampaign.created_at).toLocaleDateString()}</dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-
-            <div className="flex items-center justify-between text-xs text-th-text-muted">
-              <span>{t('common.status')}: {previewCampaign.status}</span>
-              <Link
-                href={`/campaigns/${previewCampaign.id}`}
-                className="text-th-accent-text hover:underline"
-              >
-                {t('common.details')} →
-              </Link>
-            </div>
-          </div>
-        )}
-      </SlidePanel>
     </div>
   )
 }

@@ -8,7 +8,7 @@ import { AuditLogsContent } from './AuditLogsContent'
 const AuditLogsPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; action?: string; entity_type?: string }>
+  searchParams: Promise<{ page?: string; action?: string; resource_type?: string }>
 }) => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
@@ -24,7 +24,7 @@ const AuditLogsPage = async ({
   if (isDemoMode()) {
     let filtered = [...DEMO_AUDIT_LOGS]
     if (params.action) filtered = filtered.filter((l) => l.action === params.action)
-    if (params.entity_type) filtered = filtered.filter((l) => l.entity_type === params.entity_type)
+    if (params.resource_type) filtered = filtered.filter((l) => l.resource_type === params.resource_type)
     logs = filtered
     totalPages = 1
   } else {
@@ -40,11 +40,12 @@ const AuditLogsPage = async ({
     if (params.action) {
       query = query.eq('action', params.action)
     }
-    if (params.entity_type) {
-      query = query.eq('entity_type', params.entity_type)
+    if (params.resource_type) {
+      query = query.eq('resource_type', params.resource_type)
     }
 
-    const { data, count } = await query
+    const { data, error, count } = await query
+    if (error) console.error('Audit logs query error:', error.message)
     logs = data as typeof DEMO_AUDIT_LOGS | null
     totalPages = Math.ceil((count ?? 0) / limit)
   }

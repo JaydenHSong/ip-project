@@ -9,13 +9,13 @@ export const GET = withAuth(async () => {
 
   // settings 조회
   const { data: intervalSetting } = await supabase
-    .from('settings')
+    .from('system_configs')
     .select('value')
     .eq('key', 'monitoring_interval_days')
     .single()
 
   const { data: maxDaysSetting } = await supabase
-    .from('settings')
+    .from('system_configs')
     .select('value')
     .eq('key', 'monitoring_max_days')
     .single()

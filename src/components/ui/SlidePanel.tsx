@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
@@ -24,11 +24,27 @@ type SlidePanelProps = {
 }
 
 export const SlidePanel = ({ open, onClose, title, status, children, size = 'lg', className }: SlidePanelProps) => {
+  const [mounted, setMounted] = useState(false)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setVisible(true))
+      })
+    } else {
+      setVisible(false)
+      const timer = setTimeout(() => setMounted(false), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [open])
+
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
-    if (open) {
+    if (mounted) {
       document.addEventListener('keydown', handleEsc)
       document.body.style.overflow = 'hidden'
     }
@@ -36,15 +52,17 @@ export const SlidePanel = ({ open, onClose, title, status, children, size = 'lg'
       document.removeEventListener('keydown', handleEsc)
       document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [mounted, onClose])
+
+  if (!mounted) return null
 
   return (
     <>
       {/* Backdrop */}
       <div
         className={cn(
-          'fixed inset-0 z-40 bg-black/50 transition-opacity duration-300',
-          open ? 'opacity-100' : 'pointer-events-none opacity-0',
+          'fixed inset-0 z-40 bg-black/50 transition-opacity duration-500',
+          visible ? 'opacity-100' : 'opacity-0',
         )}
         onClick={onClose}
         aria-hidden="true"
@@ -53,9 +71,9 @@ export const SlidePanel = ({ open, onClose, title, status, children, size = 'lg'
       {/* Panel */}
       <div
         className={cn(
-          'fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-th-border bg-surface-panel shadow-lg transition-transform duration-300 ease-in-out',
+          'fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-th-border bg-th-bg shadow-lg transition-transform duration-500 ease-in-out',
           SIZE_CLASSES[size],
-          open ? 'translate-x-0' : 'translate-x-full',
+          visible ? 'translate-x-0' : 'translate-x-full',
           className,
         )}
       >

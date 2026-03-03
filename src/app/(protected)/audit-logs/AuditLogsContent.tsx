@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/Badge'
 type AuditLog = {
   id: string
   action: string
-  entity_type: string
-  entity_id: string | null
+  resource_type: string
+  resource_id: string | null
   details: unknown
   created_at: string
   users: { name: string; email: string } | null
@@ -80,9 +80,9 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
                   {log.users?.name ?? t('auditLogs.system')}
                 </p>
                 <p className="mt-1 text-xs text-th-text-secondary">
-                  {log.entity_type}
-                  {log.entity_id && (
-                    <span className="ml-1 text-th-text-muted">{log.entity_id.substring(0, 8)}...</span>
+                  {log.resource_type}
+                  {log.resource_id && (
+                    <span className="ml-1 text-th-text-muted">{log.resource_id.substring(0, 8)}...</span>
                   )}
                 </p>
               </div>
@@ -129,10 +129,10 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-sm text-th-text">
-                        {log.entity_type}
-                        {log.entity_id && (
+                        {log.resource_type}
+                        {log.resource_id && (
                           <span className="ml-1 text-xs text-th-text-muted">
-                            {log.entity_id.substring(0, 8)}...
+                            {log.resource_id.substring(0, 8)}...
                           </span>
                         )}
                       </td>

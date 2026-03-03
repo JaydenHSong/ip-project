@@ -74,8 +74,8 @@ export const POST = withAuth(async (req, { user }) => {
     .insert({
       user_id: user.id,
       action: 'monitoring_resolved',
-      entity_type: 'report',
-      entity_id: id,
+      resource_type: 'report',
+      resource_id: id,
       details: { resolution_type: body.resolution_type, status: newStatus },
     })
 

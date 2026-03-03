@@ -33,11 +33,13 @@ export default async function ArchivedReportsPage() {
     }))
   } else {
     const supabase = await createClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('reports')
-      .select('id, violation_type, status, created_at, archived_at, archive_reason, listings!inner(asin, title, marketplace, seller_name)')
+      .select('id, violation_type, status, created_at, archived_at, archive_reason, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name)')
       .eq('status', 'archived')
-      .order('archived_at', { ascending: false })
+      .order('archived_at', { ascending: false, nullsFirst: false })
+
+    if (error) console.error('Archived reports query error:', error.message)
 
     if (data) {
       reports = data.map((r) => ({

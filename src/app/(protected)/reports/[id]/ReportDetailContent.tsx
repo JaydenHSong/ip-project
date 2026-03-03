@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/Button'
 import { ReportActions } from './ReportActions'
 import { ReportTimeline } from './ReportTimeline'
 import { SnapshotViewer } from './SnapshotViewer'
+import { TemplatePanel } from './TemplatePanel'
+import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
 import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
 import type { ReportSnapshot } from '@/types/monitoring'
@@ -24,6 +26,14 @@ type ReportDetailContentProps = {
     user_violation_type: string
     ai_violation_type: string | null
     ai_confidence_score: number | null
+    ai_severity: string | null
+    ai_analysis: {
+      violation_detected: boolean
+      confidence: number
+      reasons: string[]
+      evidence: { type: string; location: string; description: string }[]
+    } | null
+    policy_references: string[]
     confirmed_violation_type: string | null
     disagreement_flag: boolean
     draft_title: string | null
@@ -39,6 +49,11 @@ type ReportDetailContentProps = {
     title: string
     marketplace: string
     seller_name: string | null
+    brand: string | null
+    rating: number | null
+    review_count: number | null
+    price_amount: number | null
+    price_currency: string
   } | null
   creatorName: string | null
   canEdit: boolean
@@ -57,6 +72,26 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [editTitle, setEditTitle] = useState(report.draft_title ?? '')
   const [editBody, setEditBody] = useState(report.draft_body ?? '')
   const [saving, setSaving] = useState(false)
+  const [showTemplatePanel, setShowTemplatePanel] = useState(false)
+  const [capturing, setCapturing] = useState(false)
+
+  const handleCaptureScreenshot = async () => {
+    if (!listing) return
+    setCapturing(true)
+    try {
+      const res = await fetch(`/api/reports/${report.id}/screenshot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asin: listing.asin, marketplace: listing.marketplace }),
+      })
+      if (!res.ok) throw new Error('Capture failed')
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setCapturing(false)
+    }
+  }
 
   const hasChanges = editTitle !== (report.draft_title ?? '') || editBody !== (report.draft_body ?? '')
 
@@ -146,10 +181,40 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </CardContent>
       </Card>
 
+      {/* AI Analysis Section */}
+      {(report.ai_analysis || report.ai_violation_type) && (
+        <Card>
+          <CardHeader>
+            <h2 className="font-semibold text-th-text">AI Analysis</h2>
+          </CardHeader>
+          <CardContent>
+            <AiAnalysisTab
+              aiAnalysis={report.ai_analysis}
+              aiViolationType={report.ai_violation_type}
+              aiSeverity={report.ai_severity}
+              aiConfidenceScore={report.ai_confidence_score}
+              userViolationType={report.user_violation_type}
+              disagreementFlag={report.disagreement_flag}
+              policyReferences={report.policy_references ?? []}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {listing && (
         <Card>
           <CardHeader>
-            <h2 className="font-semibold text-th-text">{t('reports.detail.listing')}</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-th-text">{t('reports.detail.listing')}</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                loading={capturing}
+                onClick={handleCaptureScreenshot}
+              >
+                {t('reports.detail.captureScreenshot')}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-4">
@@ -171,6 +236,34 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                   <dd className="mt-1 text-sm font-medium text-th-text">{listing.seller_name}</dd>
                 </div>
               )}
+              {listing.brand && (
+                <div>
+                  <dt className="text-sm text-th-text-tertiary">{t('reports.detail.brand')}</dt>
+                  <dd className="mt-1 text-sm font-medium text-th-text">{listing.brand}</dd>
+                </div>
+              )}
+              {listing.rating != null && (
+                <div>
+                  <dt className="text-sm text-th-text-tertiary">{t('reports.detail.rating')}</dt>
+                  <dd className="mt-1 flex items-center gap-1.5 text-sm font-medium text-th-text">
+                    <svg className="h-4 w-4 fill-yellow-400 text-yellow-400" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    {listing.rating.toFixed(1)}
+                    {listing.review_count != null && (
+                      <span className="text-th-text-muted">({listing.review_count.toLocaleString()})</span>
+                    )}
+                  </dd>
+                </div>
+              )}
+              {listing.price_amount != null && (
+                <div>
+                  <dt className="text-sm text-th-text-tertiary">{t('reports.detail.price')}</dt>
+                  <dd className="mt-1 text-sm font-medium text-th-text">
+                    {listing.price_currency === 'JPY' ? '¥' : '$'}{listing.price_amount.toLocaleString()}
+                  </dd>
+                </div>
+              )}
             </dl>
           </CardContent>
         </Card>
@@ -179,7 +272,18 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       {(report.draft_title || isDraftEditable) && (
         <Card>
           <CardHeader>
-            <h2 className="font-semibold text-th-text">{t('reports.detail.reportDraft')}</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-th-text">{t('reports.detail.reportDraft')}</h2>
+              {isDraftEditable && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTemplatePanel(true)}
+                >
+                  {t('reports.detail.applyTemplate')}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {isDraftEditable ? (
@@ -259,6 +363,19 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           <ReportTimeline events={timeline} />
         </CardContent>
       </Card>
+
+      {isDraftEditable && (
+        <TemplatePanel
+          open={showTemplatePanel}
+          onClose={() => setShowTemplatePanel(false)}
+          onApply={(body, _title) => {
+            setEditBody(body)
+          }}
+          listing={listing ?? {}}
+          report={report}
+          currentViolationType={report.user_violation_type}
+        />
+      )}
     </div>
   )
 }

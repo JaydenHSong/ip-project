@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { notifyAdmins } from '@/lib/notifications'
 import type { MonitoringCallbackPayload, SnapshotDiff } from '@/types/monitoring'
 
 // POST /api/monitoring/callback
@@ -94,15 +95,13 @@ export const POST = withAuth(async (req, { user }) => {
     )
   }
 
-  // 변화 감지 시 알림 발송
+  // 변화 감지 시 모든 Admin에게 알림
   if (changeDetected) {
-    void supabase.from('notifications').insert({
-      user_id: user.id,
+    await notifyAdmins({
       type: 'followup_change_detected',
       title: 'Change Detected',
       message: `Change detected in report ${body.report_id}: ${changeType}`,
-      metadata: { report_id: body.report_id },
-      is_read: false,
+      metadata: { report_id: body.report_id, change_type: changeType },
     })
   }
 
@@ -110,8 +109,8 @@ export const POST = withAuth(async (req, { user }) => {
   void supabase.from('audit_logs').insert({
     user_id: user.id,
     action: 'monitoring_callback',
-    entity_type: 'report',
-    entity_id: body.report_id,
+    resource_type: 'report',
+    resource_id: body.report_id,
     details: { change_detected: changeDetected, change_type: changeType },
   })
 

@@ -28,9 +28,17 @@ const MARKETPLACE_OPTIONS = MARKETPLACE_CODES.map((code) => ({
   label: `${MARKETPLACES[code].name} (${code})`,
 }))
 
+const FREQUENCY_LABELS: Record<string, string> = {
+  daily: 'Daily',
+  every_12h: 'Every 12h',
+  every_6h: 'Every 6h',
+  every_3d: 'Every 3 Days',
+  weekly: 'Weekly',
+}
+
 const FREQUENCY_OPTIONS = CAMPAIGN_FREQUENCIES.map((f) => ({
   value: f,
-  label: f === 'daily' ? 'Daily' : f === 'every_12h' ? 'Every 12h' : 'Every 6h',
+  label: FREQUENCY_LABELS[f] ?? f,
 }))
 
 export const CampaignForm = ({ initialData, campaignId, embedded, onSuccess }: CampaignFormProps) => {

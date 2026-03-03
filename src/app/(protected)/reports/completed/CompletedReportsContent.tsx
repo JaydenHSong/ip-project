@@ -57,15 +57,15 @@ export const CompletedReportsContent = ({ reports, statusFilter }: CompletedRepo
 
   const STATUS_TABS = [
     { value: '', label: t('common.all') },
-    { value: 'submitted', label: t('reports.tabs.submitted') },
-    { value: 'monitoring', label: t('reports.tabs.monitoring') },
     { value: 'resolved', label: t('reports.tabs.resolved') },
     { value: 'unresolved', label: t('reports.tabs.unresolved') },
   ]
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.completedTitle')}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.completedTitle')}</h1>
+      </div>
 
       <div className="flex gap-2 overflow-x-auto">
         {STATUS_TABS.map((tab) => (

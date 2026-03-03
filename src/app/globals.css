@@ -51,59 +51,65 @@
   --shadow-sm: 0 1px 2px 0 rgba(34, 34, 34, 0.06);
   --shadow-md: 0 4px 6px -1px rgba(34, 34, 34, 0.08), 0 2px 4px -2px rgba(34, 34, 34, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(34, 34, 34, 0.08), 0 4px 6px -4px rgba(34, 34, 34, 0.06);
+
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.12);
 }
 
-/* ─── Dark Theme — Charcoal + Orange Accent ─── */
+/* ─── Dark Theme — Metal Glass ─── */
 [data-theme="dark"] {
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #222222;
-  --bg-tertiary: #2e2e2e;
-  --bg-hover: #2e2e2e;
-  --bg-active: #3a2a1a;
+  --bg-primary: #0f1115;
+  --bg-secondary: #161a20;
+  --bg-tertiary: #1e2228;
+  --bg-hover: rgba(255, 255, 255, 0.10);
+  --bg-active: rgba(255, 109, 31, 0.12);
 
-  --text-primary: #f0ebe0;
-  --text-secondary: #c8c0b0;
-  --text-tertiary: #908878;
-  --text-muted: #686058;
-  --text-inverse: #1a1a1a;
+  --text-primary: #e8eaed;
+  --text-secondary: #b0b8c4;
+  --text-tertiary: #7a8494;
+  --text-muted: #4e5868;
+  --text-inverse: #0f1115;
   --text-active: #FF8844;
 
-  --border-primary: #363636;
-  --border-secondary: #444444;
+  --border-primary: rgba(255, 255, 255, 0.08);
+  --border-secondary: rgba(255, 255, 255, 0.12);
   --border-active: #FF6D1F;
 
-  --surface-card: #262626;
-  --surface-overlay: rgba(0, 0, 0, 0.7);
-  --surface-panel: #262626;
+  --surface-card: rgba(255, 255, 255, 0.04);
+  --surface-overlay: rgba(0, 0, 0, 0.6);
+  --surface-panel: rgba(255, 255, 255, 0.03);
 
   --accent-primary: #FF6D1F;
   --accent-primary-hover: #FF8844;
-  --accent-primary-soft: #3a2a1a;
+  --accent-primary-soft: rgba(255, 109, 31, 0.12);
   --accent-primary-text: #FF8844;
 
-  --status-success-bg: #0a2618;
+  --status-success-bg: rgba(74, 222, 128, 0.1);
   --status-success-text: #4ade80;
-  --status-warning-bg: #2a1e06;
+  --status-warning-bg: rgba(250, 204, 21, 0.1);
   --status-warning-text: #facc15;
-  --status-danger-bg: #2a0a0a;
+  --status-danger-bg: rgba(248, 113, 113, 0.1);
   --status-danger-text: #f87171;
-  --status-info-bg: #0a1a2a;
+  --status-info-bg: rgba(96, 165, 250, 0.1);
   --status-info-text: #60a5fa;
-  --status-violet-bg: #1e0a30;
+  --status-violet-bg: rgba(167, 139, 250, 0.1);
   --status-violet-text: #a78bfa;
-  --status-default-bg: #2e2e2e;
-  --status-default-text: #908878;
+  --status-default-bg: rgba(255, 255, 255, 0.05);
+  --status-default-text: #7a8494;
 
-  --sidebar-bg: #1a1a1a;
-  --sidebar-hover: #2e2e2e;
-  --sidebar-active-bg: #3a2a1a;
+  --sidebar-bg: #0f1115;
+  --sidebar-hover: rgba(255, 255, 255, 0.10);
+  --sidebar-active-bg: rgba(255, 109, 31, 0.12);
   --sidebar-active-text: #FF8844;
-  --sidebar-text: #908878;
-  --sidebar-border: #363636;
+  --sidebar-text: #7a8494;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.5), 0 4px 8px -4px rgba(0, 0, 0, 0.3);
+
+  --glass-bg: rgba(15, 17, 21, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.08);
 }
 
 @theme inline {
@@ -186,4 +192,27 @@ body {
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* ─── Glass Utilities ─── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-color: var(--glass-border);
+}
+
+.glass-subtle {
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px) saturate(150%);
+  -webkit-backdrop-filter: blur(8px) saturate(150%);
+  border-color: var(--glass-border);
+}
+
+.glass-dropdown {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-color: var(--glass-border);
+  box-shadow: var(--shadow-lg);
 }

@@ -9,13 +9,13 @@ export const GET = withAuth(async () => {
   const supabase = await createClient()
 
   const { data: intervalSetting } = await supabase
-    .from('settings')
+    .from('system_configs')
     .select('value')
     .eq('key', 'monitoring_interval_days')
     .single()
 
   const { data: maxDaysSetting } = await supabase
-    .from('settings')
+    .from('system_configs')
     .select('value')
     .eq('key', 'monitoring_max_days')
     .single()
@@ -45,7 +45,7 @@ export const PUT = withAuth(async (req, { user }) => {
       )
     }
     await supabase
-      .from('settings')
+      .from('system_configs')
       .upsert({
         key: 'monitoring_interval_days',
         value: val,
@@ -63,7 +63,7 @@ export const PUT = withAuth(async (req, { user }) => {
       )
     }
     await supabase
-      .from('settings')
+      .from('system_configs')
       .upsert({
         key: 'monitoring_max_days',
         value: val,

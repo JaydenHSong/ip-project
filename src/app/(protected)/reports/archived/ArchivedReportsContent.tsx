@@ -9,6 +9,8 @@ import { ViolationBadge } from '@/components/ui/ViolationBadge'
 import { Button } from '@/components/ui/Button'
 import { SortableHeader } from '@/components/ui/SortableHeader'
 import { TableFilters } from '@/components/ui/TableFilters'
+import { SlidePanel } from '@/components/ui/SlidePanel'
+import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { useSortableTable } from '@/hooks/useSortableTable'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import type { ReportStatus } from '@/types/reports'
@@ -35,6 +37,10 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
   const router = useRouter()
   const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
   const [unarchiving, setUnarchiving] = useState<string | null>(null)
+  const [previewId, setPreviewId] = useState<string | null>(null)
+
+  const previewReport = previewId ? (reports ?? []).find((r) => r.id === previewId) ?? null : null
+  const handleClosePreview = useCallback(() => setPreviewId(null), [])
 
   const canAct = userRole === 'admin' || userRole === 'editor'
 
@@ -81,9 +87,11 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <h1 className="text-xl font-bold text-th-text md:text-2xl">
-        {t('reports.archivedTitle' as Parameters<typeof t>[0])}
-      </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-th-text md:text-2xl">
+          {t('reports.archivedTitle' as Parameters<typeof t>[0])}
+        </h1>
+      </div>
 
       <TableFilters filters={filters} onFiltersChange={setFilters} />
 
@@ -97,7 +105,11 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
           </div>
         ) : (
           sortedData.map((report) => (
-            <div key={report.id} className="rounded-lg border border-th-border bg-surface-card p-4">
+            <div
+              key={report.id}
+              className="cursor-pointer rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover"
+              onClick={() => setPreviewId(report.id)}
+            >
               <div className="flex items-start justify-between">
                 <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
                 <StatusBadge status={report.status as ReportStatus} type="report" />
@@ -169,7 +181,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
               </tr>
             ) : (
               sortedData.map((report) => (
-                <tr key={report.id} className="bg-surface-card transition-colors hover:bg-th-bg-hover">
+                <tr key={report.id} className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover" onClick={() => setPreviewId(report.id)}>
                   <td className="px-4 py-3">
                     <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
                   </td>
@@ -205,6 +217,91 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
           </tbody>
         </table>
       </div>
+      {/* Archived Report Quick View */}
+      <SlidePanel
+        open={!!previewId}
+        onClose={handleClosePreview}
+        title={t('reports.detail.title')}
+        size="xl"
+        status={previewReport ? <StatusBadge status={previewReport.status as ReportStatus} type="report" /> : undefined}
+      >
+        {previewReport && (
+          <div className="space-y-6 p-6">
+            <Card>
+              <CardHeader>
+                <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.violationInfo')}</h3>
+              </CardHeader>
+              <CardContent>
+                <ViolationBadge code={previewReport.violation_type as ViolationCode} />
+              </CardContent>
+            </Card>
+
+            {previewReport.listings && (
+              <Card>
+                <CardHeader>
+                  <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.listing')}</h3>
+                </CardHeader>
+                <CardContent>
+                  <dl className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">ASIN</dt>
+                      <dd className="mt-0.5 font-mono font-medium text-th-text">{previewReport.listings.asin}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.detail.marketplace')}</dt>
+                      <dd className="mt-0.5 font-medium text-th-text">{previewReport.listings.marketplace}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.seller')}</dt>
+                      <dd className="mt-0.5 font-medium text-th-text">{previewReport.listings.seller_name ?? '—'}</dd>
+                    </div>
+                    <div className="col-span-2">
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.title')}</dt>
+                      <dd className="mt-0.5 font-medium text-th-text">{previewReport.listings.title}</dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+            )}
+
+            {previewReport.archive_reason && (
+              <Card>
+                <CardHeader>
+                  <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.archiveReason' as Parameters<typeof t>[0])}</h3>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-th-text-secondary">{previewReport.archive_reason}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-th-text-muted">
+              <span>
+                {previewReport.archived_at
+                  ? `${t('reports.detail.archivedAt' as Parameters<typeof t>[0])}: ${new Date(previewReport.archived_at).toLocaleString()}`
+                  : ''}
+              </span>
+              <Link
+                href={`/reports/${previewReport.id}`}
+                className="text-th-accent-text hover:underline"
+              >
+                {t('common.details')} →
+              </Link>
+            </div>
+
+            {canAct && (
+              <Button
+                variant="outline"
+                className="w-full"
+                loading={unarchiving === previewReport.id}
+                onClick={() => handleUnarchive(previewReport.id)}
+              >
+                {t('reports.detail.unarchive' as Parameters<typeof t>[0])}
+              </Button>
+            )}
+          </div>
+        )}
+      </SlidePanel>
     </div>
   )
 }

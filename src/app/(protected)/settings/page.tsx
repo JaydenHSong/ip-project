@@ -6,7 +6,7 @@ const SettingsPage = async () => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  return <SettingsContent isAdmin={user.role === 'admin'} />
+  return <SettingsContent isAdmin={user.role === 'admin'} currentUserId={user.id} />
 }
 
 export default SettingsPage

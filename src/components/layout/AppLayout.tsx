@@ -33,10 +33,9 @@ export const AppLayout = ({ user, children }: AppLayoutProps) => {
   return (
     <I18nProvider>
       <div className="flex h-dvh overflow-hidden bg-th-bg-secondary">
-        {/* Desktop sidebar - hidden on mobile */}
         <div className="hidden md:block">
           <Sidebar
-            userRole={user.role}
+            user={user}
             collapsed={sidebarCollapsed}
             onToggle={handleToggleSidebar}
           />

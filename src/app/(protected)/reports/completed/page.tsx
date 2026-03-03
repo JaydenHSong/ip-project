@@ -26,7 +26,7 @@ const CompletedReportsPage = async ({
   } else {
     const supabase = await createClient()
 
-    const { data } = await supabase
+    const { data, error: queryError } = await supabase
       .from('reports')
       .select(
         '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
@@ -35,6 +35,7 @@ const CompletedReportsPage = async ({
       .order('created_at', { ascending: false })
       .limit(100)
 
+    if (queryError) console.error('Completed reports query error:', queryError.message)
     reports = data as typeof DEMO_REPORTS | null
   }
 

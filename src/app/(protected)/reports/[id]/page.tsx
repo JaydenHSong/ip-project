@@ -16,6 +16,14 @@ type ReportData = {
   user_violation_type: string
   ai_violation_type: string | null
   ai_confidence_score: number | null
+  ai_severity: string | null
+  ai_analysis: {
+    violation_detected: boolean
+    confidence: number
+    reasons: string[]
+    evidence: { type: string; location: string; description: string }[]
+  } | null
+  policy_references: string[]
   confirmed_violation_type: string | null
   disagreement_flag: boolean
   draft_title: string | null
@@ -43,6 +51,11 @@ type ListingInfo = {
   title: string
   marketplace: string
   seller_name: string | null
+  brand: string | null
+  rating: number | null
+  review_count: number | null
+  price_amount: number | null
+  price_currency: string
 }
 
 const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> }) => {
@@ -73,7 +86,7 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
     const { data, error } = await supabase
       .from('reports')
       .select(
-        '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name, email)',
+        '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name, brand, rating, review_count, price_amount, price_currency), users!reports_created_by_fkey(name, email)',
       )
       .eq('id', id)
       .single()

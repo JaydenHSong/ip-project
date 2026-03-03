@@ -102,6 +102,10 @@ export type ManualReportResponse = {
 export type AiAnalyzeRequest = {
   listing_id: string
   include_patent_check?: boolean
+  violation_type?: string
+  async?: boolean
+  source?: 'crawler' | 'extension'
+  priority?: 'high' | 'normal'
 }
 
 export type AiAnalyzeResponse = {

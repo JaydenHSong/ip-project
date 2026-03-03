@@ -10,7 +10,7 @@ export const GET = withAuth(async (req) => {
   const offset = (page - 1) * limit
 
   const action = url.searchParams.get('action')
-  const entityType = url.searchParams.get('entity_type')
+  const entityType = url.searchParams.get('resource_type')
   const userId = url.searchParams.get('user_id')
 
   const supabase = await createClient()
@@ -25,7 +25,7 @@ export const GET = withAuth(async (req) => {
     query = query.eq('action', action)
   }
   if (entityType) {
-    query = query.eq('entity_type', entityType)
+    query = query.eq('resource_type', entityType)
   }
   if (userId) {
     query = query.eq('user_id', userId)

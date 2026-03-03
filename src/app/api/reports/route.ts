@@ -20,7 +20,7 @@ export const GET = withAuth(async (req) => {
   let query = supabase
     .from('reports')
     .select(
-      '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
+      '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name, rating, review_count), users!reports_created_by_fkey(name)',
       { count: 'exact' },
     )
     .order('created_at', { ascending: false })
