@@ -1,9 +1,15 @@
+// AI 모니터링 API — Haiku Vision 스크린샷 비교
+// POST /api/ai/monitor — 이전 vs 현재 스크린샷 비교 + 리마크 생성
+
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import type { SnapshotDiff, AiMarking } from '@/types/monitoring'
+import { createClaudeClient } from '@/lib/ai/client'
+import { compareScreenshots, fallbackDiffAnalysis } from '@/lib/ai/monitor-compare'
+import type { SnapshotDiff } from '@/types/monitoring'
 
 type MonitorRequest = {
   report_id: string
+  violation_type?: string
   initial_screenshot_url: string | null
   current_screenshot_url: string | null
   initial_listing_data: Record<string, unknown>
@@ -11,21 +17,13 @@ type MonitorRequest = {
   diff: SnapshotDiff
 }
 
-type MonitorResponse = {
-  remark: string
-  marking_data: AiMarking[]
-  resolution_suggestion: 'resolved' | 'unresolved' | 'continue'
-  change_summary: string
-}
-
 // POST /api/ai/monitor
-// Haiku로 스크린샷 비교 + 리마크 생성
 export const POST = withAuth(async (req) => {
   const body = await req.json().catch(() => ({})) as Partial<MonitorRequest>
 
   if (!body.report_id) {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'report_id가 필요합니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'report_id is required' } },
       { status: 400 },
     )
   }
@@ -33,53 +31,30 @@ export const POST = withAuth(async (req) => {
   const diff = body.diff
   if (!diff) {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'diff가 필요합니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'diff is required' } },
       { status: 400 },
     )
   }
 
-  // TODO: 실제 Claude Haiku API 호출 구현
-  // 현재는 diff 기반 간소화된 분석 로직
-
-  const hasChanges = diff.listing_removed || diff.changes.length > 0
-  const markingData: AiMarking[] = []
-
-  let remark: string
-  let suggestion: MonitorResponse['resolution_suggestion']
-  let summary: string
-
-  if (diff.listing_removed) {
-    remark = 'The listing has been completely removed from Amazon. This indicates the violation report was effective and the seller or Amazon took action to remove the infringing product.'
-    suggestion = 'resolved'
-    summary = 'Listing removed'
-  } else if (hasChanges) {
-    const changedFields = diff.changes.map((c) => c.field).join(', ')
-    remark = `Changes detected in the following fields: ${changedFields}. The seller appears to have modified the listing content. Review the changes to determine if the violation has been adequately addressed.`
-    suggestion = 'resolved'
-    summary = `Modified: ${changedFields}`
-
-    diff.changes.forEach((change, i) => {
-      markingData.push({
-        x: 50,
-        y: 40 + i * 60,
-        width: 400,
-        height: 25,
-        label: `${change.field}: changed`,
-        severity: 'high',
+  // Haiku Vision 사용 가능 여부 확인
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (apiKey && body.initial_screenshot_url && body.current_screenshot_url) {
+    try {
+      const client = createClaudeClient(apiKey)
+      const result = await compareScreenshots(client, {
+        initialScreenshotUrl: body.initial_screenshot_url,
+        currentScreenshotUrl: body.current_screenshot_url,
+        diff,
+        violationType: body.violation_type ?? 'unknown',
       })
-    })
-  } else {
-    remark = 'No changes detected in the listing since the initial snapshot. The violation content remains unchanged. Continued monitoring is recommended.'
-    suggestion = 'continue'
-    summary = 'No changes'
+
+      return NextResponse.json(result)
+    } catch {
+      // Haiku Vision 실패 시 fallback
+    }
   }
 
-  const response: MonitorResponse = {
-    remark,
-    marking_data: markingData,
-    resolution_suggestion: suggestion,
-    change_summary: summary,
-  }
-
-  return NextResponse.json(response)
+  // Fallback: diff 기반 분석 (API Key 없거나, 스크린샷 없거나, Vision 실패 시)
+  const result = fallbackDiffAnalysis(diff)
+  return NextResponse.json(result)
 }, ['editor', 'admin'])

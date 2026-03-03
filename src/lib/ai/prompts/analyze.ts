@@ -75,7 +75,7 @@ const buildAnalyzePrompt = (
   let patentSection = ''
   if (patents && patents.length > 0) {
     const patentLines = patents.map(p =>
-      `- ${p.patent_number}: ${p.patent_name} (${p.country}, status: ${p.status})` +
+      `- ${p.management_number}: ${p.name} (${p.country}, status: ${p.status})` +
       (p.keywords.length > 0 ? `\n  Keywords: ${p.keywords.join(', ')}` : ''),
     ).join('\n')
     patentSection = `## Patent Registry (Check V03)\n${patentLines}`

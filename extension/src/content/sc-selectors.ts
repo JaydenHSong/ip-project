@@ -48,10 +48,34 @@ export const SC_SELECTORS = {
     () => document.querySelector<HTMLInputElement>('input[name="evidence"]'),
   ],
 
-  // Submit 버튼 (감지용, 클릭하지 않음)
+  // Submit 버튼 (자동 제출 시 클릭 대상)
   submitButton: [
     () => document.querySelector<HTMLButtonElement>('button[type="submit"]'),
     () => document.querySelector<HTMLButtonElement>('[data-testid="submit-button"]'),
+    () => document.querySelector<HTMLButtonElement>('input[type="submit"]') as HTMLButtonElement | null,
+    () => {
+      const buttons = document.querySelectorAll<HTMLButtonElement>('button')
+      for (const btn of buttons) {
+        const text = btn.textContent?.trim().toLowerCase() ?? ''
+        if (text === 'submit' || text === 'report' || text.includes('submit report')) {
+          return btn
+        }
+      }
+      return null
+    },
+    () => document.querySelector<HTMLButtonElement>('.submit-button, .btn-submit'),
+  ],
+
+  // 에러 메시지 감지
+  errorMessage: [
+    () => document.querySelector('.error-message, .alert-danger, .alert-error'),
+    () => {
+      const els = document.querySelectorAll('.error, [role="alert"]')
+      for (const el of els) {
+        if (el.textContent && el.textContent.trim().length > 0) return el
+      }
+      return null
+    },
   ],
 
   // 제출 완료 확인 (URL 변경 또는 확인 메시지)

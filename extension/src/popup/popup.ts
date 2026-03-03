@@ -6,14 +6,16 @@ import { renderLoadingView } from './views/LoadingView'
 import { renderLoginView } from './views/LoginView'
 import { renderReportFormView } from './views/ReportFormView'
 import { renderSuccessView } from './views/SuccessView'
+import { renderSettingsView } from './views/SettingsView'
 
-type ViewName = 'loading' | 'login' | 'form' | 'success'
+type ViewName = 'loading' | 'login' | 'form' | 'success' | 'settings'
 
 const views: Record<ViewName, HTMLElement | null> = {
   loading: document.getElementById('view-loading'),
   login: document.getElementById('view-login'),
   form: document.getElementById('view-form'),
   success: document.getElementById('view-success'),
+  settings: document.getElementById('view-settings'),
 }
 
 const showView = (name: ViewName): void => {
@@ -93,6 +95,15 @@ const init = async (): Promise<void> => {
     btnNew?.addEventListener('click', () => init())
   })
 }
+
+// 설정 버튼 이벤트
+const settingsBtn = document.getElementById('btn-settings')
+settingsBtn?.addEventListener('click', () => {
+  showView('settings')
+  renderSettingsView(views.settings!, () => {
+    init()
+  })
+})
 
 // 팝업 오픈 시 초기화
 init()
