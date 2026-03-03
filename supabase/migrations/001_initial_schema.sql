@@ -70,7 +70,7 @@ CREATE TABLE listings (
 );
 
 CREATE UNIQUE INDEX idx_listings_unique_daily
-  ON listings(asin, marketplace, (crawled_at::date));
+  ON listings(asin, marketplace, ((crawled_at AT TIME ZONE 'UTC')::date));
 CREATE INDEX idx_listings_asin ON listings(asin);
 CREATE INDEX idx_listings_marketplace ON listings(marketplace);
 CREATE INDEX idx_listings_is_suspect ON listings(is_suspect) WHERE is_suspect = true;
