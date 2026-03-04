@@ -82,9 +82,8 @@ const createHealthServer = (options: HealthServerOptions): Server => {
           priority: 1,
         })
 
-        log('info', 'trigger', `Force-run job added for campaign ${data.campaignId}`, {
-          jobId: job.id,
-          keyword: data.keyword,
+        log('info', 'trigger', `Force-run job added for campaign ${data.campaignId} (jobId: ${job.id})`, {
+          campaignId: data.campaignId,
         })
 
         res.writeHead(200, { 'Content-Type': 'application/json' })

@@ -39,13 +39,13 @@ const createJobProcessor = (
     let totalSent = 0
     let duplicates = 0
     let errors = 0
+    let retryCount = 0
 
     try {
       browser = await chromium.launch({ headless: true })
 
       // 프록시 가져오기
       let proxyConfig = proxyManager.getNextProxy()
-      let retryCount = 0
 
       // Stealth 브라우저 컨텍스트 생성
       const fingerprint = generateFingerprint(mp)
