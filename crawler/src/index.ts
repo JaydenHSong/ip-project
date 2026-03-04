@@ -5,11 +5,15 @@ import { createChatNotifier } from './notifications/google-chat.js'
 import { createCrawlQueue, createCrawlWorker } from './scheduler/queue.js'
 import { createJobProcessor } from './scheduler/jobs.js'
 import { startScheduler } from './scheduler/scheduler.js'
+import { createHealthServer } from './health.js'
 import { log } from './logger.js'
 
 const PROXY_POOL_SIZE = 5
+const HEALTH_PORT = Number(process.env['PORT'] || '8080')
 
 const main = async (): Promise<void> => {
+  const startTime = Date.now()
+
   // 1. 환경 변수 검증
   log('info', 'main', 'Loading configuration...')
   const config = loadConfig()
@@ -42,13 +46,28 @@ const main = async (): Promise<void> => {
   // 6. Scheduler 시작
   const schedulerInterval = await startScheduler(queue, sentinelClient)
 
+  // 7. Health Check Server
+  let redisConnected = true
+  let workerRunning = true
+
+  worker.on('error', () => { workerRunning = false })
+  worker.on('ready', () => { workerRunning = true })
+
+  const healthServer = createHealthServer(HEALTH_PORT, () => ({
+    status: redisConnected && workerRunning ? 'ok' : 'degraded',
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    redis: redisConnected,
+    worker: workerRunning,
+    timestamp: new Date().toISOString(),
+  }))
+
   log('info', 'main', `Sentinel Crawler started (concurrency: ${config.concurrency})`)
 
   if (config.googleChatWebhookUrl) {
     await chatNotifier.notifyMessage('🚀 *[Sentinel Crawler]* 크롤러가 시작되었습니다.')
   }
 
-  // 7. Graceful Shutdown
+  // 8. Graceful Shutdown
   const shutdown = async (signal: string): Promise<void> => {
     log('info', 'main', `Received ${signal}, shutting down gracefully...`)
 
@@ -57,6 +76,9 @@ const main = async (): Promise<void> => {
     }
 
     clearInterval(schedulerInterval)
+
+    healthServer.close()
+    log('info', 'main', 'Health server closed')
 
     // Worker 중지 (진행 중 잡 완료 대기)
     await worker.close()

@@ -40,7 +40,7 @@ const loadConfig = (): CrawlerConfig => {
     sentinelApiUrl: check('SENTINEL_API_URL'),
     serviceToken: check('SENTINEL_SERVICE_TOKEN'),
     redis: {
-      url: check('UPSTASH_REDIS_URL'),
+      url: process.env['REDIS_URL'] || check('UPSTASH_REDIS_URL'),
     },
     proxy: {
       host: check('BRIGHTDATA_PROXY_HOST'),

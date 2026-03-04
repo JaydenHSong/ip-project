@@ -1,0 +1,37 @@
+# ─── Railway Crawler Dockerfile ───────────────────────────
+# Build context: repo root (Railway default)
+# ─── Stage 1: Build ───────────────────────────────────────
+FROM node:22-slim AS builder
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+COPY crawler/package.json crawler/pnpm-lock.yaml* ./
+
+RUN pnpm install --frozen-lockfile 2>/dev/null || pnpm install
+
+COPY crawler/tsconfig.json ./
+COPY crawler/src/ ./src/
+
+RUN pnpm build
+
+# ─── Stage 2: Production ─────────────────────────────────
+FROM mcr.microsoft.com/playwright:v1.49.1-noble
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+COPY crawler/package.json crawler/pnpm-lock.yaml* ./
+
+RUN pnpm install --frozen-lockfile --prod 2>/dev/null || pnpm install --prod
+
+COPY --from=builder /app/dist ./dist
+
+ENV PORT=8080
+EXPOSE 8080
+
+USER pwuser
+
+CMD ["node", "dist/index.js"]
