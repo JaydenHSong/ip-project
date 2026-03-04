@@ -22,8 +22,8 @@ RUN pnpm build
 # ─── Stage 2: Production ─────────────────────────────────
 FROM mcr.microsoft.com/playwright:v1.49.1-noble
 
-# Enable corepack for pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm (corepack has signing key issues in this image)
+RUN npm install -g pnpm
 
 WORKDIR /app
 
