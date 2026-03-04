@@ -107,6 +107,7 @@ export const ko = {
     active: '활성',
     paused: '일시정지',
     completed: '완료',
+    createdBy: '생성자',
     owner: '캠페인 소유자',
     listingsFound: '수집된 리스팅',
     reportsFiled: '제출된 신고',
@@ -154,6 +155,7 @@ export const ko = {
     seller: '판매자',
     ai: 'AI',
     scCase: 'SC Case',
+    createdBy: '생성자',
     noReports: '신고가 없습니다.',
     noCompleted: '완료된 신고가 없습니다.',
     tabs: {

@@ -107,6 +107,7 @@ export const en = {
     active: 'Active',
     paused: 'Paused',
     completed: 'Completed',
+    createdBy: 'Created By',
     owner: 'Campaign Owner',
     listingsFound: 'Listings Found',
     reportsFiled: 'Reports Filed',
@@ -154,6 +155,7 @@ export const en = {
     seller: 'Seller',
     ai: 'AI',
     scCase: 'SC Case',
+    createdBy: 'Created By',
     noReports: 'No reports found.',
     noCompleted: 'No completed reports yet.',
     tabs: {

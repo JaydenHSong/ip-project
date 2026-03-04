@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const GET = async (req: NextRequest): Promise<NextResponse> => {
   const { searchParams } = new URL(req.url)
@@ -26,7 +27,9 @@ export const GET = async (req: NextRequest): Promise<NextResponse> => {
   }
 
   // users 테이블에 사용자 upsert (첫 로그인 시 Viewer로 생성)
-  const { error: upsertError } = await supabase
+  // Admin 클라이언트 사용 — RLS를 우회하여 last_login_at이 매 로그인마다 갱신되도록 보장
+  const adminSupabase = createAdminClient()
+  const { error: upsertError } = await adminSupabase
     .from('users')
     .upsert(
       {

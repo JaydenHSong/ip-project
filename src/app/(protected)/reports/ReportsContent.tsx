@@ -34,6 +34,7 @@ type ReportRow = {
   draft_title?: string | null
   draft_body?: string | null
   listings: { asin: string; title: string; marketplace: string; seller_name: string | null; rating: number | null; review_count: number | null } | null
+  users?: { name: string } | null
 }
 
 type ReportsContentProps = {
@@ -197,6 +198,7 @@ export const ReportsContent = ({
                   <span>{report.listings?.seller_name ?? '—'}</span>
                   <div className="flex items-center gap-2">
                     {report.ai_confidence_score !== null && <span>AI: {report.ai_confidence_score}%</span>}
+                    {report.users?.name && <span>{report.users.name}</span>}
                     <span>{new Date(report.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
@@ -217,13 +219,14 @@ export const ReportsContent = ({
               <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.ai')} field="ai" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort} />
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('reports.createdBy')}</th>
               <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-th-text-muted">
+                <td colSpan={8} className="px-4 py-12 text-center text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noReports')}
@@ -255,6 +258,7 @@ export const ReportsContent = ({
                   <td className="px-4 py-3">
                     <StatusBadge status={report.status as ReportStatus} type="report" />
                   </td>
+                  <td className="px-4 py-3 text-th-text-secondary">{report.users?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-th-text-muted">{new Date(report.created_at).toLocaleDateString()}</td>
                 </tr>
               ))

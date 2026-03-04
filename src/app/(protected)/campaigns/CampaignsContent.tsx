@@ -28,6 +28,7 @@ type Campaign = {
   max_pages: number
   status: string
   created_at: string
+  users?: { name: string } | null
 }
 
 type CampaignsContentProps = {
@@ -120,6 +121,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                 <div className="mt-2 flex items-center gap-3 text-xs text-th-text-muted">
                   <span>{MARKETPLACES[campaign.marketplace as MarketplaceCode]?.name ?? campaign.marketplace}</span>
                   <span>{FREQ_LABEL[campaign.frequency] ?? campaign.frequency}</span>
+                  {campaign.users?.name && <span>{campaign.users.name}</span>}
                   <span>{new Date(campaign.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
@@ -138,13 +140,14 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.frequency')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.pages')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
+              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.createdBy')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.created')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
             {(!campaigns || campaigns.length === 0) ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-th-text-muted">{t('campaigns.noCampaigns')}</td>
+                <td colSpan={7} className="px-4 py-12 text-center text-th-text-muted">{t('campaigns.noCampaigns')}</td>
               </tr>
             ) : (
               campaigns.map((campaign) => (
@@ -166,6 +169,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                   <td className="px-4 py-3.5">
                     <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
                   </td>
+                  <td className="px-4 py-3.5 text-th-text-secondary">{campaign.users?.name ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-muted">{new Date(campaign.created_at).toLocaleDateString()}</td>
                 </tr>
               ))
