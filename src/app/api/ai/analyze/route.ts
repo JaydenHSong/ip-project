@@ -195,4 +195,4 @@ export const POST = withDualAuth(async (req: NextRequest) => {
     summary: `AI analysis completed. Report ${result.reportId} created as draft.`,
     report_id: result.reportId,
   })
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

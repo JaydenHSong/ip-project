@@ -6,9 +6,8 @@ export const ko = {
     completedReports: '신고 완료',
     archivedReports: 'Archive',
     patents: 'IP 레지스트리',
-    auditLogs: '감사 로그',
+    auditLogs: '공지사항',
     settings: '설정',
-    changelog: '변경 로그',
   },
   common: {
     all: '전체',
@@ -41,6 +40,8 @@ export const ko = {
     subtitle: 'Sentinel을 이용하려면 로그인하세요',
     signIn: 'Google로 로그인 (@spigen.com)',
     restriction: 'Spigen 사내 계정만 접속 가능합니다',
+    deactivatedTitle: '계정이 비활성화되었습니다',
+    deactivatedMessage: '시스템 관리자에게 문의해 주세요.',
     hero: {
       title: '아마존에서 브랜드를 보호하세요',
       subtitle: 'AI 기반 위반 탐지, 자동 신고, 실시간 모니터링을 하나의 플랫폼에서.',
@@ -471,9 +472,17 @@ export const ko = {
       roleAdmin: '관리자',
       roleEditor: '편집자',
       roleViewer: '뷰어',
+      roleOwner: '오너',
+      roleViewerPlus: '뷰어+',
       active: '활성',
       inactive: '비활성',
       neverLoggedIn: '없음',
+    },
+    notices: {
+      title: '공지',
+      addNotice: '공지 추가',
+      noNotices: '공지가 없습니다.',
+      saved: '공지가 등록되었습니다.',
     },
     systemStatus: {
       title: '시스템 상태',

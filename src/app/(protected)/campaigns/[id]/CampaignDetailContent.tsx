@@ -13,6 +13,7 @@ import { CampaignActions } from './CampaignActions'
 import { ReportActions } from '@/app/(protected)/reports/[id]/ReportActions'
 import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus } from '@/types/reports'
+import type { Role } from '@/types/users'
 
 type ListingRow = {
   id: string
@@ -59,7 +60,7 @@ type CampaignDetailContentProps = {
   totalListings: number
   suspectCount: number
   canEdit: boolean
-  userRole: 'admin' | 'editor' | 'viewer'
+  userRole: Role
 }
 
 export const CampaignDetailContent = ({

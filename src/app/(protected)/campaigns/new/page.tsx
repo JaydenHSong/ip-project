@@ -7,7 +7,7 @@ import { NewCampaignHeader, NewCampaignDescription } from './NewCampaignHeader'
 const NewCampaignPage = async () => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
-  if (user.role === 'viewer') redirect('/campaigns')
+  if (user.role === 'viewer' || user.role === 'viewer_plus') redirect('/campaigns')
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">

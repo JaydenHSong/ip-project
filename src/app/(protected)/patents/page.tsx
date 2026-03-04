@@ -106,7 +106,7 @@ const PatentsPage = async ({
       statusFilter={params.status ?? ''}
       countryFilter={params.country ?? ''}
       searchQuery={params.search ?? ''}
-      isAdmin={user.role === 'admin'}
+      isAdmin={user.role === 'owner' || user.role === 'admin'}
       typeCounts={typeCounts}
     />
   )

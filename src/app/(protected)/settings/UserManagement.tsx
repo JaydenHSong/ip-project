@@ -12,14 +12,18 @@ type UserManagementProps = {
 }
 
 const ROLE_BADGE: Record<Role, string> = {
+  owner: 'bg-purple-500/20 text-purple-400',
   admin: 'bg-red-500/20 text-red-400',
   editor: 'bg-blue-500/20 text-blue-400',
+  viewer_plus: 'bg-teal-500/20 text-teal-400',
   viewer: 'bg-gray-500/20 text-gray-400',
 }
 
 const ROLE_LABELS: Record<Role, string> = {
+  owner: 'roleOwner',
   admin: 'roleAdmin',
   editor: 'roleEditor',
+  viewer_plus: 'roleViewerPlus',
   viewer: 'roleViewer',
 }
 
@@ -79,7 +83,6 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
         alert(data.error?.message ?? t('settings.users.updateError'))
         return
       }
-      // Optimistic update
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId ? { ...u, [field]: newValue, updated_at: new Date().toISOString() } : u,
@@ -260,8 +263,8 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
 
       {/* Confirm Modal */}
       {confirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-sm rounded-xl border border-th-border bg-th-bg-primary p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="mx-4 w-full max-w-sm rounded-xl border border-th-border bg-th-bg p-6 shadow-2xl">
             <h3 className="text-base font-semibold text-th-text">
               {confirmModal.field === 'role'
                 ? t('settings.users.changeRole')

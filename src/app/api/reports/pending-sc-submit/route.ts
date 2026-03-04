@@ -40,4 +40,4 @@ export const GET = withAuth(async (_req, { user }) => {
     sc_submit_data: report.sc_submit_data,
     auto_submit_enabled: autoSubmitEnabled,
   })
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

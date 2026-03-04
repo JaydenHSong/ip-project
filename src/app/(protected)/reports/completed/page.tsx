@@ -35,7 +35,7 @@ const CompletedReportsPage = async ({
       .order('created_at', { ascending: false })
       .limit(100)
 
-    const ownerFilter = params.owner ?? (user.role === 'admin' ? 'all' : 'my')
+    const ownerFilter = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
     if (ownerFilter === 'my') {
       query = query.eq('created_by', user.id)
     }
@@ -46,7 +46,7 @@ const CompletedReportsPage = async ({
     reports = data as typeof DEMO_REPORTS | null
   }
 
-  const effectiveOwner = params.owner ?? (user.role === 'admin' ? 'all' : 'my')
+  const effectiveOwner = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
 
   return (
     <CompletedReportsContent

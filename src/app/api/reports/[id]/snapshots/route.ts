@@ -31,4 +31,4 @@ export const GET = withAuth(async (req) => {
   }
 
   return NextResponse.json({ snapshots: snapshots ?? [] })
-}, ['viewer', 'editor', 'admin'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])

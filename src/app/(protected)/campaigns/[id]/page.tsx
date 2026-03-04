@@ -167,7 +167,7 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
       reports={reports}
       totalListings={totalListings}
       suspectCount={suspectCount}
-      canEdit={user.role === 'admin' || user.role === 'editor'}
+      canEdit={user.role === 'owner' || user.role === 'admin' || user.role === 'editor'}
       userRole={user.role}
     />
   )

@@ -6,9 +6,8 @@ export const en = {
     completedReports: 'Completed Reports',
     archivedReports: 'Archived Reports',
     patents: 'IP Registry',
-    auditLogs: 'Audit Logs',
+    auditLogs: 'Notices',
     settings: 'Settings',
-    changelog: 'Changelog',
   },
   common: {
     all: 'All',
@@ -41,6 +40,8 @@ export const en = {
     subtitle: 'Sign in to continue to Sentinel',
     signIn: 'Sign in with Google (@spigen.com)',
     restriction: 'Only Spigen internal accounts can access',
+    deactivatedTitle: 'Account Deactivated',
+    deactivatedMessage: 'Your account has been deactivated. Please contact the system administrator.',
     hero: {
       title: 'Protect your brand on Amazon',
       subtitle: 'AI-powered violation detection, automated reporting, and real-time monitoring — all in one platform.',
@@ -471,9 +472,17 @@ export const en = {
       roleAdmin: 'Admin',
       roleEditor: 'Editor',
       roleViewer: 'Viewer',
+      roleOwner: 'Owner',
+      roleViewerPlus: 'Viewer+',
       active: 'Active',
       inactive: 'Inactive',
       neverLoggedIn: 'Never',
+    },
+    notices: {
+      title: 'Notices',
+      addNotice: 'Add Notice',
+      noNotices: 'No notices yet.',
+      saved: 'Notice created.',
     },
     systemStatus: {
       title: 'System Status',

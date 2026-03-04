@@ -1,5 +1,7 @@
 'use client'
 
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useI18n } from '@/lib/i18n/context'
 import { I18nProvider } from '@/lib/i18n/context'
@@ -15,6 +17,8 @@ const FEATURE_ITEMS = [
 
 const LoginContent = () => {
   const { t } = useI18n()
+  const searchParams = useSearchParams()
+  const error = searchParams.get('error')
 
   const handleGoogleLogin = async () => {
     const supabase = createClient()
@@ -87,6 +91,16 @@ const LoginContent = () => {
             </p>
           </div>
 
+          {/* Error Message */}
+          {error === 'account_deactivated' && (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              <p className="font-medium">{t('login.deactivatedTitle' as Parameters<typeof t>[0])}</p>
+              <p className="mt-1 text-xs text-red-400/80">
+                {t('login.deactivatedMessage' as Parameters<typeof t>[0])}
+              </p>
+            </div>
+          )}
+
           {/* Google Sign In */}
           <button
             onClick={handleGoogleLogin}
@@ -125,7 +139,9 @@ const LoginContent = () => {
 const LoginPage = () => {
   return (
     <I18nProvider>
-      <LoginContent />
+      <Suspense>
+        <LoginContent />
+      </Suspense>
     </I18nProvider>
   )
 }

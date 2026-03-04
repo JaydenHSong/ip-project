@@ -45,7 +45,7 @@ export const GET = withAuth(async (req) => {
   }
 
   return NextResponse.json(data)
-}, ['viewer', 'editor', 'admin'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PATCH /api/templates/:id
 export const PATCH = withAuth(async (req) => {
@@ -98,7 +98,7 @@ export const PATCH = withAuth(async (req) => {
   }
 
   return NextResponse.json(data)
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])
 
 // DELETE /api/templates/:id
 export const DELETE = withAuth(async (req) => {
@@ -125,4 +125,4 @@ export const DELETE = withAuth(async (req) => {
   }
 
   return NextResponse.json({ deleted: true })
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

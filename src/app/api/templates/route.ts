@@ -68,7 +68,7 @@ export const GET = withAuth(async (req) => {
   }
 
   return NextResponse.json(data)
-}, ['viewer', 'editor', 'admin'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // POST /api/templates — 템플릿 생성
 export const POST = withAuth(async (req) => {
@@ -136,4 +136,4 @@ export const POST = withAuth(async (req) => {
   }
 
   return NextResponse.json(data, { status: 201 })
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

@@ -81,4 +81,4 @@ export const GET = withAuth(async () => {
       error: message,
     })
   }
-}, ['admin'])
+}, ['owner', 'admin'])

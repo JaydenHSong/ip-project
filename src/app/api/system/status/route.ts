@@ -100,7 +100,7 @@ const checkSupabase = async (): Promise<SystemComponent> => {
 
     const { error: selectError } = await supabase
       .from('system_configs')
-      .select('id')
+      .select('key')
       .limit(1)
 
     const latency = Date.now() - start
@@ -172,4 +172,4 @@ export const GET = withAuth(async () => {
   }
 
   return NextResponse.json(response)
-}, ['admin'])
+}, ['owner'])

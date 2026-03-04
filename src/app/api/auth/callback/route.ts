@@ -43,5 +43,17 @@ export const GET = async (req: NextRequest): Promise<NextResponse> => {
     return NextResponse.redirect(new URL('/login?error=user_sync_failed', req.url))
   }
 
+  // 비활성화된 사용자 차단
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('is_active')
+    .eq('id', data.user.id)
+    .single()
+
+  if (dbUser && !dbUser.is_active) {
+    await supabase.auth.signOut()
+    return NextResponse.redirect(new URL('/login?error=account_deactivated', req.url))
+  }
+
   return NextResponse.redirect(new URL(next, req.url))
 }

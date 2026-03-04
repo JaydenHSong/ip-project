@@ -41,7 +41,7 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
   const [resolutionType, setResolutionType] = useState('')
   const [archiveReason, setArchiveReason] = useState('')
 
-  const canAct = userRole === 'admin' || userRole === 'editor'
+  const canAct = userRole === 'owner' || userRole === 'admin' || userRole === 'editor'
   if (!canAct) return null
 
   const handleApprove = async () => {
@@ -387,7 +387,7 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
             </Button>
           </>
         )}
-        {status === 'approved' && userRole === 'admin' && (
+        {status === 'approved' && (userRole === 'owner' || userRole === 'admin') && (
           <Button
             size="sm"
             loading={loading === 'submitSC'}

@@ -8,6 +8,8 @@ const FREQUENCY_MS: Record<string, number> = {
   daily: 24 * 60 * 60 * 1000,
   every_12h: 12 * 60 * 60 * 1000,
   every_6h: 6 * 60 * 60 * 1000,
+  every_3d: 3 * 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000,
 }
 
 // 캠페인 스케줄 동기화 주기 (5분)

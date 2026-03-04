@@ -36,7 +36,7 @@ export const GET = withAuth(async () => {
     : DEFAULTS
 
   return NextResponse.json(settings)
-}, ['viewer', 'editor', 'admin'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PUT /api/settings/sc-automation
 export const PUT = withAuth(async (req, { user }) => {
@@ -104,4 +104,4 @@ export const PUT = withAuth(async (req, { user }) => {
     })
 
   return NextResponse.json(updated)
-}, ['admin'])
+}, ['owner', 'admin'])

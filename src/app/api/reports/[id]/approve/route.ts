@@ -98,4 +98,4 @@ export const POST = withAuth(async (req) => {
   }
 
   return NextResponse.json({ ...data, was_edited: wasEdited })
-}, ['admin', 'editor'])
+}, ['owner', 'admin', 'editor'])

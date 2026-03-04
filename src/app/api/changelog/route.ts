@@ -54,7 +54,7 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
     )
   }
 
-  if (user.role !== 'admin') {
+  if (user.role !== 'owner' && user.role !== 'admin') {
     return NextResponse.json(
       { error: { code: 'FORBIDDEN', message: 'Admin access required.' } },
       { status: 403 },

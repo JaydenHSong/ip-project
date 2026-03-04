@@ -65,7 +65,7 @@ export const Header = ({ user }: HeaderProps) => {
         <span className="hidden text-xs text-th-text-muted sm:block">v0.1.0</span>
 
         {/* Audit Logs Dropdown (admin only) */}
-        {user.role === 'admin' && (
+        {(user.role === 'owner' || user.role === 'admin') && (
           <div ref={auditRef} className="static">
             <button
               type="button"
@@ -142,7 +142,7 @@ export const Header = ({ user }: HeaderProps) => {
         </button>
 
         {/* Notification Bell — Admin only */}
-        {user.role === 'admin' && <NotificationBell userId={user.id} />}
+        {(user.role === 'owner' || user.role === 'admin') && <NotificationBell userId={user.id} />}
       </div>
     </header>
   )

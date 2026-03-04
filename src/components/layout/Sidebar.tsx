@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   Archive,
   Shield,
-  History,
+  ClipboardList,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
@@ -37,19 +37,19 @@ const MAIN_NAV: NavItem[] = [
   { labelKey: 'nav.reportQueue', href: '/reports', icon: FileWarning },
   { labelKey: 'nav.completedReports', href: '/reports/completed', icon: CheckCircle2 },
   { labelKey: 'nav.archivedReports', href: '/reports/archived', icon: Archive },
-  { labelKey: 'nav.patents', href: '/patents', icon: Shield, milestone: 2 },
-  { labelKey: 'nav.changelog', href: '/changelog', icon: History },
+  { labelKey: 'nav.patents', href: '/patents', icon: Shield },
+  { labelKey: 'nav.auditLogs', href: '/audit-logs', icon: ClipboardList, minRole: 'owner' },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
-  { labelKey: 'nav.settings', href: '/settings', icon: Settings, minRole: 'admin', milestone: 3 },
+  { labelKey: 'nav.settings', href: '/settings', icon: Settings },
 ]
 
-const CURRENT_MILESTONE = 3
-
 const ROLE_HIERARCHY: Record<Role, number> = {
-  admin: 3,
-  editor: 2,
+  owner: 5,
+  admin: 4,
+  editor: 3,
+  viewer_plus: 2,
   viewer: 1,
 }
 
@@ -61,10 +61,18 @@ type SidebarProps = {
 
 const filterItems = (items: NavItem[], userRole: Role): NavItem[] =>
   items.filter((item) => {
-    if (item.milestone && item.milestone > CURRENT_MILESTONE) return false
+    if (item.milestone && item.milestone > 3) return false
     if (!item.minRole) return true
     return ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY[item.minRole]
   })
+
+const ROLE_LABELS: Record<Role, string> = {
+  owner: 'Owner',
+  admin: 'Admin',
+  editor: 'Editor',
+  viewer_plus: 'Viewer+',
+  viewer: 'Viewer',
+}
 
 export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
   const pathname = usePathname()
@@ -79,12 +87,6 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
     const supabase = createClient()
     await supabase.auth.signOut()
     window.location.href = '/login'
-  }
-
-  const roleLabel: Record<string, string> = {
-    admin: 'Admin',
-    editor: 'Editor',
-    viewer: 'Viewer',
   }
 
   const allHrefs = [...mainItems, ...bottomItems].map((i) => i.href)
@@ -171,7 +173,7 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
             <>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-th-sidebar-text">{user.name}</p>
-                <p className="text-xs text-th-text-muted">{roleLabel[user.role]}</p>
+                <p className="text-xs text-th-text-muted">{ROLE_LABELS[user.role]}</p>
               </div>
               <button
                 type="button"

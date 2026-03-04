@@ -5,7 +5,7 @@ import { ChangelogContent } from './ChangelogContent'
 const ChangelogPage = async () => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
-  return <ChangelogContent isAdmin={user.role === 'admin'} />
+  return <ChangelogContent isAdmin={user.role === 'owner' || user.role === 'admin'} />
 }
 
 export default ChangelogPage

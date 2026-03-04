@@ -32,7 +32,7 @@ export const GET = withAuth(async (_req: NextRequest, _ctx: unknown, routeCtx?: 
   }
 
   return NextResponse.json(skill)
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])
 
 export const PUT = withAuth(async (req: NextRequest, _ctx: unknown, routeCtx?: RouteContext) => {
   const params = routeCtx ? await routeCtx.params : null
@@ -61,4 +61,4 @@ export const PUT = withAuth(async (req: NextRequest, _ctx: unknown, routeCtx?: R
     version: updated.version,
     updatedAt: updated.lastUpdatedAt,
   })
-}, ['admin'])
+}, ['owner', 'admin'])

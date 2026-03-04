@@ -86,4 +86,4 @@ export const POST = withAuth(async (req: NextRequest) => {
   const result = await learnFromApproval(client, input)
 
   return NextResponse.json(result)
-}, ['admin'])
+}, ['owner', 'admin'])

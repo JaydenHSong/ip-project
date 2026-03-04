@@ -35,4 +35,4 @@ export const GET = withAuth(async (req) => {
   }
 
   return NextResponse.json(data)
-}, ['admin', 'editor', 'viewer'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])

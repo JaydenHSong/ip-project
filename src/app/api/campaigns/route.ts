@@ -45,7 +45,7 @@ export const GET = withAuth(async (req) => {
       totalPages: Math.ceil((count ?? 0) / limit),
     },
   })
-}, ['admin', 'editor', 'viewer'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // POST /api/campaigns — 캠페인 생성
 export const POST = withAuth(async (req, { user }) => {
@@ -82,4 +82,4 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   return NextResponse.json(data, { status: 201 })
-}, ['admin', 'editor'])
+}, ['owner', 'admin', 'editor'])

@@ -124,4 +124,4 @@ export const POST = withAuth(async (req: NextRequest) => {
     },
     { status: 201 },
   )
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

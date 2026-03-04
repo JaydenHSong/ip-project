@@ -100,4 +100,4 @@ export const POST = withAuth(async (req, { user }) => {
   })
 
   return NextResponse.json(data)
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

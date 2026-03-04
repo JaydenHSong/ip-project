@@ -189,4 +189,4 @@ export const POST = withAuth(async (req, { user }) => {
     duplicates: totalDuplicates,
     errors: totalErrors,
   })
-}, ['admin', 'editor', 'viewer'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])

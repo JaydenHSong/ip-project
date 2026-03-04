@@ -26,7 +26,7 @@ export const GET = withAuth(async () => {
   }
 
   return NextResponse.json(settings)
-}, ['viewer', 'editor', 'admin'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PUT /api/settings/monitoring
 // 모니터링 주기 설정 수정 (admin only)
@@ -78,4 +78,4 @@ export const PUT = withAuth(async (req, { user }) => {
   }
 
   return NextResponse.json(settings)
-}, ['admin'])
+}, ['owner', 'admin'])

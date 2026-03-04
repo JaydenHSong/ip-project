@@ -56,7 +56,7 @@ export const GET = withAuth(async (req) => {
       totalPages: Math.ceil((count ?? 0) / limit),
     },
   })
-}, ['admin', 'editor', 'viewer'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // POST /api/patents — IP 자산 등록 (Admin 전용)
 export const POST = withAuth(async (req) => {
@@ -121,4 +121,4 @@ export const POST = withAuth(async (req) => {
   }
 
   return NextResponse.json({ data }, { status: 201 })
-}, ['admin'])
+}, ['owner', 'admin'])

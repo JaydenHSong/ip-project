@@ -171,4 +171,4 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   return NextResponse.json(response, { status: 201 })
-}, ['admin', 'editor', 'viewer'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])

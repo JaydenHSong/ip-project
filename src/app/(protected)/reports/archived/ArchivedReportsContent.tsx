@@ -42,7 +42,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
   const previewReport = previewId ? (reports ?? []).find((r) => r.id === previewId) ?? null : null
   const handleClosePreview = useCallback(() => setPreviewId(null), [])
 
-  const canAct = userRole === 'admin' || userRole === 'editor'
+  const canAct = userRole === 'owner' || userRole === 'admin' || userRole === 'editor'
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>

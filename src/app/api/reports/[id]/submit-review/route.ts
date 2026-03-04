@@ -73,4 +73,4 @@ export const POST = withAuth(async (req) => {
   notifyDraftReady(id, listing?.asin ?? 'N/A', report.user_violation_type).catch(() => {})
 
   return NextResponse.json(data)
-}, ['admin', 'editor'])
+}, ['owner', 'admin', 'editor'])

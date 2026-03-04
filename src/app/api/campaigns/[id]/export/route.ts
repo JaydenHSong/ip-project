@@ -87,4 +87,4 @@ export const GET = withAuth(async (req) => {
       'Content-Disposition': `attachment; filename="campaign-${campaign.keyword}-${campaign.marketplace}.csv"`,
     },
   })
-}, ['admin', 'editor'])
+}, ['owner', 'admin', 'editor'])

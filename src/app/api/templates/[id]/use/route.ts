@@ -36,4 +36,4 @@ export const POST = withAuth(async (req) => {
   }
 
   return NextResponse.json({ success: true })
-}, ['viewer', 'editor', 'admin'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])

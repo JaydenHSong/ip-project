@@ -74,7 +74,7 @@ const ReportsPage = async ({
       query = query.eq('disagreement_flag', true)
     }
 
-    const ownerFilter = params.owner ?? (user.role === 'admin' ? 'all' : 'my')
+    const ownerFilter = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
     if (ownerFilter === 'my') {
       query = query.eq('created_by', user.id)
     }
@@ -85,7 +85,7 @@ const ReportsPage = async ({
     totalPages = Math.ceil((count ?? 0) / limit)
   }
 
-  const effectiveOwner = params.owner ?? (user.role === 'admin' ? 'all' : 'my')
+  const effectiveOwner = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
 
   return (
     <ReportsContent

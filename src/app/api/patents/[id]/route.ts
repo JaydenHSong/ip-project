@@ -26,7 +26,7 @@ export const GET = withAuth(async (req) => {
   }
 
   return NextResponse.json({ data })
-}, ['admin', 'editor', 'viewer'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PUT /api/patents/:id — IP 자산 수정 (Admin 전용)
 export const PUT = withAuth(async (req) => {
@@ -64,7 +64,7 @@ export const PUT = withAuth(async (req) => {
   }
 
   return NextResponse.json({ data })
-}, ['admin'])
+}, ['owner', 'admin'])
 
 // DELETE /api/patents/:id — IP 자산 삭제 (Admin 전용)
 export const DELETE = withAuth(async (req) => {
@@ -84,4 +84,4 @@ export const DELETE = withAuth(async (req) => {
   }
 
   return NextResponse.json({ success: true })
-}, ['admin'])
+}, ['owner', 'admin'])

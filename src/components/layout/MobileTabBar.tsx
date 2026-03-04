@@ -8,6 +8,14 @@ import { useI18n } from '@/lib/i18n/context'
 import { cn } from '@/lib/utils/cn'
 import type { Role } from '@/types/users'
 
+const ROLE_HIERARCHY: Record<Role, number> = {
+  owner: 5,
+  admin: 4,
+  editor: 3,
+  viewer_plus: 2,
+  viewer: 1,
+}
+
 type MobileTabBarProps = {
   userRole: Role
 }
@@ -25,7 +33,10 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
 
   const moreItems = [
     { labelKey: 'nav.completedReports', href: '/reports/completed' },
-    ...(userRole === 'admin' ? [{ labelKey: 'nav.auditLogs', href: '/audit-logs' }] : []),
+    ...(ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY['owner']
+      ? [{ labelKey: 'nav.auditLogs', href: '/audit-logs' }]
+      : []),
+    { labelKey: 'nav.settings', href: '/settings' },
   ]
 
   const isMoreActive = moreItems.some((item) => pathname.startsWith(item.href))
@@ -59,7 +70,7 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
       )}
 
       {/* Tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-th-border bg-surface-card pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 mx-2 mb-[env(safe-area-inset-bottom)] rounded-2xl border border-th-sidebar-border bg-th-sidebar-bg shadow-lg md:hidden">
         <div className="flex h-16 items-stretch">
           {tabs.map((tab) => {
             const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`)
@@ -71,7 +82,7 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
                 href={tab.href}
                 className={cn(
                   'flex flex-1 flex-col items-center justify-center gap-0.5 text-xs',
-                  isActive ? 'text-th-accent' : 'text-th-text-muted',
+                  isActive ? 'text-th-accent' : 'text-th-text',
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -86,7 +97,7 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
             onClick={() => setShowMore((prev) => !prev)}
             className={cn(
               'flex flex-1 flex-col items-center justify-center gap-0.5 text-xs',
-              isMoreActive || showMore ? 'text-th-accent' : 'text-th-text-muted',
+              isMoreActive || showMore ? 'text-th-accent' : 'text-th-text',
             )}
           >
             <MoreHorizontal className="h-5 w-5" />

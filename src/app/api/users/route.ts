@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_USERS } from '@/lib/demo/data'
 
@@ -10,7 +10,7 @@ export const GET = withAuth(async () => {
     return NextResponse.json({ users: DEMO_USERS })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data, error } = await supabase
     .from('users')
@@ -25,4 +25,4 @@ export const GET = withAuth(async () => {
   }
 
   return NextResponse.json({ users: data ?? [] })
-}, ['admin'])
+}, ['owner'])

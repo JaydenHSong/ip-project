@@ -18,14 +18,22 @@ let workerRunning = false
 let initError: string | null = null
 
 // 1. Health Check Server — 즉시 시작
-const healthServer = createHealthServer(HEALTH_PORT, () => ({
-  status: initError ? 'error' : redisConnected && workerRunning ? 'ok' : 'degraded',
-  uptime: Math.floor((Date.now() - startTime) / 1000),
-  redis: redisConnected,
-  worker: workerRunning,
-  timestamp: new Date().toISOString(),
-  ...(initError ? { error: initError } : {}),
-}))
+// Queue reference for trigger endpoint
+let crawlQueue: ReturnType<typeof createCrawlQueue> | null = null
+
+const healthServer = createHealthServer({
+  port: HEALTH_PORT,
+  getStatus: () => ({
+    status: initError ? 'error' : redisConnected && workerRunning ? 'ok' : 'degraded',
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    redis: redisConnected,
+    worker: workerRunning,
+    timestamp: new Date().toISOString(),
+    ...(initError ? { error: initError } : {}),
+  }),
+  get queue() { return crawlQueue ?? undefined },
+  serviceToken: process.env['CRAWLER_SERVICE_TOKEN'],
+})
 
 log('info', 'main', `Health server started on port ${HEALTH_PORT}`)
 
@@ -53,6 +61,7 @@ const init = async (): Promise<void> => {
   const redisUrl = config.redis.url
   log('info', 'main', `Connecting to Redis...`)
   const queue = createCrawlQueue(redisUrl)
+  crawlQueue = queue
   const jobProcessor = createJobProcessor(config, sentinelClient, proxyManager, chatNotifier)
   const worker = createCrawlWorker(redisUrl, jobProcessor, config.concurrency)
 

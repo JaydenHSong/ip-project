@@ -49,4 +49,4 @@ export const GET = withAuth(async (req) => {
       totalPages: Math.ceil((count ?? 0) / limit),
     },
   })
-}, ['admin'])
+}, ['owner', 'admin'])

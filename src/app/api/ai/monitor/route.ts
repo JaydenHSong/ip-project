@@ -57,4 +57,4 @@ export const POST = withAuth(async (req) => {
   // Fallback: diff 기반 분석 (API Key 없거나, 스크린샷 없거나, Vision 실패 시)
   const result = fallbackDiffAnalysis(diff)
   return NextResponse.json(result)
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

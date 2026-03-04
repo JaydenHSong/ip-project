@@ -90,4 +90,4 @@ export const GET = withAuth(async () => {
   }
 
   return NextResponse.json({ reports: results })
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

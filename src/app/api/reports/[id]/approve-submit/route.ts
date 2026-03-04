@@ -136,4 +136,4 @@ export const POST = withAuth(async (req) => {
     sc_rav_url: scRavUrl,
     sc_submit_data: scSubmitData,
   })
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

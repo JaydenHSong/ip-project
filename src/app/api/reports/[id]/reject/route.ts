@@ -80,4 +80,4 @@ export const POST = withAuth(async (req) => {
   notifyRejected(id, listing?.asin ?? 'N/A', body.rejection_reason).catch(() => {})
 
   return NextResponse.json(data)
-}, ['admin', 'editor'])
+}, ['owner', 'admin', 'editor'])

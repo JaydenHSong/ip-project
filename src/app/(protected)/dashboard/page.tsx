@@ -31,7 +31,7 @@ const DashboardPage = async () => {
     }))
   } else {
     const supabase = await createClient()
-    const isAdmin = user?.role === 'admin'
+    const isAdmin = user?.role === 'owner' || user?.role === 'admin'
 
     let reportQuery = supabase
       .from('reports')

@@ -66,7 +66,7 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   return NextResponse.json(data, { status: 201 })
-}, ['admin', 'editor'])
+}, ['owner', 'admin', 'editor'])
 
 // GET /api/listings — 리스팅 목록 조회 (필터/페이징)
 export const GET = withAuth(async (req) => {
@@ -123,4 +123,4 @@ export const GET = withAuth(async (req) => {
       totalPages: Math.ceil((count ?? 0) / limit),
     },
   })
-}, ['admin', 'editor', 'viewer'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])

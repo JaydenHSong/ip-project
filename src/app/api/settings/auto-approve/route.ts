@@ -34,7 +34,7 @@ export const GET = withAuth(async () => {
     : DEFAULTS
 
   return NextResponse.json(config)
-}, ['viewer', 'editor', 'admin'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PUT /api/settings/auto-approve
 export const PUT = withAuth(async (req, { user }) => {
@@ -91,4 +91,4 @@ export const PUT = withAuth(async (req, { user }) => {
     })
 
   return NextResponse.json(updated)
-}, ['admin'])
+}, ['owner', 'admin'])

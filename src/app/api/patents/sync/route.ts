@@ -37,7 +37,7 @@ export const GET = withAuth(async () => {
     totalAssets: count ?? 0,
     mondayConfigured: !!(process.env.MONDAY_API_KEY),
   })
-}, ['admin'])
+}, ['owner', 'admin'])
 
 export const POST = withAuth(async () => {
   if (isDemoMode()) {
@@ -91,4 +91,4 @@ export const POST = withAuth(async () => {
     errorDetails: result.errors.slice(0, 10),
     syncedAt: result.syncedAt,
   })
-}, ['admin'])
+}, ['owner', 'admin'])

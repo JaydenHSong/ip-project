@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth/session'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_AUDIT_LOGS } from '@/lib/demo/data'
@@ -12,7 +12,7 @@ const AuditLogsPage = async ({
 }) => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
-  if (user.role !== 'admin') redirect('/dashboard')
+  if (user.role !== 'owner' && user.role !== 'admin') redirect('/dashboard')
 
   const params = await searchParams
   const page = Number(params.page) || 1
@@ -29,7 +29,7 @@ const AuditLogsPage = async ({
     totalPages = 1
   } else {
     const offset = (page - 1) * limit
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     let query = supabase
       .from('audit_logs')

@@ -117,7 +117,7 @@ export const DashboardContent = ({
   const [period, setPeriod] = useState<PeriodFilter>('30d')
   const [marketplace, setMarketplace] = useState('')
   const [stats, setStats] = useState<DashboardStats | null>(initialStats)
-  const isAdmin = userRole === 'admin'
+  const isAdmin = userRole === 'owner' || userRole === 'admin'
   const scope = isAdmin ? 'all' : 'my'
 
   const buildUrl = useCallback((p: PeriodFilter, mp: string) => {

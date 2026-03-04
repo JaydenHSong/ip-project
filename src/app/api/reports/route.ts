@@ -57,7 +57,7 @@ export const GET = withAuth(async (req) => {
       totalPages: Math.ceil((count ?? 0) / limit),
     },
   })
-}, ['admin', 'editor', 'viewer'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // POST /api/reports — 신고 생성
 export const POST = withAuth(async (req) => {
@@ -132,4 +132,4 @@ export const POST = withAuth(async (req) => {
   }
 
   return NextResponse.json(data, { status: 201 })
-}, ['admin', 'editor'])
+}, ['owner', 'admin', 'editor'])

@@ -45,4 +45,4 @@ export const GET = withAuth(async (req: NextRequest) => {
     finished_at: job.finishedOn ? new Date(job.finishedOn).toISOString() : null,
     started_at: job.processedOn ? new Date(job.processedOn).toISOString() : null,
   })
-}, ['viewer', 'editor', 'admin'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])

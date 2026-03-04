@@ -54,7 +54,7 @@ export const GET = withAuth(async (req) => {
       suspect_listings: suspectCount ?? 0,
     },
   })
-}, ['admin', 'editor', 'viewer'])
+}, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PATCH /api/campaigns/:id — 캠페인 수정
 export const PATCH = withAuth(async (req) => {
@@ -107,7 +107,7 @@ export const PATCH = withAuth(async (req) => {
   }
 
   return NextResponse.json(data)
-}, ['admin', 'editor'])
+}, ['owner', 'admin', 'editor'])
 
 // DELETE /api/campaigns/:id — 캠페인 삭제 (Admin만)
 export const DELETE = withAuth(async (req) => {
@@ -135,4 +135,4 @@ export const DELETE = withAuth(async (req) => {
   }
 
   return NextResponse.json({ success: true })
-}, ['admin'])
+}, ['owner', 'admin'])

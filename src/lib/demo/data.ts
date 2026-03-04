@@ -6,8 +6,8 @@ import type { User } from '@/types/users'
 export const DEMO_USER = {
   id: 'demo-user-001',
   email: 'demo@spigen.com',
-  name: 'Demo Admin',
-  role: 'admin' as const,
+  name: 'Demo Owner',
+  role: 'owner' as const,
   avatar_url: null,
   is_active: true,
   created_at: '2026-01-01T00:00:00.000Z',
@@ -27,7 +27,7 @@ export const DEMO_CAMPAIGNS = [
     created_by: 'demo-user-001',
     created_at: '2026-02-01T09:00:00.000Z',
     updated_at: '2026-02-28T12:00:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'camp-002',
@@ -41,7 +41,7 @@ export const DEMO_CAMPAIGNS = [
     created_by: 'demo-user-001',
     created_at: '2026-02-10T10:00:00.000Z',
     updated_at: '2026-02-28T12:00:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'camp-003',
@@ -55,7 +55,7 @@ export const DEMO_CAMPAIGNS = [
     created_by: 'demo-user-001',
     created_at: '2026-01-15T08:00:00.000Z',
     updated_at: '2026-02-20T15:00:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'camp-004',
@@ -69,7 +69,7 @@ export const DEMO_CAMPAIGNS = [
     created_by: 'demo-user-001',
     created_at: '2026-01-01T07:00:00.000Z',
     updated_at: '2026-02-15T23:59:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
 ]
 
@@ -228,7 +228,7 @@ export const DEMO_REPORTS = [
       price_amount: 12.99,
       price_currency: 'USD',
     },
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'rpt-002',
@@ -278,7 +278,7 @@ export const DEMO_REPORTS = [
       price_amount: 8.99,
       price_currency: 'USD',
     },
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'rpt-003',
@@ -327,7 +327,7 @@ export const DEMO_REPORTS = [
       price_amount: 1280,
       price_currency: 'JPY',
     },
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'rpt-004',
@@ -373,7 +373,7 @@ export const DEMO_REPORTS = [
       price_amount: 12.99,
       price_currency: 'USD',
     },
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'rpt-007',
@@ -424,7 +424,7 @@ export const DEMO_REPORTS = [
       price_amount: 15.99,
       price_currency: 'USD',
     },
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
 ]
 
@@ -437,7 +437,7 @@ export const DEMO_AUDIT_LOGS = [
     resource_id: 'camp-001',
     details: { keyword: 'spigen iphone 16 case', marketplace: 'US' },
     created_at: '2026-02-01T09:00:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'log-002',
@@ -447,7 +447,7 @@ export const DEMO_AUDIT_LOGS = [
     resource_id: 'rpt-001',
     details: { violation_type: 'V01', listing_asin: 'B0D1234567' },
     created_at: '2026-02-28T11:00:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'log-003',
@@ -457,7 +457,7 @@ export const DEMO_AUDIT_LOGS = [
     resource_id: 'rpt-003',
     details: { status: 'approved' },
     created_at: '2026-02-28T09:00:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'log-004',
@@ -467,7 +467,7 @@ export const DEMO_AUDIT_LOGS = [
     resource_id: 'rpt-004',
     details: { rejection_category: 'insufficient_evidence' },
     created_at: '2026-02-26T14:00:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'log-005',
@@ -477,7 +477,7 @@ export const DEMO_AUDIT_LOGS = [
     resource_id: 'camp-003',
     details: { status: 'paused' },
     created_at: '2026-02-20T15:00:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
   {
     id: 'log-006',
@@ -487,7 +487,7 @@ export const DEMO_AUDIT_LOGS = [
     resource_id: 'demo-user-001',
     details: null,
     created_at: '2026-02-28T08:00:00.000Z',
-    users: { name: 'Demo Admin', email: 'demo@spigen.com' },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
 ]
 
@@ -536,7 +536,7 @@ export const buildDemoTimeline = (report: (typeof DEMO_REPORTS)[number]): Timeli
     events.push({
       type: 'approved',
       timestamp: report.approved_at,
-      actor: 'Demo Admin',
+      actor: 'Demo Owner',
       detail: null,
     })
   }
@@ -545,7 +545,7 @@ export const buildDemoTimeline = (report: (typeof DEMO_REPORTS)[number]): Timeli
     events.push({
       type: 'rejected',
       timestamp: report.rejected_at,
-      actor: 'Demo Admin',
+      actor: 'Demo Owner',
       detail: report.rejection_reason,
     })
   }
@@ -558,9 +558,9 @@ export const DEMO_USERS: User[] = [
   {
     id: 'demo-user-001',
     email: 'demo@spigen.com',
-    name: 'Demo Admin',
+    name: 'Demo Owner',
     avatar_url: null,
-    role: 'admin',
+    role: 'owner',
     is_active: true,
     last_login_at: '2026-03-02T08:00:00.000Z',
     created_at: '2026-01-01T00:00:00.000Z',
@@ -571,7 +571,7 @@ export const DEMO_USERS: User[] = [
     email: 'jane.smith@spigen.com',
     name: 'Jane Smith',
     avatar_url: null,
-    role: 'editor',
+    role: 'admin',
     is_active: true,
     last_login_at: '2026-03-01T14:30:00.000Z',
     created_at: '2026-01-10T00:00:00.000Z',
@@ -582,7 +582,7 @@ export const DEMO_USERS: User[] = [
     email: 'bob.kim@spigen.com',
     name: 'Bob Kim',
     avatar_url: null,
-    role: 'viewer',
+    role: 'editor',
     is_active: true,
     last_login_at: '2026-02-28T09:00:00.000Z',
     created_at: '2026-01-15T00:00:00.000Z',
@@ -593,7 +593,7 @@ export const DEMO_USERS: User[] = [
     email: 'sarah.lee@spigen.com',
     name: 'Sarah Lee',
     avatar_url: null,
-    role: 'editor',
+    role: 'viewer_plus',
     is_active: false,
     last_login_at: '2026-02-15T11:00:00.000Z',
     created_at: '2026-01-20T00:00:00.000Z',

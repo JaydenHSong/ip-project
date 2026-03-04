@@ -106,4 +106,4 @@ export const POST = withAuth(async (req: NextRequest) => {
     .eq('id', body.report_id)
 
   return NextResponse.json(newDraft)
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

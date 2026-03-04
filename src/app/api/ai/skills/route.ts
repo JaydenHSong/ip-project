@@ -20,4 +20,4 @@ export const GET = withAuth(async () => {
   }))
 
   return NextResponse.json({ skills: response })
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])

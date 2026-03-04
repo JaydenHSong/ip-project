@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_USERS } from '@/lib/demo/data'
 import { ROLES } from '@/types/users'
@@ -38,12 +38,12 @@ export const PATCH = withAuth(async (req, { user: currentUser }) => {
       )
     }
 
-    // Last admin protection
-    if (target.role === 'admin') {
-      const adminCount = DEMO_USERS.filter((u) => u.role === 'admin' && u.is_active).length
-      if (adminCount <= 1 && (body.role !== 'admin' || body.is_active === false)) {
+    // Last owner protection
+    if (target.role === 'owner') {
+      const ownerCount = DEMO_USERS.filter((u) => u.role === 'owner' && u.is_active).length
+      if (ownerCount <= 1 && (body.role !== 'owner' || body.is_active === false)) {
         return NextResponse.json(
-          { error: { code: 'LAST_ADMIN', message: 'Cannot modify the last admin.' } },
+          { error: { code: 'LAST_ADMIN', message: 'Cannot modify the last owner.' } },
           { status: 403 },
         )
       }
@@ -58,7 +58,7 @@ export const PATCH = withAuth(async (req, { user: currentUser }) => {
     return NextResponse.json({ user: updated, message: 'User updated successfully.' })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Check target user exists
   const { data: target, error: fetchError } = await supabase
@@ -74,17 +74,17 @@ export const PATCH = withAuth(async (req, { user: currentUser }) => {
     )
   }
 
-  // Last admin protection
-  if (target.role === 'admin') {
+  // Last owner protection
+  if (target.role === 'owner') {
     const { count } = await supabase
       .from('users')
       .select('id', { count: 'exact', head: true })
-      .eq('role', 'admin')
+      .eq('role', 'owner')
       .eq('is_active', true)
 
-    if ((count ?? 0) <= 1 && (body.role !== 'admin' || body.is_active === false)) {
+    if ((count ?? 0) <= 1 && (body.role !== 'owner' || body.is_active === false)) {
       return NextResponse.json(
-        { error: { code: 'LAST_ADMIN', message: 'Cannot modify the last admin.' } },
+        { error: { code: 'LAST_ADMIN', message: 'Cannot modify the last owner.' } },
         { status: 403 },
       )
     }
@@ -133,4 +133,4 @@ export const PATCH = withAuth(async (req, { user: currentUser }) => {
   })
 
   return NextResponse.json({ user: updated, message: 'User updated successfully.' })
-}, ['admin'])
+}, ['owner'])

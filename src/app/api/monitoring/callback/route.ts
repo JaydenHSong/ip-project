@@ -119,7 +119,7 @@ export const POST = withAuth(async (req, { user }) => {
     change_detected: changeDetected,
     ai_resolution_suggestion: aiSuggestion,
   })
-}, ['editor', 'admin'])
+}, ['owner', 'admin', 'editor'])
 
 const computeDiff = (
   initial: Record<string, unknown>,
