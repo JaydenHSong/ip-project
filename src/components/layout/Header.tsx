@@ -66,7 +66,7 @@ export const Header = ({ user }: HeaderProps) => {
 
         {/* Audit Logs Dropdown (admin only) */}
         {user.role === 'admin' && (
-          <div ref={auditRef} className="relative">
+          <div ref={auditRef} className="static">
             <button
               type="button"
               onClick={() => setShowAuditDropdown((prev) => !prev)}
@@ -78,7 +78,7 @@ export const Header = ({ user }: HeaderProps) => {
             </button>
 
             {showAuditDropdown && (
-              <div className="glass-dropdown absolute right-0 top-full z-50 mt-1 w-80 rounded-lg border">
+              <div className="glass-dropdown fixed right-4 top-14 z-50 mt-1 w-80 rounded-lg border md:top-16">
                 <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
                   <h3 className="text-sm font-semibold text-th-text">{t('nav.auditLogs')}</h3>
                   <Link
