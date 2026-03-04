@@ -25,8 +25,8 @@ export const StatusPipelineChart = ({ data, onClickItem }: StatusPipelineChartPr
       <h3 className="mb-4 text-sm font-semibold text-th-text">
         {t('dashboard.charts.statusPipeline' as Parameters<typeof t>[0])}
       </h3>
-      <div role="img" aria-label="Report status pipeline chart">
-        <ResponsiveContainer width="100%" height={280}>
+      <div role="img" aria-label="Report status pipeline chart" className="h-[200px] md:h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical">
             <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-th-text-muted, #9ca3af)' }} />
             <YAxis

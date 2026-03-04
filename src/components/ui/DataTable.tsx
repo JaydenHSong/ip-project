@@ -30,11 +30,11 @@ export const DataTable = <T extends Record<string, unknown>>({
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-th-border bg-th-bg-tertiary">
+          <tr className="border-b border-th-border bg-th-bg-secondary">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={cn('px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary', col.className)}
+                className={cn('px-4 py-3.5 text-xs font-semibold text-th-text-muted', col.className)}
               >
                 {col.header}
               </th>
@@ -44,7 +44,7 @@ export const DataTable = <T extends Record<string, unknown>>({
         <tbody className="divide-y divide-th-border">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-th-text-muted">
+              <td colSpan={columns.length} className="px-4 py-10 text-center text-sm text-th-text-muted">
                 {emptyMessage}
               </td>
             </tr>
@@ -54,13 +54,13 @@ export const DataTable = <T extends Record<string, unknown>>({
                 key={idx}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
-                  'bg-surface-card transition-colors hover:bg-th-bg-hover',
+                  'bg-surface-card transition-all duration-150 hover:bg-th-bg-hover',
                   onRowClick && 'cursor-pointer',
                   selectedId && String(row.id) === selectedId && 'bg-th-bg-active',
                 )}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={cn('px-4 py-3 text-th-text', col.className)}>
+                  <td key={col.key} className={cn('px-4 py-3.5 text-sm text-th-text', col.className)}>
                     {col.render ? col.render(row) : String(row[col.key] ?? '')}
                   </td>
                 ))}

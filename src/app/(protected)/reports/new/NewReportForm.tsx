@@ -13,7 +13,7 @@ import { VIOLATION_CATEGORIES, VIOLATION_GROUPS } from '@/constants/violations'
 import { MARKETPLACE_CODES, MARKETPLACES } from '@/constants/marketplaces'
 import type { ViolationCategory } from '@/constants/violations'
 import type { ReportTemplate } from '@/types/templates'
-import { Star, FileText } from 'lucide-react'
+import { Star, FileText, Upload, X, Image } from 'lucide-react'
 
 const MARKETPLACE_OPTIONS = MARKETPLACE_CODES.map((code) => ({
   value: code,
@@ -48,6 +48,10 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
   const [category, setCategory] = useState('')
   const [violationType, setViolationType] = useState('')
   const [note, setNote] = useState('')
+
+  // Screenshots (multiple)
+  const [screenshots, setScreenshots] = useState<{ url: string; preview: string }[]>([])
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false)
 
   // Template suggestion
   const [suggestedTemplates, setSuggestedTemplates] = useState<ReportTemplate[]>([])
@@ -99,6 +103,47 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
     fetch(`/api/templates/${tmpl.id}/use`, { method: 'POST' }).catch(() => {})
   }
 
+  const handleScreenshotUpload = async (files: FileList) => {
+    const remaining = 5 - screenshots.length
+    const toUpload = Array.from(files).slice(0, remaining)
+
+    for (const file of toUpload) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Screenshot must be under 5MB')
+        return
+      }
+    }
+
+    setUploadingScreenshot(true)
+    try {
+      const results: { url: string; preview: string }[] = []
+      for (const file of toUpload) {
+        const preview = URL.createObjectURL(file)
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/reports/upload-screenshot', {
+          method: 'POST',
+          body: formData,
+        })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error?.message ?? 'Upload failed')
+        }
+        const data = await res.json()
+        results.push({ url: data.screenshot_url, preview })
+      }
+      setScreenshots((prev) => [...prev, ...results])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed')
+    } finally {
+      setUploadingScreenshot(false)
+    }
+  }
+
+  const removeScreenshot = (index: number) => {
+    setScreenshots((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const canSubmit = asin.trim() && category && violationType
 
   const handleCategoryChange = (value: string) => {
@@ -126,6 +171,8 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
           user_violation_type: violationType,
           violation_category: category,
           note: note.trim() || undefined,
+          screenshot_url: screenshots.length > 0 ? screenshots[0].url : undefined,
+          screenshot_urls: screenshots.length > 0 ? screenshots.map((s) => s.url) : undefined,
         }),
       })
 
@@ -320,6 +367,75 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
             placeholder={t('reports.new.notePlaceholder')}
             rows={note.length > 200 ? 12 : 4}
           />
+        </CardContent>
+      </Card>
+
+      {/* Screenshot Upload */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-th-text">
+              {t('reports.new.screenshot')}
+            </h2>
+            {screenshots.length > 0 && (
+              <span className="text-xs text-th-text-muted">{screenshots.length}/5</span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {screenshots.length > 0 && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {screenshots.map((ss, idx) => (
+                <div key={idx} className="group relative">
+                  <img
+                    src={ss.preview}
+                    alt={`Screenshot ${idx + 1}`}
+                    className="h-32 w-full rounded-xl border border-th-border object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeScreenshot(idx)}
+                    className="absolute right-1.5 top-1.5 rounded-full bg-th-bg-tertiary/80 p-1 text-th-text-muted opacity-0 transition-opacity group-hover:opacity-100 hover:bg-st-danger-bg hover:text-st-danger-text"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {screenshots.length < 5 && (
+            <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-th-border px-6 py-6 transition-colors hover:border-th-accent hover:bg-th-accent-soft/50">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-th-bg-tertiary">
+                <Image className="h-5 w-5 text-th-text-muted" />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-th-text">
+                  {t('reports.new.screenshotUpload')}
+                </p>
+                <p className="mt-1 text-xs text-th-text-muted">
+                  {t('reports.new.screenshotHint')}
+                </p>
+              </div>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.length) handleScreenshotUpload(e.target.files)
+                }}
+              />
+            </label>
+          )}
+          {uploadingScreenshot && (
+            <div className="flex items-center justify-center gap-2 py-2">
+              <svg className="h-4 w-4 animate-spin text-th-accent" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <span className="text-sm text-th-text-muted">Uploading...</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 

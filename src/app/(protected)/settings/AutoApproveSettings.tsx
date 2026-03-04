@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Toggle } from '@/components/ui/Toggle'
 import { VIOLATION_TYPES, VIOLATION_CATEGORIES } from '@/constants/violations'
 import type { ViolationCategory, ViolationCode } from '@/constants/violations'
 
@@ -92,18 +93,12 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
         </p>
 
         {/* Global toggle */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={config.enabled}
-            onChange={(e) => setConfig((s) => ({ ...s, enabled: e.target.checked }))}
-            disabled={!isAdmin}
-            className="h-4 w-4 rounded border-th-border text-th-accent focus:ring-th-accent"
-          />
-          <span className="text-sm text-th-text">
-            {t('settings.autoApprove.enableAutoApprove' as Parameters<typeof t>[0])}
-          </span>
-        </label>
+        <Toggle
+          checked={config.enabled}
+          onChange={(checked) => setConfig((s) => ({ ...s, enabled: checked }))}
+          disabled={!isAdmin}
+          label={t('settings.autoApprove.enableAutoApprove' as Parameters<typeof t>[0])}
+        />
 
         {/* Threshold slider */}
         <div>
@@ -125,44 +120,40 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
           </p>
         </div>
 
-        {/* Violation type checkboxes */}
+        {/* Violation type toggles */}
         <div>
           <h3 className="text-sm font-medium text-th-text mb-3">
             {t('settings.autoApprove.violationTypes' as Parameters<typeof t>[0])}
           </h3>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             {violationsByCategory.map(({ category, label, isIp, violations }) => (
               <div key={category}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-medium text-th-text-secondary uppercase">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold text-th-text-secondary">
                     {label}
                   </span>
                   {isIp && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
                       {t('settings.autoApprove.ipWarning' as Parameters<typeof t>[0])}
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-1">
                   {violations.map(({ code, name, codeLabel }) => (
-                    <label key={code} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={config.types[code] === true}
-                        onChange={(e) =>
-                          setConfig((s) => ({
-                            ...s,
-                            types: { ...s.types, [code]: e.target.checked },
-                          }))
-                        }
-                        disabled={!isAdmin}
-                        className="h-3.5 w-3.5 rounded border-th-border text-th-accent focus:ring-th-accent"
-                      />
-                      <span className="text-sm text-th-text">
-                        {codeLabel} {name}
-                      </span>
-                    </label>
+                    <Toggle
+                      key={code}
+                      size="sm"
+                      checked={config.types[code] === true}
+                      onChange={(checked) =>
+                        setConfig((s) => ({
+                          ...s,
+                          types: { ...s.types, [code]: checked },
+                        }))
+                      }
+                      disabled={!isAdmin}
+                      label={`${codeLabel} ${name}`}
+                    />
                   ))}
                 </div>
               </div>

@@ -10,7 +10,7 @@ const COMPLETED_STATUSES = ['submitted', 'monitoring', 'resolved', 'unresolved',
 const CompletedReportsPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string }>
+  searchParams: Promise<{ page?: string; status?: string; owner?: string }>
 }) => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
@@ -26,7 +26,7 @@ const CompletedReportsPage = async ({
   } else {
     const supabase = await createClient()
 
-    const { data, error: queryError } = await supabase
+    let query = supabase
       .from('reports')
       .select(
         '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
@@ -35,14 +35,25 @@ const CompletedReportsPage = async ({
       .order('created_at', { ascending: false })
       .limit(100)
 
+    const ownerFilter = params.owner ?? (user.role === 'admin' ? 'all' : 'my')
+    if (ownerFilter === 'my') {
+      query = query.eq('created_by', user.id)
+    }
+
+    const { data, error: queryError } = await query
+
     if (queryError) console.error('Completed reports query error:', queryError.message)
     reports = data as typeof DEMO_REPORTS | null
   }
+
+  const effectiveOwner = params.owner ?? (user.role === 'admin' ? 'all' : 'my')
 
   return (
     <CompletedReportsContent
       reports={reports as Parameters<typeof CompletedReportsContent>[0]['reports']}
       statusFilter={params.status ?? ''}
+      userRole={user.role}
+      ownerFilter={effectiveOwner as 'my' | 'all'}
     />
   )
 }

@@ -78,7 +78,7 @@ export const AiPerformanceCard = ({ data, onClickDisagreement }: AiPerformanceCa
               title={`${t('dashboard.charts.rejectRate' as Parameters<typeof t>[0])}: ${data.rejectRate}%`}
             />
           </div>
-          <div className="mt-2 flex justify-between text-xs text-th-text-muted">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-th-text-muted">
             <span className="flex items-center gap-1">
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
               {t('dashboard.charts.approveRate' as Parameters<typeof t>[0])} {data.approveRate}%

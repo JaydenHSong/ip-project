@@ -38,6 +38,14 @@ export const getDemoDashboardStats = (period: PeriodFilter): DashboardStats => {
       aiAccuracy: 82,
       monitoringCount: 2,
     },
+    previousPeriod: {
+      activeCampaigns: 1,
+      pendingReports: 4,
+      totalListings: 3,
+      resolvedRate: 18,
+      aiAccuracy: 75,
+      monitoringCount: 1,
+    },
     reportTrend,
     violationDist: [
       { category: 'intellectual_property', categoryLabel: 'IP Infringement', count: 8 },

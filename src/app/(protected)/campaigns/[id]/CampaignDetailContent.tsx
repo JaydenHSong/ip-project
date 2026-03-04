@@ -98,6 +98,41 @@ export const CampaignDetailContent = ({
 
       <CampaignStats stats={{ total_listings: totalListings, suspect_listings: suspectCount }} />
 
+      {/* Campaign Owner Stats */}
+      {campaign.creatorName && (
+        <Card>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-th-accent-soft text-sm font-medium text-th-accent-text">
+                {campaign.creatorName.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-th-text">{campaign.creatorName}</p>
+                <p className="text-xs text-th-text-muted">{t('campaigns.owner' as Parameters<typeof t>[0])}</p>
+              </div>
+              <div className="flex gap-6 text-center">
+                <div>
+                  <p className="text-lg font-bold text-th-text">{totalListings}</p>
+                  <p className="text-xs text-th-text-muted">{t('campaigns.listingsFound' as Parameters<typeof t>[0])}</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-th-text">{reports.length}</p>
+                  <p className="text-xs text-th-text-muted">{t('campaigns.reportsFiled' as Parameters<typeof t>[0])}</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-emerald-400">
+                    {reports.length > 0
+                      ? `${Math.round((reports.filter((r) => r.status === 'resolved').length / reports.length) * 100)}%`
+                      : '—'}
+                  </p>
+                  <p className="text-xs text-th-text-muted">{t('campaigns.successRate' as Parameters<typeof t>[0])}</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <h2 className="font-semibold text-th-text">{t('campaigns.detail.title')}</h2>
@@ -152,41 +187,35 @@ export const CampaignDetailContent = ({
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-th-border bg-th-bg-tertiary">
-                  <th className="px-4 py-2 text-xs font-medium uppercase text-th-text-tertiary">{t('campaigns.detail.asin')}</th>
-                  <th className="px-4 py-2 text-xs font-medium uppercase text-th-text-tertiary">{t('campaigns.detail.listingTitle')}</th>
-                  <th className="px-4 py-2 text-xs font-medium uppercase text-th-text-tertiary">{t('campaigns.detail.seller')}</th>
-                  <th className="px-4 py-2 text-xs font-medium uppercase text-th-text-tertiary">{t('common.status')}</th>
-                  <th className="px-4 py-2 text-xs font-medium uppercase text-th-text-tertiary">{t('common.action')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.detail.asin')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.detail.listingTitle')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.detail.seller')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
+                  <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.action')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-th-border">
                 {listings.map((listing) => {
                   const hasReport = reports.some((r) => r.listing_id === listing.id)
                   return (
-                    <tr key={listing.id} className="bg-surface-card hover:bg-th-bg-hover">
-                      <td className="px-4 py-2">
-                        {hasReport ? (
-                          <button
-                            type="button"
-                            className="font-mono text-th-accent-text underline decoration-th-accent-text/30 underline-offset-2 hover:decoration-th-accent-text"
-                            onClick={() => setSelectedListingId(listing.id)}
-                          >
-                            {listing.asin}
-                          </button>
-                        ) : (
-                          <span className="font-mono text-th-text">{listing.asin}</span>
-                        )}
+                    <tr
+                      key={listing.id}
+                      className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
+                      onClick={() => setSelectedListingId(listing.id)}
+                    >
+                      <td className="px-4 py-3.5">
+                        <span className="font-mono text-th-accent-text">{listing.asin}</span>
                       </td>
-                      <td className="max-w-xs truncate px-4 py-2 text-th-text-secondary">{listing.title}</td>
-                      <td className="px-4 py-2 text-th-text-secondary">{listing.seller_name ?? '—'}</td>
-                      <td className="px-4 py-2">
+                      <td className="max-w-xs truncate px-4 py-3.5 text-th-text-secondary">{listing.title}</td>
+                      <td className="px-4 py-3.5 text-th-text-secondary">{listing.seller_name ?? '—'}</td>
+                      <td className="px-4 py-3.5">
                         {listing.is_suspect ? (
                           <Badge variant="danger">{t('campaigns.detail.suspect')}</Badge>
                         ) : (
                           <Badge variant="success">{t('campaigns.detail.normal')}</Badge>
                         )}
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-4 py-3.5">
                         {listing.is_suspect && (
                           <button
                             type="button"

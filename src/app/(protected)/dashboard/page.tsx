@@ -31,13 +31,20 @@ const DashboardPage = async () => {
     }))
   } else {
     const supabase = await createClient()
+    const isAdmin = user?.role === 'admin'
 
-    const { data: reportData, error: reportError } = await supabase
+    let reportQuery = supabase
       .from('reports')
       .select('id, violation_type, status, ai_confidence_score, disagreement_flag, created_at, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name)')
       .neq('status', 'archived')
       .order('created_at', { ascending: false })
-      .limit(3)
+      .limit(5)
+
+    if (!isAdmin && user) {
+      reportQuery = reportQuery.eq('created_by', user.id)
+    }
+
+    const { data: reportData, error: reportError } = await reportQuery
 
     if (reportError) {
       console.error('Dashboard reports query error:', reportError.message)
@@ -55,12 +62,18 @@ const DashboardPage = async () => {
       }))
     }
 
-    const { data: campaignData, error: campaignError } = await supabase
+    let campaignQuery = supabase
       .from('campaigns')
       .select('id, keyword, marketplace, frequency')
       .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(10)
+
+    if (!isAdmin && user) {
+      campaignQuery = campaignQuery.eq('created_by', user.id)
+    }
+
+    const { data: campaignData, error: campaignError } = await campaignQuery
 
     if (campaignError) {
       console.error('Dashboard campaigns query error:', campaignError.message)
@@ -74,6 +87,8 @@ const DashboardPage = async () => {
   return (
     <DashboardContent
       userName={user?.name ?? ''}
+      userId={user?.id ?? ''}
+      userRole={user?.role ?? 'viewer'}
       initialStats={initialStats}
       recentReports={recentReports}
       activeCampaigns={activeCampaignsList}

@@ -28,6 +28,7 @@ const RootLayout = ({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('sentinel-theme')||'dark';document.documentElement.setAttribute('data-theme',t)}catch(e){}})()`,

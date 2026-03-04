@@ -3,11 +3,16 @@ import { cn } from '@/lib/utils/cn'
 type CardProps = {
   children: React.ReactNode
   className?: string
+  hover?: boolean
 }
 
-export const Card = ({ children, className }: CardProps) => {
+export const Card = ({ children, className, hover = false }: CardProps) => {
   return (
-    <div className={cn('rounded-lg border border-th-border bg-surface-card', className)}>
+    <div className={cn(
+      'rounded-xl border border-th-border bg-surface-card shadow-sm',
+      hover && 'hover-lift cursor-pointer',
+      className,
+    )}>
       {children}
     </div>
   )
@@ -20,7 +25,7 @@ type CardHeaderProps = {
 
 export const CardHeader = ({ children, className }: CardHeaderProps) => {
   return (
-    <div className={cn('border-b border-th-border px-6 py-4', className)}>
+    <div className={cn('border-b border-th-border px-6 py-5', className)}>
       {children}
     </div>
   )
@@ -32,5 +37,5 @@ type CardContentProps = {
 }
 
 export const CardContent = ({ children, className }: CardContentProps) => {
-  return <div className={cn('px-6 py-4', className)}>{children}</div>
+  return <div className={cn('px-6 py-5', className)}>{children}</div>
 }

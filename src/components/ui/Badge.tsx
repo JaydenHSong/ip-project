@@ -11,6 +11,7 @@ type BadgeVariant =
 type BadgeProps = {
   children: React.ReactNode
   variant?: BadgeVariant
+  dot?: boolean
   className?: string
 }
 
@@ -23,15 +24,27 @@ const VARIANT_STYLES = {
   violet: 'bg-st-violet-bg text-st-violet-text',
 } as const
 
-export const Badge = ({ children, variant = 'default', className }: BadgeProps) => {
+const DOT_COLORS = {
+  default: 'bg-st-default-text',
+  success: 'bg-st-success-text',
+  warning: 'bg-st-warning-text',
+  danger: 'bg-st-danger-text',
+  info: 'bg-st-info-text',
+  violet: 'bg-st-violet-text',
+} as const
+
+export const Badge = ({ children, variant = 'default', dot = false, className }: BadgeProps) => {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
         VARIANT_STYLES[variant],
         className,
       )}
     >
+      {dot && (
+        <span className={cn('h-1.5 w-1.5 rounded-full', DOT_COLORS[variant])} />
+      )}
       {children}
     </span>
   )

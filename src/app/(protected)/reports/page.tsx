@@ -21,6 +21,7 @@ const ReportsPage = async ({
     violation_type?: string
     category?: string
     disagreement?: string
+    owner?: string
   }>
 }) => {
   const user = await getCurrentUser()
@@ -73,11 +74,18 @@ const ReportsPage = async ({
       query = query.eq('disagreement_flag', true)
     }
 
+    const ownerFilter = params.owner ?? (user.role === 'admin' ? 'all' : 'my')
+    if (ownerFilter === 'my') {
+      query = query.eq('created_by', user.id)
+    }
+
     const { data, error, count } = await query
     if (error) console.error('Reports query error:', error.message)
     reports = data as typeof DEMO_REPORTS | null
     totalPages = Math.ceil((count ?? 0) / limit)
   }
+
+  const effectiveOwner = params.owner ?? (user.role === 'admin' ? 'all' : 'my')
 
   return (
     <ReportsContent
@@ -87,6 +95,8 @@ const ReportsPage = async ({
       statusFilter={params.status ?? ''}
       categoryFilter={(params.category ?? '') as ViolationCategory | ''}
       disagreementFilter={params.disagreement === 'true'}
+      userRole={user.role}
+      ownerFilter={effectiveOwner as 'my' | 'all'}
     />
   )
 }

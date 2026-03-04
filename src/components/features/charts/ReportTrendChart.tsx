@@ -30,8 +30,8 @@ export const ReportTrendChart = ({ data }: ReportTrendChartProps) => {
       <h3 className="mb-4 text-sm font-semibold text-th-text">
         {t('dashboard.charts.reportTrend' as Parameters<typeof t>[0])}
       </h3>
-      <div role="img" aria-label="Report trend chart">
-        <ResponsiveContainer width="100%" height={280}>
+      <div role="img" aria-label="Report trend chart" className="h-[200px] md:h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-th-border, #374151)" />
             <XAxis

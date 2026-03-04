@@ -20,6 +20,8 @@ import { VIOLATION_CATEGORIES } from '@/constants/violations'
 import type { ViolationCategory } from '@/constants/violations'
 import type { ReportStatus } from '@/types/reports'
 import type { ViolationCode } from '@/constants/violations'
+import { OwnerToggle } from '@/components/ui/OwnerToggle'
+import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 
 type ReportRow = {
@@ -41,6 +43,8 @@ type ReportsContentProps = {
   statusFilter: string
   categoryFilter: ViolationCategory | ''
   disagreementFilter: boolean
+  userRole: Role
+  ownerFilter: 'my' | 'all'
 }
 
 export const ReportsContent = ({
@@ -50,6 +54,8 @@ export const ReportsContent = ({
   statusFilter,
   categoryFilter,
   disagreementFilter,
+  userRole,
+  ownerFilter,
 }: ReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
@@ -101,14 +107,24 @@ export const ReportsContent = ({
   ]
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.queueTitle')}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-th-text">{t('reports.queueTitle')}</h1>
+          <OwnerToggle
+            value={ownerFilter}
+            onChange={(v) => {
+              const url = new URL(window.location.href)
+              url.searchParams.set('owner', v)
+              router.push(url.pathname + url.search)
+            }}
+          />
+        </div>
         <div className="flex items-center gap-2">
           {categoryFilter && (
             <Link
               href="/reports"
-              className="flex items-center gap-1 rounded-lg border border-th-accent/30 bg-th-accent/10 px-2 py-1 text-xs font-medium text-th-accent-text md:px-3 md:py-1.5 md:text-sm"
+              className="flex items-center gap-1 rounded-xl border border-th-accent/30 bg-th-accent/10 px-3 py-1.5 text-xs font-medium text-th-accent-text"
             >
               {VIOLATION_CATEGORIES[categoryFilter]}
               <X className="h-3 w-3" />
@@ -116,7 +132,7 @@ export const ReportsContent = ({
           )}
           <Link
             href={`/reports?${disagreementFilter ? '' : 'disagreement=true'}`}
-            className={`rounded-lg border px-2 py-1 text-xs font-medium md:px-3 md:py-1.5 md:text-sm ${
+            className={`rounded-xl border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
               disagreementFilter
                 ? 'border-st-warning-text/30 bg-st-warning-bg text-st-warning-text'
                 : 'border-th-border text-th-text-tertiary hover:bg-th-bg-hover'
@@ -133,15 +149,15 @@ export const ReportsContent = ({
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
         {STATUS_TABS.map((tab) => (
           <Link
             key={tab.value}
             href={`/reports${tab.value ? `?status=${tab.value}` : ''}`}
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium ${
+            className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
               statusFilter === tab.value
-                ? 'bg-th-accent-soft text-th-accent-text'
-                : 'text-th-text-tertiary hover:bg-th-bg-hover'
+                ? 'bg-surface-card text-th-text shadow-sm'
+                : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
             {tab.label}

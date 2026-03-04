@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Toggle } from '@/components/ui/Toggle'
 
 type ScAutomationSettingsProps = {
   isAdmin: boolean
@@ -17,9 +18,10 @@ type SettingsData = {
 }
 
 const DELAY_OPTIONS = [
+  { min: 5, max: 10, label: '5~10s' },
+  { min: 10, max: 20, label: '10~20s' },
+  { min: 20, max: 30, label: '20~30s' },
   { min: 30, max: 60, label: '30~60s' },
-  { min: 60, max: 90, label: '60~90s' },
-  { min: 90, max: 120, label: '90~120s' },
 ] as const
 
 export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => {
@@ -27,8 +29,8 @@ export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => 
   const [settings, setSettings] = useState<SettingsData>({
     auto_submit_enabled: false,
     default_countdown_seconds: 3,
-    default_min_delay_sec: 30,
-    default_max_delay_sec: 60,
+    default_min_delay_sec: 5,
+    default_max_delay_sec: 10,
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -78,18 +80,12 @@ export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => 
         </p>
 
         {/* Auto Submit 토글 */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={settings.auto_submit_enabled}
-            onChange={(e) => setSettings((s) => ({ ...s, auto_submit_enabled: e.target.checked }))}
-            disabled={!isAdmin}
-            className="h-4 w-4 rounded border-th-border text-th-accent focus:ring-th-accent"
-          />
-          <span className="text-sm text-th-text">
-            {t('settings.scAutomation.enableAutoSubmit' as Parameters<typeof t>[0])}
-          </span>
-        </label>
+        <Toggle
+          checked={settings.auto_submit_enabled}
+          onChange={(checked) => setSettings((s) => ({ ...s, auto_submit_enabled: checked }))}
+          disabled={!isAdmin}
+          label={t('settings.scAutomation.enableAutoSubmit' as Parameters<typeof t>[0])}
+        />
 
         {/* Countdown 선택 */}
         <div>

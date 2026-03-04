@@ -39,10 +39,10 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
     <div className="space-y-4 md:space-y-6">
       <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('auditLogs.title')}</h1>
 
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
         <Link
           href="/audit-logs"
-          className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm ${!actionFilter ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-tertiary hover:bg-th-bg-hover'}`}
+          className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${!actionFilter ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
         >
           {t('common.all')}
         </Link>
@@ -50,7 +50,7 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
           <Link
             key={a}
             href={`/audit-logs?action=${a}`}
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm capitalize ${actionFilter === a ? 'bg-th-accent-soft text-th-accent-text' : 'text-th-text-tertiary hover:bg-th-bg-hover'}`}
+            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium capitalize transition-colors ${actionFilter === a ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
           >
             {a}
           </Link>
@@ -60,14 +60,14 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
         {(!logs || logs.length === 0) ? (
-          <div className="rounded-lg border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
+          <div className="rounded-xl border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
             {t('auditLogs.noLogs')}
           </div>
         ) : (
           logs.map((log) => {
             const variant = ACTION_VARIANTS[log.action as keyof typeof ACTION_VARIANTS] ?? 'default'
             return (
-              <div key={log.id} className="rounded-lg border border-th-border bg-surface-card p-4">
+              <div key={log.id} className="rounded-xl border border-th-border bg-surface-card p-4">
                 <div className="flex items-center justify-between">
                   <Badge variant={variant as 'default' | 'success' | 'warning' | 'danger' | 'info'}>
                     {log.action}
@@ -97,11 +97,11 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-th-border bg-th-bg-tertiary">
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('auditLogs.time')}</th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('auditLogs.user')}</th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('auditLogs.action')}</th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('auditLogs.entity')}</th>
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('common.details')}</th>
+                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.time')}</th>
+                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.user')}</th>
+                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.action')}</th>
+                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.entity')}</th>
+                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.details')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-th-border">

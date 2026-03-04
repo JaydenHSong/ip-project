@@ -9,6 +9,7 @@ import { CrawlerSettings } from './CrawlerSettings'
 import { TemplatesTab } from './TemplatesTab'
 import { ExtensionGuide } from './ExtensionGuide'
 import { UserManagement } from './UserManagement'
+import { SystemStatusTab } from './SystemStatusTab'
 
 type SettingsContentProps = {
   isAdmin: boolean
@@ -16,8 +17,8 @@ type SettingsContentProps = {
 }
 
 const BASE_TABS = ['monitoring', 'extension', 'templates'] as const
-const ADMIN_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'users'] as const
-type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'templates' | 'users'
+const ADMIN_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'users', 'system-status'] as const
+type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'templates' | 'users' | 'system-status'
 
 export const SettingsContent = ({ isAdmin, currentUserId }: SettingsContentProps) => {
   const { t } = useI18n()
@@ -29,14 +30,14 @@ export const SettingsContent = ({ isAdmin, currentUserId }: SettingsContentProps
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-th-text">{t('nav.settings')}</h1>
 
-      <div className="flex gap-1 border-b border-th-border">
+      <div className="flex gap-1 rounded-xl border border-th-border bg-th-bg-secondary p-1">
         {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
               activeTab === tab
-                ? 'border-b-2 border-th-accent text-th-accent'
+                ? 'bg-surface-card text-th-text shadow-sm'
                 : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
@@ -52,7 +53,9 @@ export const SettingsContent = ({ isAdmin, currentUserId }: SettingsContentProps
                       ? t('settings.autoApprove.title' as Parameters<typeof t>[0])
                       : tab === 'templates'
                         ? 'Templates'
-                        : t('settings.users.title')}
+                        : tab === 'system-status'
+                          ? t('settings.systemStatus.title' as Parameters<typeof t>[0])
+                          : t('settings.users.title')}
           </button>
         ))}
       </div>
@@ -66,6 +69,7 @@ export const SettingsContent = ({ isAdmin, currentUserId }: SettingsContentProps
       {activeTab === 'users' && isAdmin && (
         <UserManagement currentUserId={currentUserId} />
       )}
+      {activeTab === 'system-status' && isAdmin && <SystemStatusTab />}
     </div>
   )
 }

@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { CampaignForm } from '@/components/features/CampaignForm'
+import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import { MARKETPLACES, type MarketplaceCode } from '@/constants/marketplaces'
+import type { Role } from '@/types/users'
 
 const FREQ_LABEL: Record<string, string> = {
   daily: 'Daily',
@@ -34,9 +36,11 @@ type CampaignsContentProps = {
   page: number
   statusFilter: string
   canCreate: boolean
+  userRole: Role
+  ownerFilter: 'my' | 'all'
 }
 
-export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, canCreate }: CampaignsContentProps) => {
+export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, canCreate, userRole, ownerFilter }: CampaignsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
   const [showNewCampaign, setShowNewCampaign] = useState(false)
@@ -56,7 +60,17 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('campaigns.title')}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('campaigns.title')}</h1>
+          <OwnerToggle
+            value={ownerFilter}
+            onChange={(v) => {
+              const url = new URL(window.location.href)
+              url.searchParams.set('owner', v)
+              router.push(url.pathname + url.search)
+            }}
+          />
+        </div>
         {canCreate && (
           <div>
             <Button size="sm" className="md:hidden" onClick={() => setShowNewCampaign(true)}>
@@ -69,15 +83,15 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
         )}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
         {statusFilters.map((s) => (
           <Link
             key={s.value}
             href={s.value ? `/campaigns?status=${s.value}` : '/campaigns'}
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium ${
+            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               statusFilter === s.value
-                ? 'bg-th-accent-soft text-th-accent-text'
-                : 'text-th-text-tertiary hover:bg-th-bg-hover'
+                ? 'bg-surface-card text-th-text shadow-sm'
+                : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
             {s.label}
@@ -88,7 +102,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
         {(!campaigns || campaigns.length === 0) ? (
-          <div className="rounded-lg border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
+          <div className="rounded-xl border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
             {t('campaigns.noCampaigns')}
           </div>
         ) : (
@@ -98,7 +112,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
               href={`/campaigns/${campaign.id}`}
               className="block"
             >
-              <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
+              <div className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
                   <p className="font-medium text-th-text">{campaign.keyword}</p>
                   <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
@@ -115,16 +129,16 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-lg border border-th-border md:block">
+      <div className="hidden overflow-hidden rounded-xl border border-th-border shadow-sm md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('campaigns.keyword')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('campaigns.marketplace')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('campaigns.frequency')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('campaigns.pages')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('common.status')}</th>
-              <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">{t('campaigns.created')}</th>
+              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.keyword')}</th>
+              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.marketplace')}</th>
+              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.frequency')}</th>
+              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.pages')}</th>
+              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
+              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.created')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
@@ -136,23 +150,23 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
               campaigns.map((campaign) => (
                 <tr
                   key={campaign.id}
-                  className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
+                  className="cursor-pointer bg-surface-card transition-all duration-150 hover:bg-th-bg-hover"
                   onClick={() => router.push(`/campaigns/${campaign.id}`)}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <span className="font-medium text-th-text">
                       {campaign.keyword}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-th-text-secondary">
+                  <td className="px-4 py-3.5 text-th-text-secondary">
                     {MARKETPLACES[campaign.marketplace as MarketplaceCode]?.name ?? campaign.marketplace}
                   </td>
-                  <td className="px-4 py-3 text-th-text-secondary">{FREQ_LABEL[campaign.frequency] ?? campaign.frequency}</td>
-                  <td className="px-4 py-3 text-th-text-secondary">{campaign.max_pages}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5 text-th-text-secondary">{FREQ_LABEL[campaign.frequency] ?? campaign.frequency}</td>
+                  <td className="px-4 py-3.5 text-th-text-secondary">{campaign.max_pages}</td>
+                  <td className="px-4 py-3.5">
                     <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
                   </td>
-                  <td className="px-4 py-3 text-th-text-muted">{new Date(campaign.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(campaign.created_at).toLocaleDateString()}</td>
                 </tr>
               ))
             )}

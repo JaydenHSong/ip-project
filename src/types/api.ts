@@ -85,6 +85,8 @@ export type ManualReportRequest = {
   user_violation_type: ViolationCode
   violation_category: string
   note?: string
+  screenshot_url?: string
+  screenshot_urls?: string[]
 }
 
 export type ManualReportResponse = {

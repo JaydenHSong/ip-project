@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SpigenLogo } from '@/components/ui/SpigenLogo'
@@ -11,11 +11,11 @@ import {
   CheckCircle2,
   Archive,
   Shield,
+  History,
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
-  ChevronUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { createClient } from '@/lib/supabase/client'
@@ -38,6 +38,7 @@ const MAIN_NAV: NavItem[] = [
   { labelKey: 'nav.completedReports', href: '/reports/completed', icon: CheckCircle2 },
   { labelKey: 'nav.archivedReports', href: '/reports/archived', icon: Archive },
   { labelKey: 'nav.patents', href: '/patents', icon: Shield, milestone: 2 },
+  { labelKey: 'nav.changelog', href: '/changelog', icon: History },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
@@ -68,23 +69,13 @@ const filterItems = (items: NavItem[], userRole: Role): NavItem[] =>
 export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
   const pathname = usePathname()
   const { t } = useI18n()
-  const [showAccountMenu, setShowAccountMenu] = useState(false)
-  const accountRef = useRef<HTMLDivElement>(null)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const mainItems = filterItems(MAIN_NAV, user.role)
   const bottomItems = filterItems(BOTTOM_NAV, user.role)
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
-        setShowAccountMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
   const handleLogout = async () => {
+    setShowLogoutConfirm(false)
     const supabase = createClient()
     await supabase.auth.signOut()
     window.location.href = '/login'
@@ -113,13 +104,16 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
         href={item.href}
         title={collapsed ? label : undefined}
         className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
           collapsed && 'justify-center px-2',
           isActive
             ? 'bg-th-sidebar-active text-th-sidebar-active-text'
             : 'text-th-sidebar-text hover:bg-th-sidebar-hover hover:text-th-text',
         )}
       >
+        {isActive && !collapsed && (
+          <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-th-accent" />
+        )}
         <Icon className="h-5 w-5 shrink-0" />
         {!collapsed && <span>{label}</span>}
       </Link>
@@ -130,7 +124,7 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
     <aside
       className={cn(
         'flex h-full flex-col border-r border-th-sidebar-border bg-th-sidebar-bg transition-all duration-500 ease-in-out',
-        collapsed ? 'w-16' : 'w-60',
+        collapsed ? 'w-16' : 'w-[312px]',
       )}
     >
       {/* Logo */}
@@ -157,15 +151,11 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
       )}
 
       {/* Account Section */}
-      <div ref={accountRef} className="relative border-t border-th-sidebar-border px-2 py-3">
-        <button
-          type="button"
-          onClick={() => setShowAccountMenu((prev) => !prev)}
-          className={cn(
-            'flex w-full items-center gap-3 rounded-lg px-2 py-2 hover:bg-th-sidebar-hover transition-colors',
-            collapsed && 'justify-center',
-          )}
-        >
+      <div className="border-t border-th-sidebar-border px-2 py-3">
+        <div className={cn(
+          'flex items-center gap-3 px-2',
+          collapsed && 'justify-center',
+        )}>
           {user.avatar_url ? (
             <img
               src={user.avatar_url}
@@ -179,40 +169,50 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
           )}
           {!collapsed && (
             <>
-              <div className="min-w-0 flex-1 text-left">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-th-sidebar-text">{user.name}</p>
                 <p className="text-xs text-th-text-muted">{roleLabel[user.role]}</p>
               </div>
-              <ChevronUp className={cn(
-                'h-4 w-4 shrink-0 text-th-text-muted transition-transform',
-                showAccountMenu && 'rotate-180',
-              )} />
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(true)}
+                title={t('common.logout')}
+                className="shrink-0 rounded-lg p-1.5 text-th-text-muted hover:bg-th-sidebar-hover hover:text-th-text-secondary transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </>
           )}
-        </button>
-
-        {/* Account Popup Menu */}
-        {showAccountMenu && (
-          <div className={cn(
-            'glass-dropdown absolute z-50 rounded-lg border py-1',
-            collapsed
-              ? 'bottom-0 left-full ml-2 w-48'
-              : 'bottom-full left-2 right-2 mb-1',
-          )}>
-            <div className="border-b border-th-border px-4 py-2">
-              <p className="truncate text-sm text-th-text">{user.email}</p>
-            </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex w-full items-center gap-2 px-4 py-2 text-sm text-th-text-secondary hover:bg-th-bg-hover"
-            >
-              <LogOut className="h-4 w-4" />
-              {t('common.logout')}
-            </button>
-          </div>
-        )}
+        </div>
       </div>
+
+      {/* Logout Confirm Modal */}
+      {showLogoutConfirm && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setShowLogoutConfirm(false)} />
+          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-xs -translate-x-1/2 -translate-y-1/2 rounded-xl border border-th-border bg-th-bg p-6 shadow-2xl">
+            <p className="text-center text-sm font-medium text-th-text">
+              {t('common.logoutConfirm')}
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 rounded-xl border border-th-border px-4 py-2.5 text-sm font-medium text-th-text-secondary hover:bg-th-bg-hover transition-colors"
+              >
+                No
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex-1 rounded-xl bg-st-danger-bg px-4 py-2.5 text-sm font-medium text-st-danger-text hover:opacity-90 transition-colors"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Collapse Toggle */}
       <div className={cn(

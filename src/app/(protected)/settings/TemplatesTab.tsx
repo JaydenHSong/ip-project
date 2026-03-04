@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Modal } from '@/components/ui/Modal'
 import { SlidePanel } from '@/components/ui/SlidePanel'
+import { Toggle } from '@/components/ui/Toggle'
 import { useI18n } from '@/lib/i18n/context'
 import { VIOLATION_CATEGORIES, VIOLATION_TYPES } from '@/constants/violations'
 import type { ViolationCategory, ViolationCode } from '@/constants/violations'
@@ -46,10 +47,20 @@ export const TemplatesTab = () => {
   const [deleteTarget, setDeleteTarget] = useState<ReportTemplate | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string> | 'all'>('all')
+
+  const isGroupCollapsed = (cat: string): boolean => {
+    if (collapsedGroups === 'all') return true
+    return collapsedGroups.has(cat)
+  }
 
   const toggleGroup = (cat: string) => {
     setCollapsedGroups((prev) => {
+      if (prev === 'all') {
+        const allCats = new Set(Object.keys(groupedTemplates))
+        allCats.delete(cat)
+        return allCats
+      }
       const next = new Set(prev)
       if (next.has(cat)) next.delete(cat)
       else next.add(cat)
@@ -216,13 +227,13 @@ export const TemplatesTab = () => {
       </div>
 
       {/* Category filter tabs */}
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
         <button
           onClick={() => setCategoryFilter('all')}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
             categoryFilter === 'all'
-              ? 'bg-th-accent text-white'
-              : 'bg-th-bg-secondary text-th-text-secondary hover:bg-th-bg-tertiary'
+              ? 'bg-surface-card text-th-text shadow-sm'
+              : 'text-th-text-muted hover:text-th-text-secondary'
           }`}
         >
           All ({templates.length})
@@ -231,10 +242,10 @@ export const TemplatesTab = () => {
           <button
             key={cat}
             onClick={() => setCategoryFilter(cat === categoryFilter ? 'all' : cat)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
               categoryFilter === cat
-                ? 'bg-th-accent text-white'
-                : 'bg-th-bg-secondary text-th-text-secondary hover:bg-th-bg-tertiary'
+                ? 'bg-surface-card text-th-text shadow-sm'
+                : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
             {VIOLATION_CATEGORIES[cat]} ({categoryCounts[cat] ?? 0})
@@ -249,13 +260,13 @@ export const TemplatesTab = () => {
       ) : (
         <div className="space-y-2">
           {Object.entries(groupedTemplates).map(([cat, tmpls]) => {
-            const isCollapsed = collapsedGroups.has(cat)
+            const isCollapsed = isGroupCollapsed(cat)
             const catLabel = VIOLATION_CATEGORIES[cat as ViolationCategory] ?? cat
             return (
-              <div key={cat} className="rounded-lg border border-th-border">
+              <div key={cat} className="rounded-xl border border-th-border bg-surface-card shadow-sm">
                 <button
                   onClick={() => toggleGroup(cat)}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-th-bg-secondary"
+                  className="flex w-full items-center gap-2 rounded-t-xl px-4 py-3.5 text-left transition-colors hover:bg-th-bg-hover"
                 >
                   {isCollapsed ? (
                     <ChevronRight className="h-4 w-4 text-th-text-muted" />
@@ -272,17 +283,17 @@ export const TemplatesTab = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-th-border bg-th-bg-secondary text-left">
-                          <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-muted">Title</th>
-                          <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-muted">Violations</th>
-                          <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-muted">Marketplace</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-th-text-muted">Used</th>
-                          <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-th-text-muted">Actions</th>
+                          <th className="px-4 py-3.5 text-xs font-semibold text-th-text-muted">Title</th>
+                          <th className="px-4 py-3.5 text-xs font-semibold text-th-text-muted">Violations</th>
+                          <th className="px-4 py-3.5 text-xs font-semibold text-th-text-muted">Marketplace</th>
+                          <th className="px-4 py-3.5 text-right text-xs font-semibold text-th-text-muted">Used</th>
+                          <th className="px-4 py-3.5 text-right text-xs font-semibold text-th-text-muted">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-th-border">
                         {tmpls.map((tmpl) => (
-                          <tr key={tmpl.id} className="group">
-                            <td className="px-4 py-3 pr-4">
+                          <tr key={tmpl.id} className="group transition-colors hover:bg-th-bg-hover">
+                            <td className="px-4 py-3.5 pr-4">
                               <div className="flex items-center gap-1.5">
                                 {tmpl.is_default && (
                                   <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
@@ -290,32 +301,32 @@ export const TemplatesTab = () => {
                                 <span className="font-medium text-th-text">{tmpl.title}</span>
                               </div>
                             </td>
-                            <td className="py-3 pr-4 text-th-text-muted">
+                            <td className="py-3.5 pr-4 text-th-text-muted">
                               {tmpl.violation_types.length > 0 ? tmpl.violation_types.join(', ') : '—'}
                             </td>
-                            <td className="py-3 pr-4 text-th-text-muted">
+                            <td className="py-3.5 pr-4 text-th-text-muted">
                               {tmpl.marketplace.length > 0 ? tmpl.marketplace.join(', ') : 'All'}
                             </td>
-                            <td className="py-3 text-right text-th-text-muted">{tmpl.usage_count}</td>
-                            <td className="py-3 pr-4">
+                            <td className="py-3.5 text-right text-th-text-muted">{tmpl.usage_count}</td>
+                            <td className="py-3.5 pr-4">
                               <div className="flex justify-end gap-1">
                                 <button
                                   onClick={() => openEdit(tmpl)}
-                                  className="rounded p-1 text-th-text-muted hover:bg-th-bg-tertiary hover:text-th-text"
+                                  className="rounded-lg p-1.5 text-th-text-muted hover:bg-th-bg-tertiary hover:text-th-text"
                                   title="Edit"
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => handleDuplicate(tmpl)}
-                                  className="rounded p-1 text-th-text-muted hover:bg-th-bg-tertiary hover:text-th-text"
+                                  className="rounded-lg p-1.5 text-th-text-muted hover:bg-th-bg-tertiary hover:text-th-text"
                                   title="Duplicate"
                                 >
                                   <Copy className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={() => setDeleteTarget(tmpl)}
-                                  className="rounded p-1 text-th-text-muted hover:bg-red-500/10 hover:text-red-500"
+                                  className="rounded-lg p-1.5 text-th-text-muted hover:bg-red-500/10 hover:text-red-500"
                                   title="Delete"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -438,15 +449,12 @@ export const TemplatesTab = () => {
             placeholder="e.g., trademark, standard"
           />
 
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={form.is_default}
-              onChange={(e) => setForm((f) => ({ ...f, is_default: e.target.checked }))}
-              className="accent-th-accent"
-            />
-            <span className="text-sm text-th-text-secondary">Default template</span>
-          </label>
+          <Toggle
+            size="sm"
+            checked={form.is_default}
+            onChange={(checked) => setForm((f) => ({ ...f, is_default: checked }))}
+            label="Default template"
+          />
 
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" onClick={() => setShowForm(false)}>

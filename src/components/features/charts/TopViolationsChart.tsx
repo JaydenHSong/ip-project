@@ -24,8 +24,8 @@ export const TopViolationsChart = ({ data, onClickItem }: TopViolationsChartProp
       <h3 className="mb-4 text-sm font-semibold text-th-text">
         {t('dashboard.charts.topViolations' as Parameters<typeof t>[0])}
       </h3>
-      <div role="img" aria-label="Top violation types chart">
-        <ResponsiveContainer width="100%" height={350}>
+      <div role="img" aria-label="Top violation types chart" className="h-[250px] md:h-[350px]">
+        <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-th-border, #374151)" horizontal={false} />
             <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-th-text-muted, #9ca3af)' }} />

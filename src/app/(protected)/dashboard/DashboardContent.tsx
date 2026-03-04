@@ -8,11 +8,12 @@ import {
   FileText,
   Search,
   BarChart3,
-  Plus,
   AlertTriangle,
   ChevronRight,
   Brain,
   Eye,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { isDemoMode } from '@/lib/demo'
@@ -20,7 +21,9 @@ import { getDemoDashboardStats } from '@/lib/demo/dashboard'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
 import type { ViolationCode } from '@/constants/violations'
+import { WelcomeNotice } from '@/components/features/WelcomeNotice'
 import type { DashboardStats, PeriodFilter } from '@/types/dashboard'
+import type { Role } from '@/types/users'
 
 const ReportTrendChart = dynamic(
   () => import('@/components/features/charts/ReportTrendChart').then((m) => m.ReportTrendChart),
@@ -69,6 +72,8 @@ type ActiveCampaign = {
 
 type DashboardContentProps = {
   userName: string
+  userId: string
+  userRole: Role
   initialStats: DashboardStats | null
   recentReports: RecentReport[]
   activeCampaigns: ActiveCampaign[]
@@ -76,8 +81,33 @@ type DashboardContentProps = {
 
 const PERIODS: PeriodFilter[] = ['7d', '30d', '90d']
 
+const MARKETPLACES = [
+  { value: '', label: 'All Marketplaces' },
+  { value: 'US', label: 'US' },
+  { value: 'CA', label: 'CA' },
+  { value: 'UK', label: 'UK' },
+  { value: 'DE', label: 'DE' },
+  { value: 'JP', label: 'JP' },
+]
+
+const TrendIndicator = ({ current, previous }: { current: number; previous: number }) => {
+  if (previous === 0) return null
+  const diff = current - previous
+  const pct = Math.round((diff / previous) * 100)
+  if (pct === 0) return null
+  const isUp = pct > 0
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+      {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {isUp ? '+' : ''}{pct}%
+    </span>
+  )
+}
+
 export const DashboardContent = ({
   userName,
+  userId,
+  userRole,
   initialStats,
   recentReports,
   activeCampaigns,
@@ -85,29 +115,37 @@ export const DashboardContent = ({
   const { t } = useI18n()
   const router = useRouter()
   const [period, setPeriod] = useState<PeriodFilter>('30d')
+  const [marketplace, setMarketplace] = useState('')
   const [stats, setStats] = useState<DashboardStats | null>(initialStats)
+  const isAdmin = userRole === 'admin'
+  const scope = isAdmin ? 'all' : 'my'
+
+  const buildUrl = useCallback((p: PeriodFilter, mp: string) => {
+    const params = new URLSearchParams({ period: p, scope })
+    if (mp) params.set('marketplace', mp)
+    return `/api/dashboard/stats?${params.toString()}`
+  }, [scope])
 
   useEffect(() => {
     if (initialStats || isDemoMode()) return
-    fetch('/api/dashboard/stats?period=30d')
+    fetch(buildUrl('30d', marketplace))
       .then((res) => res.ok ? res.json() : null)
       .then((data) => { if (data) setStats(data) })
       .catch(() => {})
-  }, [initialStats])
+  }, [initialStats, scope, marketplace, buildUrl])
 
   const navigateToReports = useCallback((params: Record<string, string>) => {
     const search = new URLSearchParams(params).toString()
     router.push(`/reports?${search}`)
   }, [router])
 
-  const handlePeriodChange = useCallback(async (newPeriod: PeriodFilter) => {
-    setPeriod(newPeriod)
+  const fetchStats = useCallback(async (newPeriod: PeriodFilter, mp: string) => {
     if (isDemoMode()) {
       setStats(getDemoDashboardStats(newPeriod))
       return
     }
     try {
-      const res = await fetch(`/api/dashboard/stats?period=${newPeriod}`)
+      const res = await fetch(buildUrl(newPeriod, mp))
       if (res.ok) {
         const data = await res.json()
         setStats(data)
@@ -115,14 +153,28 @@ export const DashboardContent = ({
     } catch {
       // keep previous stats on error
     }
-  }, [])
+  }, [buildUrl])
+
+  const handlePeriodChange = useCallback(async (newPeriod: PeriodFilter) => {
+    setPeriod(newPeriod)
+    fetchStats(newPeriod, marketplace)
+  }, [marketplace, fetchStats])
+
+  const handleMarketplaceChange = useCallback((mp: string) => {
+    setMarketplace(mp)
+    fetchStats(period, mp)
+  }, [period, fetchStats])
 
   const summary = stats?.summary
+
+  const prev = stats?.previousPeriod
 
   const statItems = [
     {
       label: t('dashboard.activeCampaigns'),
       value: summary?.activeCampaigns ?? 0,
+      numericValue: summary?.activeCampaigns ?? 0,
+      prevValue: prev?.activeCampaigns ?? 0,
       icon: Search,
       color: 'text-blue-400',
       href: '/campaigns',
@@ -130,6 +182,8 @@ export const DashboardContent = ({
     {
       label: t('dashboard.pendingReports'),
       value: summary?.pendingReports ?? 0,
+      numericValue: summary?.pendingReports ?? 0,
+      prevValue: prev?.pendingReports ?? 0,
       icon: AlertTriangle,
       color: 'text-amber-400',
       href: '/reports',
@@ -137,6 +191,8 @@ export const DashboardContent = ({
     {
       label: t('dashboard.collectedListings'),
       value: summary?.totalListings ?? 0,
+      numericValue: summary?.totalListings ?? 0,
+      prevValue: prev?.totalListings ?? 0,
       icon: FileText,
       color: 'text-emerald-400',
       href: '/campaigns',
@@ -144,6 +200,8 @@ export const DashboardContent = ({
     {
       label: t('dashboard.resolutionRate'),
       value: summary ? `${summary.resolvedRate}%` : '—',
+      numericValue: summary?.resolvedRate ?? 0,
+      prevValue: prev?.resolvedRate ?? 0,
       icon: BarChart3,
       color: 'text-violet-400',
       href: '/reports/completed',
@@ -151,6 +209,8 @@ export const DashboardContent = ({
     {
       label: t('dashboard.charts.aiAccuracy' as Parameters<typeof t>[0]),
       value: summary ? `${summary.aiAccuracy}%` : '—',
+      numericValue: summary?.aiAccuracy ?? 0,
+      prevValue: prev?.aiAccuracy ?? 0,
       icon: Brain,
       color: 'text-cyan-400',
       href: '/reports',
@@ -158,6 +218,8 @@ export const DashboardContent = ({
     {
       label: t('dashboard.charts.monitoring' as Parameters<typeof t>[0]),
       value: summary?.monitoringCount ?? 0,
+      numericValue: summary?.monitoringCount ?? 0,
+      prevValue: prev?.monitoringCount ?? 0,
       icon: Eye,
       color: 'text-orange-400',
       href: '/reports',
@@ -165,72 +227,73 @@ export const DashboardContent = ({
   ]
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-6">
+      <WelcomeNotice userId={userId} />
+
       {/* Greeting + Period Filter */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm text-th-text-secondary md:text-base">
+          <h1 className="text-2xl font-bold text-th-text">{t('dashboard.title')}</h1>
+          <p className="mt-1 text-sm text-th-text-secondary">
             {t('dashboard.greeting', { name: userName })}
           </p>
           {isDemoMode() && (
-            <div className="mt-2 rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-1.5">
+            <div className="mt-2 rounded-xl border border-st-warning-text/30 bg-st-warning-bg px-3 py-1.5">
               <p className="text-xs text-st-warning-text">{t('common.demoMode')}</p>
             </div>
           )}
         </div>
-        <div className="flex gap-1 rounded-lg border border-th-border bg-surface-card p-1">
-          {PERIODS.map((p) => (
-            <button
-              key={p}
-              onClick={() => handlePeriodChange(p)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                period === p
-                  ? 'bg-th-accent text-white'
-                  : 'text-th-text-secondary hover:bg-th-bg-hover'
-              }`}
-            >
-              {t(`dashboard.charts.period.${p}` as Parameters<typeof t>[0])}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={marketplace}
+            onChange={(e) => handleMarketplaceChange(e.target.value)}
+            className="rounded-xl border border-th-border bg-surface-card px-3 py-1.5 text-xs font-medium text-th-text shadow-sm outline-none focus:border-th-accent"
+          >
+            {MARKETPLACES.map((mp) => (
+              <option key={mp.value} value={mp.value}>{mp.label}</option>
+            ))}
+          </select>
+          <div className="flex gap-1 rounded-xl border border-th-border bg-surface-card p-1 shadow-sm">
+            {PERIODS.map((p) => (
+              <button
+                key={p}
+                onClick={() => handlePeriodChange(p)}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                  period === p
+                    ? 'bg-th-accent text-white shadow-sm'
+                    : 'text-th-text-secondary hover:bg-th-bg-hover'
+                }`}
+              >
+                {t(`dashboard.charts.period.${p}` as Parameters<typeof t>[0])}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Stats Grid - 2x3 on mobile, 6 cols on desktop */}
-      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
         {statItems.map((stat) => {
           const Icon = stat.icon
           return (
             <Link
               key={stat.label}
               href={stat.href}
-              className="rounded-lg border border-th-border bg-surface-card p-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover md:p-4"
+              className="group rounded-xl border border-th-border bg-surface-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:border-th-border-secondary active:scale-[0.98] md:p-5"
             >
-              <div className="flex items-center gap-2">
-                <Icon className={`h-4 w-4 ${stat.color}`} />
-                <p className="text-xs font-medium text-th-text-tertiary">{stat.label}</p>
+              <div className="flex items-center justify-between">
+                <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${stat.color.replace('text-', 'bg-').replace('-400', '-500/10')}`}>
+                  <Icon className={`h-4.5 w-4.5 ${stat.color}`} />
+                </div>
               </div>
-              <p className="mt-1.5 text-xl font-bold text-th-text md:text-2xl">{stat.value}</p>
+              <div className="mt-3 flex items-baseline gap-1.5">
+                <p className="text-2xl font-bold text-th-text md:text-3xl">{stat.value}</p>
+                {prev && <TrendIndicator current={stat.numericValue} previous={stat.prevValue} />}
+              </div>
+              <p className="mt-1 text-xs font-medium text-th-text-muted">{stat.label}</p>
             </Link>
           )
         })}
-      </div>
-
-      {/* Quick Actions - mobile only */}
-      <div className="flex gap-2 md:hidden">
-        <Link
-          href="/campaigns/new"
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-th-accent px-3 py-2.5 text-sm font-medium text-white"
-        >
-          <Plus className="h-4 w-4" />
-          {t('dashboard.newCampaign')}
-        </Link>
-        <Link
-          href="/reports"
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-th-border bg-surface-card px-3 py-2.5 text-sm font-medium text-th-text"
-        >
-          <FileText className="h-4 w-4" />
-          {t('dashboard.reportQueue')}
-        </Link>
       </div>
 
       {/* Charts Row 1: Report Trend (2/3) + Violation Dist (1/3) */}
@@ -249,7 +312,7 @@ export const DashboardContent = ({
           </div>
 
           {/* Charts Row 2: Status Pipeline (1/2) + AI Performance (1/2) */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+          <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2">
             <StatusPipelineChart
               data={stats.statusPipeline}
               onClickItem={(status) => navigateToReports({ status })}
@@ -269,24 +332,24 @@ export const DashboardContent = ({
       )}
 
       {/* Two column layout: Recent Reports + Active Campaigns */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Recent Reports */}
-        <div className="rounded-lg border border-th-border bg-surface-card">
-          <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
-            <h2 className="text-sm font-semibold text-th-text">{t('dashboard.recentReports')}</h2>
-            <Link href="/reports" className="text-xs text-th-accent-text hover:underline">
+        <div className="rounded-xl border border-th-border bg-surface-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-th-border px-5 py-4">
+            <h2 className="text-sm font-semibold text-th-text">{isAdmin ? t('dashboard.recentReports') : t('dashboard.myRecentReports' as Parameters<typeof t>[0])}</h2>
+            <Link href="/reports" className="text-xs font-medium text-th-accent-text hover:underline">
               {t('dashboard.viewAll')}
             </Link>
           </div>
           {recentReports.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-th-text-muted">
+            <div className="px-5 py-10 text-center text-sm text-th-text-muted">
               {t('dashboard.noRecentReports')}
             </div>
           ) : (
             <div className="divide-y divide-th-border">
               {recentReports.map((report) => (
                 <Link key={report.id} href={`/reports/${report.id}`}>
-                  <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
+                  <div className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
@@ -311,22 +374,22 @@ export const DashboardContent = ({
         </div>
 
         {/* Active Campaigns */}
-        <div className="rounded-lg border border-th-border bg-surface-card">
-          <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
-            <h2 className="text-sm font-semibold text-th-text">{t('dashboard.activeCampaignsList')}</h2>
-            <Link href="/campaigns" className="text-xs text-th-accent-text hover:underline">
+        <div className="rounded-xl border border-th-border bg-surface-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-th-border px-5 py-4">
+            <h2 className="text-sm font-semibold text-th-text">{isAdmin ? t('dashboard.activeCampaignsList') : t('dashboard.myActiveCampaignsList' as Parameters<typeof t>[0])}</h2>
+            <Link href="/campaigns" className="text-xs font-medium text-th-accent-text hover:underline">
               {t('dashboard.viewAll')}
             </Link>
           </div>
           {activeCampaigns.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-th-text-muted">
+            <div className="px-5 py-10 text-center text-sm text-th-text-muted">
               {t('dashboard.noActiveCampaigns')}
             </div>
           ) : (
             <div className="divide-y divide-th-border">
               {activeCampaigns.map((campaign) => (
                 <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
-                  <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
+                  <div className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
                     <div className="flex-1 min-w-0">
                       <p className="truncate text-sm font-medium text-th-text">{campaign.keyword}</p>
                       <p className="mt-0.5 text-xs text-th-text-muted">

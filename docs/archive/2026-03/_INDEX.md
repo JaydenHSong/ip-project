@@ -28,3 +28,4 @@
 | crawler-download-ui | 97% | 2026-03-04 | plan, design, analysis, report |
 | extension-distribution | 96% | 2026-03-04 | plan, design, analysis, report |
 | crawler-logs | 96% | 2026-03-04 | plan, design, analysis, report |
+| user-personalization | 91% | 2026-03-04 | plan, design, analysis |

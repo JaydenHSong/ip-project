@@ -89,6 +89,8 @@ export const POST = withAuth(async (req: NextRequest) => {
       user_violation_type: body.user_violation_type,
       violation_category: body.violation_category,
       note: body.note || null,
+      screenshot_url: body.screenshot_url || null,
+      screenshot_urls: body.screenshot_urls || null,
       status: 'draft',
       created_by: authUser!.id,
     })

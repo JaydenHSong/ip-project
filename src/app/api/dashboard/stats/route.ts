@@ -27,6 +27,9 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   const period = VALID_PERIODS.includes(periodParam as PeriodFilter)
     ? (periodParam as PeriodFilter)
     : '30d'
+  const scope = searchParams.get('scope') ?? 'all'
+  const marketplace = searchParams.get('marketplace') ?? null
+  const userId = scope === 'my' ? user.id : null
 
   if (isDemoMode()) {
     return NextResponse.json(getDemoDashboardStats(period))
@@ -38,23 +41,68 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   periodStart.setDate(periodStart.getDate() - days)
   const periodStartISO = periodStart.toISOString()
 
+  const prevPeriodEnd = new Date(periodStart)
+  const prevPeriodStart = new Date(prevPeriodEnd)
+  prevPeriodStart.setDate(prevPeriodStart.getDate() - days)
+  const prevPeriodStartISO = prevPeriodStart.toISOString()
+  const prevPeriodEndISO = prevPeriodEnd.toISOString()
+
   // Fetch all reports in period for aggregation
-  const { data: reports } = await supabase
+  let reportQuery = supabase
     .from('reports')
-    .select('status, violation_type, ai_confidence_score, disagreement_flag, created_at')
+    .select('status, violation_type, ai_confidence_score, disagreement_flag, created_at, listings!inner(marketplace)')
     .gte('created_at', periodStartISO)
+
+  if (userId) {
+    reportQuery = reportQuery.eq('created_by', userId)
+  }
+  if (marketplace) {
+    reportQuery = reportQuery.eq('listings.marketplace', marketplace)
+  }
+
+  const { data: reports } = await reportQuery
+
+  // Fetch previous period reports for comparison
+  let prevReportQuery = supabase
+    .from('reports')
+    .select('status, ai_confidence_score, created_at')
+    .gte('created_at', prevPeriodStartISO)
+    .lt('created_at', prevPeriodEndISO)
+
+  if (userId) {
+    prevReportQuery = prevReportQuery.eq('created_by', userId)
+  }
+
+  const { data: prevReports } = await prevReportQuery
+  const prevAllReports = prevReports ?? []
 
   const allReports = reports ?? []
 
   // Summary counts
-  const { count: activeCampaigns } = await supabase
+  let campaignCountQuery = supabase
     .from('campaigns')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'active')
 
-  const { count: totalListings } = await supabase
-    .from('listings')
-    .select('*', { count: 'exact', head: true })
+  if (userId) {
+    campaignCountQuery = campaignCountQuery.eq('created_by', userId)
+  }
+
+  const { count: activeCampaigns } = await campaignCountQuery
+
+  let listingsCount = 0
+  if (userId) {
+    const { count } = await supabase
+      .from('listings')
+      .select('*, campaigns!inner(created_by)', { count: 'exact', head: true })
+      .eq('campaigns.created_by', userId)
+    listingsCount = count ?? 0
+  } else {
+    const { count } = await supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+    listingsCount = count ?? 0
+  }
 
   const pendingReports = allReports.filter((r) => ['draft', 'pending_review'].includes(r.status)).length
   const resolvedCount = allReports.filter((r) => r.status === 'resolved').length
@@ -141,14 +189,32 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   const approveRate = totalDecided > 0 ? Math.round((approvedCount / totalDecided) * 100) : 0
   const rejectRate = totalDecided > 0 ? Math.round((rejectedCount / totalDecided) * 100) : 0
 
+  // Previous period summary for comparison
+  const prevPending = prevAllReports.filter((r) => ['draft', 'pending_review'].includes(r.status)).length
+  const prevResolved = prevAllReports.filter((r) => r.status === 'resolved').length
+  const prevMonitoring = prevAllReports.filter((r) => r.status === 'monitoring').length
+  const prevResolvedRate = prevAllReports.length > 0 ? Math.round((prevResolved / prevAllReports.length) * 100) : 0
+  const prevWithAi = prevAllReports.filter((r) => r.ai_confidence_score !== null)
+  const prevAiAccuracy = prevWithAi.length > 0
+    ? Math.round(prevWithAi.reduce((sum, r) => sum + (r.ai_confidence_score ?? 0), 0) / prevWithAi.length)
+    : 0
+
   const stats: DashboardStats = {
     summary: {
       activeCampaigns: activeCampaigns ?? 0,
       pendingReports,
-      totalListings: totalListings ?? 0,
+      totalListings: listingsCount,
       resolvedRate,
       aiAccuracy: avgConfidence,
       monitoringCount,
+    },
+    previousPeriod: {
+      activeCampaigns: activeCampaigns ?? 0,
+      pendingReports: prevPending,
+      totalListings: listingsCount,
+      resolvedRate: prevResolvedRate,
+      aiAccuracy: prevAiAccuracy,
+      monitoringCount: prevMonitoring,
     },
     reportTrend,
     violationDist,

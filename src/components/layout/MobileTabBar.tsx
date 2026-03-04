@@ -59,7 +59,7 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
       )}
 
       {/* Tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-th-border bg-surface-card md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-th-border bg-surface-card pb-[env(safe-area-inset-bottom)] md:hidden">
         <div className="flex h-16 items-stretch">
           {tabs.map((tab) => {
             const isActive = pathname === tab.href || pathname.startsWith(`${tab.href}/`)

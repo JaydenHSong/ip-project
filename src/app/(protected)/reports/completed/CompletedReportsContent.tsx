@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
@@ -11,6 +12,8 @@ import { useSortableTable } from '@/hooks/useSortableTable'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import type { ReportStatus } from '@/types/reports'
 import type { ViolationCode } from '@/constants/violations'
+import { OwnerToggle } from '@/components/ui/OwnerToggle'
+import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 
 type ReportRow = {
@@ -25,10 +28,13 @@ type ReportRow = {
 type CompletedReportsContentProps = {
   reports: ReportRow[] | null
   statusFilter: string
+  userRole: Role
+  ownerFilter: 'my' | 'all'
 }
 
-export const CompletedReportsContent = ({ reports, statusFilter }: CompletedReportsContentProps) => {
+export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter }: CompletedReportsContentProps) => {
   const { t } = useI18n()
+  const router = useRouter()
   const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
 
   const getSearchableText = useCallback(
@@ -64,18 +70,28 @@ export const CompletedReportsContent = ({ reports, statusFilter }: CompletedRepo
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.completedTitle')}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.completedTitle')}</h1>
+          <OwnerToggle
+            value={ownerFilter}
+            onChange={(v) => {
+              const url = new URL(window.location.href)
+              url.searchParams.set('owner', v)
+              router.push(url.pathname + url.search)
+            }}
+          />
+        </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
         {STATUS_TABS.map((tab) => (
           <Link
             key={tab.value}
             href={`/reports/completed${tab.value ? `?status=${tab.value}` : ''}`}
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium ${
+            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               statusFilter === tab.value
-                ? 'bg-th-accent-soft text-th-accent-text'
-                : 'text-th-text-tertiary hover:bg-th-bg-hover'
+                ? 'bg-surface-card text-th-text shadow-sm'
+                : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
             {tab.label}
@@ -88,7 +104,7 @@ export const CompletedReportsContent = ({ reports, statusFilter }: CompletedRepo
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
         {sortedData.length === 0 ? (
-          <div className="rounded-lg border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
+          <div className="rounded-xl border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
             {filters.search || filters.violationType || filters.marketplace
               ? t('table.noResults' as Parameters<typeof t>[0])
               : t('reports.noCompleted')}
@@ -96,7 +112,7 @@ export const CompletedReportsContent = ({ reports, statusFilter }: CompletedRepo
         ) : (
           sortedData.map((report) => (
             <Link key={report.id} href={`/reports/${report.id}`}>
-              <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
+              <div className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
                   <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
                   <StatusBadge status={report.status as ReportStatus} type="report" />
@@ -114,7 +130,7 @@ export const CompletedReportsContent = ({ reports, statusFilter }: CompletedRepo
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-lg border border-th-border md:block">
+      <div className="hidden overflow-hidden rounded-xl border border-th-border shadow-sm md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">

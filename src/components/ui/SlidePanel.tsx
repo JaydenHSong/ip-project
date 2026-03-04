@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils/cn'
 type SlidePanelSize = 'sm' | 'md' | 'lg' | 'xl'
 
 const SIZE_CLASSES: Record<SlidePanelSize, string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-xl',
-  xl: 'max-w-[50vw]',
+  sm: 'max-w-md',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'max-w-[58vw]',
 }
 
 type SlidePanelProps = {

@@ -30,7 +30,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={cn(
-            'rounded-lg border border-th-border-secondary bg-surface-card px-3 py-2 text-sm text-th-text transition-colors focus:border-th-accent focus:outline-none focus:ring-1 focus:ring-th-accent disabled:cursor-not-allowed disabled:opacity-50',
+            'rounded-xl border border-th-border-secondary bg-surface-card px-4 py-2.5 text-sm text-th-text transition-all duration-200 focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/20 disabled:cursor-not-allowed disabled:opacity-50',
             error && 'border-st-danger-text focus:border-st-danger-text focus:ring-st-danger-text',
             className,
           )}
