@@ -7,7 +7,7 @@ import { SlidePanel } from '@/components/ui/SlidePanel'
 import { VIOLATION_TYPES } from '@/constants/violations'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 
-const MARKETPLACES = ['US', 'JP', 'UK', 'DE', 'FR', 'IT', 'ES', 'CA', 'AU', 'IN'] as const
+const MARKETPLACES = ['US', 'JP', 'UK', 'DE', 'FR', 'IT', 'ES', 'CA', 'MX', 'AU', 'IN'] as const
 
 type TableFiltersProps = {
   filters: TableFiltersType

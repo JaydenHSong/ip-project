@@ -5,6 +5,7 @@ import type { ParsedPageData } from '@shared/types'
 import { signInWithGoogle, getSession, signOut } from './auth'
 import { submitReport, checkAuthStatus } from './api'
 import { captureScreenshot } from './screenshot'
+import { enqueue, flush, cleanExpiredDedup } from './passive-queue'
 
 const handleGetAuthStatus = async (): Promise<BackgroundResponse<AuthStatusResponse>> => {
   try {
@@ -80,12 +81,31 @@ const handleOpenPopup = (): void => {
   }, 3000)
 }
 
+// 패시브 수집: 5분마다 배치 전송, 1시간마다 중복 필터 정리
+chrome.alarms.create('passive-flush', { periodInMinutes: 5 })
+chrome.alarms.create('passive-dedup-cleanup', { periodInMinutes: 60 })
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'passive-flush') flush()
+  if (alarm.name === 'passive-dedup-cleanup') cleanExpiredDedup()
+})
+
 // 단일 메시지 라우터
 chrome.runtime.onMessage.addListener(
-  (message: PopupMessage | { type: 'OPEN_POPUP' }, _sender: chrome.runtime.MessageSender, sendResponse: (response?: unknown) => void) => {
+  (message: PopupMessage | { type: 'OPEN_POPUP' | 'PASSIVE_PAGE_DATA' | 'PASSIVE_SEARCH_DATA'; data?: unknown }, _sender: chrome.runtime.MessageSender, sendResponse: (response?: unknown) => void) => {
     // OPEN_POPUP는 동기 처리, 응답 불필요
     if (message.type === 'OPEN_POPUP') {
       handleOpenPopup()
+      return false
+    }
+
+    // 패시브 수집 메시지: fire-and-forget, 응답 불필요
+    if (message.type === 'PASSIVE_PAGE_DATA') {
+      enqueue('page', message.data as never)
+      return false
+    }
+    if (message.type === 'PASSIVE_SEARCH_DATA') {
+      enqueue('search', message.data as never)
       return false
     }
 

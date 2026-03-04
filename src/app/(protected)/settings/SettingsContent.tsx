@@ -5,7 +5,9 @@ import { useI18n } from '@/lib/i18n/context'
 import { MonitoringSettings } from './MonitoringSettings'
 import { ScAutomationSettings } from './ScAutomationSettings'
 import { AutoApproveSettings } from './AutoApproveSettings'
+import { CrawlerSettings } from './CrawlerSettings'
 import { TemplatesTab } from './TemplatesTab'
+import { ExtensionGuide } from './ExtensionGuide'
 import { UserManagement } from './UserManagement'
 
 type SettingsContentProps = {
@@ -13,9 +15,9 @@ type SettingsContentProps = {
   currentUserId: string
 }
 
-const BASE_TABS = ['monitoring', 'templates'] as const
-const ADMIN_TABS = ['monitoring', 'sc-automation', 'auto-approve', 'templates', 'users'] as const
-type SettingsTab = 'monitoring' | 'sc-automation' | 'auto-approve' | 'templates' | 'users'
+const BASE_TABS = ['monitoring', 'extension', 'templates'] as const
+const ADMIN_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'users'] as const
+type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'templates' | 'users'
 
 export const SettingsContent = ({ isAdmin, currentUserId }: SettingsContentProps) => {
   const { t } = useI18n()
@@ -40,18 +42,24 @@ export const SettingsContent = ({ isAdmin, currentUserId }: SettingsContentProps
           >
             {tab === 'monitoring'
               ? t('settings.monitoring.title')
-              : tab === 'sc-automation'
-                ? t('settings.scAutomation.title' as Parameters<typeof t>[0])
-                : tab === 'auto-approve'
-                  ? t('settings.autoApprove.title' as Parameters<typeof t>[0])
-                  : tab === 'templates'
-                    ? 'Templates'
-                    : t('settings.users.title')}
+              : tab === 'extension'
+                ? t('settings.extension.title' as Parameters<typeof t>[0])
+                : tab === 'crawler'
+                  ? t('settings.crawler.title' as Parameters<typeof t>[0])
+                  : tab === 'sc-automation'
+                    ? t('settings.scAutomation.title' as Parameters<typeof t>[0])
+                    : tab === 'auto-approve'
+                      ? t('settings.autoApprove.title' as Parameters<typeof t>[0])
+                      : tab === 'templates'
+                        ? 'Templates'
+                        : t('settings.users.title')}
           </button>
         ))}
       </div>
 
       {activeTab === 'monitoring' && <MonitoringSettings isAdmin={isAdmin} />}
+      {activeTab === 'extension' && <ExtensionGuide />}
+      {activeTab === 'crawler' && <CrawlerSettings isAdmin={isAdmin} />}
       {activeTab === 'sc-automation' && <ScAutomationSettings isAdmin={isAdmin} />}
       {activeTab === 'auto-approve' && <AutoApproveSettings isAdmin={isAdmin} />}
       {activeTab === 'templates' && <TemplatesTab />}

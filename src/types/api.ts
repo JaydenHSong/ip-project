@@ -34,7 +34,7 @@ export type CreateListingRequest = {
   category?: string
   rating?: number
   review_count?: number
-  source: 'crawler' | 'extension'
+  source: 'crawler' | 'extension' | 'extension_passive'
   source_campaign_id?: string
   raw_data?: unknown
 }
@@ -159,6 +159,58 @@ export type SubmitReportResponse = {
     confidence: number
     suggested_type: ViolationCode
   }
+}
+
+// ============================================================
+// Passive Collect API (Extension)
+// ============================================================
+
+export type PassiveCollectRequest = {
+  items: PassiveCollectItem[]
+}
+
+export type PassiveCollectItem = {
+  type: 'page' | 'search'
+  data: PassiveCollectPageData | PassiveCollectSearchData
+  collected_at: string
+}
+
+export type PassiveCollectPageData = {
+  asin: string
+  title: string
+  seller_name?: string
+  seller_id?: string
+  price_amount?: number
+  price_currency?: string
+  bullet_points?: string[]
+  brand?: string
+  rating?: number
+  review_count?: number
+  url: string
+  marketplace: string
+}
+
+export type PassiveCollectSearchData = {
+  search_term: string
+  url: string
+  marketplace: string
+  page_number: number
+  items: {
+    asin: string
+    title: string
+    price_amount?: number
+    price_currency?: string
+    brand?: string
+    rating?: number
+    review_count?: number
+    is_sponsored: boolean
+  }[]
+}
+
+export type PassiveCollectResponse = {
+  created: number
+  duplicates: number
+  errors: { asin: string; error: string }[]
 }
 
 // ============================================================

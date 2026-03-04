@@ -7,7 +7,8 @@
     "activeTab",
     "tabs",
     "storage",
-    "identity"
+    "identity",
+    "alarms"
   ],
   "host_permissions": [
     "https://www.amazon.com/*",
@@ -53,6 +54,20 @@
         "https://sellercentral.amazon.com/abuse-submission/*"
       ],
       "js": ["sc-content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.amazon.com/s*",
+        "https://www.amazon.co.uk/s*",
+        "https://www.amazon.co.jp/s*",
+        "https://www.amazon.de/s*",
+        "https://www.amazon.fr/s*",
+        "https://www.amazon.it/s*",
+        "https://www.amazon.es/s*",
+        "https://www.amazon.ca/s*"
+      ],
+      "js": ["search-content.js"],
       "run_at": "document_idle"
     }
   ],

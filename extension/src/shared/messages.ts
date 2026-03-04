@@ -1,6 +1,6 @@
 // Chrome Runtime 메시지 타입
 
-import type { ParsedPageData, SubmitReportPayload, SubmitReportResponse, AuthUser } from './types'
+import type { ParsedPageData, PassivePageData, PassiveSearchData, SubmitReportPayload, SubmitReportResponse, AuthUser } from './types'
 
 // Popup → Service Worker
 export type PopupMessage =
@@ -32,6 +32,8 @@ export type SubmitResponse = SubmitReportResponse
 export type ContentMessage =
   | { type: 'PAGE_DATA_READY'; data: ParsedPageData }
   | { type: 'OPEN_POPUP' }
+  | { type: 'PASSIVE_PAGE_DATA'; data: PassivePageData }
+  | { type: 'PASSIVE_SEARCH_DATA'; data: PassiveSearchData }
 
 // SC Form Filler → Service Worker
 export type ScContentMessage =

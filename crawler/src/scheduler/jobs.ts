@@ -105,8 +105,30 @@ const createJobProcessor = (
                 if (proxyConfig) proxyManager.reportFailure(proxyConfig)
                 retryCount++
 
+                // 캡차 로그 전송 (fire-and-forget)
+                sentinelClient.submitLog({
+                  type: 'captcha',
+                  campaign_id: campaignId,
+                  keyword,
+                  marketplace,
+                  asin: result.asin,
+                  message: `CAPTCHA detected, switching proxy (retry ${retryCount})`,
+                }).catch(() => {})
+
                 if (retryCount >= config.maxRetries) {
                   log('error', 'jobs', `Max retries reached for "${keyword}"`, { campaignId })
+                  // 최대 재시도 초과 로그 전송
+                  await sentinelClient.submitLog({
+                    type: 'crawl_error',
+                    campaign_id: campaignId,
+                    keyword,
+                    marketplace,
+                    message: 'Max retries exceeded due to CAPTCHA',
+                    error_code: 'MAX_RETRIES_EXCEEDED',
+                    errors,
+                    captchas: retryCount,
+                    duration_ms: Date.now() - startTime,
+                  })
                   throw new Error('MAX_RETRIES_EXCEEDED')
                 }
 
@@ -144,9 +166,19 @@ const createJobProcessor = (
               duplicates += batchResult.duplicates
               errors += batchResult.errors.length
             } catch (error) {
-              log('error', 'jobs', `Failed to submit batch: ${error instanceof Error ? error.message : String(error)}`, {
+              const batchErrorMsg = error instanceof Error ? error.message : String(error)
+              log('error', 'jobs', `Failed to submit batch: ${batchErrorMsg}`, {
                 campaignId,
               })
+              // API 에러 로그 전송 (fire-and-forget)
+              sentinelClient.submitLog({
+                type: 'api_error',
+                campaign_id: campaignId,
+                keyword,
+                marketplace,
+                message: batchErrorMsg,
+                error_code: 'BATCH_SUBMIT_FAILED',
+              }).catch(() => {})
               errors += listings.length
             }
           }
@@ -186,6 +218,22 @@ const createJobProcessor = (
     } else {
       await chatNotifier.notifyCrawlFailed(keyword, `${errors} errors, 0 listings sent`)
     }
+
+    // 잡 완료 로그 전송
+    await sentinelClient.submitLog({
+      type: 'crawl_complete',
+      campaign_id: campaignId,
+      keyword,
+      marketplace,
+      listings_found: totalFound,
+      listings_sent: totalSent,
+      new_listings: totalSent,
+      duplicates,
+      errors,
+      captchas: retryCount,
+      proxy_rotations: retryCount,
+      duration_ms: duration,
+    })
 
     log('info', 'jobs', `Crawl job completed: ${totalFound} found, ${totalSent} sent, ${duplicates} dup, ${errors} err`, {
       campaignId,

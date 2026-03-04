@@ -9,6 +9,7 @@ export const MARKETPLACES = {
   IT: { code: 'IT', name: 'Italy', domain: 'amazon.it', currency: 'EUR' },
   ES: { code: 'ES', name: 'Spain', domain: 'amazon.es', currency: 'EUR' },
   CA: { code: 'CA', name: 'Canada', domain: 'amazon.ca', currency: 'CAD' },
+  MX: { code: 'MX', name: 'Mexico', domain: 'amazon.com.mx', currency: 'MXN' },
   AU: { code: 'AU', name: 'Australia', domain: 'amazon.com.au', currency: 'AUD' },
 } as const
 

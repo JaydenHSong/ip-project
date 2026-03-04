@@ -3,6 +3,7 @@ import type {
   CrawlerListingRequest,
   CrawlerListingResponse,
   CrawlerBatchResponse,
+  CrawlerLogRequest,
 } from '../types/index.js'
 import { log } from '../logger.js'
 
@@ -10,6 +11,7 @@ type SentinelClient = {
   getActiveCampaigns: () => Promise<Campaign[]>
   submitListing: (data: CrawlerListingRequest) => Promise<CrawlerListingResponse>
   submitBatch: (listings: CrawlerListingRequest[]) => Promise<CrawlerBatchResponse>
+  submitLog: (logData: CrawlerLogRequest) => Promise<void>
 }
 
 const API_RETRY_MAX = 3
@@ -115,6 +117,19 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       const result = (await response.json()) as CrawlerBatchResponse
       log('info', 'api-client', `Batch result — created: ${result.created}, duplicates: ${result.duplicates}, errors: ${result.errors.length}`)
       return result
+    },
+
+    submitLog: async (logData: CrawlerLogRequest): Promise<void> => {
+      try {
+        await fetch(`${baseUrl}/api/crawler/logs`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(logData),
+        })
+      } catch {
+        // fire-and-forget: 로그 전송 실패해도 크롤링 계속
+        log('warn', 'api-client', 'Failed to submit crawler log (non-fatal)')
+      }
     },
   }
 }

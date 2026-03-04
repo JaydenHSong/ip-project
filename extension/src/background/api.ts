@@ -65,6 +65,35 @@ export const submitReport = async (payload: SubmitReportPayload): Promise<Submit
   return response.json() as Promise<SubmitReportResponse>
 }
 
+export const submitPassiveCollect = async (
+  items: { id: string; type: string; data: unknown; collected_at: string }[],
+): Promise<{ created: number; duplicates: number; errors: { asin: string; error: string }[] }> => {
+  const headers = await getHeaders()
+  const body = {
+    items: items.map((item) => ({
+      type: item.type,
+      data: item.data,
+      collected_at: item.collected_at,
+    })),
+  }
+
+  const response = await fetch(`${API_BASE}/ext/passive-collect`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }))
+    throw new ApiError(
+      errorData?.error?.message ?? `Request failed (${response.status})`,
+      response.status,
+    )
+  }
+
+  return response.json()
+}
+
 export const checkAuthStatus = async (): Promise<{
   authenticated: boolean
   user: AuthUser | null

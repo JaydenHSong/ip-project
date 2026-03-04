@@ -4,7 +4,7 @@ export type ListingImage = {
   alt: string | null
 }
 
-export type ListingSource = 'crawler' | 'extension'
+export type ListingSource = 'crawler' | 'extension' | 'extension_passive'
 
 export type Listing = {
   id: string

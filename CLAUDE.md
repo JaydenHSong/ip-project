@@ -57,6 +57,40 @@
 4. 테스트: `pnpm test`
 5. 빌드: `pnpm build`
 
+## Deployment (프로덕션 라이브 — 반드시 준수)
+
+사이트가 라이브 운영 중이므로 배포 시 아래 순서를 반드시 따른다.
+
+### 배포 순서
+
+```
+1. 로컬 검증 (필수)
+   pnpm typecheck && pnpm lint && pnpm build
+
+2. Preview 배포 (확인용)
+   npx vercel          ← Production 아님, Preview URL 생성
+   → Preview URL에서 기능 확인
+
+3. Production 배포 (확인 후)
+   npx vercel --prod   ← 실제 라이브 반영
+```
+
+### 규칙
+
+- **Preview 없이 바로 `--prod` 금지** — 반드시 Preview에서 먼저 확인
+- **DB 스키마 변경 시** — Supabase SQL Editor에서 먼저 적용 후 코드 배포
+- **환경변수 변경 시** — `npx vercel env add` 후 재배포 필요
+- **롤백 필요 시** — Vercel 대시보드에서 이전 배포로 즉시 롤백 가능
+- **Crawler (Railway)** — 별도 배포, `git push`로 자동 빌드
+
+### 배포 환경
+
+| 컴포넌트 | 플랫폼 | URL |
+|---------|--------|-----|
+| Web | Vercel | https://ip-project-khaki.vercel.app |
+| Crawler | Railway | lovely-magic 프로젝트 |
+| DB | Supabase | njbhqrrdnmiarjjpgqwd.supabase.co |
+
 ## Project Structure
 
 ```

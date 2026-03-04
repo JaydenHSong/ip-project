@@ -31,6 +31,7 @@ const MARKETPLACE_LOCALE: Record<Marketplace, { locale: string; timezone: string
   IT: { locale: 'it-IT', timezone: 'Europe/Rome' },
   ES: { locale: 'es-ES', timezone: 'Europe/Madrid' },
   CA: { locale: 'en-CA', timezone: 'America/Toronto' },
+  MX: { locale: 'es-MX', timezone: 'America/Mexico_City' },
   AU: { locale: 'en-AU', timezone: 'Australia/Sydney' },
 }
 

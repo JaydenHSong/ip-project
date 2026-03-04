@@ -13,7 +13,7 @@ import { TEMPLATE_VARIABLES } from '@/types/templates'
 import type { ReportTemplate } from '@/types/templates'
 import { Star, Pencil, Trash2, Copy, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 
-const MARKETPLACE_OPTIONS = ['US', 'UK', 'JP', 'DE', 'FR', 'IT', 'ES', 'CA']
+const MARKETPLACE_OPTIONS = ['US', 'UK', 'JP', 'DE', 'FR', 'IT', 'ES', 'CA', 'MX', 'AU']
 
 type TemplateFormData = {
   title: string

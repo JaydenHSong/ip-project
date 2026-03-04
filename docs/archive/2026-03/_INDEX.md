@@ -24,3 +24,7 @@
 | notifications | 95% | 2026-03-03 | plan, analysis, report |
 | crawler-deployment | 96.5% | 2026-03-04 | plan, analysis, report |
 | ai-learning | 94% | 2026-03-04 | plan, design, analysis, report |
+| extension-passive-collect | 99% | 2026-03-03 | plan, design, analysis, report |
+| crawler-download-ui | 97% | 2026-03-04 | plan, design, analysis, report |
+| extension-distribution | 96% | 2026-03-04 | plan, design, analysis, report |
+| crawler-logs | 96% | 2026-03-04 | plan, design, analysis, report |

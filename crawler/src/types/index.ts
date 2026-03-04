@@ -8,6 +8,7 @@ const MARKETPLACE_DOMAINS = {
   IT: 'www.amazon.it',
   ES: 'www.amazon.es',
   CA: 'www.amazon.ca',
+  MX: 'www.amazon.com.mx',
   AU: 'www.amazon.com.au',
 } as const
 
@@ -150,6 +151,26 @@ type CrawlerBatchResponse = {
   errors: { asin: string; error: string }[]
 }
 
+// Crawler → Web API 로그 전송 형식
+type CrawlerLogRequest = {
+  type: 'crawl_complete' | 'crawl_error' | 'proxy_ban' | 'captcha' | 'rate_limit' | 'api_error'
+  campaign_id?: string
+  keyword?: string
+  marketplace?: string
+  pages_crawled?: number
+  listings_found?: number
+  listings_sent?: number
+  new_listings?: number
+  duplicates?: number
+  errors?: number
+  captchas?: number
+  proxy_rotations?: number
+  duration_ms?: number
+  message?: string
+  asin?: string
+  error_code?: string
+}
+
 // 로그 엔트리
 type LogEntry = {
   timestamp: string
@@ -185,6 +206,7 @@ export type {
   CrawlerListingRequest,
   CrawlerListingResponse,
   CrawlerBatchResponse,
+  CrawlerLogRequest,
   LogEntry,
   ChatNotification,
 }
