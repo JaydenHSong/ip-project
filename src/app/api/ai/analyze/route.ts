@@ -2,7 +2,7 @@
 // POST /api/ai/analyze — 리스팅 AI 위반 분석 + 드래프트 생성
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/auth/middleware'
+import { withDualAuth } from '@/lib/auth/dual-middleware'
 import { createClient } from '@/lib/supabase/server'
 import { createClaudeClient } from '@/lib/ai/client'
 import { processAiAnalysis } from '@/lib/ai/job-processor'
@@ -12,7 +12,7 @@ import type { AiAnalyzeRequest } from '@/types/api'
 import type { Listing } from '@/types/listings'
 import type { Patent } from '@/types/patents'
 
-export const POST = withAuth(async (req: NextRequest) => {
+export const POST = withDualAuth(async (req: NextRequest) => {
   const body = await req.json() as AiAnalyzeRequest
 
   if (!body.listing_id) {
@@ -151,6 +151,33 @@ export const POST = withAuth(async (req: NextRequest) => {
       violations: [],
       summary: 'No violations detected',
     })
+  }
+
+  // Auto-approve 체크
+  if (result.reportId) {
+    try {
+      const { data: autoApproveRow } = await supabase
+        .from('system_configs')
+        .select('value')
+        .eq('key', 'auto_approve')
+        .single()
+
+      const config = autoApproveRow?.value as { enabled?: boolean; threshold?: number; types?: Record<string, boolean> } | null
+      if (config?.enabled) {
+        const vType = result.analysisResult?.evidence[0]?.type
+        const confidence = result.analysisResult?.confidence ?? 0
+        const typeEnabled = vType ? config.types?.[vType] === true : false
+
+        if (typeEnabled && confidence >= (config.threshold ?? 90)) {
+          await supabase
+            .from('reports')
+            .update({ status: 'approved', approved_by: 'system', approved_at: new Date().toISOString() })
+            .eq('id', result.reportId)
+        }
+      }
+    } catch {
+      // auto-approve 실패해도 report는 draft로 유지
+    }
   }
 
   return NextResponse.json({

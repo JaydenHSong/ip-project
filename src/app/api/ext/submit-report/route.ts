@@ -145,6 +145,25 @@ export const POST = withAuth(async (req, { user }) => {
     }
   }
 
+  // 5. AI 분석 자동 트리거 (FR-02: fire-and-forget)
+  if (!isDuplicate) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin
+    fetch(`${baseUrl}/api/ai/analyze`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: req.headers.get('cookie') ?? '',
+      },
+      body: JSON.stringify({
+        listing_id: listingId,
+        async: true,
+        source: 'extension',
+        priority: 'high',
+        violation_type: violation_type,
+      }),
+    }).catch(() => {})
+  }
+
   const response: SubmitReportResponse = {
     report_id: report.id,
     listing_id: listingId,

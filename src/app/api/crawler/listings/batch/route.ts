@@ -3,6 +3,25 @@ import { withServiceAuth } from '@/lib/auth/service-middleware'
 import { checkSuspectListing } from '@/lib/utils/suspect-filter'
 import { createClient } from '@/lib/supabase/server'
 
+// FR-01: 의심 리스팅 → AI 분석 자동 트리거 (fire-and-forget)
+const triggerAiAnalysis = (req: NextRequest, listingId: string): void => {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin
+
+  fetch(`${baseUrl}/api/ai/analyze`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.CRAWLER_SERVICE_TOKEN}`,
+    },
+    body: JSON.stringify({
+      listing_id: listingId,
+      async: true,
+      source: 'crawler',
+      priority: 'normal',
+    }),
+  }).catch(() => {})
+}
+
 type BatchListingItem = {
   asin: string
   marketplace: string
@@ -53,7 +72,7 @@ export const POST = withServiceAuth(async (req) => {
       seller_name: item.seller_name,
     })
 
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
       .from('listings')
       .insert({
         asin: item.asin,
@@ -77,6 +96,8 @@ export const POST = withServiceAuth(async (req) => {
         source_user_id: null,
         raw_data: null,
       })
+      .select('id')
+      .single()
 
     if (error) {
       if (error.code === '23505') {
@@ -86,6 +107,10 @@ export const POST = withServiceAuth(async (req) => {
       }
     } else {
       created++
+      // FR-01: 의심 리스팅 → AI 분석 자동 트리거
+      if (is_suspect && inserted?.id) {
+        triggerAiAnalysis(req, inserted.id)
+      }
     }
   }
 

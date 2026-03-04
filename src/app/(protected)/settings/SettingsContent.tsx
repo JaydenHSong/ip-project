@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { MonitoringSettings } from './MonitoringSettings'
 import { ScAutomationSettings } from './ScAutomationSettings'
+import { AutoApproveSettings } from './AutoApproveSettings'
 import { TemplatesTab } from './TemplatesTab'
 import { UserManagement } from './UserManagement'
 
@@ -13,8 +14,8 @@ type SettingsContentProps = {
 }
 
 const BASE_TABS = ['monitoring', 'templates'] as const
-const ADMIN_TABS = ['monitoring', 'sc-automation', 'templates', 'users'] as const
-type SettingsTab = 'monitoring' | 'sc-automation' | 'templates' | 'users'
+const ADMIN_TABS = ['monitoring', 'sc-automation', 'auto-approve', 'templates', 'users'] as const
+type SettingsTab = 'monitoring' | 'sc-automation' | 'auto-approve' | 'templates' | 'users'
 
 export const SettingsContent = ({ isAdmin, currentUserId }: SettingsContentProps) => {
   const { t } = useI18n()
@@ -41,15 +42,18 @@ export const SettingsContent = ({ isAdmin, currentUserId }: SettingsContentProps
               ? t('settings.monitoring.title')
               : tab === 'sc-automation'
                 ? t('settings.scAutomation.title' as Parameters<typeof t>[0])
-                : tab === 'templates'
-                  ? 'Templates'
-                  : t('settings.users.title')}
+                : tab === 'auto-approve'
+                  ? t('settings.autoApprove.title' as Parameters<typeof t>[0])
+                  : tab === 'templates'
+                    ? 'Templates'
+                    : t('settings.users.title')}
           </button>
         ))}
       </div>
 
       {activeTab === 'monitoring' && <MonitoringSettings isAdmin={isAdmin} />}
       {activeTab === 'sc-automation' && <ScAutomationSettings isAdmin={isAdmin} />}
+      {activeTab === 'auto-approve' && <AutoApproveSettings isAdmin={isAdmin} />}
       {activeTab === 'templates' && <TemplatesTab />}
       {activeTab === 'users' && isAdmin && (
         <UserManagement currentUserId={currentUserId} />

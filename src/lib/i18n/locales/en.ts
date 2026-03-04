@@ -300,6 +300,17 @@ export const en = {
       save: 'Save Settings',
       saved: 'Settings saved.',
     },
+    autoApprove: {
+      title: 'Auto-approve',
+      description: 'Automatically approve reports when AI confidence exceeds the threshold.',
+      enableAutoApprove: 'Enable Auto-approve (Global)',
+      threshold: 'Confidence Threshold',
+      thresholdDesc: 'Reports with AI confidence above this value will be auto-approved.',
+      violationTypes: 'Violation Types',
+      ipWarning: 'IP violations — Manual review recommended',
+      save: 'Save Settings',
+      saved: 'Settings saved.',
+    },
     users: {
       title: 'User Management',
       searchPlaceholder: 'Search by name or email...',

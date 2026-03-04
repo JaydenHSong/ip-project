@@ -22,3 +22,5 @@
 | crawler-engine | 96% | 2026-03-03 | plan, design, analysis, report |
 | patents-registry | 98% | 2026-03-03 | plan, design, analysis, report |
 | notifications | 95% | 2026-03-03 | plan, analysis, report |
+| crawler-deployment | 96.5% | 2026-03-04 | plan, analysis, report |
+| ai-learning | 94% | 2026-03-04 | plan, design, analysis, report |

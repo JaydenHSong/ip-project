@@ -300,6 +300,17 @@ export const ko = {
       save: '설정 저장',
       saved: '설정이 저장되었습니다.',
     },
+    autoApprove: {
+      title: '자동 승인',
+      description: 'AI 신뢰도가 임계값을 초과하면 자동으로 승인합니다.',
+      enableAutoApprove: '자동 승인 활성화 (전역)',
+      threshold: '신뢰도 임계값',
+      thresholdDesc: '이 값 이상의 AI 신뢰도를 가진 신고가 자동 승인됩니다.',
+      violationTypes: '위반 유형',
+      ipWarning: 'IP 위반 — 수동 검토 권장',
+      save: '설정 저장',
+      saved: '설정이 저장되었습니다.',
+    },
     users: {
       title: '사용자 관리',
       searchPlaceholder: '이름 또는 이메일로 검색...',
