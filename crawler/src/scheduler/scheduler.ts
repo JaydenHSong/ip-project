@@ -42,6 +42,11 @@ const syncCampaigns = async (
       // 새 반복 잡 등록
       await addRepeatableJob(queue, campaign, frequency)
       registeredCampaigns.set(campaign.id, frequency)
+
+      // 신규 캠페인 → 즉시 1회 실행 (반복 잡은 interval 후 첫 실행이라 대기 발생)
+      if (!existingFrequency) {
+        await addImmediateJob(queue, campaign)
+      }
     }
 
     // 비활성화된 캠페인 → 잡 제거
@@ -81,6 +86,27 @@ const addRepeatableJob = async (
   })
 
   log('info', 'scheduler', `Registered repeatable job: "${campaign.keyword}" (${frequency})`, {
+    campaignId: campaign.id,
+  })
+}
+
+// 신규 캠페인 즉시 1회 크롤링
+const addImmediateJob = async (
+  queue: Queue<CrawlJobData>,
+  campaign: Campaign,
+): Promise<void> => {
+  const jobData: CrawlJobData = {
+    campaignId: campaign.id,
+    keyword: campaign.keyword,
+    marketplace: campaign.marketplace,
+    maxPages: campaign.max_pages,
+  }
+
+  await queue.add(`immediate-${campaign.id}`, jobData, {
+    priority: 1, // 높은 우선순위
+  })
+
+  log('info', 'scheduler', `Queued immediate crawl for new campaign: "${campaign.keyword}"`, {
     campaignId: campaign.id,
   })
 }
