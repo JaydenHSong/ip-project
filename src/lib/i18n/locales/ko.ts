@@ -34,14 +34,14 @@ export const ko = {
     more: '더보기',
   },
   login: {
-    title: 'Sentinel',
-    subtitle: 'Spigen 브랜드 보호 플랫폼',
+    title: 'Spigen Sentinel',
+    subtitle: '브랜드 보호 플랫폼',
     signIn: 'Google로 로그인 (@spigen.com)',
     restriction: 'Spigen 사내 계정만 접속 가능합니다',
   },
   dashboard: {
     title: '대시보드',
-    greeting: '안녕하세요, {name}님. Sentinel에 오신 것을 환영합니다.',
+    greeting: '안녕하세요, {name}님. Spigen Sentinel에 오신 것을 환영합니다.',
     activeCampaigns: '활성 캠페인',
     pendingReports: '대기 중 신고',
     collectedListings: '수집 리스팅',

@@ -56,7 +56,7 @@ export const Header = ({ user }: HeaderProps) => {
     <header className="glass sticky top-0 z-40 flex h-14 items-center justify-between border-b px-4 md:h-16 md:px-6">
       <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
         <SpigenLogo className="h-6 w-5 text-th-accent" />
-        <span className="text-lg font-bold text-th-text">Sentinel</span>
+        <span className="text-lg font-bold text-th-text">Spigen Sentinel</span>
       </Link>
       <div className="hidden md:block" />
 

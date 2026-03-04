@@ -34,14 +34,14 @@ export const en = {
     more: 'More',
   },
   login: {
-    title: 'Sentinel',
-    subtitle: 'Spigen Brand Protection Platform',
+    title: 'Spigen Sentinel',
+    subtitle: 'Brand Protection Platform',
     signIn: 'Sign in with Google (@spigen.com)',
     restriction: 'Only Spigen internal accounts can access',
   },
   dashboard: {
     title: 'Dashboard',
-    greeting: 'Hello, {name}. Welcome to Sentinel.',
+    greeting: 'Hello, {name}. Welcome to Spigen Sentinel.',
     activeCampaigns: 'Active Campaigns',
     pendingReports: 'Pending Reports',
     collectedListings: 'Collected Listings',
