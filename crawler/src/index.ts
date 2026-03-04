@@ -14,15 +14,27 @@ const HEALTH_PORT = Number(process.env['PORT'] || '8080')
 const main = async (): Promise<void> => {
   const startTime = Date.now()
 
-  // 1. 환경 변수 검증
+  // 1. Health Check Server — 가장 먼저 시작 (Railway 헬스체크 통과용)
+  let redisConnected = false
+  let workerRunning = false
+
+  const healthServer = createHealthServer(HEALTH_PORT, () => ({
+    status: redisConnected && workerRunning ? 'ok' : 'degraded',
+    uptime: Math.floor((Date.now() - startTime) / 1000),
+    redis: redisConnected,
+    worker: workerRunning,
+    timestamp: new Date().toISOString(),
+  }))
+
+  // 2. 환경 변수 검증
   log('info', 'main', 'Loading configuration...')
   const config = loadConfig()
   log('info', 'main', 'Configuration loaded successfully')
 
-  // 2. Sentinel API Client 생성
+  // 3. Sentinel API Client 생성
   const sentinelClient = createSentinelClient(config.sentinelApiUrl, config.serviceToken)
 
-  // 3. Proxy Manager 생성
+  // 4. Proxy Manager 생성
   const proxyManager = createProxyManager(
     {
       host: config.proxy.host,
@@ -34,32 +46,23 @@ const main = async (): Promise<void> => {
     PROXY_POOL_SIZE,
   )
 
-  // 4. Google Chat Notifier 생성
+  // 5. Google Chat Notifier 생성
   const chatNotifier = createChatNotifier(config.googleChatWebhookUrl)
 
-  // 5. BullMQ Queue + Worker 생성 (Redis URL 문자열 전달)
+  // 6. BullMQ Queue + Worker 생성 (Redis URL 문자열 전달)
   const redisUrl = config.redis.url
   const queue = createCrawlQueue(redisUrl)
   const jobProcessor = createJobProcessor(config, sentinelClient, proxyManager, chatNotifier)
   const worker = createCrawlWorker(redisUrl, jobProcessor, config.concurrency)
 
-  // 6. Scheduler 시작
+  worker.on('error', () => { workerRunning = false })
+  worker.on('ready', () => { workerRunning = true; redisConnected = true })
+
+  // 7. Scheduler 시작
   const schedulerInterval = await startScheduler(queue, sentinelClient)
 
-  // 7. Health Check Server
-  let redisConnected = true
-  let workerRunning = true
-
-  worker.on('error', () => { workerRunning = false })
-  worker.on('ready', () => { workerRunning = true })
-
-  const healthServer = createHealthServer(HEALTH_PORT, () => ({
-    status: redisConnected && workerRunning ? 'ok' : 'degraded',
-    uptime: Math.floor((Date.now() - startTime) / 1000),
-    redis: redisConnected,
-    worker: workerRunning,
-    timestamp: new Date().toISOString(),
-  }))
+  redisConnected = true
+  workerRunning = true
 
   log('info', 'main', `Sentinel Crawler started (concurrency: ${config.concurrency})`)
 
@@ -80,11 +83,9 @@ const main = async (): Promise<void> => {
     healthServer.close()
     log('info', 'main', 'Health server closed')
 
-    // Worker 중지 (진행 중 잡 완료 대기)
     await worker.close()
     log('info', 'main', 'Worker stopped')
 
-    // Queue 연결 종료
     await queue.close()
     log('info', 'main', 'Queue closed')
 
