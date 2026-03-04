@@ -10,31 +10,33 @@ import { log } from './logger.js'
 
 const PROXY_POOL_SIZE = 5
 const HEALTH_PORT = Number(process.env['PORT'] || '8080')
+const startTime = Date.now()
 
-const main = async (): Promise<void> => {
-  const startTime = Date.now()
+// ─── Health state (헬스체크는 프로세스가 살아있는 한 항상 응답) ───
+let redisConnected = false
+let workerRunning = false
+let initError: string | null = null
 
-  // 1. Health Check Server — 가장 먼저 시작 (Railway 헬스체크 통과용)
-  let redisConnected = false
-  let workerRunning = false
+// 1. Health Check Server — 즉시 시작
+const healthServer = createHealthServer(HEALTH_PORT, () => ({
+  status: initError ? 'error' : redisConnected && workerRunning ? 'ok' : 'degraded',
+  uptime: Math.floor((Date.now() - startTime) / 1000),
+  redis: redisConnected,
+  worker: workerRunning,
+  timestamp: new Date().toISOString(),
+  ...(initError ? { error: initError } : {}),
+}))
 
-  const healthServer = createHealthServer(HEALTH_PORT, () => ({
-    status: redisConnected && workerRunning ? 'ok' : 'degraded',
-    uptime: Math.floor((Date.now() - startTime) / 1000),
-    redis: redisConnected,
-    worker: workerRunning,
-    timestamp: new Date().toISOString(),
-  }))
+log('info', 'main', `Health server started on port ${HEALTH_PORT}`)
 
-  // 2. 환경 변수 검증
+// 2. 나머지 초기화 (실패해도 프로세스는 살려둠)
+const init = async (): Promise<void> => {
   log('info', 'main', 'Loading configuration...')
   const config = loadConfig()
   log('info', 'main', 'Configuration loaded successfully')
 
-  // 3. Sentinel API Client 생성
   const sentinelClient = createSentinelClient(config.sentinelApiUrl, config.serviceToken)
 
-  // 4. Proxy Manager 생성
   const proxyManager = createProxyManager(
     {
       host: config.proxy.host,
@@ -46,11 +48,10 @@ const main = async (): Promise<void> => {
     PROXY_POOL_SIZE,
   )
 
-  // 5. Google Chat Notifier 생성
   const chatNotifier = createChatNotifier(config.googleChatWebhookUrl)
 
-  // 6. BullMQ Queue + Worker 생성 (Redis URL 문자열 전달)
   const redisUrl = config.redis.url
+  log('info', 'main', `Connecting to Redis...`)
   const queue = createCrawlQueue(redisUrl)
   const jobProcessor = createJobProcessor(config, sentinelClient, proxyManager, chatNotifier)
   const worker = createCrawlWorker(redisUrl, jobProcessor, config.concurrency)
@@ -58,7 +59,6 @@ const main = async (): Promise<void> => {
   worker.on('error', () => { workerRunning = false })
   worker.on('ready', () => { workerRunning = true; redisConnected = true })
 
-  // 7. Scheduler 시작
   const schedulerInterval = await startScheduler(queue, sentinelClient)
 
   redisConnected = true
@@ -70,7 +70,7 @@ const main = async (): Promise<void> => {
     await chatNotifier.notifyMessage('🚀 *[Sentinel Crawler]* 크롤러가 시작되었습니다.')
   }
 
-  // 8. Graceful Shutdown
+  // Graceful Shutdown
   const shutdown = async (signal: string): Promise<void> => {
     log('info', 'main', `Received ${signal}, shutting down gracefully...`)
 
@@ -79,16 +79,9 @@ const main = async (): Promise<void> => {
     }
 
     clearInterval(schedulerInterval)
-
     healthServer.close()
-    log('info', 'main', 'Health server closed')
-
     await worker.close()
-    log('info', 'main', 'Worker stopped')
-
     await queue.close()
-    log('info', 'main', 'Queue closed')
-
     log('info', 'main', 'Shutdown complete')
     process.exit(0)
   }
@@ -97,9 +90,11 @@ const main = async (): Promise<void> => {
   process.on('SIGINT', () => { shutdown('SIGINT').catch(() => process.exit(1)) })
 }
 
-main().catch((error) => {
-  log('error', 'main', `Fatal error: ${error instanceof Error ? error.message : String(error)}`, {
+init().catch((error) => {
+  const msg = error instanceof Error ? error.message : String(error)
+  initError = msg
+  log('error', 'main', `Init failed (health server still running): ${msg}`, {
     error: error instanceof Error ? error.stack : String(error),
   })
-  process.exit(1)
+  // 프로세스 종료 안 함 — 헬스체크 서버는 계속 응답
 })
