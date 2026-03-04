@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: 'Amazon marketplace brand protection platform',
   icons: {
     icon: '/favicon.png',
+    apple: '/apple-touch-icon.png',
   },
 }
 
