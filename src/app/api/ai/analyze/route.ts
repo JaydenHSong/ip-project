@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withDualAuth } from '@/lib/auth/dual-middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClaudeClient } from '@/lib/ai/client'
 import { processAiAnalysis } from '@/lib/ai/job-processor'
 import { findBestTemplate } from '@/lib/ai/templates/matcher'
@@ -30,7 +31,9 @@ export const POST = withDualAuth(async (req: NextRequest) => {
     )
   }
 
-  const supabase = await createClient()
+  // 서비스 토큰 모드 → admin client (RLS 우회), 사용자 세션 → 쿠키 기반
+  const isServiceToken = req.headers.get('authorization')?.startsWith('Bearer ')
+  const supabase = isServiceToken ? createAdminClient() : await createClient()
 
   // 리스팅 조회
   const { data: listing, error: listingError } = await supabase

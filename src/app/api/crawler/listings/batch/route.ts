@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withServiceAuth } from '@/lib/auth/service-middleware'
 import { checkSuspectListing } from '@/lib/utils/suspect-filter'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // FR-01: 의심 리스팅 → AI 분석 자동 트리거 (fire-and-forget)
 const triggerAiAnalysis = (req: NextRequest, listingId: string): void => {
@@ -52,7 +52,7 @@ export const POST = withServiceAuth(async (req) => {
     )
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   let created = 0
   let duplicates = 0
