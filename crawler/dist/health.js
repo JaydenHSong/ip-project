@@ -7,17 +7,18 @@ const parseBody = (req) => new Promise((resolve, reject) => {
     req.on('error', reject);
 });
 const createHealthServer = (options) => {
-    const { port, getStatus, queue, serviceToken } = options;
+    const { port, getStatus, serviceToken } = options;
     const server = createServer(async (req, res) => {
+        const pathname = new URL(req.url ?? '/', 'http://localhost').pathname;
         // Health check
-        if (req.url === '/health' && req.method === 'GET') {
+        if (pathname === '/health' && req.method === 'GET') {
             const status = getStatus();
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(status));
             return;
         }
         // Trigger campaign crawl — POST /trigger
-        if (req.url === '/trigger' && req.method === 'POST') {
+        if (pathname === '/trigger' && req.method === 'POST') {
             // Auth check
             const authHeader = req.headers['authorization'];
             if (serviceToken && authHeader !== `Bearer ${serviceToken}`) {
@@ -25,6 +26,7 @@ const createHealthServer = (options) => {
                 res.end(JSON.stringify({ error: 'Unauthorized' }));
                 return;
             }
+            const queue = options.queue;
             if (!queue) {
                 res.writeHead(503, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: 'Queue not available' }));
