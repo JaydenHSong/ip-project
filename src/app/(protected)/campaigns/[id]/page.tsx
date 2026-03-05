@@ -108,35 +108,28 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
     campaign = data as unknown as CampaignData
 
     const { count: tc } = await supabase
-      .from('campaign_listings')
+      .from('listings')
       .select('*', { count: 'exact', head: true })
-      .eq('campaign_id', id)
+      .eq('source_campaign_id', id)
     totalListings = tc ?? 0
 
-    const suspectQuery = await supabase
-      .from('campaign_listings')
-      .select('listing_id')
-      .eq('campaign_id', id)
+    const { count: sc } = await supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .eq('source_campaign_id', id)
+      .eq('is_suspect', true)
+    suspectCount = sc ?? 0
 
-    const listingIds = (suspectQuery.data ?? []).map((l) => l.listing_id)
+    const { data: listingData } = await supabase
+      .from('listings')
+      .select('id, asin, title, seller_name, is_suspect, source')
+      .eq('source_campaign_id', id)
+      .order('is_suspect', { ascending: false })
+      .limit(50)
+    listings = (listingData ?? []) as ListingRow[]
 
-    if (listingIds.length > 0) {
-      const { count } = await supabase
-        .from('listings')
-        .select('*', { count: 'exact', head: true })
-        .in('id', listingIds)
-        .eq('is_suspect', true)
-      suspectCount = count ?? 0
-
-      const { data: listingData } = await supabase
-        .from('listings')
-        .select('id, asin, title, seller_name, is_suspect, source')
-        .in('id', listingIds)
-        .order('is_suspect', { ascending: false })
-        .limit(50)
-      listings = (listingData ?? []) as ListingRow[]
-
-      // Fetch reports for these listings
+    if (listings.length > 0) {
+      const listingIds = listings.map((l) => l.id)
       const { data: reportData } = await supabase
         .from('reports')
         .select('id, listing_id, status, user_violation_type, ai_violation_type, ai_confidence_score, confirmed_violation_type, disagreement_flag, draft_title, draft_body, rejection_reason, sc_case_id, created_at, approved_at, rejected_at')
