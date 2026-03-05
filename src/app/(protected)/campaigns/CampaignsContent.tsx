@@ -28,6 +28,8 @@ type Campaign = {
   max_pages: number
   status: string
   created_at: string
+  total_listings?: number | null
+  last_crawled_at?: string | null
   users?: { name: string } | null
 }
 
@@ -121,8 +123,8 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                 <div className="mt-2 flex items-center gap-3 text-xs text-th-text-muted">
                   <span>{MARKETPLACES[campaign.marketplace as MarketplaceCode]?.name ?? campaign.marketplace}</span>
                   <span>{FREQ_LABEL[campaign.frequency] ?? campaign.frequency}</span>
+                  <span className="font-medium text-th-text-secondary">{campaign.total_listings ?? 0} {t('campaigns.collected')}</span>
                   {campaign.users?.name && <span>{campaign.users.name}</span>}
-                  <span>{new Date(campaign.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
             </Link>
@@ -139,6 +141,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.marketplace')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.frequency')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.pages')}</th>
+              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.collected')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.createdBy')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.created')}</th>
@@ -147,7 +150,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
           <tbody className="divide-y divide-th-border">
             {(!campaigns || campaigns.length === 0) ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-th-text-muted">{t('campaigns.noCampaigns')}</td>
+                <td colSpan={8} className="px-4 py-12 text-center text-th-text-muted">{t('campaigns.noCampaigns')}</td>
               </tr>
             ) : (
               campaigns.map((campaign) => (
@@ -166,6 +169,9 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{FREQ_LABEL[campaign.frequency] ?? campaign.frequency}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{campaign.max_pages}</td>
+                  <td className="px-4 py-3.5">
+                    <span className="font-medium text-th-text">{campaign.total_listings ?? 0}</span>
+                  </td>
                   <td className="px-4 py-3.5">
                     <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
                   </td>
