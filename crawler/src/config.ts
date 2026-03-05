@@ -48,7 +48,7 @@ const loadConfig = (): CrawlerConfig => {
       username: check('BRIGHTDATA_PROXY_USER'),
       password: check('BRIGHTDATA_PROXY_PASS'),
     },
-    concurrency: Number(optionalEnv('CRAWLER_CONCURRENCY', '3')),
+    concurrency: Number(optionalEnv('CRAWLER_CONCURRENCY', '1')),
     pageDelayMin: Number(optionalEnv('CRAWLER_PAGE_DELAY_MIN', '2000')),
     pageDelayMax: Number(optionalEnv('CRAWLER_PAGE_DELAY_MAX', '5000')),
     detailDelayMin: Number(optionalEnv('CRAWLER_DETAIL_DELAY_MIN', '1500')),

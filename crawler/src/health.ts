@@ -53,6 +53,58 @@ const createHealthServer = (options: HealthServerOptions): Server => {
       return
     }
 
+    // Proxy connectivity test — GET /diag/proxy
+    if (pathname === '/diag/proxy' && req.method === 'GET') {
+      const authHeader = req.headers['authorization']
+      if (serviceToken && authHeader !== `Bearer ${serviceToken}`) {
+        res.writeHead(401, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Unauthorized' }))
+        return
+      }
+
+      const proxyConf = options.proxyConfig
+      if (!proxyConf) {
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'No proxy configured' }))
+        return
+      }
+
+      const results: Record<string, unknown> = {
+        proxy: `${proxyConf.host}:${proxyConf.port}`,
+        username: proxyConf.username.slice(0, 20) + '...',
+      }
+
+      // Test 1: Direct fetch (no proxy) to httpbin
+      try {
+        const directRes = await fetch('https://httpbin.org/ip', {
+          signal: AbortSignal.timeout(10_000),
+        })
+        const directData = await directRes.json() as { origin: string }
+        results['direct_ip'] = directData.origin
+      } catch (e) {
+        results['direct_ip'] = `ERROR: ${e instanceof Error ? e.message : String(e)}`
+      }
+
+      // Test 2: Playwright with proxy to httpbin
+      try {
+        const testBrowser = await chromium.launch({ headless: true })
+        const fp = generateFingerprint('US')
+        const ctx = await createStealthContext(testBrowser, fp, proxyConf)
+        const p = await ctx.newPage()
+        await p.goto('https://httpbin.org/ip', { timeout: 15_000 })
+        const body = await p.textContent('body')
+        results['proxy_ip'] = body?.trim()
+        await ctx.close()
+        await testBrowser.close()
+      } catch (e) {
+        results['proxy_ip'] = `ERROR: ${e instanceof Error ? e.message : String(e)}`
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify(results, null, 2))
+      return
+    }
+
     // Trigger campaign crawl — POST /trigger
     if (pathname === '/trigger' && req.method === 'POST') {
       // Auth check

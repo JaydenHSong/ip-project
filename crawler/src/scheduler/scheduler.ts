@@ -90,7 +90,9 @@ const addRepeatableJob = async (
   })
 }
 
-// 신규 캠페인 즉시 1회 크롤링
+// 신규 캠페인 지연 실행 (캠페인 간 간격을 두어 동시 접속 방지)
+let immediateJobIndex = 0
+
 const addImmediateJob = async (
   queue: Queue<CrawlJobData>,
   campaign: Campaign,
@@ -102,11 +104,17 @@ const addImmediateJob = async (
     maxPages: campaign.max_pages,
   }
 
+  // 캠페인마다 2~5분 간격으로 stagger (동시 접속 방지)
+  const delayMs = immediateJobIndex * (2 * 60 * 1000 + Math.floor(Math.random() * 3 * 60 * 1000))
+  immediateJobIndex++
+
   await queue.add(`immediate-${campaign.id}`, jobData, {
-    priority: 1, // 높은 우선순위
+    priority: 1,
+    delay: delayMs,
   })
 
-  log('info', 'scheduler', `Queued immediate crawl for new campaign: "${campaign.keyword}"`, {
+  const delayMin = Math.round(delayMs / 60_000)
+  log('info', 'scheduler', `Queued crawl for "${campaign.keyword}" (starts in ~${delayMin}min)`, {
     campaignId: campaign.id,
   })
 }
