@@ -57,7 +57,7 @@ const generateDraft = async (
     model: MODEL_ROLES.worker,
     systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
-    maxTokens: 4096,
+    maxTokens: 2048,
     temperature: 0.4,
     cacheSystemPrompt: true,
   })

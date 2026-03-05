@@ -17,20 +17,22 @@ const DRAFT_PROMPT_TEMPLATE = `Generate a formal violation report draft for Amaz
 {{TEMPLATE_SECTION}}
 
 ## Draft Guidelines
-1. Use professional, formal English
-2. Be specific — cite exact text/images that violate policy
-3. Include Amazon policy references
-4. Keep the title concise (under 100 chars)
-5. Structure the body with clear sections:
-   - Violation Summary
-   - Evidence Description
-   - Policy Reference
-   - Requested Action
+1. Be CONCISE — keep the entire draft_body under 200 words. Amazon reviewers prefer short, direct reports.
+2. Use professional, formal English. No filler phrases or unnecessary context.
+3. Cite only the most critical evidence — 1-2 specific examples, not exhaustive lists.
+4. Keep the title concise (under 80 chars): "[Violation Type] - [ASIN]"
+5. Structure the body as a single brief message:
+   - 1 sentence: what the violation is
+   - 1-2 sentences: key evidence (exact text/image reference)
+   - 1 sentence: policy reference
+   - 1 sentence: requested action
+6. Do NOT include greetings like "Dear Amazon Seller Support" or closing pleasantries.
+7. Go straight to the point — state the violation, evidence, and request.
 
 ## Response Format (JSON only)
 {
-  "draft_title": "Trademark Infringement - [ASIN] - Unauthorized Spigen Branding",
-  "draft_body": "Dear Amazon Seller Support,\n\nWe are writing to report...",
+  "draft_title": "Trademark Infringement - [ASIN]",
+  "draft_body": "ASIN [ASIN] by seller [name] uses unauthorized Spigen branding in the title and images...",
   "draft_evidence": [
     {
       "type": "screenshot",
