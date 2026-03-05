@@ -44,7 +44,7 @@ const loadConfig = (): CrawlerConfig => {
     },
     proxy: {
       host: check('BRIGHTDATA_PROXY_HOST'),
-      port: Number(optionalEnv('BRIGHTDATA_PROXY_PORT', '22225')),
+      port: Number(optionalEnv('BRIGHTDATA_PROXY_PORT', '33335')),
       username: check('BRIGHTDATA_PROXY_USER'),
       password: check('BRIGHTDATA_PROXY_PASS'),
     },

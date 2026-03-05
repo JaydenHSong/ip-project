@@ -21,6 +21,15 @@ let initError: string | null = null
 // Queue reference for trigger endpoint
 let crawlQueue: ReturnType<typeof createCrawlQueue> | null = null
 
+// Proxy config for /fetch endpoint (loaded early, before full init)
+const proxyHost = process.env['BRIGHTDATA_PROXY_HOST']
+const proxyPort = Number(process.env['BRIGHTDATA_PROXY_PORT'] || '33335')
+const proxyUser = process.env['BRIGHTDATA_PROXY_USER']
+const proxyPass = process.env['BRIGHTDATA_PROXY_PASS']
+const fetchProxyConfig = proxyHost && proxyUser && proxyPass
+  ? { host: proxyHost, port: proxyPort, username: proxyUser, password: proxyPass, protocol: 'http' as const }
+  : undefined
+
 const healthServer = createHealthServer({
   port: HEALTH_PORT,
   getStatus: () => ({
@@ -33,6 +42,7 @@ const healthServer = createHealthServer({
   }),
   get queue() { return crawlQueue ?? undefined },
   serviceToken: process.env['CRAWLER_SERVICE_TOKEN'],
+  proxyConfig: fetchProxyConfig,
 })
 
 log('info', 'main', `Health server started on port ${HEALTH_PORT}`)
