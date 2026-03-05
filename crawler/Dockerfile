@@ -20,7 +20,7 @@ COPY src/ ./src/
 RUN pnpm build
 
 # ─── Stage 2: Production ─────────────────────────────────
-FROM mcr.microsoft.com/playwright:v1.49.1-noble
+FROM mcr.microsoft.com/playwright:v1.58.2-noble
 
 # Install pnpm (corepack has signing key issues in this image)
 RUN npm install -g pnpm
