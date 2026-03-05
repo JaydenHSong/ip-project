@@ -318,7 +318,7 @@ const createJobProcessor = (
       await chatNotifier.notifyCrawlFailed(keyword, `${errors} errors, 0 listings sent`)
     }
 
-    // 잡 완료 로그 전송
+    // 잡 완료 로그 전송 (페르소나 정보 포함)
     await sentinelClient.submitLog({
       type: 'crawl_complete',
       campaign_id: campaignId,
@@ -332,6 +332,14 @@ const createJobProcessor = (
       captchas: retryCount,
       proxy_rotations: retryCount,
       duration_ms: duration,
+      message: JSON.stringify({
+        persona: persona.name,
+        typing: persona.typing.charDelayMin + '-' + persona.typing.charDelayMax,
+        scroll: persona.scroll.pixelsPerStepMin + '-' + persona.scroll.pixelsPerStepMax,
+        dwell: persona.dwell.detailPageDwellMin + '-' + persona.dwell.detailPageDwellMax,
+        nav_products_per_page: persona.navigation.productsToViewPerPage,
+        success: errors === 0,
+      }),
     })
 
     log('info', 'jobs', `Crawl completed: ${totalFound} found, ${totalSent} sent, ${duplicates} dup, ${errors} err (persona: ${persona.name})`, {
