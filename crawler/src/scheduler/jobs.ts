@@ -285,6 +285,25 @@ const createJobProcessor = (
       }
 
       await context.close()
+    } catch (fatalError) {
+      // 모든 실패를 로그로 전송 (타임아웃, CAPTCHA 등)
+      const fatalMsg = fatalError instanceof Error ? fatalError.message : String(fatalError)
+      log('error', 'jobs', `Crawl failed fatally: ${fatalMsg}`, { campaignId })
+
+      sentinelClient.submitLog({
+        type: 'crawl_error',
+        campaign_id: campaignId,
+        keyword,
+        marketplace,
+        message: fatalMsg,
+        error_code: fatalMsg.includes('Timeout') ? 'TIMEOUT' :
+          fatalMsg.includes('CAPTCHA') ? 'CAPTCHA' : 'FATAL_ERROR',
+        errors: errors + 1,
+        captchas: retryCount,
+        duration_ms: Date.now() - startTime,
+      }).catch(() => {})
+
+      errors++
     } finally {
       if (browser) await browser.close()
     }
