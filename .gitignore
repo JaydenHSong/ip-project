@@ -21,6 +21,13 @@ node_modules/
 # Build
 .next/
 out/
+crawler/dist/
+extension/dist/
+extension/sentinel-extension/
+extension/sentinel-extension.zip
+
+# PDCA snapshots (auto-generated)
+docs/.pdca-snapshots/
 
 # IDE
 .vscode/
