@@ -23,6 +23,9 @@ type SearchResult = {
   sponsored: boolean
   pageNumber: number
   positionInPage: number
+  sellerName: string | null
+  brand: string | null
+  isSpigen: boolean
 }
 
 // 상세 페이지에서 추출한 전체 데이터
@@ -70,6 +73,9 @@ type CrawlResult = {
   duplicates: number
   errors: number
   duration: number
+  spigenSkipped: number
+  pagesCrawled: number
+  personaName: string
 }
 
 // 프록시 설정

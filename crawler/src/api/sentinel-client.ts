@@ -5,13 +5,40 @@ import type {
   CrawlerBatchResponse,
   CrawlerLogRequest,
 } from '../types/index.js'
+import type { PersonaRanges } from '../anti-bot/persona-ranges.js'
 import { log } from '../logger.js'
+
+type ScSubmitResult = {
+  reportId: string
+  success: boolean
+  scCaseId: string | null
+  error: string | null
+}
+
+type CampaignResultUpdate = {
+  found: number
+  sent: number
+  duplicates: number
+  errors: number
+  spigen_skipped: number
+  pages_crawled: number
+  violations_suspected: number
+  duration_ms: number
+  persona_name: string
+  success: boolean
+}
 
 type SentinelClient = {
   getActiveCampaigns: () => Promise<Campaign[]>
   submitListing: (data: CrawlerListingRequest) => Promise<CrawlerListingResponse>
   submitBatch: (listings: CrawlerListingRequest[]) => Promise<CrawlerBatchResponse>
   submitLog: (logData: CrawlerLogRequest) => Promise<void>
+  updateCampaignResult: (campaignId: string, result: CampaignResultUpdate) => Promise<void>
+  getPersonaRanges: () => Promise<PersonaRanges | null>
+  getPendingScSubmits: () => Promise<unknown[]>
+  reportScResult: (result: ScSubmitResult) => Promise<void>
+  getPendingResubmits: () => Promise<{ reports: unknown[]; defaults: unknown }>
+  strengthenDraft: (reportId: string) => Promise<void>
 }
 
 const API_RETRY_MAX = 3
@@ -129,6 +156,78 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       } catch {
         // fire-and-forget: 로그 전송 실패해도 크롤링 계속
         log('warn', 'api-client', 'Failed to submit crawler log (non-fatal)')
+      }
+    },
+
+    updateCampaignResult: async (campaignId: string, result: CampaignResultUpdate): Promise<void> => {
+      try {
+        await fetchWithRetry(
+          `${baseUrl}/api/crawler/campaigns/${campaignId}/result`,
+          { method: 'PATCH', headers, body: JSON.stringify(result) },
+        )
+      } catch {
+        log('warn', 'api-client', 'Failed to update campaign result (non-fatal)')
+      }
+    },
+
+    getPersonaRanges: async (): Promise<PersonaRanges | null> => {
+      try {
+        const response = await fetch(`${baseUrl}/api/ai/persona-ranges`, {
+          method: 'GET',
+          headers,
+        })
+        if (!response.ok) return null
+        const data = (await response.json()) as { ranges: PersonaRanges | null }
+        return data.ranges
+      } catch {
+        return null
+      }
+    },
+
+    getPendingScSubmits: async (): Promise<unknown[]> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/sc-pending`,
+        { method: 'GET', headers },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to fetch SC pending: ${response.status} ${body}`)
+      }
+      const data = (await response.json()) as { reports: unknown[] }
+      return data.reports
+    },
+
+    reportScResult: async (result: ScSubmitResult): Promise<void> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/sc-result`,
+        { method: 'POST', headers, body: JSON.stringify(result) },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to report SC result: ${response.status} ${body}`)
+      }
+    },
+
+    getPendingResubmits: async (): Promise<{ reports: unknown[]; defaults: unknown }> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/resubmit-pending`,
+        { method: 'GET', headers },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to fetch resubmit pending: ${response.status} ${body}`)
+      }
+      return (await response.json()) as { reports: unknown[]; defaults: unknown }
+    },
+
+    strengthenDraft: async (reportId: string): Promise<void> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/ai/strengthen`,
+        { method: 'POST', headers, body: JSON.stringify({ report_id: reportId }) },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to strengthen draft: ${response.status} ${body}`)
       }
     },
   }

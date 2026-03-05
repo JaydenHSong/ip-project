@@ -6,6 +6,7 @@ import { humanBehavior } from '../anti-bot/human-behavior.js'
 import { captureScreenshot } from './screenshot.js'
 import type { CrawlPersona } from '../anti-bot/persona.js'
 import type { VisionAnalyzer } from '../ai/vision-analyzer.js'
+import { isSpigenProduct } from '../anti-bot/persona-ranges.js'
 import { log } from '../logger.js'
 
 const SEARCH_BAR_SELECTOR = '#twotabsearchtextbox'
@@ -230,6 +231,14 @@ const scrapeSearchPage = async (
       const sponsoredEl = await item.$(SEARCH_SELECTORS.sponsored)
       const sponsored = sponsoredEl !== null
 
+      // brand 추출 ("by Brand" 텍스트)
+      const brandEl = await item.$('.a-size-base-plus.a-color-base, .a-row .a-size-base:not(.a-price)')
+      const brandText = brandEl ? (await brandEl.textContent())?.trim().replace(/^by\s+/i, '') ?? null : null
+
+      // seller 추출 (일부 검색 결과에 표시됨)
+      const sellerEl = await item.$('.a-size-small .a-color-secondary')
+      const sellerText = sellerEl ? (await sellerEl.textContent())?.trim() ?? null : null
+
       results.push({
         asin,
         title,
@@ -238,6 +247,9 @@ const scrapeSearchPage = async (
         sponsored,
         pageNumber,
         positionInPage: i + 1,
+        sellerName: sellerText,
+        brand: brandText,
+        isSpigen: isSpigenProduct(title, brandText, sellerText),
       })
     } catch {
       log('warn', 'search-page', `Failed to parse search result at position ${i + 1}`, {
@@ -266,6 +278,9 @@ const scrapeSearchPage = async (
         sponsored: product.is_sponsored,
         pageNumber,
         positionInPage: product.position,
+        sellerName: null,
+        brand: null,
+        isSpigen: isSpigenProduct(product.title, null, null),
       })
     }
 

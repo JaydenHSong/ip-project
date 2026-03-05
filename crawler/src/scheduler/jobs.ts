@@ -14,13 +14,14 @@ import type { VisionAnalyzer } from '../ai/vision-analyzer.js'
 import { generateFingerprint } from '../anti-bot/fingerprint.js'
 import { createStealthContext } from '../anti-bot/stealth.js'
 import { generatePersona } from '../anti-bot/persona.js'
+import { loadSuccessRanges } from '../anti-bot/persona-ranges.js'
 import { humanBehavior } from '../anti-bot/human-behavior.js'
 import { navigateToHome, performSearch, scrapeSearchPage, goToNextPage } from '../scraper/search-page.js'
 import { scrapeDetailPage, clickIntoProduct } from '../scraper/detail-page.js'
 import { captureScreenshot } from '../scraper/screenshot.js'
+import { selectClickTargets } from './click-strategy.js'
 import { log } from '../logger.js'
 
-// 캠페인 1건 크롤링 잡 프로세서
 const createJobProcessor = (
   config: CrawlerConfig,
   sentinelClient: SentinelClient,
@@ -33,8 +34,9 @@ const createJobProcessor = (
     const startTime = Date.now()
     const mp = marketplace as Marketplace
 
-    // 세션별 랜덤 페르소나 생성
-    const persona = generatePersona()
+    // AI 학습 결과에서 성공 범위 로드 → 동적 페르소나 생성
+    const successRanges = await loadSuccessRanges(sentinelClient)
+    const persona = generatePersona(undefined, successRanges)
     log('info', 'jobs', `Starting crawl: "${keyword}" (${marketplace}, ${maxPages}p, persona: ${persona.name})`, {
       campaignId,
     })
@@ -45,14 +47,14 @@ const createJobProcessor = (
     let duplicates = 0
     let errors = 0
     let retryCount = 0
+    let spigenSkipped = 0
+    let lastPageNum = 0
 
     try {
       browser = await chromium.launch({ headless: true })
 
-      // 프록시 가져오기
       let proxyConfig = proxyManager.getNextProxy()
 
-      // Stealth 브라우저 컨텍스트 생성
       const fingerprint = generateFingerprint(mp)
       let context = await createStealthContext(
         browser,
@@ -61,10 +63,9 @@ const createJobProcessor = (
       )
       let page = await context.newPage()
 
-      // ─── 1단계: 홈페이지 접속 ───
+      // ─── 1: Home ───
       const homeStatus = await navigateToHome(page, mp, persona, vision)
       if (homeStatus === 'blocked') {
-        // 프록시 교체 후 재시도
         if (proxyConfig) proxyManager.reportFailure(proxyConfig)
         proxyConfig = proxyManager.getNextProxy()
         await context.close()
@@ -78,49 +79,44 @@ const createJobProcessor = (
         }
       }
 
-      // ─── 2단계: 검색 실행 ───
+      // ─── 2: Search ───
       await performSearch(page, keyword, persona, vision)
 
-      // ─── 3단계: 검색 결과 페이지 순회 ───
+      // ─── 3: Page loop ───
       for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+        lastPageNum = pageNum
         try {
           const searchResults = await scrapeSearchPage(page, mp, keyword, pageNum, persona, vision)
           totalFound += searchResults.length
 
-          // 각 상품 상세 페이지 방문
-          const listings: CrawlerListingRequest[] = []
+          // Spigen 자사 제품 필터링
+          const nonSpigenResults = searchResults.filter(r => !r.isSpigen)
+          const pageSpigenCount = searchResults.length - nonSpigenResults.length
+          spigenSkipped += pageSpigenCount
 
-          // 페르소나에 따라 볼 상품 수 결정
-          const maxProductsToView = Math.min(
-            searchResults.length,
-            persona.navigation.productsToViewPerPage,
-          )
-
-          // 스폰서 상품 필터링 (페르소나에 따라)
-          const productsToVisit: number[] = []
-          for (let i = 0; i < searchResults.length && productsToVisit.length < maxProductsToView; i++) {
-            const result = searchResults[i]!
-            if (result.sponsored && Math.random() < persona.click.skipSponsoredProbability) {
-              continue // 스폰서 건너뛰기
-            }
-            productsToVisit.push(i)
+          if (pageSpigenCount > 0) {
+            log('info', 'jobs', `Skipped ${pageSpigenCount} Spigen products on page ${pageNum}`, { campaignId })
           }
 
-          for (const productIndex of productsToVisit) {
-            const result = searchResults[productIndex]!
+          // 스마트 클릭: 랜덤 셔플로 선택
+          const clickTargets = selectClickTargets(nonSpigenResults, persona)
+
+          const listings: CrawlerListingRequest[] = []
+
+          for (const target of clickTargets) {
+            const result = nonSpigenResults[target.index]!
 
             try {
-              // 상품 클릭 딜레이 (사람처럼)
               await humanBehavior.delay(
                 persona.navigation.backToNextClickDelayMin,
                 persona.navigation.backToNextClickDelayMax,
               )
 
-              // 검색 결과에서 상품 클릭하여 상세 진입
-              const clicked = await clickIntoProduct(page, productIndex, persona)
+              // 원본 searchResults에서의 인덱스를 찾아 클릭
+              const originalIndex = searchResults.findIndex(r => r.asin === result.asin)
+              const clicked = await clickIntoProduct(page, originalIndex, persona)
 
               if (!clicked) {
-                // 클릭 실패 → URL 직접 이동 (fallback)
                 const { MARKETPLACE_DOMAINS } = await import('../types/index.js')
                 const domain = MARKETPLACE_DOMAINS[mp]
                 await page.goto(`https://${domain}/dp/${result.asin}`, {
@@ -129,10 +125,8 @@ const createJobProcessor = (
                 })
               }
 
-              // 상세 페이지 스크래핑
               const detail = await scrapeDetailPage(page, mp, result.asin, persona, vision)
 
-              // 스크린샷 캡처
               const screenshot = await captureScreenshot(
                 page,
                 config.screenshotWidth,
@@ -158,11 +152,9 @@ const createJobProcessor = (
                 screenshot_base64: screenshot,
               })
 
-              // 뒤로가기로 검색 결과 복귀
               if (persona.navigation.useBackButton) {
                 await page.goBack({ waitUntil: 'domcontentloaded', timeout: 15_000 })
               } else {
-                // 뒤로가기 대신 검색 결과 URL로 (탭 유저 시뮬레이션)
                 await page.goBack({ waitUntil: 'domcontentloaded', timeout: 15_000 })
               }
 
@@ -170,7 +162,6 @@ const createJobProcessor = (
               const errorMsg = error instanceof Error ? error.message : String(error)
 
               if (errorMsg === 'CAPTCHA_DETECTED') {
-                // CAPTCHA → 프록시 교체
                 if (proxyConfig) proxyManager.reportFailure(proxyConfig)
                 retryCount++
 
@@ -199,7 +190,6 @@ const createJobProcessor = (
                   throw new Error('MAX_RETRIES_EXCEEDED')
                 }
 
-                // 새 프록시 + 새 페르소나로 컨텍스트 재생성
                 proxyConfig = proxyManager.getNextProxy()
                 await context.close()
                 const newFingerprint = generateFingerprint(mp)
@@ -210,7 +200,6 @@ const createJobProcessor = (
                 )
                 page = await context.newPage()
 
-                // 홈부터 다시 시작
                 await navigateToHome(page, mp, persona, vision)
                 await performSearch(page, keyword, persona, vision)
 
@@ -218,28 +207,25 @@ const createJobProcessor = (
                   campaignId,
                   asin: result.asin,
                 })
-                break // 현재 페이지 결과 포기, 다음 페이지로
+                break
               }
 
-              // 다른 에러는 스킵
               log('warn', 'jobs', `Failed to scrape detail for ${result.asin}: ${errorMsg}`, {
                 campaignId,
                 asin: result.asin,
               })
               errors++
 
-              // 상세 페이지에서 에러 → 뒤로가기 시도
               try {
                 await page.goBack({ waitUntil: 'domcontentloaded', timeout: 10_000 })
               } catch {
-                // goBack 실패 → 검색 재실행
                 await navigateToHome(page, mp, persona, vision)
                 await performSearch(page, keyword, persona, vision)
               }
             }
           }
 
-          // 배치 전송
+          // Batch submit
           if (listings.length > 0) {
             try {
               const batchResult = await sentinelClient.submitBatch(listings)
@@ -261,10 +247,9 @@ const createJobProcessor = (
             }
           }
 
-          // 프록시 성공 보고
           if (proxyConfig) proxyManager.reportSuccess(proxyConfig)
 
-          // 다음 페이지 이동 (클릭 방식)
+          // Next page
           if (pageNum < maxPages) {
             const hasNext = await goToNextPage(page, persona, vision)
             if (!hasNext) {
@@ -286,7 +271,6 @@ const createJobProcessor = (
 
       await context.close()
     } catch (fatalError) {
-      // 모든 실패를 로그로 전송 (타임아웃, CAPTCHA 등)
       const fatalMsg = fatalError instanceof Error ? fatalError.message : String(fatalError)
       log('error', 'jobs', `Crawl failed fatally: ${fatalMsg}`, { campaignId })
 
@@ -309,16 +293,40 @@ const createJobProcessor = (
     }
 
     const duration = Date.now() - startTime
-    const result: CrawlResult = { campaignId, totalFound, totalSent, duplicates, errors, duration }
+    const result: CrawlResult = {
+      campaignId,
+      totalFound,
+      totalSent,
+      duplicates,
+      errors,
+      duration,
+      spigenSkipped,
+      pagesCrawled: lastPageNum,
+      personaName: persona.name,
+    }
 
-    // Google Chat 알림
+    // Campaign result update (fire-and-forget)
+    sentinelClient.updateCampaignResult(campaignId, {
+      found: totalFound,
+      sent: totalSent,
+      duplicates,
+      errors,
+      spigen_skipped: spigenSkipped,
+      pages_crawled: lastPageNum,
+      violations_suspected: 0,
+      duration_ms: duration,
+      persona_name: persona.name,
+      success: errors === 0 || totalSent > 0,
+    }).catch(() => {})
+
+    // Google Chat
     if (errors === 0 || totalSent > 0) {
       await chatNotifier.notifyCrawlComplete(keyword, result)
     } else {
       await chatNotifier.notifyCrawlFailed(keyword, `${errors} errors, 0 listings sent`)
     }
 
-    // 잡 완료 로그 전송 (페르소나 정보 포함)
+    // Crawl complete log (persona config for AI learning)
     await sentinelClient.submitLog({
       type: 'crawl_complete',
       campaign_id: campaignId,
@@ -338,11 +346,12 @@ const createJobProcessor = (
         scroll: persona.scroll.pixelsPerStepMin + '-' + persona.scroll.pixelsPerStepMax,
         dwell: persona.dwell.detailPageDwellMin + '-' + persona.dwell.detailPageDwellMax,
         nav_products_per_page: persona.navigation.productsToViewPerPage,
+        spigen_skipped: spigenSkipped,
         success: errors === 0,
       }),
     })
 
-    log('info', 'jobs', `Crawl completed: ${totalFound} found, ${totalSent} sent, ${duplicates} dup, ${errors} err (persona: ${persona.name})`, {
+    log('info', 'jobs', `Crawl completed: ${totalFound} found, ${totalSent} sent, ${duplicates} dup, ${errors} err, ${spigenSkipped} spigen (persona: ${persona.name})`, {
       campaignId,
       duration,
     })
