@@ -259,7 +259,7 @@ const clickIntoProduct = async (
     await clickTarget.click()
   }
 
-  await page.waitForLoadState('domcontentloaded', { timeout: 30_000 })
+  await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
   return true
 }
 

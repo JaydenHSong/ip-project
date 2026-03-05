@@ -23,7 +23,7 @@ const navigateToHome = async (
   const domain = MARKETPLACE_DOMAINS[marketplace]
   log('info', 'search-page', `Navigating to Amazon homepage: ${domain}`)
 
-  await page.goto(`https://${domain}`, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+  await page.goto(`https://${domain}`, { waitUntil: 'domcontentloaded', timeout: 60_000 })
 
   // 쿠키 배너 처리 (있으면 수락)
   try {
@@ -86,7 +86,7 @@ const performSearch = async (
         // 클릭 후 직접 타이핑
         await humanBehavior.typeWithPersona(page, ':focus', keyword, persona.typing)
         await page.keyboard.press('Enter')
-        await page.waitForLoadState('domcontentloaded', { timeout: 30_000 })
+        await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
         return
       }
     }
@@ -94,7 +94,7 @@ const performSearch = async (
     // AI로도 못 찾으면 URL 이동 (최후 수단)
     log('warn', 'search-page', 'AI could not find search bar, falling back to URL navigation')
     const url = buildSearchUrl(page.url().includes('amazon') ? page.url().split('/')[2]! : 'www.amazon.com', keyword, 1)
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 })
     return
   }
 
@@ -103,7 +103,7 @@ const performSearch = async (
     log('warn', 'search-page', 'Search bar not found, falling back to URL navigation')
     const domain = new URL(page.url()).hostname
     const url = buildSearchUrl(domain, keyword, 1)
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 })
     return
   }
 
@@ -133,7 +133,7 @@ const performSearch = async (
     }
   }
 
-  await page.waitForLoadState('domcontentloaded', { timeout: 30_000 })
+  await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
 }
 
 // ─── 검색 URL 생성 (fallback용) ───
@@ -157,11 +157,11 @@ const detectBlock = async (page: Page): Promise<boolean> => {
   if (captcha) return true
 
   const title = await page.title()
-  if (title.includes('Sorry') || title.includes('Robot Check')) return true
+  if (title.includes('Sorry') || title.includes('Robot Check') || title.includes('CAPTCHA')) return true
 
-  // 페이지 내용 너무 적으면 차단 의심
-  const bodyLength = await page.evaluate(() => document.body.innerText.length)
-  if (bodyLength < 100) return true
+  // URL로 차단 감지 (아마존이 리다이렉트하는 경우)
+  const url = page.url()
+  if (url.includes('/errors/validateCaptcha') || url.includes('/ap/captcha')) return true
 
   return false
 }
@@ -319,7 +319,7 @@ const goToNextPage = async (
     await humanBehavior.moveMouse(page, SEARCH_SELECTORS.nextPage)
     await humanBehavior.delay(200, 500)
     await nextButton.click()
-    await page.waitForLoadState('domcontentloaded', { timeout: 30_000 })
+    await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
     return true
   }
 
@@ -337,7 +337,7 @@ const goToNextPage = async (
         await humanBehavior.moveMouseToCoords(page, x, y)
         await humanBehavior.delay(200, 500)
         await page.mouse.click(x, y)
-        await page.waitForLoadState('domcontentloaded', { timeout: 30_000 })
+        await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
         return true
       }
     }

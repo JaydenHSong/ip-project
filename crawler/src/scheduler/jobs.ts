@@ -51,7 +51,19 @@ const createJobProcessor = (
     let lastPageNum = 0
 
     try {
-      browser = await chromium.launch({ headless: true })
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          '--disable-blink-features=AutomationControlled',
+          '--disable-features=IsolateOrigins,site-per-process',
+          '--disable-infobars',
+          '--no-first-run',
+          '--no-default-browser-check',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+        ],
+      })
 
       let proxyConfig = proxyManager.getNextProxy()
 
@@ -121,7 +133,7 @@ const createJobProcessor = (
                 const domain = MARKETPLACE_DOMAINS[mp]
                 await page.goto(`https://${domain}/dp/${result.asin}`, {
                   waitUntil: 'domcontentloaded',
-                  timeout: 30_000,
+                  timeout: 60_000,
                 })
               }
 

@@ -7,6 +7,7 @@ import { generateFingerprint } from './anti-bot/fingerprint.js'
 import { createStealthContext } from './anti-bot/stealth.js'
 import { generatePersona } from './anti-bot/persona.js'
 import { scrapeDetailPage, buildDetailUrl } from './scraper/detail-page.js'
+import { navigateToHome, performSearch, detectBlock } from './scraper/search-page.js'
 import { captureScreenshot } from './scraper/screenshot.js'
 import { humanBehavior } from './anti-bot/human-behavior.js'
 import type { VisionAnalyzer } from './ai/vision-analyzer.js'
@@ -87,7 +88,16 @@ const createHealthServer = (options: HealthServerOptions): Server => {
 
       // Test 2: Playwright with proxy to httpbin
       try {
-        const testBrowser = await chromium.launch({ headless: true })
+        const testBrowser = await chromium.launch({
+            headless: true,
+            args: [
+              '--disable-blink-features=AutomationControlled',
+              '--disable-features=IsolateOrigins,site-per-process',
+              '--disable-infobars',
+              '--no-first-run',
+              '--no-default-browser-check',
+            ],
+          })
         const fp = generateFingerprint('US')
         const ctx = await createStealthContext(testBrowser, fp, proxyConf)
         const p = await ctx.newPage()
@@ -191,47 +201,133 @@ const createHealthServer = (options: HealthServerOptions): Server => {
 
         log('info', 'fetch', `Fetching ASIN ${data.asin} (${mp})`)
 
-        const browser = await chromium.launch({ headless: true })
-        try {
-          const fingerprint = generateFingerprint(mp)
-          const persona = generatePersona()
-          const context = await createStealthContext(browser, fingerprint, options.proxyConfig)
-          const page = await context.newPage()
+        const vision = options.vision ?? null
+        const MAX_RETRIES = 2
+        let lastError: string = ''
 
-          // 홈 접속 → 상품 URL로 이동 (단건 ASIN 조회는 직접 이동 허용)
-          const detailUrl = buildDetailUrl(mp, data.asin)
-          await page.goto(`https://${MARKETPLACE_DOMAINS[mp]}`, {
-            waitUntil: 'domcontentloaded',
-            timeout: 30_000,
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          const browser = await chromium.launch({
+            headless: true,
+            args: [
+              '--disable-blink-features=AutomationControlled',
+              '--disable-features=IsolateOrigins,site-per-process',
+              '--disable-infobars',
+              '--no-first-run',
+              '--no-default-browser-check',
+            ],
           })
-          await humanBehavior.delay(1000, 3000)
-          await page.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+          try {
+            const fingerprint = generateFingerprint(mp)
+            const persona = generatePersona()
+            // 재시도마다 새 세션 ID로 다른 IP 사용
+            const proxyForAttempt = options.proxyConfig
+              ? {
+                  ...options.proxyConfig,
+                  username: `${options.proxyConfig.username}-f${Math.random().toString(36).slice(2, 8)}`,
+                }
+              : undefined
+            const context = await createStealthContext(browser, fingerprint, proxyForAttempt)
+            const page = await context.newPage()
 
-          const listing = await scrapeDetailPage(page, mp, data.asin, persona, options.vision ?? undefined)
-          const screenshotBase64 = await captureScreenshot(page, 1280, 800)
+            const domain = MARKETPLACE_DOMAINS[mp]
 
-          const domain = MARKETPLACE_DOMAINS[mp]
-          const url = `https://${domain}/dp/${data.asin}`
+            // ── 메인 크롤러와 동일한 접근 방식 사용 ──
 
-          await context.close()
+            // 1단계: 홈 접속 (쿠키 배너 처리, 봇 차단 체크, 페르소나 기반 체류)
+            const homeStatus = await navigateToHome(page, mp, persona, vision)
+            if (homeStatus === 'blocked') {
+              throw new Error('CAPTCHA_DETECTED')
+            }
 
-          log('info', 'fetch', `Fetched ASIN ${data.asin}: "${listing.title.slice(0, 50)}..."`)
+            // 2단계: 검색창에 ASIN 타이핑 → Enter (마우스 이동, 페르소나 타이핑, 랜덤 Enter/클릭)
+            await performSearch(page, data.asin, persona, vision)
 
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(JSON.stringify({
-            success: true,
-            listing,
-            screenshot_base64: screenshotBase64,
-            url,
-          }))
-        } finally {
-          await browser.close()
+            // 3단계: 검색 결과 차단 체크
+            if (await detectBlock(page)) {
+              throw new Error('CAPTCHA_DETECTED')
+            }
+
+            // 4단계: 검색 결과 체류 (페르소나 기반)
+            await humanBehavior.delay(
+              persona.navigation.searchToClickDelayMin,
+              persona.navigation.searchToClickDelayMax,
+            )
+
+            // 5단계: 검색 결과에서 해당 ASIN 클릭 (또는 fallback)
+            const asinLink = await page.$(`[data-asin="${data.asin}"] h2 a, [data-asin="${data.asin}"] .s-image`)
+            if (asinLink) {
+              // 마우스를 상품 위로 이동 후 클릭 (사람처럼)
+              if (persona.click.hoverBeforeClick) {
+                const box = await asinLink.boundingBox()
+                if (box) {
+                  await humanBehavior.moveMouseToCoords(
+                    page,
+                    box.x + Math.random() * box.width,
+                    box.y + Math.random() * box.height,
+                  )
+                  await humanBehavior.delay(200, 600)
+                }
+              }
+              await asinLink.click()
+              await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
+            } else {
+              // 검색 결과에 없으면 상세 URL로 이동 (검색 컨텍스트가 있으므로 덜 의심)
+              const detailUrl = buildDetailUrl(mp, data.asin)
+              await humanBehavior.delay(1000, 2000)
+              await page.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+            }
+
+            // 6단계: 상세 페이지 차단 체크
+            if (await detectBlock(page)) {
+              throw new Error('CAPTCHA_DETECTED')
+            }
+
+            // 7단계: 상세 페이지에서 사람처럼 행동 (이미지 갤러리 탐색, 리뷰 스크롤 등)
+            await humanBehavior.browseDetailPage(page, persona)
+
+            // 8단계: 스크래핑 + 스크린샷
+            const listing = await scrapeDetailPage(page, mp, data.asin, persona, vision ?? undefined)
+            const screenshotBase64 = await captureScreenshot(page, 1280, 800)
+
+            const url = `https://${domain}/dp/${data.asin}`
+
+            await context.close()
+            await browser.close()
+
+            log('info', 'fetch', `Fetched ASIN ${data.asin}: "${listing.title.slice(0, 50)}..." (attempt ${attempt + 1}, persona: ${persona.name})`)
+
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({
+              success: true,
+              listing,
+              screenshot_base64: screenshotBase64,
+              url,
+            }))
+            return
+          } catch (error) {
+            await browser.close()
+            lastError = error instanceof Error ? error.message : String(error)
+
+            if (lastError === 'CAPTCHA_DETECTED' && attempt < MAX_RETRIES) {
+              const waitSec = (attempt + 1) * 5
+              log('warn', 'fetch', `CAPTCHA detected on attempt ${attempt + 1}, retrying in ${waitSec}s with new proxy session... (persona will regenerate)`, { asin: data.asin })
+              await humanBehavior.delay(waitSec * 1000, waitSec * 1000 + 2000)
+              continue
+            }
+
+            // 마지막 시도이거나 CAPTCHA가 아닌 에러
+            break
+          }
         }
+
+        log('error', 'fetch', `Fetch failed after ${MAX_RETRIES + 1} attempts: ${lastError}`, { asin: data.asin })
+        const status = lastError === 'CAPTCHA_DETECTED' ? 503 : 500
+        res.writeHead(status, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: lastError }))
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         log('error', 'fetch', `Fetch failed: ${message}`)
-        const status = message === 'CAPTCHA_DETECTED' ? 503 : 500
-        res.writeHead(status, { 'Content-Type': 'application/json' })
+        res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: message }))
       }
       return

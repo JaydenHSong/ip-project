@@ -20,7 +20,7 @@ const createProxyManager = (
   const pool: ManagedProxy[] = Array.from({ length: poolSize }, (_, i) => ({
     config: {
       ...baseConfig,
-      username: `${baseConfig.username}-session-${Date.now()}-${i}`,
+      username: `${baseConfig.username}-session-s${Math.random().toString(36).slice(2, 8)}${i}`,
     },
     status: 'active' as ProxyStatus,
     failCount: 0,

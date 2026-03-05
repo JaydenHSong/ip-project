@@ -17,6 +17,8 @@ const applyStealthSettings = async (context: BrowserContext): Promise<void> => {
         connect: () => {},
         sendMessage: () => {},
       },
+      csi: () => {},
+      loadTimes: () => {},
     }
 
     // navigator.plugins 위장 (빈 배열 방지)
@@ -31,6 +33,31 @@ const applyStealthSettings = async (context: BrowserContext): Promise<void> => {
     // navigator.languages 위장
     Object.defineProperty(navigator, 'languages', {
       get: () => ['en-US', 'en'],
+    })
+
+    // navigator.hardwareConcurrency 위장 (봇은 보통 1~2)
+    Object.defineProperty(navigator, 'hardwareConcurrency', {
+      get: () => [4, 8, 12, 16][Math.floor(Math.random() * 4)],
+    })
+
+    // navigator.deviceMemory 위장
+    Object.defineProperty(navigator, 'deviceMemory', {
+      get: () => [4, 8, 16][Math.floor(Math.random() * 3)],
+    })
+
+    // navigator.maxTouchPoints 위장 (데스크톱)
+    Object.defineProperty(navigator, 'maxTouchPoints', {
+      get: () => 0,
+    })
+
+    // navigator.connection 위장
+    Object.defineProperty(navigator, 'connection', {
+      get: () => ({
+        effectiveType: '4g',
+        rtt: 50,
+        downlink: 10,
+        saveData: false,
+      }),
     })
 
     // permissions.query 위장
@@ -57,6 +84,20 @@ const applyStealthSettings = async (context: BrowserContext): Promise<void> => {
       }
       return getParameter.call(this, parameter)
     }
+
+    // Notification.permission 위장
+    Object.defineProperty(Notification, 'permission', {
+      get: () => 'default',
+    })
+
+    // 자동화 도구 탐지 변수 제거
+    const automationProps = [
+      '_phantom', '__nightmare', '_selenium', 'callPhantom',
+      '_Recaptcha', 'domAutomation', 'domAutomationController',
+    ]
+    for (const prop of automationProps) {
+      delete (window as unknown as Record<string, unknown>)[prop]
+    }
   })
 }
 
@@ -74,6 +115,19 @@ const createStealthContext = async (
     permissions: [],
     javaScriptEnabled: true,
     ignoreHTTPSErrors: true,
+    extraHTTPHeaders: {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': `${fingerprint.locale},en;q=0.9`,
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Sec-Ch-Ua': '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+    },
   }
 
   if (proxy) {
