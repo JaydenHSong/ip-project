@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml* ./
 
 # Install all dependencies (including devDependencies for tsc)
-RUN pnpm install --frozen-lockfile 2>/dev/null || pnpm install
+RUN pnpm install --no-frozen-lockfile
 
 # Copy source
 COPY tsconfig.json ./
@@ -31,7 +31,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml* ./
 
 # Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod 2>/dev/null || pnpm install --prod
+RUN pnpm install --no-frozen-lockfile --prod
 
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
