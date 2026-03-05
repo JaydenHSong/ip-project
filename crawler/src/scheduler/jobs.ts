@@ -49,8 +49,8 @@ const createJobProcessor = (
     try {
       browser = await chromium.connectOverCDP(config.browserWs)
 
-      let context = browser.contexts()[0] ?? await browser.newContext()
-      let page = context.pages()[0] ?? await context.newPage()
+      let context = await browser.newContext()
+      let page = await context.newPage()
 
       // ─── 1: Home ───
       const homeStatus = await navigateToHome(page, mp, persona, vision)

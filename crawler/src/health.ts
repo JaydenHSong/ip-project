@@ -74,8 +74,8 @@ const createHealthServer = (options: HealthServerOptions): Server => {
 
       try {
         const testBrowser = await chromium.connectOverCDP(browserWs)
-        const ctx = testBrowser.contexts()[0] ?? await testBrowser.newContext()
-        const p = ctx.pages()[0] ?? await ctx.newPage()
+        const ctx = await testBrowser.newContext()
+        const p = await ctx.newPage()
         await p.goto('https://httpbin.org/ip', { timeout: 30_000 })
         const body = await p.textContent('body')
         results['browser_ip'] = body?.trim()
@@ -192,8 +192,8 @@ const createHealthServer = (options: HealthServerOptions): Server => {
           const browser = await chromium.connectOverCDP(browserWs)
           try {
             const persona = generatePersona()
-            const context = browser.contexts()[0] ?? await browser.newContext()
-            const page = context.pages()[0] ?? await context.newPage()
+            const context = await browser.newContext()
+            const page = await context.newPage()
 
             const domain = MARKETPLACE_DOMAINS[mp]
 
