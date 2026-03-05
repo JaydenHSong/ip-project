@@ -6,6 +6,7 @@ import { createCrawlQueue, createCrawlWorker } from './scheduler/queue.js'
 import { createJobProcessor } from './scheduler/jobs.js'
 import { startScheduler } from './scheduler/scheduler.js'
 import { createHealthServer } from './health.js'
+import { createVisionAnalyzer } from './ai/vision-analyzer.js'
 import { log } from './logger.js'
 
 const PROXY_POOL_SIZE = 5
@@ -30,6 +31,13 @@ const fetchProxyConfig = proxyHost && proxyUser && proxyPass
   ? { host: proxyHost, port: proxyPort, username: proxyUser, password: proxyPass, protocol: 'http' as const }
   : undefined
 
+// AI Vision for /fetch endpoint (loaded early)
+const earlyAnthropicKey = process.env['ANTHROPIC_API_KEY']
+const earlyAiEnabled = process.env['AI_VISION_ENABLED'] !== 'false'
+const fetchVision = earlyAnthropicKey && earlyAiEnabled
+  ? createVisionAnalyzer(earlyAnthropicKey, process.env['AI_VISION_MODEL'])
+  : null
+
 const healthServer = createHealthServer({
   port: HEALTH_PORT,
   getStatus: () => ({
@@ -43,6 +51,7 @@ const healthServer = createHealthServer({
   get queue() { return crawlQueue ?? undefined },
   serviceToken: process.env['CRAWLER_SERVICE_TOKEN'],
   proxyConfig: fetchProxyConfig,
+  vision: fetchVision,
 })
 
 log('info', 'main', `Health server started on port ${HEALTH_PORT}`)
@@ -68,11 +77,19 @@ const init = async (): Promise<void> => {
 
   const chatNotifier = createChatNotifier(config.googleChatWebhookUrl)
 
+  // AI Vision (fetchVision과 동일 인스턴스 재사용)
+  const vision = fetchVision
+  if (vision) {
+    log('info', 'main', 'AI Vision enabled (fallback mode)')
+  } else {
+    log('warn', 'main', 'AI Vision disabled — selector-only mode')
+  }
+
   const redisUrl = config.redis.url
   log('info', 'main', `Connecting to Redis...`)
   const queue = createCrawlQueue(redisUrl)
   crawlQueue = queue
-  const jobProcessor = createJobProcessor(config, sentinelClient, proxyManager, chatNotifier)
+  const jobProcessor = createJobProcessor(config, sentinelClient, proxyManager, chatNotifier, vision)
   const worker = createCrawlWorker(redisUrl, jobProcessor, config.concurrency)
 
   worker.on('error', () => { workerRunning = false })

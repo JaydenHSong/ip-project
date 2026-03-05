@@ -5,8 +5,11 @@ import type { CrawlJobData, Marketplace, ProxyConfig } from './types/index.js'
 import { MARKETPLACE_DOMAINS } from './types/index.js'
 import { generateFingerprint } from './anti-bot/fingerprint.js'
 import { createStealthContext } from './anti-bot/stealth.js'
-import { scrapeDetailPage } from './scraper/detail-page.js'
+import { generatePersona } from './anti-bot/persona.js'
+import { scrapeDetailPage, buildDetailUrl } from './scraper/detail-page.js'
 import { captureScreenshot } from './scraper/screenshot.js'
+import { humanBehavior } from './anti-bot/human-behavior.js'
+import type { VisionAnalyzer } from './ai/vision-analyzer.js'
 import { log } from './logger.js'
 
 type HealthStatus = {
@@ -25,6 +28,7 @@ type HealthServerOptions = {
   queue?: Queue<CrawlJobData>
   serviceToken?: string
   proxyConfig?: ProxyConfig
+  vision?: VisionAnalyzer | null
 }
 
 const parseBody = (req: IncomingMessage): Promise<string> =>
@@ -138,10 +142,20 @@ const createHealthServer = (options: HealthServerOptions): Server => {
         const browser = await chromium.launch({ headless: true })
         try {
           const fingerprint = generateFingerprint(mp)
+          const persona = generatePersona()
           const context = await createStealthContext(browser, fingerprint, options.proxyConfig)
           const page = await context.newPage()
 
-          const listing = await scrapeDetailPage(page, mp, data.asin)
+          // 홈 접속 → 상품 URL로 이동 (단건 ASIN 조회는 직접 이동 허용)
+          const detailUrl = buildDetailUrl(mp, data.asin)
+          await page.goto(`https://${MARKETPLACE_DOMAINS[mp]}`, {
+            waitUntil: 'domcontentloaded',
+            timeout: 30_000,
+          })
+          await humanBehavior.delay(1000, 3000)
+          await page.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+
+          const listing = await scrapeDetailPage(page, mp, data.asin, persona, options.vision ?? undefined)
           const screenshotBase64 = await captureScreenshot(page, 1280, 800)
 
           const domain = MARKETPLACE_DOMAINS[mp]
