@@ -1,15 +1,17 @@
 import { loadConfig } from './config.js'
 import { createSentinelClient } from './api/sentinel-client.js'
-import { createProxyManager } from './anti-bot/proxy.js'
 import { createChatNotifier } from './notifications/google-chat.js'
 import { createCrawlQueue, createCrawlWorker } from './scheduler/queue.js'
 import { createJobProcessor } from './scheduler/jobs.js'
 import { startScheduler } from './scheduler/scheduler.js'
+import { createScSubmitQueue, createScSubmitWorker } from './sc-submit/queue.js'
+import { processScSubmitJob } from './sc-submit/worker.js'
+import { startScScheduler } from './sc-submit/scheduler.js'
+import { startResubmitScheduler } from './sc-submit/resubmit-scheduler.js'
 import { createHealthServer } from './health.js'
 import { createVisionAnalyzer } from './ai/vision-analyzer.js'
 import { log } from './logger.js'
 
-const PROXY_POOL_SIZE = 5
 const HEALTH_PORT = Number(process.env['PORT'] || '8080')
 const startTime = Date.now()
 
@@ -22,14 +24,8 @@ let initError: string | null = null
 // Queue reference for trigger endpoint
 let crawlQueue: ReturnType<typeof createCrawlQueue> | null = null
 
-// Proxy config for /fetch endpoint (loaded early, before full init)
-const proxyHost = process.env['BRIGHTDATA_PROXY_HOST']
-const proxyPort = Number(process.env['BRIGHTDATA_PROXY_PORT'] || '33335')
-const proxyUser = process.env['BRIGHTDATA_PROXY_USER']
-const proxyPass = process.env['BRIGHTDATA_PROXY_PASS']
-const fetchProxyConfig = proxyHost && proxyUser && proxyPass
-  ? { host: proxyHost, port: proxyPort, username: proxyUser, password: proxyPass, protocol: 'http' as const }
-  : undefined
+// Browser API WebSocket URL for /fetch endpoint
+const earlyBrowserWs = process.env['BRIGHTDATA_BROWSER_WS']
 
 // AI Vision for /fetch endpoint (loaded early)
 const earlyAnthropicKey = process.env['ANTHROPIC_API_KEY']
@@ -50,7 +46,7 @@ const healthServer = createHealthServer({
   }),
   get queue() { return crawlQueue ?? undefined },
   serviceToken: process.env['CRAWLER_SERVICE_TOKEN'],
-  proxyConfig: fetchProxyConfig,
+  browserWs: earlyBrowserWs,
   vision: fetchVision,
 })
 
@@ -63,17 +59,6 @@ const init = async (): Promise<void> => {
   log('info', 'main', 'Configuration loaded successfully')
 
   const sentinelClient = createSentinelClient(config.sentinelApiUrl, config.serviceToken)
-
-  const proxyManager = createProxyManager(
-    {
-      host: config.proxy.host,
-      port: config.proxy.port,
-      username: config.proxy.username,
-      password: config.proxy.password,
-      protocol: 'http',
-    },
-    PROXY_POOL_SIZE,
-  )
 
   const chatNotifier = createChatNotifier(config.googleChatWebhookUrl)
 
@@ -89,13 +74,28 @@ const init = async (): Promise<void> => {
   log('info', 'main', `Connecting to Redis...`)
   const queue = createCrawlQueue(redisUrl)
   crawlQueue = queue
-  const jobProcessor = createJobProcessor(config, sentinelClient, proxyManager, chatNotifier, vision)
+  const jobProcessor = createJobProcessor(config, sentinelClient, chatNotifier, vision)
   const worker = createCrawlWorker(redisUrl, jobProcessor, config.concurrency)
 
   worker.on('error', () => { workerRunning = false })
   worker.on('ready', () => { workerRunning = true; redisConnected = true })
 
   const schedulerInterval = await startScheduler(queue, sentinelClient)
+
+  // SC Submit Queue + Worker + Schedulers
+  const scQueue = createScSubmitQueue(redisUrl)
+  const scWorker = createScSubmitWorker(redisUrl, async (job) => {
+    const result = await processScSubmitJob(job)
+    // Report result to Sentinel Web API
+    await sentinelClient.reportScResult(result).catch((err) => {
+      log('error', 'main', `Failed to report SC result: ${err instanceof Error ? err.message : String(err)}`)
+    })
+    return result
+  })
+  const scSchedulerInterval = startScScheduler(scQueue, sentinelClient)
+  const resubmitSchedulerInterval = startResubmitScheduler(scQueue, sentinelClient)
+
+  log('info', 'main', 'SC submit queue + worker + schedulers started')
 
   redisConnected = true
   workerRunning = true
@@ -115,7 +115,11 @@ const init = async (): Promise<void> => {
     }
 
     clearInterval(schedulerInterval)
+    clearInterval(scSchedulerInterval)
+    clearInterval(resubmitSchedulerInterval)
     healthServer.close()
+    await scWorker.close()
+    await scQueue.close()
     await worker.close()
     await queue.close()
     log('info', 'main', 'Shutdown complete')

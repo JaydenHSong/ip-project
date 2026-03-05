@@ -6,12 +6,7 @@ type CrawlerConfig = {
   redis: {
     url: string
   }
-  proxy: {
-    host: string
-    port: number
-    username: string
-    password: string
-  }
+  browserWs: string
   concurrency: number
   pageDelayMin: number
   pageDelayMax: number
@@ -42,12 +37,7 @@ const loadConfig = (): CrawlerConfig => {
     redis: {
       url: process.env['REDIS_URL'] || check('UPSTASH_REDIS_URL'),
     },
-    proxy: {
-      host: check('BRIGHTDATA_PROXY_HOST'),
-      port: Number(optionalEnv('BRIGHTDATA_PROXY_PORT', '33335')),
-      username: check('BRIGHTDATA_PROXY_USER'),
-      password: check('BRIGHTDATA_PROXY_PASS'),
-    },
+    browserWs: check('BRIGHTDATA_BROWSER_WS'),
     concurrency: Number(optionalEnv('CRAWLER_CONCURRENCY', '1')),
     pageDelayMin: Number(optionalEnv('CRAWLER_PAGE_DELAY_MIN', '2000')),
     pageDelayMax: Number(optionalEnv('CRAWLER_PAGE_DELAY_MAX', '5000')),

@@ -1,10 +1,8 @@
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http'
 import { chromium } from 'playwright'
 import type { Queue } from 'bullmq'
-import type { CrawlJobData, Marketplace, ProxyConfig } from './types/index.js'
+import type { CrawlJobData, Marketplace } from './types/index.js'
 import { MARKETPLACE_DOMAINS } from './types/index.js'
-import { generateFingerprint } from './anti-bot/fingerprint.js'
-import { createStealthContext } from './anti-bot/stealth.js'
 import { generatePersona } from './anti-bot/persona.js'
 import { scrapeDetailPage, buildDetailUrl } from './scraper/detail-page.js'
 import { navigateToHome, performSearch, detectBlock } from './scraper/search-page.js'
@@ -28,7 +26,7 @@ type HealthServerOptions = {
   getStatus: HealthCheckFn
   queue?: Queue<CrawlJobData>
   serviceToken?: string
-  proxyConfig?: ProxyConfig
+  browserWs?: string
   vision?: VisionAnalyzer | null
 }
 
@@ -54,8 +52,8 @@ const createHealthServer = (options: HealthServerOptions): Server => {
       return
     }
 
-    // Proxy connectivity test — GET /diag/proxy
-    if (pathname === '/diag/proxy' && req.method === 'GET') {
+    // Browser API connectivity test — GET /diag/browser
+    if (pathname === '/diag/browser' && req.method === 'GET') {
       const authHeader = req.headers['authorization']
       if (serviceToken && authHeader !== `Bearer ${serviceToken}`) {
         res.writeHead(401, { 'Content-Type': 'application/json' })
@@ -63,51 +61,29 @@ const createHealthServer = (options: HealthServerOptions): Server => {
         return
       }
 
-      const proxyConf = options.proxyConfig
-      if (!proxyConf) {
+      const browserWs = options.browserWs
+      if (!browserWs) {
         res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: 'No proxy configured' }))
+        res.end(JSON.stringify({ error: 'No Browser API configured' }))
         return
       }
 
       const results: Record<string, unknown> = {
-        proxy: `${proxyConf.host}:${proxyConf.port}`,
-        username: proxyConf.username.slice(0, 20) + '...',
+        browserWs: browserWs.replace(/:[^:@]+@/, ':***@'),
       }
 
-      // Test 1: Direct fetch (no proxy) to httpbin
       try {
-        const directRes = await fetch('https://httpbin.org/ip', {
-          signal: AbortSignal.timeout(10_000),
-        })
-        const directData = await directRes.json() as { origin: string }
-        results['direct_ip'] = directData.origin
-      } catch (e) {
-        results['direct_ip'] = `ERROR: ${e instanceof Error ? e.message : String(e)}`
-      }
-
-      // Test 2: Playwright with proxy to httpbin
-      try {
-        const testBrowser = await chromium.launch({
-            headless: true,
-            args: [
-              '--disable-blink-features=AutomationControlled',
-              '--disable-features=IsolateOrigins,site-per-process',
-              '--disable-infobars',
-              '--no-first-run',
-              '--no-default-browser-check',
-            ],
-          })
-        const fp = generateFingerprint('US')
-        const ctx = await createStealthContext(testBrowser, fp, proxyConf)
-        const p = await ctx.newPage()
-        await p.goto('https://httpbin.org/ip', { timeout: 15_000 })
+        const testBrowser = await chromium.connectOverCDP(browserWs)
+        const ctx = testBrowser.contexts()[0] ?? await testBrowser.newContext()
+        const p = ctx.pages()[0] ?? await ctx.newPage()
+        await p.goto('https://httpbin.org/ip', { timeout: 30_000 })
         const body = await p.textContent('body')
-        results['proxy_ip'] = body?.trim()
-        await ctx.close()
+        results['browser_ip'] = body?.trim()
+        results['status'] = 'connected'
         await testBrowser.close()
       } catch (e) {
-        results['proxy_ip'] = `ERROR: ${e instanceof Error ? e.message : String(e)}`
+        results['browser_ip'] = `ERROR: ${e instanceof Error ? e.message : String(e)}`
+        results['status'] = 'failed'
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -202,32 +178,22 @@ const createHealthServer = (options: HealthServerOptions): Server => {
         log('info', 'fetch', `Fetching ASIN ${data.asin} (${mp})`)
 
         const vision = options.vision ?? null
+        const browserWs = options.browserWs
+        if (!browserWs) {
+          res.writeHead(503, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Browser API not configured' }))
+          return
+        }
+
         const MAX_RETRIES = 2
         let lastError: string = ''
 
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const browser = await chromium.launch({
-            headless: true,
-            args: [
-              '--disable-blink-features=AutomationControlled',
-              '--disable-features=IsolateOrigins,site-per-process',
-              '--disable-infobars',
-              '--no-first-run',
-              '--no-default-browser-check',
-            ],
-          })
+          const browser = await chromium.connectOverCDP(browserWs)
           try {
-            const fingerprint = generateFingerprint(mp)
             const persona = generatePersona()
-            // 재시도마다 새 세션 ID로 다른 IP 사용
-            const proxyForAttempt = options.proxyConfig
-              ? {
-                  ...options.proxyConfig,
-                  username: `${options.proxyConfig.username}-f${Math.random().toString(36).slice(2, 8)}`,
-                }
-              : undefined
-            const context = await createStealthContext(browser, fingerprint, proxyForAttempt)
-            const page = await context.newPage()
+            const context = browser.contexts()[0] ?? await browser.newContext()
+            const page = context.pages()[0] ?? await context.newPage()
 
             const domain = MARKETPLACE_DOMAINS[mp]
 
@@ -291,7 +257,6 @@ const createHealthServer = (options: HealthServerOptions): Server => {
 
             const url = `https://${domain}/dp/${data.asin}`
 
-            await context.close()
             await browser.close()
 
             log('info', 'fetch', `Fetched ASIN ${data.asin}: "${listing.title.slice(0, 50)}..." (attempt ${attempt + 1}, persona: ${persona.name})`)

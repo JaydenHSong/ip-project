@@ -8,11 +8,8 @@ import type {
 } from '../types/index.js'
 import type { CrawlerConfig } from '../config.js'
 import type { SentinelClient } from '../api/sentinel-client.js'
-import type { ProxyManager } from '../anti-bot/proxy.js'
 import type { ChatNotifier } from '../notifications/google-chat.js'
 import type { VisionAnalyzer } from '../ai/vision-analyzer.js'
-import { generateFingerprint } from '../anti-bot/fingerprint.js'
-import { createStealthContext } from '../anti-bot/stealth.js'
 import { generatePersona } from '../anti-bot/persona.js'
 import { loadSuccessRanges } from '../anti-bot/persona-ranges.js'
 import { humanBehavior } from '../anti-bot/human-behavior.js'
@@ -25,7 +22,6 @@ import { log } from '../logger.js'
 const createJobProcessor = (
   config: CrawlerConfig,
   sentinelClient: SentinelClient,
-  proxyManager: ProxyManager,
   chatNotifier: ChatNotifier,
   vision: VisionAnalyzer | null,
 ) => {
@@ -51,38 +47,16 @@ const createJobProcessor = (
     let lastPageNum = 0
 
     try {
-      browser = await chromium.launch({
-        headless: true,
-        args: [
-          '--disable-blink-features=AutomationControlled',
-          '--disable-features=IsolateOrigins,site-per-process',
-          '--disable-infobars',
-          '--no-first-run',
-          '--no-default-browser-check',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding',
-        ],
-      })
+      browser = await chromium.connectOverCDP(config.browserWs)
 
-      let proxyConfig = proxyManager.getNextProxy()
-
-      const fingerprint = generateFingerprint(mp)
-      let context = await createStealthContext(
-        browser,
-        fingerprint,
-        proxyConfig ?? undefined,
-      )
-      let page = await context.newPage()
+      let context = browser.contexts()[0] ?? await browser.newContext()
+      let page = context.pages()[0] ?? await context.newPage()
 
       // ─── 1: Home ───
       const homeStatus = await navigateToHome(page, mp, persona, vision)
       if (homeStatus === 'blocked') {
-        if (proxyConfig) proxyManager.reportFailure(proxyConfig)
-        proxyConfig = proxyManager.getNextProxy()
-        await context.close()
-        const newFingerprint = generateFingerprint(mp)
-        context = await createStealthContext(browser, newFingerprint, proxyConfig ?? undefined)
+        // Browser API handles anti-bot, retry with fresh page
+        await page.close()
         page = await context.newPage()
 
         const retryHome = await navigateToHome(page, mp, persona, vision)
@@ -174,7 +148,6 @@ const createJobProcessor = (
               const errorMsg = error instanceof Error ? error.message : String(error)
 
               if (errorMsg === 'CAPTCHA_DETECTED') {
-                if (proxyConfig) proxyManager.reportFailure(proxyConfig)
                 retryCount++
 
                 sentinelClient.submitLog({
@@ -183,7 +156,7 @@ const createJobProcessor = (
                   keyword,
                   marketplace,
                   asin: result.asin,
-                  message: `CAPTCHA detected, switching proxy (retry ${retryCount})`,
+                  message: `CAPTCHA detected, retrying with fresh page (retry ${retryCount})`,
                 }).catch(() => {})
 
                 if (retryCount >= config.maxRetries) {
@@ -202,20 +175,14 @@ const createJobProcessor = (
                   throw new Error('MAX_RETRIES_EXCEEDED')
                 }
 
-                proxyConfig = proxyManager.getNextProxy()
-                await context.close()
-                const newFingerprint = generateFingerprint(mp)
-                context = await createStealthContext(
-                  browser,
-                  newFingerprint,
-                  proxyConfig ?? undefined,
-                )
+                // Browser API: fresh page for new session
+                await page.close()
                 page = await context.newPage()
 
                 await navigateToHome(page, mp, persona, vision)
                 await performSearch(page, keyword, persona, vision)
 
-                log('warn', 'jobs', `CAPTCHA detected, switching proxy (retry ${retryCount})`, {
+                log('warn', 'jobs', `CAPTCHA detected, retrying with fresh page (retry ${retryCount})`, {
                   campaignId,
                   asin: result.asin,
                 })
@@ -259,8 +226,6 @@ const createJobProcessor = (
             }
           }
 
-          if (proxyConfig) proxyManager.reportSuccess(proxyConfig)
-
           // Next page
           if (pageNum < maxPages) {
             const hasNext = await goToNextPage(page, persona, vision)
@@ -281,7 +246,7 @@ const createJobProcessor = (
         }
       }
 
-      await context.close()
+      // Browser API: close handled in finally
     } catch (fatalError) {
       const fatalMsg = fatalError instanceof Error ? fatalError.message : String(fatalError)
       log('error', 'jobs', `Crawl failed fatally: ${fatalMsg}`, { campaignId })
