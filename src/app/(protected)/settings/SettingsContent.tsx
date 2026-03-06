@@ -10,8 +10,6 @@ import { CrawlerSettings } from './CrawlerSettings'
 import { TemplatesTab } from './TemplatesTab'
 import { ExtensionGuide } from './ExtensionGuide'
 import { UserManagement } from './UserManagement'
-import { SystemStatusTab } from './SystemStatusTab'
-import { NoticesTab } from './NoticesTab'
 import { AiLearningTab } from './AiLearningTab'
 
 type SettingsContentProps = {
@@ -22,14 +20,14 @@ type SettingsContentProps = {
 }
 
 // viewer/viewer+/editor: extension only
-// admin: + monitoring, crawler, sc-automation, auto-approve, templates, notices
-// owner: + users, system-status
+// admin: + monitoring, crawler, sc-automation, auto-approve, templates
+// owner: + users
 const VIEWER_TABS = ['extension'] as const
 const EDITOR_TABS = ['extension'] as const
-const ADMIN_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'ai-learning', 'notices'] as const
-const OWNER_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'ai-learning', 'notices', 'users', 'system-status'] as const
+const ADMIN_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'ai-learning'] as const
+const OWNER_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'ai-learning', 'users'] as const
 
-type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'templates' | 'ai-learning' | 'notices' | 'users' | 'system-status'
+type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'templates' | 'ai-learning' | 'users'
 
 export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: SettingsContentProps) => {
   const { t } = useI18n()
@@ -55,8 +53,6 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
       case 'auto-approve': return t('settings.autoApprove.title' as Parameters<typeof t>[0])
       case 'templates': return 'Templates'
       case 'ai-learning': return t('settings.aiLearning.title' as Parameters<typeof t>[0])
-      case 'notices': return t('settings.notices.title' as Parameters<typeof t>[0])
-      case 'system-status': return t('settings.systemStatus.title' as Parameters<typeof t>[0])
       case 'users': return t('settings.users.title')
     }
   }
@@ -88,11 +84,9 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
       {activeTab === 'auto-approve' && <AutoApproveSettings isAdmin={isAdmin} />}
       {activeTab === 'templates' && <TemplatesTab />}
       {activeTab === 'ai-learning' && <AiLearningTab />}
-      {activeTab === 'notices' && isAdmin && <NoticesTab />}
       {activeTab === 'users' && isOwner && (
         <UserManagement currentUserId={currentUserId} />
       )}
-      {activeTab === 'system-status' && isOwner && <SystemStatusTab />}
     </div>
   )
 }

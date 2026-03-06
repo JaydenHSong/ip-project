@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-grid-layout/css/styles.css";
 
 /* ─── Light Theme (default) — Clean White + Vibrant Orange ─── */
 :root {

@@ -1,82 +1,40 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import Link from 'next/link'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import dynamic from 'next/dynamic'
-import {
-  FileText,
-  Search,
-  BarChart3,
-  AlertTriangle,
-  ChevronRight,
-  Brain,
-  Eye,
-  TrendingUp,
-  TrendingDown,
-} from 'lucide-react'
+import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout'
+import type { LayoutItem, ResponsiveLayouts, Layout } from 'react-grid-layout'
 import { useI18n } from '@/lib/i18n/context'
 import { isDemoMode } from '@/lib/demo'
 import { getDemoDashboardStats } from '@/lib/demo/dashboard'
-import { StatusBadge } from '@/components/ui/StatusBadge'
-import { ViolationBadge } from '@/components/ui/ViolationBadge'
-import type { ViolationCode } from '@/constants/violations'
 import { WelcomeNotice } from '@/components/features/WelcomeNotice'
 import type { DashboardStats, PeriodFilter } from '@/types/dashboard'
 import type { Role } from '@/types/users'
+import { DashboardProvider } from './widgets/DashboardContext'
+import { getAvailableWidgets, getDefaultLayouts } from './widgets/widget-config'
+import type { UserDashboardLayout } from './widgets/widget-config'
+import { WidgetWrapper } from './widgets/WidgetWrapper'
+import { AddWidgetPanel } from './widgets/AddWidgetPanel'
+import { StatsWidget } from './widgets/StatsWidget'
+import { ReportTrendWidget } from './widgets/ReportTrendWidget'
+import { ViolationDistWidget } from './widgets/ViolationDistWidget'
+import { StatusPipelineWidget } from './widgets/StatusPipelineWidget'
+import { AiPerformanceWidget } from './widgets/AiPerformanceWidget'
+import { TopViolationsWidget } from './widgets/TopViolationsWidget'
+import { RecentReportsWidget } from './widgets/RecentReportsWidget'
+import { ActiveCampaignsWidget } from './widgets/ActiveCampaignsWidget'
+import { SystemStatusWidget } from './widgets/SystemStatusWidget'
 
-const ReportTrendChart = dynamic(
-  () => import('@/components/features/charts/ReportTrendChart').then((m) => m.ReportTrendChart),
-  { ssr: false, loading: () => <ChartSkeleton height={280} /> }
-)
-const ViolationDistChart = dynamic(
-  () => import('@/components/features/charts/ViolationDistChart').then((m) => m.ViolationDistChart),
-  { ssr: false, loading: () => <ChartSkeleton height={280} /> }
-)
-const StatusPipelineChart = dynamic(
-  () => import('@/components/features/charts/StatusPipelineChart').then((m) => m.StatusPipelineChart),
-  { ssr: false, loading: () => <ChartSkeleton height={280} /> }
-)
-const TopViolationsChart = dynamic(
-  () => import('@/components/features/charts/TopViolationsChart').then((m) => m.TopViolationsChart),
-  { ssr: false, loading: () => <ChartSkeleton height={350} /> }
-)
-const AiPerformanceCard = dynamic(
-  () => import('@/components/features/charts/AiPerformanceCard').then((m) => m.AiPerformanceCard),
-  { ssr: false, loading: () => <ChartSkeleton height={280} /> }
-)
-
-const ChartSkeleton = ({ height }: { height: number }) => (
-  <div
-    className="animate-pulse rounded-lg border border-th-border bg-surface-card"
-    style={{ height }}
-  />
-)
-
-type RecentReport = {
-  id: string
-  violation_type: string
-  status: string
-  ai_confidence_score: number | null
-  disagreement_flag: boolean
-  created_at: string
-  listings: { asin: string; title: string; marketplace: string; seller_name: string | null } | null
-}
-
-type ActiveCampaign = {
-  id: string
-  keyword: string
-  marketplace: string
-  frequency: string
-}
-
-type DashboardContentProps = {
-  userName: string
-  userId: string
-  userRole: Role
-  initialStats: DashboardStats | null
-  recentReports: RecentReport[]
-  activeCampaigns: ActiveCampaign[]
+const WIDGET_COMPONENTS: Record<string, React.ComponentType> = {
+  'stats': StatsWidget,
+  'report-trend': ReportTrendWidget,
+  'violation-dist': ViolationDistWidget,
+  'status-pipeline': StatusPipelineWidget,
+  'ai-performance': AiPerformanceWidget,
+  'top-violations': TopViolationsWidget,
+  'recent-reports': RecentReportsWidget,
+  'active-campaigns': ActiveCampaignsWidget,
+  'system-status': SystemStatusWidget,
 }
 
 const PERIODS: PeriodFilter[] = ['7d', '30d', '90d']
@@ -90,37 +48,113 @@ const MARKETPLACES = [
   { value: 'JP', label: 'JP' },
 ]
 
-const TrendIndicator = ({ current, previous }: { current: number; previous: number }) => {
-  if (previous === 0) return null
-  const diff = current - previous
-  const pct = Math.round((diff / previous) * 100)
-  if (pct === 0) return null
-  const isUp = pct > 0
-  return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
-      {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-      {isUp ? '+' : ''}{pct}%
-    </span>
-  )
+type DashboardContentProps = {
+  userName: string
+  userId: string
+  userRole: Role
+  initialStats: DashboardStats | null
 }
+
+const LAYOUT_SAVE_DEBOUNCE = 1000
 
 export const DashboardContent = ({
   userName,
   userId,
   userRole,
   initialStats,
-  recentReports,
-  activeCampaigns,
 }: DashboardContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
+
   const [period, setPeriod] = useState<PeriodFilter>('30d')
   const [marketplace, setMarketplace] = useState('')
   const [stats, setStats] = useState<DashboardStats | null>(initialStats)
   const isAdmin = userRole === 'owner' || userRole === 'admin'
   const scope = isAdmin ? 'all' : 'my'
 
-  const buildUrl = useCallback((p: PeriodFilter, mp: string) => {
+  const availableWidgets = useMemo(() => getAvailableWidgets(userRole), [userRole])
+  const defaultLayouts = useMemo(() => getDefaultLayouts(userRole), [userRole])
+
+  const [layouts, setLayouts] = useState<LayoutItem[]>(defaultLayouts)
+  const [hiddenWidgetIds, setHiddenWidgetIds] = useState<string[]>([])
+  const [layoutLoaded, setLayoutLoaded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { width: containerWidth, containerRef, mounted } = useContainerWidth({ initialWidth: 1200 })
+
+  // Load saved layout
+  useEffect(() => {
+    const loadLayout = async () => {
+      try {
+        const res = await fetch('/api/user/preferences?key=dashboard_layout')
+        if (res.ok) {
+          const { value } = await res.json() as { value: UserDashboardLayout | null }
+          if (value?.layouts) {
+            const savedIds = new Set(value.layouts.map((l) => l.i))
+            const merged: LayoutItem[] = [
+              ...value.layouts,
+              ...defaultLayouts.filter((dl) => !savedIds.has(dl.i)),
+            ]
+            setLayouts(merged)
+            setHiddenWidgetIds(value.hidden ?? [])
+          }
+        }
+      } catch {
+        // use defaults
+      } finally {
+        setLayoutLoaded(true)
+      }
+    }
+    loadLayout()
+  }, [defaultLayouts])
+
+  // Mobile detection
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  // Save layout to server (debounced)
+  const saveLayout = useCallback((newLayouts: LayoutItem[], newHidden: string[]) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        await fetch('/api/user/preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            key: 'dashboard_layout',
+            value: { layouts: newLayouts, hidden: newHidden },
+          }),
+        })
+      } catch {
+        // silent fail
+      }
+    }, LAYOUT_SAVE_DEBOUNCE)
+  }, [])
+
+  const handleLayoutChange = useCallback((currentLayout: Layout, allLayouts: ResponsiveLayouts) => {
+    const lgLayout = (allLayouts.lg ?? currentLayout) as LayoutItem[]
+    setLayouts(lgLayout)
+    saveLayout(lgLayout, hiddenWidgetIds)
+  }, [hiddenWidgetIds, saveLayout])
+
+  const handleHideWidget = useCallback((widgetId: string) => {
+    const newHidden = [...hiddenWidgetIds, widgetId]
+    setHiddenWidgetIds(newHidden)
+    saveLayout(layouts, newHidden)
+  }, [hiddenWidgetIds, layouts, saveLayout])
+
+  const handleAddWidget = useCallback((widgetId: string) => {
+    const newHidden = hiddenWidgetIds.filter((id) => id !== widgetId)
+    setHiddenWidgetIds(newHidden)
+    saveLayout(layouts, newHidden)
+  }, [hiddenWidgetIds, layouts, saveLayout])
+
+  // Stats fetching
+  const buildUrl = useCallback((p: PeriodFilter, mp: string): string => {
     const params = new URLSearchParams({ period: p, scope })
     if (mp) params.set('marketplace', mp)
     return `/api/dashboard/stats?${params.toString()}`
@@ -134,11 +168,6 @@ export const DashboardContent = ({
       .catch(() => {})
   }, [initialStats, scope, marketplace, buildUrl])
 
-  const navigateToReports = useCallback((params: Record<string, string>) => {
-    const search = new URLSearchParams(params).toString()
-    router.push(`/reports?${search}`)
-  }, [router])
-
   const fetchStats = useCallback(async (newPeriod: PeriodFilter, mp: string) => {
     if (isDemoMode()) {
       setStats(getDemoDashboardStats(newPeriod))
@@ -151,11 +180,11 @@ export const DashboardContent = ({
         setStats(data)
       }
     } catch {
-      // keep previous stats on error
+      // keep previous
     }
   }, [buildUrl])
 
-  const handlePeriodChange = useCallback(async (newPeriod: PeriodFilter) => {
+  const handlePeriodChange = useCallback((newPeriod: PeriodFilter) => {
     setPeriod(newPeriod)
     fetchStats(newPeriod, marketplace)
   }, [marketplace, fetchStats])
@@ -165,254 +194,127 @@ export const DashboardContent = ({
     fetchStats(period, mp)
   }, [period, fetchStats])
 
-  const summary = stats?.summary
+  const navigateToReports = useCallback((params: Record<string, string>) => {
+    const search = new URLSearchParams(params).toString()
+    router.push(`/reports?${search}`)
+  }, [router])
 
-  const prev = stats?.previousPeriod
+  const visibleWidgets = useMemo(
+    () => availableWidgets.filter((w) => !hiddenWidgetIds.includes(w.id)),
+    [availableWidgets, hiddenWidgetIds]
+  )
 
-  const statItems = [
-    {
-      label: t('dashboard.activeCampaigns'),
-      value: summary?.activeCampaigns ?? 0,
-      numericValue: summary?.activeCampaigns ?? 0,
-      prevValue: prev?.activeCampaigns ?? 0,
-      icon: Search,
-      color: 'text-blue-400',
-      href: '/campaigns',
-    },
-    {
-      label: t('dashboard.pendingReports'),
-      value: summary?.pendingReports ?? 0,
-      numericValue: summary?.pendingReports ?? 0,
-      prevValue: prev?.pendingReports ?? 0,
-      icon: AlertTriangle,
-      color: 'text-amber-400',
-      href: '/reports',
-    },
-    {
-      label: t('dashboard.collectedListings'),
-      value: summary?.totalListings ?? 0,
-      numericValue: summary?.totalListings ?? 0,
-      prevValue: prev?.totalListings ?? 0,
-      icon: FileText,
-      color: 'text-emerald-400',
-      href: '/campaigns',
-    },
-    {
-      label: t('dashboard.resolutionRate'),
-      value: summary ? `${summary.resolvedRate}%` : '—',
-      numericValue: summary?.resolvedRate ?? 0,
-      prevValue: prev?.resolvedRate ?? 0,
-      icon: BarChart3,
-      color: 'text-violet-400',
-      href: '/reports/completed',
-    },
-    {
-      label: t('dashboard.charts.aiAccuracy' as Parameters<typeof t>[0]),
-      value: summary ? `${summary.aiAccuracy}%` : '—',
-      numericValue: summary?.aiAccuracy ?? 0,
-      prevValue: prev?.aiAccuracy ?? 0,
-      icon: Brain,
-      color: 'text-cyan-400',
-      href: '/reports',
-    },
-    {
-      label: t('dashboard.charts.monitoring' as Parameters<typeof t>[0]),
-      value: summary?.monitoringCount ?? 0,
-      numericValue: summary?.monitoringCount ?? 0,
-      prevValue: prev?.monitoringCount ?? 0,
-      icon: Eye,
-      color: 'text-orange-400',
-      href: '/reports',
-    },
-  ]
+  const hiddenWidgets = useMemo(
+    () => availableWidgets.filter((w) => hiddenWidgetIds.includes(w.id)),
+    [availableWidgets, hiddenWidgetIds]
+  )
+
+  const visibleLayouts = useMemo(
+    () => layouts.filter((l) => visibleWidgets.some((w) => w.id === l.i)),
+    [layouts, visibleWidgets]
+  )
+
+  const gridLayouts: ResponsiveLayouts = useMemo(() => ({
+    lg: visibleLayouts,
+    md: visibleLayouts,
+    sm: visibleLayouts.map((l) => ({ ...l, w: 6, x: 0 })),
+    xs: visibleLayouts.map((l) => ({ ...l, w: 1, x: 0 })),
+  }), [visibleLayouts])
+
+  if (!layoutLoaded) {
+    return (
+      <div className="space-y-6">
+        <div className="h-10 w-48 animate-pulse rounded-lg bg-th-bg-secondary" />
+        <div className="grid grid-cols-6 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-xl bg-th-bg-secondary" />
+          ))}
+        </div>
+        <div className="h-64 animate-pulse rounded-xl bg-th-bg-secondary" />
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      <WelcomeNotice userId={userId} />
+    <DashboardProvider
+      userRole={userRole}
+      initialStats={stats}
+      onNavigateReports={navigateToReports}
+    >
+      <div className="space-y-6" ref={containerRef}>
+        <WelcomeNotice userId={userId} />
 
-      {/* Greeting + Period Filter */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-th-text">{t('dashboard.title')}</h1>
-          <p className="mt-1 text-sm text-th-text-secondary">
-            {t('dashboard.greeting', { name: userName })}
-          </p>
-          {isDemoMode() && (
-            <div className="mt-2 rounded-xl border border-st-warning-text/30 bg-st-warning-bg px-3 py-1.5">
-              <p className="text-xs text-st-warning-text">{t('common.demoMode')}</p>
-            </div>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={marketplace}
-            onChange={(e) => handleMarketplaceChange(e.target.value)}
-            className="rounded-xl border border-th-border bg-surface-card px-3 py-1.5 text-xs font-medium text-th-text shadow-sm outline-none focus:border-th-accent"
-          >
-            {MARKETPLACES.map((mp) => (
-              <option key={mp.value} value={mp.value}>{mp.label}</option>
-            ))}
-          </select>
-          <div className="flex gap-1 rounded-xl border border-th-border bg-surface-card p-1 shadow-sm">
-            {PERIODS.map((p) => (
-              <button
-                key={p}
-                onClick={() => handlePeriodChange(p)}
-                className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
-                  period === p
-                    ? 'bg-th-accent text-white shadow-sm'
-                    : 'text-th-text-secondary hover:bg-th-bg-hover'
-                }`}
-              >
-                {t(`dashboard.charts.period.${p}` as Parameters<typeof t>[0])}
-              </button>
-            ))}
+        {/* Header: Greeting + Filters + Add Widget */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-th-text">{t('dashboard.title')}</h1>
+            <p className="mt-1 text-sm text-th-text-secondary">
+              {t('dashboard.greeting', { name: userName })}
+            </p>
+            {isDemoMode() && (
+              <div className="mt-2 rounded-xl border border-st-warning-text/30 bg-st-warning-bg px-3 py-1.5">
+                <p className="text-xs text-st-warning-text">{t('common.demoMode')}</p>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-        {statItems.map((stat) => {
-          const Icon = stat.icon
-          return (
-            <Link
-              key={stat.label}
-              href={stat.href}
-              className="group rounded-xl border border-th-border bg-surface-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:border-th-border-secondary active:scale-[0.98] md:p-5"
+          <div className="flex flex-wrap items-center gap-2">
+            <AddWidgetPanel hiddenWidgets={hiddenWidgets} onAdd={handleAddWidget} />
+            <select
+              value={marketplace}
+              onChange={(e) => handleMarketplaceChange(e.target.value)}
+              className="rounded-xl border border-th-border bg-surface-card px-3 py-1.5 text-xs font-medium text-th-text shadow-sm outline-none focus:border-th-accent"
             >
-              <div className="flex items-center justify-between">
-                <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${stat.color.replace('text-', 'bg-').replace('-400', '-500/10')}`}>
-                  <Icon className={`h-4.5 w-4.5 ${stat.color}`} />
-                </div>
-              </div>
-              <div className="mt-3 flex items-baseline gap-1.5">
-                <p className="text-2xl font-bold text-th-text md:text-3xl">{stat.value}</p>
-                {prev && <TrendIndicator current={stat.numericValue} previous={stat.prevValue} />}
-              </div>
-              <p className="mt-1 text-xs font-medium text-th-text-muted">{stat.label}</p>
-            </Link>
-          )
-        })}
-      </div>
-
-      {/* Charts Row 1: Report Trend (2/3) + Violation Dist (1/3) */}
-      {stats && (
-        <>
-          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <ReportTrendChart data={stats.reportTrend} />
-            </div>
-            <div>
-              <ViolationDistChart
-                data={stats.violationDist.map((d) => ({
-                  ...d,
-                  categoryLabel: t(`violations.categories.${d.category}` as Parameters<typeof t>[0]) ?? d.categoryLabel,
-                }))}
-                onClickItem={(category) => navigateToReports({ category })}
-              />
-            </div>
-          </div>
-
-          {/* Charts Row 2: Status Pipeline (1/2) + AI Performance (1/2) */}
-          <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2">
-            <StatusPipelineChart
-              data={stats.statusPipeline}
-              onClickItem={(status) => navigateToReports({ status })}
-            />
-            <AiPerformanceCard
-              data={stats.aiPerformance}
-              onClickDisagreement={() => navigateToReports({ disagreement: 'true' })}
-            />
-          </div>
-
-          {/* Charts Row 3: Top Violations (full width) */}
-          <TopViolationsChart
-            data={stats.topViolations.map((d) => ({
-              ...d,
-              name: t(`violations.types.${d.code}` as Parameters<typeof t>[0]) ?? d.name,
-            }))}
-            onClickItem={(code) => navigateToReports({ violation_type: code })}
-          />
-        </>
-      )}
-
-      {/* Two column layout: Recent Reports + Active Campaigns */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Recent Reports */}
-        <div className="rounded-xl border border-th-border bg-surface-card shadow-sm">
-          <div className="flex items-center justify-between border-b border-th-border px-5 py-4">
-            <h2 className="text-sm font-semibold text-th-text">{isAdmin ? t('dashboard.recentReports') : t('dashboard.myRecentReports' as Parameters<typeof t>[0])}</h2>
-            <Link href="/reports" className="text-xs font-medium text-th-accent-text hover:underline">
-              {t('dashboard.viewAll')}
-            </Link>
-          </div>
-          {recentReports.length === 0 ? (
-            <div className="px-5 py-10 text-center text-sm text-th-text-muted">
-              {t('dashboard.noRecentReports')}
-            </div>
-          ) : (
-            <div className="divide-y divide-th-border">
-              {recentReports.map((report) => (
-                <Link key={report.id} href={`/reports/${report.id}`}>
-                  <div className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
-                        <span className="truncate text-sm text-th-text">{report.listings?.asin ?? '—'}</span>
-                        {report.disagreement_flag && (
-                          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-st-warning-text" />
-                        )}
-                      </div>
-                      <p className="mt-0.5 truncate text-xs text-th-text-muted">
-                        {report.listings?.title ?? '—'}
-                      </p>
-                    </div>
-                    <div className="flex flex-shrink-0 items-center gap-2">
-                      <StatusBadge status={report.status as 'draft' | 'pending_review' | 'approved'} type="report" />
-                      <ChevronRight className="h-4 w-4 text-th-text-muted" />
-                    </div>
-                  </div>
-                </Link>
+              {MARKETPLACES.map((mp) => (
+                <option key={mp.value} value={mp.value}>{mp.label}</option>
+              ))}
+            </select>
+            <div className="flex gap-1 rounded-xl border border-th-border bg-surface-card p-1 shadow-sm">
+              {PERIODS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => handlePeriodChange(p)}
+                  className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                    period === p
+                      ? 'bg-th-accent text-white shadow-sm'
+                      : 'text-th-text-secondary hover:bg-th-bg-hover'
+                  }`}
+                >
+                  {t(`dashboard.charts.period.${p}` as Parameters<typeof t>[0])}
+                </button>
               ))}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Active Campaigns */}
-        <div className="rounded-xl border border-th-border bg-surface-card shadow-sm">
-          <div className="flex items-center justify-between border-b border-th-border px-5 py-4">
-            <h2 className="text-sm font-semibold text-th-text">{isAdmin ? t('dashboard.activeCampaignsList') : t('dashboard.myActiveCampaignsList' as Parameters<typeof t>[0])}</h2>
-            <Link href="/campaigns" className="text-xs font-medium text-th-accent-text hover:underline">
-              {t('dashboard.viewAll')}
-            </Link>
-          </div>
-          {activeCampaigns.length === 0 ? (
-            <div className="px-5 py-10 text-center text-sm text-th-text-muted">
-              {t('dashboard.noActiveCampaigns')}
-            </div>
-          ) : (
-            <div className="divide-y divide-th-border">
-              {activeCampaigns.map((campaign) => (
-                <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
-                  <div className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium text-th-text">{campaign.keyword}</p>
-                      <p className="mt-0.5 text-xs text-th-text-muted">
-                        {campaign.marketplace} &middot; {campaign.frequency}
-                      </p>
-                    </div>
-                    <div className="flex flex-shrink-0 items-center gap-2">
-                      <StatusBadge status="active" type="campaign" />
-                      <ChevronRight className="h-4 w-4 text-th-text-muted" />
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Widget Grid */}
+        {mounted && <ResponsiveGridLayout
+          width={containerWidth}
+          layouts={gridLayouts}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
+          cols={{ lg: 12, md: 12, sm: 6, xs: 1 }}
+          rowHeight={80}
+          dragConfig={{ enabled: !isMobile, handle: '.drag-handle', bounded: false, threshold: 3 }}
+          resizeConfig={{ enabled: !isMobile, handles: ['se'] }}
+          onLayoutChange={handleLayoutChange}
+          margin={[16, 16]}
+        >
+          {visibleWidgets.map((widget) => {
+            const WidgetComponent = WIDGET_COMPONENTS[widget.id]
+            if (!WidgetComponent) return null
+            return (
+              <div key={widget.id}>
+                <WidgetWrapper
+                  title={widget.title}
+                  widgetId={widget.id}
+                  onHide={handleHideWidget}
+                >
+                  <WidgetComponent />
+                </WidgetWrapper>
+              </div>
+            )
+          })}
+        </ResponsiveGridLayout>}
       </div>
-    </div>
+    </DashboardProvider>
   )
 }
