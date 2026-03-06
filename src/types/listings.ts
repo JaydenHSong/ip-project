@@ -27,8 +27,18 @@ export type Listing = {
   source: ListingSource
   source_campaign_id: string | null
   source_user_id: string | null
+  screenshot_url: string | null
+  crawler_ai_result: CrawlerAiResult | null
   raw_data: unknown
   crawled_at: string
   created_at: string
   updated_at: string
+}
+
+export type CrawlerAiResult = {
+  is_violation: boolean
+  violation_types: string[]
+  confidence: number
+  reasons: string[]
+  evidence_summary: string
 }

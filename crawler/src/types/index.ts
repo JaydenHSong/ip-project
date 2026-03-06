@@ -14,6 +14,22 @@ const MARKETPLACE_DOMAINS = {
 
 type Marketplace = keyof typeof MARKETPLACE_DOMAINS
 
+// 1차 스캔 결과
+type PreScanResult = {
+  isSuspect: boolean
+  suspectReasons: string[]
+  score: number
+}
+
+// 크롤러 AI 2차 분석 결과
+type CrawlerAiResult = {
+  is_violation: boolean
+  violation_types: string[]
+  confidence: number
+  reasons: string[]
+  evidence_summary: string
+}
+
 // 검색 결과에서 추출한 리스팅 요약
 type SearchResult = {
   asin: string
@@ -26,6 +42,8 @@ type SearchResult = {
   sellerName: string | null
   brand: string | null
   isSpigen: boolean
+  variationCount: number | null
+  preScanResult: PreScanResult | null
 }
 
 // 상세 페이지에서 추출한 전체 데이터
@@ -76,6 +94,9 @@ type CrawlResult = {
   spigenSkipped: number
   pagesCrawled: number
   personaName: string
+  preScanTotal: number
+  suspectCount: number
+  violationCount: number
 }
 
 // 프록시 설정
@@ -141,6 +162,7 @@ type CrawlerListingRequest = {
   review_count?: number
   source_campaign_id: string
   screenshot_base64?: string
+  crawler_ai_result?: CrawlerAiResult
 }
 
 type CrawlerListingResponse = {
@@ -199,6 +221,8 @@ type ChatNotification = {
 export { MARKETPLACE_DOMAINS, CRAWL_ERROR_TYPES }
 export type {
   Marketplace,
+  PreScanResult,
+  CrawlerAiResult,
   SearchResult,
   ListingDetail,
   Campaign,

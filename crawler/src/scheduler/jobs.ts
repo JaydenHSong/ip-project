@@ -17,6 +17,8 @@ import { navigateToHome, performSearch, scrapeSearchPage, goToNextPage } from '.
 import { scrapeDetailPage, clickIntoProduct } from '../scraper/detail-page.js'
 import { captureScreenshot } from '../scraper/screenshot.js'
 import { selectClickTargets } from './click-strategy.js'
+import { preScanSearchResults, thumbnailVisionScan } from '../ai/pre-scanner.js'
+import { scanViolation } from '../ai/violation-scanner.js'
 import { log } from '../logger.js'
 
 const createJobProcessor = (
@@ -33,7 +35,7 @@ const createJobProcessor = (
     // AI 학습 결과에서 성공 범위 로드 → 동적 페르소나 생성
     const successRanges = await loadSuccessRanges(sentinelClient)
     const persona = generatePersona(undefined, successRanges)
-    log('info', 'jobs', `Starting crawl: "${keyword}" (${marketplace}, ${maxPages}p, persona: ${persona.name})`, {
+    log('info', 'jobs', `Starting crawl V2: "${keyword}" (${marketplace}, ${maxPages}p, persona: ${persona.name})`, {
       campaignId,
     })
 
@@ -45,6 +47,9 @@ const createJobProcessor = (
     let retryCount = 0
     let spigenSkipped = 0
     let lastPageNum = 0
+    let preScanTotal = 0
+    let suspectCount = 0
+    let violationCount = 0
 
     try {
       browser = await chromium.connectOverCDP(config.browserWs)
@@ -55,7 +60,6 @@ const createJobProcessor = (
       // ─── 1: Home ───
       const homeStatus = await navigateToHome(page, mp, persona, vision)
       if (homeStatus === 'blocked') {
-        // Browser API handles anti-bot, retry with fresh page
         await page.close()
         page = await context.newPage()
 
@@ -68,7 +72,7 @@ const createJobProcessor = (
       // ─── 2: Search ───
       await performSearch(page, keyword, persona, vision)
 
-      // ─── 3: Page loop ───
+      // ─── 3: Page loop (V2) ───
       for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
         lastPageNum = pageNum
         try {
@@ -84,7 +88,26 @@ const createJobProcessor = (
             log('info', 'jobs', `Skipped ${pageSpigenCount} Spigen products on page ${pageNum}`, { campaignId })
           }
 
-          // 스마트 클릭: 랜덤 셔플로 선택
+          // ─── V2: 1차 스캔 (검색 결과에서 사전 필터링) ───
+          preScanSearchResults(nonSpigenResults)
+          preScanTotal += nonSpigenResults.length
+
+          // 선택적: 썸네일 AI 비전 스캔
+          if (vision) {
+            const pageSuspects = nonSpigenResults.filter(r => r.preScanResult?.isSuspect)
+            // 키워드 매칭으로 의심 건이 없을 때만 Vision 사용 (비용 절약)
+            if (pageSuspects.length === 0) {
+              const screenshot = await captureScreenshot(page, 1280, 800)
+              await thumbnailVisionScan(vision, screenshot, nonSpigenResults)
+            }
+          }
+
+          const pageSuspectResults = nonSpigenResults.filter(r => r.preScanResult?.isSuspect)
+          suspectCount += pageSuspectResults.length
+
+          log('info', 'jobs', `Page ${pageNum}: ${nonSpigenResults.length} products, ${pageSuspectResults.length} suspects`, { campaignId })
+
+          // ─── V2: 의심 건만 상세 진입 ───
           const clickTargets = selectClickTargets(nonSpigenResults, persona)
 
           const listings: CrawlerListingRequest[] = []
@@ -119,6 +142,33 @@ const createJobProcessor = (
                 config.screenshotHeight,
               )
 
+              // innocent (봇 탐지 방지용)은 상세 수집만 하고 AI 분석/서버 전송 안 함
+              if (target.reason === 'innocent') {
+                log('info', 'jobs', `Innocent visit: ${result.asin} (decoy)`, { campaignId })
+                if (persona.navigation.useBackButton) {
+                  await page.goBack({ waitUntil: 'domcontentloaded', timeout: 15_000 })
+                } else {
+                  await page.goBack({ waitUntil: 'domcontentloaded', timeout: 15_000 })
+                }
+                continue
+              }
+
+              // ─── V2: 2차 AI 분석 (Haiku) ───
+              let crawlerAiResult = null
+              if (vision) {
+                crawlerAiResult = await scanViolation(vision, detail, screenshot)
+
+                if (!crawlerAiResult.is_violation) {
+                  log('info', 'jobs', `Non-violation: ${result.asin} (confidence: ${crawlerAiResult.confidence})`, { campaignId })
+                  await page.goBack({ waitUntil: 'domcontentloaded', timeout: 15_000 })
+                  continue
+                }
+
+                violationCount++
+                log('info', 'jobs', `Violation detected: ${result.asin} — ${crawlerAiResult.violation_types.join(', ')} (confidence: ${crawlerAiResult.confidence})`, { campaignId })
+              }
+
+              // ─── V2: 위반 건만 서버 전송 목록에 추가 ───
               listings.push({
                 asin: detail.asin,
                 marketplace,
@@ -136,6 +186,7 @@ const createJobProcessor = (
                 review_count: detail.reviewCount ?? undefined,
                 source_campaign_id: campaignId,
                 screenshot_base64: screenshot,
+                crawler_ai_result: crawlerAiResult ?? undefined,
               })
 
               if (persona.navigation.useBackButton) {
@@ -204,7 +255,7 @@ const createJobProcessor = (
             }
           }
 
-          // Batch submit
+          // Batch submit (위반 건만)
           if (listings.length > 0) {
             try {
               const batchResult = await sentinelClient.submitBatch(listings)
@@ -246,7 +297,6 @@ const createJobProcessor = (
         }
       }
 
-      // Browser API: close handled in finally
     } catch (fatalError) {
       const fatalMsg = fatalError instanceof Error ? fatalError.message : String(fatalError)
       log('error', 'jobs', `Crawl failed fatally: ${fatalMsg}`, { campaignId })
@@ -280,9 +330,12 @@ const createJobProcessor = (
       spigenSkipped,
       pagesCrawled: lastPageNum,
       personaName: persona.name,
+      preScanTotal,
+      suspectCount,
+      violationCount,
     }
 
-    // Campaign result update (fire-and-forget)
+    // Campaign result update
     sentinelClient.updateCampaignResult(campaignId, {
       found: totalFound,
       sent: totalSent,
@@ -290,7 +343,7 @@ const createJobProcessor = (
       errors,
       spigen_skipped: spigenSkipped,
       pages_crawled: lastPageNum,
-      violations_suspected: 0,
+      violations_suspected: suspectCount,
       duration_ms: duration,
       persona_name: persona.name,
       success: errors === 0 || totalSent > 0,
@@ -303,7 +356,7 @@ const createJobProcessor = (
       await chatNotifier.notifyCrawlFailed(keyword, `${errors} errors, 0 listings sent`)
     }
 
-    // Crawl complete log (persona config for AI learning)
+    // Crawl complete log
     await sentinelClient.submitLog({
       type: 'crawl_complete',
       campaign_id: campaignId,
@@ -324,11 +377,14 @@ const createJobProcessor = (
         dwell: persona.dwell.detailPageDwellMin + '-' + persona.dwell.detailPageDwellMax,
         nav_products_per_page: persona.navigation.productsToViewPerPage,
         spigen_skipped: spigenSkipped,
+        pre_scan_total: preScanTotal,
+        suspect_count: suspectCount,
+        violation_count: violationCount,
         success: errors === 0,
       }),
     })
 
-    log('info', 'jobs', `Crawl completed: ${totalFound} found, ${totalSent} sent, ${duplicates} dup, ${errors} err, ${spigenSkipped} spigen (persona: ${persona.name})`, {
+    log('info', 'jobs', `Crawl V2 completed: ${totalFound} found, ${suspectCount} suspect, ${violationCount} violations, ${totalSent} sent, ${duplicates} dup, ${errors} err (persona: ${persona.name})`, {
       campaignId,
       duration,
     })

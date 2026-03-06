@@ -239,6 +239,22 @@ const scrapeSearchPage = async (
       const sellerEl = await item.$('.a-size-small .a-color-secondary')
       const sellerText = sellerEl ? (await sellerEl.textContent())?.trim() ?? null : null
 
+      // variation count 추출 ("X+ options" 등)
+      let variationCount: number | null = null
+      try {
+        const varEls = await item.$$(SEARCH_SELECTORS.variationBadge)
+        for (const varEl of varEls) {
+          const varText = (await varEl.textContent())?.trim() ?? ''
+          const match = varText.match(/(\d+)\+?\s*(?:options|choices|colors|sizes|patterns)/i)
+          if (match) {
+            variationCount = parseInt(match[1]!, 10)
+            break
+          }
+        }
+      } catch {
+        // variation 파싱 실패는 무시
+      }
+
       results.push({
         asin,
         title,
@@ -250,6 +266,8 @@ const scrapeSearchPage = async (
         sellerName: sellerText,
         brand: brandText,
         isSpigen: isSpigenProduct(title, brandText, sellerText),
+        variationCount,
+        preScanResult: null,
       })
     } catch {
       log('warn', 'search-page', `Failed to parse search result at position ${i + 1}`, {
@@ -281,6 +299,8 @@ const scrapeSearchPage = async (
         sellerName: null,
         brand: null,
         isSpigen: isSpigenProduct(product.title, null, null),
+        variationCount: null,
+        preScanResult: null,
       })
     }
 

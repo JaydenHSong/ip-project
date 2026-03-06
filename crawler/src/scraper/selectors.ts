@@ -10,6 +10,7 @@ const SEARCH_SELECTORS = {
   nextPage: '.s-pagination-next',
   noResults: '.s-no-results-filler',
   captcha: '#captchacharacters',
+  variationBadge: '.a-size-base-plus.a-color-secondary, .a-size-base.a-color-secondary',
 } as const
 
 // 아마존 상세 페이지 셀렉터

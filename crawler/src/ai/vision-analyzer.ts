@@ -6,6 +6,8 @@ import {
   DETAIL_PAGE_PROMPT,
   FIND_SEARCH_BAR_PROMPT,
   FIND_NEXT_BUTTON_PROMPT,
+  THUMBNAIL_SCAN_PROMPT,
+  VIOLATION_SCAN_PROMPT,
 } from './prompts.js'
 
 type PageStatus = {
@@ -50,12 +52,26 @@ type ElementLocation = {
   }
 }
 
+type ThumbnailScanResult = {
+  violations: { asin: string; reason: string }[]
+}
+
+type ViolationScanResult = {
+  is_violation: boolean
+  violation_types: string[]
+  confidence: number
+  reasons: string[]
+  evidence_summary: string
+}
+
 type VisionAnalyzer = {
   analyzePageStatus: (screenshotBase64: string) => Promise<PageStatus>
   analyzeSearchResults: (screenshotBase64: string) => Promise<AiSearchResult>
   analyzeDetailPage: (screenshotBase64: string) => Promise<AiDetailResult>
   findSearchBar: (screenshotBase64: string) => Promise<ElementLocation>
   findNextButton: (screenshotBase64: string) => Promise<ElementLocation & { has_next: boolean }>
+  scanThumbnails: (screenshotBase64: string) => Promise<ThumbnailScanResult>
+  scanViolation: (screenshotBase64: string, listingData: string) => Promise<ViolationScanResult>
 }
 
 const parseJsonResponse = <T>(text: string): T => {
@@ -132,8 +148,16 @@ const createVisionAnalyzer = (apiKey: string, model?: string): VisionAnalyzer =>
 
     findNextButton: (screenshotBase64) =>
       callVision<ElementLocation & { has_next: boolean }>(screenshotBase64, FIND_NEXT_BUTTON_PROMPT, 'Find next button'),
+
+    scanThumbnails: (screenshotBase64) =>
+      callVision<ThumbnailScanResult>(screenshotBase64, THUMBNAIL_SCAN_PROMPT, 'Thumbnail scan'),
+
+    scanViolation: async (screenshotBase64, listingData) => {
+      const prompt = VIOLATION_SCAN_PROMPT.replace('{{LISTING_DATA}}', listingData)
+      return callVision<ViolationScanResult>(screenshotBase64, prompt, 'Violation scan')
+    },
   }
 }
 
 export { createVisionAnalyzer }
-export type { VisionAnalyzer, PageStatus, AiSearchResult, AiDetailResult, ElementLocation }
+export type { VisionAnalyzer, PageStatus, AiSearchResult, AiDetailResult, ElementLocation, ThumbnailScanResult, ViolationScanResult }

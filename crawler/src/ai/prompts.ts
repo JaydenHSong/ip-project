@@ -83,10 +83,66 @@ Respond with ONLY a JSON object, no other text.
   }
 }` as const
 
+const THUMBNAIL_SCAN_PROMPT = `Analyze these Amazon search result thumbnails for image policy violations.
+Respond with ONLY a JSON object, no other text.
+
+{
+  "violations": [
+    {
+      "asin": "ASIN if visible, or position number as string",
+      "reason": "brief description of the violation"
+    }
+  ]
+}
+
+Check each product thumbnail for:
+- Text overlay on product image (promotional text, feature callouts, badges)
+- Non-white/non-pure-white background
+- Watermarks or logos added to the image
+- Lifestyle image used as main image (should be product-only on white)
+- Collage or multiple products in main image
+- Before/after comparison images
+
+Only flag clear violations. If no violations found, return {"violations": []}.
+Focus on Spigen-related phone case/accessory products if visible.` as const
+
+const VIOLATION_SCAN_PROMPT = `You are an Amazon policy violation detector for Spigen brand protection.
+Analyze this product detail page screenshot along with the listing data below.
+
+LISTING DATA:
+{{LISTING_DATA}}
+
+Respond with ONLY a JSON object, no other text.
+
+{
+  "is_violation": true | false,
+  "violation_types": ["V01", "V08", ...],
+  "confidence": 0-100,
+  "reasons": ["reason 1", "reason 2"],
+  "evidence_summary": "brief summary of evidence found"
+}
+
+VIOLATION TYPES TO CHECK:
+- V01: Trademark Infringement — unauthorized use of "Spigen", "Tough Armor", "Rugged Armor", etc. in title/bullets/description
+- V04: Counterfeit Product — fake Spigen products, cloned listings
+- V08: Image Policy Violation — text overlay, non-white background, watermarks on main image
+- V10: Variation Policy Violation — unrelated products bundled as variations (e.g., different device models as color options)
+- V11: Review Manipulation — suspicious review patterns, incentivized reviews
+- V14: Resale Violation — unauthorized resale, "compatible with" misuse
+- V15: Bundling Violation — improper bundling of unrelated items
+
+Rules:
+- Only flag if you have clear evidence (confidence >= 30)
+- Multiple violation types can apply to one listing
+- Focus on protecting Spigen brand from counterfeit/trademark abuse
+- If the product IS a genuine Spigen product sold by authorized seller, set is_violation to false` as const
+
 export {
   PAGE_STATUS_PROMPT,
   SEARCH_RESULTS_PROMPT,
   DETAIL_PAGE_PROMPT,
   FIND_SEARCH_BAR_PROMPT,
   FIND_NEXT_BUTTON_PROMPT,
+  THUMBNAIL_SCAN_PROMPT,
+  VIOLATION_SCAN_PROMPT,
 }
