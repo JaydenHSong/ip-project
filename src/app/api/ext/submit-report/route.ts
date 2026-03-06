@@ -6,7 +6,7 @@ import type { SubmitReportRequest, SubmitReportResponse } from '@/types/api'
 
 const VALID_VIOLATION_CODES = new Set(Object.keys(VIOLATION_TYPES))
 const VALID_CATEGORIES = new Set(Object.keys(VIOLATION_CATEGORIES))
-const MAX_SCREENSHOT_BASE64_LENGTH = 3_000_000 // ~2.25MB decoded
+const MAX_SCREENSHOT_BASE64_LENGTH = 700_000 // ~500KB decoded
 
 // POST /api/ext/submit-report — Extension에서 위반 제보 제출
 export const POST = withAuth(async (req, { user }) => {
