@@ -1,7 +1,7 @@
-// 현재 탭 스크린샷 캡처 (JPEG, quality 60, max 500KB)
+// 현재 탭 스크린샷 캡처 (WebP, quality 40, max 300KB)
 
-const MAX_SIZE_BYTES = 500 * 1024 // 500KB
-const INITIAL_QUALITY = 60
+const MAX_SIZE_BYTES = 300 * 1024 // 300KB
+const INITIAL_QUALITY = 40
 
 export const captureScreenshot = async (targetWindowId?: number): Promise<string> => {
   let windowId = targetWindowId
@@ -30,7 +30,7 @@ export const captureScreenshot = async (targetWindowId?: number): Promise<string
     try {
       const dataUrl = await chrome.tabs.captureVisibleTab(
         windowId,
-        { format: 'jpeg', quality },
+        { format: 'webp', quality },
       )
 
       const base64Part = dataUrl.split(',')[1] ?? ''
@@ -46,5 +46,5 @@ export const captureScreenshot = async (targetWindowId?: number): Promise<string
     }
   }
 
-  return await chrome.tabs.captureVisibleTab(windowId, { format: 'jpeg', quality: 15 })
+  return await chrome.tabs.captureVisibleTab(windowId, { format: 'webp', quality: 10 })
 }

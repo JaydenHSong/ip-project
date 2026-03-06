@@ -127,10 +127,11 @@ export const POST = withAuth(async (req, { user }) => {
     const base64Data = body.screenshot_base64.replace(/^data:image\/\w+;base64,/, '')
     const buffer = Buffer.from(base64Data, 'base64')
 
-    // Extension은 JPEG로 캡처 — MIME 타입 자동 감지
-    const isJpeg = body.screenshot_base64.startsWith('data:image/jpeg')
-    const ext = isJpeg ? 'jpg' : 'png'
-    const contentType = isJpeg ? 'image/jpeg' : 'image/png'
+    // Extension 스크린샷 MIME 타입 자동 감지 (webp/jpeg/png)
+    const mimeMatch = body.screenshot_base64.match(/^data:(image\/\w+);base64,/)
+    const detectedMime = mimeMatch?.[1] ?? 'image/webp'
+    const ext = detectedMime === 'image/jpeg' ? 'jpg' : detectedMime === 'image/png' ? 'png' : 'webp'
+    const contentType = detectedMime
     const filePath = `${report.id}.${ext}`
 
     const { error: uploadError } = await supabase.storage

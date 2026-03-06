@@ -31,12 +31,15 @@ const uploadScreenshot = async (
   base64Data: string,
 ): Promise<string | null> => {
   try {
-    const fileName = `crawler/${asin}_${Date.now()}.jpg`
+    const isWebp = base64Data.startsWith('UklGR') // WebP magic bytes in base64
+    const ext = isWebp ? 'webp' : 'jpg'
+    const contentType = isWebp ? 'image/webp' : 'image/jpeg'
+    const fileName = `crawler/${asin}_${Date.now()}.${ext}`
     const buffer = Buffer.from(base64Data, 'base64')
     const { error } = await supabase.storage
       .from('screenshots')
       .upload(fileName, buffer, {
-        contentType: 'image/jpeg',
+        contentType,
         upsert: false,
       })
 

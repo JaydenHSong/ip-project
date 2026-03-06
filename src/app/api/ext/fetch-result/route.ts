@@ -65,9 +65,10 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       const base64Data = screenshot_base64.replace(/^data:image\/\w+;base64,/, '')
       const buffer = Buffer.from(base64Data, 'base64')
 
-      const isJpeg = screenshot_base64.startsWith('data:image/jpeg')
-      const ext = isJpeg ? 'jpg' : 'png'
-      const contentType = isJpeg ? 'image/jpeg' : 'image/png'
+      const mimeMatch = screenshot_base64.match(/^data:(image\/\w+);base64,/)
+      const detectedMime = mimeMatch?.[1] ?? 'image/webp'
+      const ext = detectedMime === 'image/jpeg' ? 'jpg' : detectedMime === 'image/png' ? 'png' : 'webp'
+      const contentType = detectedMime
       const fileName = `fetch-${page_data.asin}-${Date.now()}.${ext}`
 
       const { error: uploadError } = await supabase.storage

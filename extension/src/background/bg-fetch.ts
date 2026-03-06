@@ -84,19 +84,19 @@ const captureInBotWindow = async (tabId: number, windowId: number): Promise<stri
   // 렌더링 대기
   await new Promise((r) => setTimeout(r, 300))
 
-  let quality = 85
+  let quality = 50
   let dataUrl = ''
 
-  while (quality >= 20) {
+  while (quality >= 15) {
     dataUrl = await chrome.tabs.captureVisibleTab(windowId, {
-      format: 'jpeg',
+      format: 'webp',
       quality,
     })
 
     const base64Part = dataUrl.split(',')[1] ?? ''
     const estimatedBytes = Math.ceil(base64Part.length * 0.75)
-    if (estimatedBytes <= 2 * 1024 * 1024) break
-    quality -= 15
+    if (estimatedBytes <= 500 * 1024) break // 500KB
+    quality -= 10
   }
 
   // 다시 최소화
