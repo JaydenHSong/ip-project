@@ -3,6 +3,7 @@ export const NOTIFICATION_TYPES = [
   'followup_change_detected', 'followup_no_change',
   'campaign_completed', 'system_error',
   'patent_sync_completed', 'changelog_new',
+  'notice_new',
 ] as const
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
 

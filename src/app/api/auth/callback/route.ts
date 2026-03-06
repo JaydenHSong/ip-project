@@ -29,6 +29,9 @@ export const GET = async (req: NextRequest): Promise<NextResponse> => {
   // users 테이블에 사용자 upsert (첫 로그인 시 Viewer로 생성)
   // Admin 클라이언트 사용 — RLS를 우회하여 last_login_at이 매 로그인마다 갱신되도록 보장
   const adminSupabase = createAdminClient()
+  const now = new Date().toISOString()
+
+  // 1차: upsert로 사용자 생성 또는 프로필 동기화
   const { error: upsertError } = await adminSupabase
     .from('users')
     .upsert(
@@ -37,13 +40,17 @@ export const GET = async (req: NextRequest): Promise<NextResponse> => {
         email: data.user.email!,
         name: data.user.user_metadata?.full_name ?? data.user.email!.split('@')[0],
         avatar_url: data.user.user_metadata?.avatar_url ?? null,
-        last_login_at: new Date().toISOString(),
+        last_login_at: now,
       },
-      { onConflict: 'id' },
+      { onConflict: 'id', ignoreDuplicates: false },
     )
 
   if (upsertError) {
-    return NextResponse.redirect(new URL('/login?error=user_sync_failed', req.url))
+    // upsert 실패 시에도 last_login_at만이라도 업데이트 시도
+    await adminSupabase
+      .from('users')
+      .update({ last_login_at: now })
+      .eq('id', data.user.id)
   }
 
   // 비활성화된 사용자 차단

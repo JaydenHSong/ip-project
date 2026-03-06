@@ -1,271 +1,412 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
-import { Card, CardHeader, CardContent } from '@/components/ui/Card'
+import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { Download, Package, FolderOpen, Chrome, CheckCircle, ChevronDown, Shield, Globe, Puzzle } from 'lucide-react'
 
-const EXTENSION_VERSION = '1.0.0'
-const DOWNLOAD_PATH = `/downloads/sentinel-extension-v${EXTENSION_VERSION}.zip`
 const TOTAL_STEPS = 4
 
-const STEP_ICONS = ['1', '2', '3', '4'] as const
+type ReleaseEntry = {
+  version: string
+  download_url: string
+  changes: string[]
+  released_at: string
+}
+
+const STEP_ICONS = [Download, FolderOpen, Chrome, CheckCircle] as const
 
 export const ExtensionGuide = () => {
   const { t } = useI18n()
   const [currentStep, setCurrentStep] = useState(0)
+  const [releases, setReleases] = useState<ReleaseEntry[]>([])
+  const [latestVersion, setLatestVersion] = useState<string>('...')
+  const [downloadUrl, setDownloadUrl] = useState<string>('#')
+  const [openVersions, setOpenVersions] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/extension/latest')
+      .then((res) => res.json())
+      .then((data: { latest: ReleaseEntry | null; history: ReleaseEntry[] }) => {
+        if (data.latest) {
+          setLatestVersion(data.latest.version)
+          setDownloadUrl(data.latest.download_url)
+          setOpenVersions(new Set([data.latest.version]))
+        }
+        setReleases(data.history)
+      })
+      .catch(() => {
+        setLatestVersion('1.4.0')
+        setDownloadUrl('/downloads/sentinel-extension-v1.4.0.zip')
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const toggleVersion = useCallback((version: string) => {
+    setOpenVersions((prev) => {
+      const next = new Set(prev)
+      if (next.has(version)) next.delete(version)
+      else next.add(version)
+      return next
+    })
+  }, [])
 
   const webStoreUrl = process.env.NEXT_PUBLIC_EXTENSION_STORE_URL ?? null
 
   const stepKeys = ['download', 'extract', 'load', 'verify'] as const
 
-  const handlePrev = () => setCurrentStep((s) => Math.max(0, s - 1))
-  const handleNext = () => setCurrentStep((s) => Math.min(TOTAL_STEPS - 1, s + 1))
-
   return (
     <div className="space-y-6">
-      {/* Web Store Section */}
-      <Card>
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-th-text">
-            {t('settings.extension.install.webStore.title' as Parameters<typeof t>[0])}
-          </h3>
-        </CardHeader>
-        <CardContent>
-          {webStoreUrl ? (
-            <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                <svg className="h-6 w-6 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="10" opacity="0.2" />
-                  <circle cx="12" cy="12" r="4" />
-                </svg>
+      {/* Hero Download Section */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-th-accent/10 via-th-accent/5 to-transparent p-6 md:p-8">
+          <div className="flex flex-col items-center gap-5 md:flex-row md:items-start">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-th-accent/15 shadow-sm">
+              <Shield className="h-8 w-8 text-th-accent" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h3 className="text-xl font-bold text-th-text">Sentinel Extension</h3>
+              <p className="mt-1 text-sm text-th-text-secondary">
+                One-click violation reporting for Amazon product pages
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-center justify-center gap-3 text-xs text-th-text-muted md:justify-start">
+                <span className="flex items-center gap-1">
+                  <Package className="h-3.5 w-3.5" />
+                  v{latestVersion}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Globe className="h-3.5 w-3.5" />
+                  Chrome / Edge
+                </span>
+                <span className="flex items-center gap-1">
+                  <Puzzle className="h-3.5 w-3.5" />
+                  Manifest V3
+                </span>
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-th-text-secondary">
-                  {t('settings.extension.install.webStore.description' as Parameters<typeof t>[0])}
-                </p>
-              </div>
-              <a href={webStoreUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="primary" size="sm">
-                  {t('settings.extension.install.webStore.button' as Parameters<typeof t>[0])}
+            </div>
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <a href={downloadUrl} download>
+                <Button variant="primary" disabled={loading} className="gap-2 px-6 py-2.5 text-base">
+                  <Download className="h-5 w-5" />
+                  {loading ? '...' : `Download v${latestVersion}`}
                 </Button>
               </a>
+              {webStoreUrl && (
+                <a
+                  href={webStoreUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-th-accent-text hover:underline"
+                >
+                  Or install from Chrome Web Store
+                </a>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-th-text-muted">
-              {t('settings.extension.install.webStore.comingSoon' as Parameters<typeof t>[0])}
-            </p>
-          )}
-        </CardContent>
+          </div>
+        </div>
       </Card>
 
-      {/* Manual Install - Step Wizard */}
+      {/* Installation Steps */}
       <Card>
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-th-text">
+        <CardContent className="p-6">
+          <h3 className="mb-5 text-base font-semibold text-th-text">
             {t('settings.extension.install.manual.title' as Parameters<typeof t>[0])}
           </h3>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {/* Step Indicator */}
-            <div className="flex items-center justify-center gap-2">
-              {stepKeys.map((key, i) => (
-                <div key={key} className="flex items-center gap-2">
+
+          {/* Modern Stepper */}
+          <div className="mb-6 flex items-center">
+            {stepKeys.map((key, i) => {
+              const Icon = STEP_ICONS[i]
+              const isActive = i === currentStep
+              const isCompleted = i < currentStep
+
+              return (
+                <div key={key} className="flex flex-1 items-center">
                   <button
                     onClick={() => setCurrentStep(i)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors ${
-                      i === currentStep
-                        ? 'bg-th-accent text-white'
-                        : i < currentStep
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-th-bg-secondary text-th-text-muted'
+                    className={`group flex flex-col items-center gap-1.5 transition-all ${
+                      isActive ? 'scale-105' : ''
                     }`}
                   >
-                    {i < currentStep ? '✓' : STEP_ICONS[i]}
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+                        isActive
+                          ? 'bg-th-accent text-white shadow-md shadow-th-accent/25'
+                          : isCompleted
+                            ? 'bg-green-500/15 text-green-500'
+                            : 'bg-th-bg-secondary text-th-text-muted group-hover:bg-th-bg-tertiary'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle className="h-5 w-5" />
+                      ) : (
+                        <Icon className="h-5 w-5" />
+                      )}
+                    </div>
+                    <span
+                      className={`text-[11px] font-medium ${
+                        isActive
+                          ? 'text-th-accent-text'
+                          : isCompleted
+                            ? 'text-green-500'
+                            : 'text-th-text-muted'
+                      }`}
+                    >
+                      {t(`settings.extension.install.manual.steps.${key}.title` as Parameters<typeof t>[0])}
+                    </span>
                   </button>
                   {i < TOTAL_STEPS - 1 && (
-                    <div className={`h-0.5 w-8 ${i < currentStep ? 'bg-green-500/40' : 'bg-th-border'}`} />
+                    <div
+                      className={`mx-1 mt-[-18px] h-0.5 flex-1 rounded-full transition-colors ${
+                        isCompleted ? 'bg-green-500/40' : 'bg-th-border'
+                      }`}
+                    />
                   )}
                 </div>
-              ))}
-            </div>
+              )
+            })}
+          </div>
 
-            {/* Step Content */}
-            <div className="rounded-lg border border-th-border bg-th-bg-secondary p-5">
-              {/* Step 1: Download */}
-              {currentStep === 0 && (
-                <div className="space-y-4">
-                  <h4 className="text-base font-semibold text-th-text">
-                    {t('settings.extension.install.manual.steps.download.title' as Parameters<typeof t>[0])}
-                  </h4>
-                  <p className="text-sm text-th-text-secondary">
-                    {t('settings.extension.install.manual.steps.download.description' as Parameters<typeof t>[0])}
-                  </p>
-                  <a href={DOWNLOAD_PATH} download>
-                    <Button variant="primary" size="sm">
-                      {t('settings.extension.install.manual.steps.download.button' as Parameters<typeof t>[0])}
-                    </Button>
-                  </a>
-                  <p className="text-xs text-th-text-muted">
-                    {t('settings.extension.install.manual.steps.download.size' as Parameters<typeof t>[0])}
-                  </p>
-                </div>
-              )}
+          {/* Step Content */}
+          <div className="rounded-xl border border-th-border bg-th-bg-secondary p-5">
+            {/* Step 1: Download */}
+            {currentStep === 0 && (
+              <div className="space-y-4">
+                <p className="text-sm text-th-text-secondary">
+                  {t('settings.extension.install.manual.steps.download.description' as Parameters<typeof t>[0])}
+                </p>
+                <a href={downloadUrl} download>
+                  <Button variant="primary" size="sm" disabled={loading} className="gap-2">
+                    <Download className="h-4 w-4" />
+                    {loading
+                      ? '...'
+                      : `${t('settings.extension.install.manual.steps.download.button' as Parameters<typeof t>[0])} (v${latestVersion})`}
+                  </Button>
+                </a>
+                <p className="text-xs text-th-text-muted">
+                  {t('settings.extension.install.manual.steps.download.size' as Parameters<typeof t>[0])}
+                </p>
+              </div>
+            )}
 
-              {/* Step 2: Extract */}
-              {currentStep === 1 && (
-                <div className="space-y-4">
-                  <h4 className="text-base font-semibold text-th-text">
-                    {t('settings.extension.install.manual.steps.extract.title' as Parameters<typeof t>[0])}
-                  </h4>
-                  <p className="text-sm text-th-text-secondary">
-                    {t('settings.extension.install.manual.steps.extract.description' as Parameters<typeof t>[0])}
-                  </p>
-                  <div className="rounded-md bg-th-bg p-3 font-mono text-xs text-th-text-secondary">
-                    <div className="space-y-1">
-                      <div>📁 Downloads/</div>
-                      <div className="pl-4">└─ 📁 sentinel-extension/</div>
-                      <div className="pl-8">├─ manifest.json</div>
-                      <div className="pl-8">├─ background.js</div>
-                      <div className="pl-8">├─ content.js</div>
-                      <div className="pl-8">└─ popup.html</div>
-                    </div>
+            {/* Step 2: Extract */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <p className="text-sm text-th-text-secondary">
+                  {t('settings.extension.install.manual.steps.extract.description' as Parameters<typeof t>[0])}
+                </p>
+                <div className="rounded-lg bg-th-bg p-3 font-mono text-xs text-th-text-secondary">
+                  <div className="space-y-0.5">
+                    <div className="text-th-text-muted">Downloads/</div>
+                    <div className="pl-4 text-th-accent-text">sentinel-extension/</div>
+                    <div className="pl-8">manifest.json</div>
+                    <div className="pl-8">background.js</div>
+                    <div className="pl-8">content.js</div>
+                    <div className="pl-8">popup.html</div>
                   </div>
-                  <p className="text-xs text-th-accent">
-                    💡 {t('settings.extension.install.manual.steps.extract.tip' as Parameters<typeof t>[0])}
+                </div>
+                <p className="rounded-lg bg-th-accent/5 px-3 py-2 text-xs text-th-accent-text">
+                  {t('settings.extension.install.manual.steps.extract.tip' as Parameters<typeof t>[0])}
+                </p>
+              </div>
+            )}
+
+            {/* Step 3: Load in Chrome */}
+            {currentStep === 2 && (
+              <div className="space-y-3">
+                <ol className="space-y-3 text-sm text-th-text-secondary">
+                  {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
+                    <li key={step} className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-th-accent/15 text-xs font-bold text-th-accent">
+                        {i + 1}
+                      </span>
+                      <div>
+                        <p>{t(`settings.extension.install.manual.steps.load.${step}` as Parameters<typeof t>[0])}</p>
+                        {i === 0 && (
+                          <button
+                            onClick={() => navigator.clipboard.writeText('chrome://extensions')}
+                            className="mt-1 inline-flex items-center gap-1 rounded-md bg-th-bg px-2 py-0.5 font-mono text-xs text-th-accent-text transition-colors hover:bg-th-bg-tertiary"
+                          >
+                            chrome://extensions
+                            <span className="text-[10px] text-th-text-muted">click to copy</span>
+                          </button>
+                        )}
+                        {i === 1 && (
+                          <div className="mt-1.5 inline-flex items-center gap-2 rounded-full border border-th-border px-3 py-1 text-xs">
+                            <span className="text-th-text-muted">Developer mode</span>
+                            <span className="h-3.5 w-7 rounded-full bg-th-accent" />
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {/* Step 4: Verify */}
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <ul className="space-y-2">
+                  {(['check1', 'check2', 'check3'] as const).map((check) => (
+                    <li key={check} className="flex items-center gap-2.5 text-sm text-th-text-secondary">
+                      <CheckCircle className="h-4 w-4 shrink-0 text-green-500" />
+                      {t(`settings.extension.install.manual.steps.verify.${check}` as Parameters<typeof t>[0])}
+                    </li>
+                  ))}
+                </ul>
+                <div className="rounded-lg bg-green-500/10 px-4 py-3 text-center text-sm font-medium text-green-500">
+                  {t('settings.extension.install.manual.steps.verify.success' as Parameters<typeof t>[0])}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-th-text-muted">
+                    {t('settings.extension.install.manual.steps.verify.troubleshoot' as Parameters<typeof t>[0])}
                   </p>
-                </div>
-              )}
-
-              {/* Step 3: Load in Chrome */}
-              {currentStep === 2 && (
-                <div className="space-y-4">
-                  <h4 className="text-base font-semibold text-th-text">
-                    {t('settings.extension.install.manual.steps.load.title' as Parameters<typeof t>[0])}
-                  </h4>
-                  <ol className="space-y-3 text-sm text-th-text-secondary">
-                    <li className="flex items-start gap-3">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-th-accent/20 text-xs font-bold text-th-accent">1</span>
-                      <div>
-                        <p>{t('settings.extension.install.manual.steps.load.step1' as Parameters<typeof t>[0])}</p>
-                        <a
-                          href="chrome://extensions"
-                          className="mt-1 inline-block text-xs text-th-accent hover:underline"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            navigator.clipboard.writeText('chrome://extensions')
-                          }}
-                        >
-                          📋 chrome://extensions
-                        </a>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-th-accent/20 text-xs font-bold text-th-accent">2</span>
-                      <div>
-                        <p>{t('settings.extension.install.manual.steps.load.step2' as Parameters<typeof t>[0])}</p>
-                        <div className="mt-1 inline-flex items-center gap-2 rounded-full border border-th-border px-3 py-1 text-xs">
-                          <span className="text-th-text-muted">Developer mode</span>
-                          <span className="h-4 w-8 rounded-full bg-th-accent" />
-                        </div>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-th-accent/20 text-xs font-bold text-th-accent">3</span>
-                      <p>{t('settings.extension.install.manual.steps.load.step3' as Parameters<typeof t>[0])}</p>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-th-accent/20 text-xs font-bold text-th-accent">4</span>
-                      <p>{t('settings.extension.install.manual.steps.load.step4' as Parameters<typeof t>[0])}</p>
-                    </li>
-                  </ol>
-                </div>
-              )}
-
-              {/* Step 4: Verify */}
-              {currentStep === 3 && (
-                <div className="space-y-4">
-                  <h4 className="text-base font-semibold text-th-text">
-                    {t('settings.extension.install.manual.steps.verify.title' as Parameters<typeof t>[0])}
-                  </h4>
-                  <ul className="space-y-2 text-sm text-th-text-secondary">
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-400">✅</span>
-                      {t('settings.extension.install.manual.steps.verify.check1' as Parameters<typeof t>[0])}
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-400">✅</span>
-                      {t('settings.extension.install.manual.steps.verify.check2' as Parameters<typeof t>[0])}
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-green-400">✅</span>
-                      {t('settings.extension.install.manual.steps.verify.check3' as Parameters<typeof t>[0])}
-                    </li>
+                  <ul className="space-y-0.5 text-xs text-th-text-muted">
+                    {(['tip1', 'tip2', 'tip3'] as const).map((tip) => (
+                      <li key={tip}>
+                        {t(`settings.extension.install.manual.steps.verify.${tip}` as Parameters<typeof t>[0])}
+                      </li>
+                    ))}
                   </ul>
-                  <div className="rounded-md bg-green-500/10 p-3 text-center text-sm font-medium text-green-400">
-                    🎉 {t('settings.extension.install.manual.steps.verify.success' as Parameters<typeof t>[0])}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-th-text-muted">
-                      {t('settings.extension.install.manual.steps.verify.troubleshoot' as Parameters<typeof t>[0])}
-                    </p>
-                    <ul className="space-y-0.5 text-xs text-th-text-muted">
-                      <li>→ {t('settings.extension.install.manual.steps.verify.tip1' as Parameters<typeof t>[0])}</li>
-                      <li>→ {t('settings.extension.install.manual.steps.verify.tip2' as Parameters<typeof t>[0])}</li>
-                      <li>→ {t('settings.extension.install.manual.steps.verify.tip3' as Parameters<typeof t>[0])}</li>
-                    </ul>
-                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Navigation */}
-              <div className="mt-5 flex justify-between">
+            {/* Navigation */}
+            <div className="mt-5 flex justify-between border-t border-th-border pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
+                disabled={currentStep === 0}
+              >
+                {t('settings.extension.install.manual.back' as Parameters<typeof t>[0])}
+              </Button>
+              {currentStep < TOTAL_STEPS - 1 ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handlePrev}
-                  disabled={currentStep === 0}
+                  onClick={() => setCurrentStep((s) => Math.min(TOTAL_STEPS - 1, s + 1))}
                 >
-                  ← {t('settings.extension.install.manual.back' as Parameters<typeof t>[0])}
+                  {t('settings.extension.install.manual.next' as Parameters<typeof t>[0])}
                 </Button>
-                {currentStep < TOTAL_STEPS - 1 ? (
-                  <Button variant="outline" size="sm" onClick={handleNext}>
-                    {t('settings.extension.install.manual.next' as Parameters<typeof t>[0])} →
-                  </Button>
-                ) : (
-                  <Button variant="primary" size="sm" onClick={() => setCurrentStep(0)}>
-                    {t('settings.extension.install.manual.done' as Parameters<typeof t>[0])} ✓
-                  </Button>
-                )}
-              </div>
+              ) : (
+                <Button variant="primary" size="sm" onClick={() => setCurrentStep(0)}>
+                  {t('settings.extension.install.manual.done' as Parameters<typeof t>[0])}
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Extension Info */}
+      {/* Background ASIN Fetch */}
       <Card>
-        <CardHeader>
-          <h3 className="text-lg font-semibold text-th-text">
-            {t('settings.extension.info.title' as Parameters<typeof t>[0])}
+        <CardContent className="p-6">
+          <h3 className="mb-3 text-base font-semibold text-th-text">
+            {t('settings.extension.bgFetch.title' as Parameters<typeof t>[0])}
           </h3>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <span className="text-th-text-muted">{t('settings.extension.info.version' as Parameters<typeof t>[0])}</span>
-              <p className="font-mono text-th-text">{EXTENSION_VERSION}</p>
-            </div>
-            <div>
-              <span className="text-th-text-muted">{t('settings.extension.info.manifest' as Parameters<typeof t>[0])}</span>
-              <p className="text-th-text">V3</p>
-            </div>
-            <div>
-              <span className="text-th-text-muted">{t('settings.extension.info.permissions' as Parameters<typeof t>[0])}</span>
-              <p className="text-th-text">{t('settings.extension.info.permissionsDesc' as Parameters<typeof t>[0])}</p>
-            </div>
+          <p className="text-sm text-th-text-secondary">
+            {t('settings.extension.bgFetch.description' as Parameters<typeof t>[0])}
+          </p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
+              <div
+                key={step}
+                className="flex items-start gap-2.5 rounded-lg border border-th-border bg-th-bg-secondary p-3"
+              >
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-blue-500/15 text-[10px] font-bold text-blue-500">
+                  {i + 1}
+                </span>
+                <span className="text-xs text-th-text-secondary">
+                  {t(`settings.extension.bgFetch.${step}` as Parameters<typeof t>[0])}
+                </span>
+              </div>
+            ))}
           </div>
+          <p className="mt-3 rounded-lg bg-blue-500/5 px-3 py-2 text-xs text-blue-500">
+            {t('settings.extension.bgFetch.enableNote' as Parameters<typeof t>[0])}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Version History - Timeline */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="mb-4 text-base font-semibold text-th-text">Version History</h3>
+          {loading ? (
+            <p className="text-sm text-th-text-muted">Loading...</p>
+          ) : (
+            <div className="relative space-y-0">
+              {/* Timeline line */}
+              <div className="absolute bottom-0 left-[15px] top-0 w-px bg-th-border" />
+
+              {releases.map((entry, idx) => {
+                const isOpen = openVersions.has(entry.version)
+                const isCurrent = idx === 0
+
+                return (
+                  <div key={entry.version} className="relative pl-10">
+                    {/* Timeline dot */}
+                    <div
+                      className={`absolute left-[10px] top-3.5 h-3 w-3 rounded-full border-2 ${
+                        isCurrent
+                          ? 'border-th-accent bg-th-accent'
+                          : 'border-th-border bg-surface-card'
+                      }`}
+                    />
+
+                    <button
+                      onClick={() => toggleVersion(entry.version)}
+                      className="group flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-th-bg-secondary"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`font-mono text-sm font-semibold ${
+                            isCurrent ? 'text-th-accent-text' : 'text-th-text'
+                          }`}
+                        >
+                          v{entry.version}
+                        </span>
+                        {isCurrent && (
+                          <span className="rounded-full bg-th-accent/15 px-2 py-0.5 text-[10px] font-semibold text-th-accent-text">
+                            Latest
+                          </span>
+                        )}
+                        <span className="text-xs text-th-text-muted">
+                          {new Date(entry.released_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 text-th-text-muted transition-transform duration-200 ${
+                          isOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+
+                    {isOpen && (
+                      <div className="mb-2 ml-3 rounded-lg border border-th-border bg-th-bg-secondary px-4 py-3">
+                        <ul className="space-y-1.5">
+                          {entry.changes.map((change, i) => (
+                            <li
+                              key={i}
+                              className="flex items-start gap-2 text-sm text-th-text-secondary"
+                            >
+                              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-th-text-muted" />
+                              {change}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

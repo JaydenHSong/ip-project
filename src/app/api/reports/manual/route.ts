@@ -91,6 +91,7 @@ export const POST = withAuth(async (req: NextRequest) => {
       note: body.note || null,
       screenshot_url: body.screenshot_url || null,
       screenshot_urls: body.screenshot_urls || null,
+      related_asins: body.related_asins ?? [],
       status: 'draft',
       created_by: authUser!.id,
     })

@@ -80,6 +80,34 @@ const notifySubmittedToSC = async (
   await sendGoogleChatMessage(text)
 }
 
+// SC 자동 제출 실패 알림
+const notifyScFailed = async (
+  reportId: string,
+  error: string,
+): Promise<void> => {
+  const text = [
+    `🚨 *[Sentinel]* SC 자동 제출 실패 (3회 초과)`,
+    `Report: ${reportId}`,
+    `오류: ${error.slice(0, 150)}${error.length > 150 ? '...' : ''}`,
+    `→ 수동 재시도가 필요합니다.`,
+  ].join('\n')
+  await sendGoogleChatMessage(text)
+}
+
+// 재제출 max 초과 알림
+const notifyResubmitMaxExceeded = async (
+  reportId: string,
+  asin: string,
+  count: number,
+): Promise<void> => {
+  const text = [
+    `⚠️ *[Sentinel]* 재제출 최대 횟수 도달`,
+    `Report: ${reportId} | ASIN: ${asin} | 재제출: ${count}회`,
+    `→ 수동 확인이 필요합니다.`,
+  ].join('\n')
+  await sendGoogleChatMessage(text)
+}
+
 export {
   sendGoogleChatMessage,
   notifyNewSubmission,
@@ -87,4 +115,6 @@ export {
   notifyApproved,
   notifyRejected,
   notifySubmittedToSC,
+  notifyScFailed,
+  notifyResubmitMaxExceeded,
 }

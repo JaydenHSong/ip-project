@@ -1,5 +1,8 @@
+'use client'
+
 import { VIOLATION_TYPES, type ViolationCode } from '@/constants/violations'
 import { Badge } from '@/components/ui/Badge'
+import { useI18n } from '@/lib/i18n/context'
 
 type ViolationBadgeProps = {
   code: ViolationCode
@@ -16,6 +19,7 @@ const CATEGORY_VARIANT = {
 } as const
 
 export const ViolationBadge = ({ code, showLabel = true, className }: ViolationBadgeProps) => {
+  const { t } = useI18n()
   const violation = VIOLATION_TYPES[code]
 
   if (!violation) {
@@ -23,10 +27,11 @@ export const ViolationBadge = ({ code, showLabel = true, className }: ViolationB
   }
 
   const variant = CATEGORY_VARIANT[violation.category] ?? 'default'
+  const label = t(`violations.types.${code}` as Parameters<typeof t>[0]) ?? violation.name
 
   return (
     <Badge variant={variant} className={className}>
-      {code}{showLabel ? ` ${violation.name}` : ''}
+      {code}{showLabel ? ` ${label}` : ''}
     </Badge>
   )
 }

@@ -2,7 +2,7 @@ import type { ViolationCategory, ViolationCode } from '@/constants/violations'
 
 export const REPORT_STATUSES = [
   'draft', 'pending_review', 'approved', 'rejected', 'cancelled',
-  'submitted', 'monitoring', 'resolved', 'unresolved',
+  'sc_submitting', 'submitted', 'monitoring', 'resolved', 'unresolved',
   'resubmitted', 'escalated', 'archived',
 ] as const
 export type ReportStatus = (typeof REPORT_STATUSES)[number]
@@ -34,9 +34,16 @@ export type PolicyReference = {
   section: string
 }
 
+export type RelatedAsin = {
+  asin: string
+  marketplace?: string
+  url?: string
+}
+
 export type Report = {
   id: string
   listing_id: string
+  related_asins: RelatedAsin[]
 
   // 위반 유형 (AI vs 사용자 불일치 처리)
   user_violation_type: ViolationCode
@@ -98,10 +105,32 @@ export type Report = {
   parent_report_id: string | null
   escalation_level: number
 
+  // 재제출 추적
+  resubmit_count: number
+  resubmit_interval_days: number | null
+  max_resubmit_count: number | null
+  next_resubmit_at: string | null
+  last_resubmit_at: string | null
+
+  // SC 제출 추적
+  sc_submit_attempts: number
+  sc_last_attempt_at: string | null
+  sc_submit_data: ScSubmitData | null
+
   // 메타
   created_by: string
   created_at: string
   updated_at: string
+}
+
+export type ScSubmitData = {
+  asin: string
+  violation_type_sc: string
+  description: string
+  evidence_urls: string[]
+  marketplace: string
+  sc_rav_url: string
+  prepared_at: string
 }
 
 export type AiAnalysisResult = {

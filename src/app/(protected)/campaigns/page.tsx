@@ -17,7 +17,8 @@ const CampaignsPage = async ({
   const page = Number(params.page) || 1
   const limit = 20
 
-  let campaigns: typeof DEMO_CAMPAIGNS | null = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let campaigns: any[] | null = null
   let totalPages = 1
 
   if (isDemoMode()) {
@@ -50,7 +51,7 @@ const CampaignsPage = async ({
 
     const { data, error, count } = await query
     if (error) console.error('Campaigns query error:', error.message)
-    campaigns = data as typeof DEMO_CAMPAIGNS | null
+    campaigns = data
     totalPages = Math.ceil((count ?? 0) / limit)
   }
 

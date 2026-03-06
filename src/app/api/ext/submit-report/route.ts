@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { VIOLATION_TYPES, VIOLATION_CATEGORIES } from '@/constants/violations'
 import type { SubmitReportRequest, SubmitReportResponse } from '@/types/api'
 
@@ -44,7 +44,8 @@ export const POST = withAuth(async (req, { user }) => {
     )
   }
 
-  const supabase = await createClient()
+  // withAuth에서 인증 완료 → admin 클라이언트로 RLS 우회 (Extension Bearer 토큰 호환)
+  const supabase = createAdminClient()
 
   // 1. 기존 listing 조회 또는 새로 생성
   const { data: existingListing } = await supabase
@@ -126,17 +127,25 @@ export const POST = withAuth(async (req, { user }) => {
     const base64Data = body.screenshot_base64.replace(/^data:image\/\w+;base64,/, '')
     const buffer = Buffer.from(base64Data, 'base64')
 
+    // Extension은 JPEG로 캡처 — MIME 타입 자동 감지
+    const isJpeg = body.screenshot_base64.startsWith('data:image/jpeg')
+    const ext = isJpeg ? 'jpg' : 'png'
+    const contentType = isJpeg ? 'image/jpeg' : 'image/png'
+    const filePath = `${report.id}.${ext}`
+
     const { error: uploadError } = await supabase.storage
       .from('screenshots')
-      .upload(`${report.id}.png`, buffer, {
-        contentType: 'image/png',
+      .upload(filePath, buffer, {
+        contentType,
         upsert: true,
       })
 
-    if (!uploadError) {
+    if (uploadError) {
+      console.error(`[submit-report] Screenshot upload failed for report ${report.id}:`, uploadError.message)
+    } else {
       const { data: publicUrl } = supabase.storage
         .from('screenshots')
-        .getPublicUrl(`${report.id}.png`)
+        .getPublicUrl(filePath)
 
       await supabase
         .from('reports')
@@ -164,10 +173,14 @@ export const POST = withAuth(async (req, { user }) => {
     }).catch(() => {})
   }
 
-  const response: SubmitReportResponse = {
+  const response: SubmitReportResponse & { screenshot_uploaded?: boolean } = {
     report_id: report.id,
     listing_id: listingId,
     is_duplicate: isDuplicate,
+  }
+
+  if (body.screenshot_base64) {
+    response.screenshot_uploaded = true
   }
 
   return NextResponse.json(response, { status: 201 })

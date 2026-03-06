@@ -8,18 +8,11 @@ import { useI18n } from '@/lib/i18n/context'
 import { cn } from '@/lib/utils/cn'
 import type { Role } from '@/types/users'
 
-const ROLE_HIERARCHY: Record<Role, number> = {
-  owner: 5,
-  admin: 4,
-  editor: 3,
-  viewer_plus: 2,
-  viewer: 1,
-}
-
 type MobileTabBarProps = {
   userRole: Role
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
   const pathname = usePathname()
   const { t } = useI18n()
@@ -33,9 +26,7 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
 
   const moreItems = [
     { labelKey: 'nav.completedReports', href: '/reports/completed' },
-    ...(ROLE_HIERARCHY[userRole] >= ROLE_HIERARCHY['owner']
-      ? [{ labelKey: 'nav.auditLogs', href: '/audit-logs' }]
-      : []),
+    { labelKey: 'nav.notices', href: '/notices' },
     { labelKey: 'nav.settings', href: '/settings' },
   ]
 

@@ -1,5 +1,6 @@
 import type { TimelineEvent } from '@/types/reports'
 import type { User } from '@/types/users'
+import type { Notice } from '@/types/notices'
 
 // Demo mock data for testing UI without Supabase
 
@@ -424,6 +425,64 @@ export const DEMO_REPORTS = [
       price_amount: 15.99,
       price_currency: 'USD',
     },
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
+  },
+]
+
+export const DEMO_NOTICES: Notice[] = [
+  {
+    id: 'notice-001',
+    category: 'update',
+    title: 'Sentinel v0.1.0 Released',
+    content: 'Sentinel v0.1.0이 출시되었습니다.\n\n주요 기능:\n- AI 기반 위반 탐지 및 신고서 자동 생성\n- 캠페인 기반 자동 크롤링\n- Chrome Extension 원클릭 위반 제보\n- 실시간 모니터링 및 팔로업',
+    is_pinned: true,
+    created_by: 'demo-user-001',
+    created_at: '2026-03-01T09:00:00.000Z',
+    updated_at: '2026-03-01T09:00:00.000Z',
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
+  },
+  {
+    id: 'notice-002',
+    category: 'policy',
+    title: 'IP 위반 신고 정책 업데이트',
+    content: '2026년 3월부터 아마존 IP 위반 신고 정책이 변경됩니다.\n\n변경 사항:\n- 디자인 특허 위반 신고 시 특허 등록증 사본 필수 첨부\n- 상표권 위반 신고 시 Brand Registry 인증 정보 확인 강화\n\n자세한 내용은 Seller Central 공지를 참조하세요.',
+    is_pinned: true,
+    created_by: 'demo-user-002',
+    created_at: '2026-02-28T14:00:00.000Z',
+    updated_at: '2026-02-28T14:00:00.000Z',
+    users: { name: 'Jane Smith', email: 'jane.smith@spigen.com' },
+  },
+  {
+    id: 'notice-003',
+    category: 'notice',
+    title: '서버 점검 안내 (3/5 02:00~04:00)',
+    content: '2026년 3월 5일(수) 오전 2시~4시까지 서버 점검이 예정되어 있습니다.\n점검 시간 동안 서비스 이용이 일시적으로 중단될 수 있습니다.',
+    is_pinned: false,
+    created_by: 'demo-user-001',
+    created_at: '2026-02-25T10:00:00.000Z',
+    updated_at: '2026-02-25T10:00:00.000Z',
+    users: { name: 'Demo Owner', email: 'demo@spigen.com' },
+  },
+  {
+    id: 'notice-004',
+    category: 'system',
+    title: 'Monday.com 특허 데이터 동기화 완료',
+    content: 'Monday.com에서 최신 특허 데이터가 성공적으로 동기화되었습니다.\n\n- 신규 등록: 5건\n- 업데이트: 12건\n- 총 IP 자산: 89건',
+    is_pinned: false,
+    created_by: null,
+    created_at: '2026-02-20T06:00:00.000Z',
+    updated_at: '2026-02-20T06:00:00.000Z',
+    users: null,
+  },
+  {
+    id: 'notice-005',
+    category: 'update',
+    title: 'AI 분석 엔진 성능 개선',
+    content: 'Claude AI 엔진의 위반 탐지 정확도가 개선되었습니다.\n\n- 디자인 특허 위반 탐지율: 85% → 92%\n- 위양성률: 12% → 7%\n- 평균 분석 소요 시간: 8초 → 5초',
+    is_pinned: false,
+    created_by: 'demo-user-001',
+    created_at: '2026-02-15T11:00:00.000Z',
+    updated_at: '2026-02-15T11:00:00.000Z',
     users: { name: 'Demo Owner', email: 'demo@spigen.com' },
   },
 ]

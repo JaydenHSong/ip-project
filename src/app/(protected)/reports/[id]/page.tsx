@@ -30,6 +30,12 @@ type ReportData = {
   draft_body: string | null
   rejection_reason: string | null
   sc_case_id: string | null
+  sc_submission_error: string | null
+  sc_submit_attempts: number
+  resubmit_count: number
+  resubmit_interval_days: number | null
+  next_resubmit_at: string | null
+  screenshot_url: string | null
   created_at: string
   approved_at: string | null
   rejected_at: string | null
@@ -44,6 +50,10 @@ type ReportData = {
   monitoring_started_at: string | null
   resolved_at: string | null
   resolution_type: string | null
+  // Ownership
+  created_by: string
+  // Multi-ASIN
+  related_asins: { asin: string; marketplace?: string; url?: string }[]
 }
 
 type ListingInfo = {
@@ -150,6 +160,7 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
       creatorName={creator?.name ?? null}
       canEdit={canEdit}
       userRole={user.role}
+      currentUserId={user.id}
       timeline={timeline}
       snapshots={snapshots}
       monitoringStartedAt={report.monitoring_started_at}

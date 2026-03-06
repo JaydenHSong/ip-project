@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -13,7 +13,7 @@ import { VIOLATION_CATEGORIES, VIOLATION_GROUPS } from '@/constants/violations'
 import { MARKETPLACE_CODES, MARKETPLACES } from '@/constants/marketplaces'
 import type { ViolationCategory } from '@/constants/violations'
 import type { ReportTemplate } from '@/types/templates'
-import { Star, FileText, Upload, X, Image } from 'lucide-react'
+import { Star, FileText, Upload, X, Image, Plus } from 'lucide-react'
 
 const MARKETPLACE_OPTIONS = MARKETPLACE_CODES.map((code) => ({
   value: code,
@@ -32,22 +32,27 @@ type NewReportFormProps = {
 
 export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { t } = useI18n()
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [duplicateId, setDuplicateId] = useState<string | null>(null)
 
-  // Listing fields
-  const [asin, setAsin] = useState('')
-  const [marketplace, setMarketplace] = useState('US')
-  const [title, setTitle] = useState('')
-  const [sellerName, setSellerName] = useState('')
+  // Listing fields (pre-fill from query params if available)
+  const [asin, setAsin] = useState(searchParams.get('asin') ?? '')
+  const [marketplace, setMarketplace] = useState(searchParams.get('marketplace') ?? 'US')
+  const [title, setTitle] = useState(searchParams.get('title') ?? '')
+  const [sellerName, setSellerName] = useState(searchParams.get('seller') ?? '')
+  const [prefilling, setPrefilling] = useState(false)
 
   // Violation fields
   const [category, setCategory] = useState('')
   const [violationType, setViolationType] = useState('')
   const [note, setNote] = useState('')
+
+  // Related ASINs (multi-ASIN support)
+  const [relatedAsins, setRelatedAsins] = useState<string[]>([])
 
   // Screenshots (multiple)
   const [screenshots, setScreenshots] = useState<{ url: string; preview: string }[]>([])
@@ -57,6 +62,37 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
   const [suggestedTemplates, setSuggestedTemplates] = useState<ReportTemplate[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null)
+
+  // ASIN + marketplace가 있으면 DB에서 listing 데이터 가져와서 pre-fill
+  useEffect(() => {
+    const paramAsin = searchParams.get('asin')
+    const paramMp = searchParams.get('marketplace') ?? 'US'
+    if (!paramAsin) return
+
+    const prefillFromListing = async () => {
+      setPrefilling(true)
+      try {
+        const res = await fetch(`/api/listings/lookup?asin=${paramAsin}&marketplace=${paramMp}`)
+        if (!res.ok) return
+        const listing = await res.json()
+        if (listing.title && !title) setTitle(listing.title)
+        if (listing.seller_name && !sellerName) setSellerName(listing.seller_name)
+        if (listing.screenshot_url) {
+          setScreenshots((prev) =>
+            prev.length === 0
+              ? [{ url: listing.screenshot_url, preview: listing.screenshot_url }]
+              : prev,
+          )
+        }
+      } catch {
+        // pre-fill 실패해도 수동 입력 가능
+      } finally {
+        setPrefilling(false)
+      }
+    }
+
+    prefillFromListing()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const typeOptions = category
     ? (VIOLATION_GROUPS[category as ViolationCategory] ?? []).map((v) => ({
@@ -173,6 +209,9 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
           note: note.trim() || undefined,
           screenshot_url: screenshots.length > 0 ? screenshots[0].url : undefined,
           screenshot_urls: screenshots.length > 0 ? screenshots.map((s) => s.url) : undefined,
+          related_asins: relatedAsins
+            .filter((a) => a.trim().length >= 5)
+            .map((a) => ({ asin: a.trim().toUpperCase(), marketplace })),
         }),
       })
 
@@ -267,6 +306,44 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
               onChange={(e) => setSellerName(e.target.value)}
               placeholder={t('reports.new.sellerNamePlaceholder')}
             />
+          </div>
+
+          {/* Related ASINs (Multi-ASIN) */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-th-text-secondary">
+              Related ASINs
+            </label>
+            {relatedAsins.map((ra, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <Input
+                  value={ra}
+                  onChange={(e) => {
+                    const updated = [...relatedAsins]
+                    updated[idx] = e.target.value.toUpperCase()
+                    setRelatedAsins(updated)
+                  }}
+                  placeholder="B08XXXXXXXX"
+                  className="flex-1 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setRelatedAsins(relatedAsins.filter((_, i) => i !== idx))}
+                  className="rounded-lg p-2 text-th-text-muted hover:bg-st-danger-bg hover:text-st-danger-text"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            {relatedAsins.length < 50 && (
+              <button
+                type="button"
+                onClick={() => setRelatedAsins([...relatedAsins, ''])}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-th-accent-text hover:bg-th-accent-soft"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add ASIN
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>

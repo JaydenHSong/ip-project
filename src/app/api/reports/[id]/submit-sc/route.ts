@@ -23,7 +23,7 @@ export const POST = withAuth(async (req) => {
   const { data: report, error: fetchError } = await supabase
     .from('reports')
     .select(`
-      id, status, listing_id,
+      id, status, listing_id, related_asins,
       violation_type, draft_body, draft_evidence,
       listings!inner(asin, marketplace)
     `)
@@ -51,8 +51,13 @@ export const POST = withAuth(async (req) => {
   const scRavUrl = SC_RAV_URLS[marketplace] ?? SC_RAV_URLS.US
 
   // SC submit 데이터 구성
+  const relatedAsins = Array.isArray(report.related_asins)
+    ? (report.related_asins as { asin: string; marketplace?: string }[]).map((ra) => ra.asin)
+    : []
+
   const scSubmitData = {
     asin: listing.asin,
+    related_asins: relatedAsins,
     violation_type_sc: violationTypeSc,
     description: report.draft_body ?? '',
     evidence_urls: Array.isArray(report.draft_evidence)

@@ -717,12 +717,14 @@ export const ko = {
     fetchAnother: '다른 제품 조회',
     viewReport: '리포트 보기',
     createManualReport: '수동 리포트 작성',
-    extensionHint: '브라우저 익스텐션을 통해 상품 정보를 가져옵니다.',
-    extensionFallback: '브라우저 익스텐션이 상품 정보를 수집 중입니다...',
+    crawlerFetching: '크롤러로 상품 정보를 수집 중...',
+    extensionHint: '크롤러가 먼저 시도하고, 차단되면 브라우저 익스텐션이 대신합니다.',
+    extensionFallback: '크롤러가 차단되어 브라우저 익스텐션이 상품 정보를 수집 중입니다...',
     extensionTabNotice: '브라우저에서 잠깐 새 탭이 열릴 수 있습니다. 자동으로 닫힙니다.',
     extensionWaiting: '익스텐션 대기 중...',
     extensionProcessing: '익스텐션이 상품 정보를 수집 중...',
-    extensionNotAvailable: '익스텐션을 사용할 수 없습니다. Sentinel 익스텐션을 설치하고 설정에서 Background Fetch를 켜주세요.',
+    extensionNotAvailable: '크롤러가 차단되었고 익스텐션을 사용할 수 없습니다. Sentinel 익스텐션을 설치하고 Background Fetch를 켜주세요.',
+    extensionGuideLink: '설정에서 익스텐션 설치 가이드 보기',
   },
   violations: {
     categories: {

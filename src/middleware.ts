@@ -34,10 +34,29 @@ export const middleware = async (req: NextRequest): Promise<NextResponse> => {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Cron / Crawler / Extension API는 자체 인증 사용 — 미들웨어 스킵
+  // Extension API — CORS 허용 + 자체 인증
+  if (req.nextUrl.pathname.startsWith('/api/ext/')) {
+    // OPTIONS preflight
+    if (req.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Extension-Version',
+          'Access-Control-Max-Age': '86400',
+        },
+      })
+    }
+    res.headers.set('Access-Control-Allow-Origin', '*')
+    res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Extension-Version')
+    return res
+  }
+
+  // Cron / Crawler API는 자체 인증 사용 — 미들웨어 스킵
   if (req.nextUrl.pathname.startsWith('/api/cron/') ||
-      req.nextUrl.pathname.startsWith('/api/crawler/') ||
-      req.nextUrl.pathname.startsWith('/api/ext/')) {
+      req.nextUrl.pathname.startsWith('/api/crawler/')) {
     return res
   }
 

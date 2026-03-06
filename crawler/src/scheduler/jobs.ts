@@ -97,7 +97,7 @@ const createJobProcessor = (
             const pageSuspects = nonSpigenResults.filter(r => r.preScanResult?.isSuspect)
             // 키워드 매칭으로 의심 건이 없을 때만 Vision 사용 (비용 절약)
             if (pageSuspects.length === 0) {
-              const screenshot = await captureScreenshot(page, 1280, 800)
+              const screenshot = await captureScreenshot(page, 1024, 640, 'scan')
               await thumbnailVisionScan(vision, screenshot, nonSpigenResults)
             }
           }
@@ -140,6 +140,7 @@ const createJobProcessor = (
                 page,
                 config.screenshotWidth,
                 config.screenshotHeight,
+                'evidence',
               )
 
               // innocent (봇 탐지 방지용)은 상세 수집만 하고 AI 분석/서버 전송 안 함

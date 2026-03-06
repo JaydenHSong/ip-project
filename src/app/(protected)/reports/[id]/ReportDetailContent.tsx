@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
+import { BackButton } from '@/components/ui/BackButton'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
@@ -40,9 +41,17 @@ type ReportDetailContentProps = {
     draft_body: string | null
     rejection_reason: string | null
     sc_case_id: string | null
+    sc_submission_error: string | null
+    sc_submit_attempts: number
+    resubmit_count: number
+    resubmit_interval_days: number | null
+    next_resubmit_at: string | null
+    screenshot_url: string | null
+    related_asins: { asin: string; marketplace?: string; url?: string }[]
     created_at: string
     approved_at: string | null
     rejected_at: string | null
+    created_by?: string
   }
   listing: {
     asin: string
@@ -58,12 +67,29 @@ type ReportDetailContentProps = {
   creatorName: string | null
   canEdit: boolean
   userRole: string
+  currentUserId?: string
   timeline: TimelineEvent[]
   snapshots?: ReportSnapshot[]
   monitoringStartedAt?: string | null
 }
 
-export const ReportDetailContent = ({ report, listing, creatorName, canEdit, userRole, timeline, snapshots, monitoringStartedAt }: ReportDetailContentProps) => {
+const MARKETPLACE_DOMAINS: Record<string, string> = {
+  US: 'amazon.com',
+  UK: 'amazon.co.uk',
+  JP: 'amazon.co.jp',
+  DE: 'amazon.de',
+  FR: 'amazon.fr',
+  IT: 'amazon.it',
+  ES: 'amazon.es',
+  CA: 'amazon.ca',
+}
+
+const getAmazonUrl = (asin: string, marketplace: string): string => {
+  const domain = MARKETPLACE_DOMAINS[marketplace] ?? 'amazon.com'
+  return `https://www.${domain}/dp/${asin}`
+}
+
+export const ReportDetailContent = ({ report, listing, creatorName, canEdit, userRole, currentUserId, timeline, snapshots, monitoringStartedAt }: ReportDetailContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
 
@@ -73,23 +99,69 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [editBody, setEditBody] = useState(report.draft_body ?? '')
   const [saving, setSaving] = useState(false)
   const [showTemplatePanel, setShowTemplatePanel] = useState(false)
-  const [capturing, setCapturing] = useState(false)
+  const [aiWriting, setAiWriting] = useState(false)
+  const [suggestedTemplate, setSuggestedTemplate] = useState<{ id: string; title: string; body: string } | null>(null)
+  const [templateDismissed, setTemplateDismissed] = useState(false)
+  const [resubmitIntervalLocal, setResubmitIntervalLocal] = useState<string>(
+    report.resubmit_interval_days != null ? String(report.resubmit_interval_days) : 'default'
+  )
+  const [savingInterval, setSavingInterval] = useState(false)
 
-  const handleCaptureScreenshot = async () => {
-    if (!listing) return
-    setCapturing(true)
+  // Issue #9: Sync state when report.draft_title/draft_body changes (e.g. after rewrite)
+  useEffect(() => {
+    setEditTitle(report.draft_title ?? '')
+    setEditBody(report.draft_body ?? '')
+  }, [report.draft_title, report.draft_body])
+
+  // Sprint 3-6: Template auto-suggestion for draft + empty body
+  useEffect(() => {
+    if (report.status !== 'draft' || report.draft_body || templateDismissed) return
+    fetch('/api/templates')
+      .then((res) => res.json())
+      .then((templates: { id: string; title: string; body: string; violation_types: string[]; is_default: boolean }[]) => {
+        const match = templates.find((t) =>
+          t.violation_types.includes(report.user_violation_type) || t.is_default
+        )
+        if (match) setSuggestedTemplate({ id: match.id, title: match.title, body: match.body })
+      })
+      .catch(() => {})
+  }, [report.status, report.draft_body, report.user_violation_type, templateDismissed])
+
+  const handleAiWrite = async () => {
+    setAiWriting(true)
     try {
-      const res = await fetch(`/api/reports/${report.id}/screenshot`, {
+      const res = await fetch('/api/ai/draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asin: listing.asin, marketplace: listing.marketplace }),
+        body: JSON.stringify({ report_id: report.id }),
       })
-      if (!res.ok) throw new Error('Capture failed')
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'AI Write failed')
+      }
       router.refresh()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed')
     } finally {
-      setCapturing(false)
+      setAiWriting(false)
+    }
+  }
+
+  const handleResubmitIntervalChange = async (value: string) => {
+    setResubmitIntervalLocal(value)
+    setSavingInterval(true)
+    try {
+      const interval = value === 'default' ? null : Number(value)
+      const res = await fetch(`/api/reports/${report.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resubmit_interval_days: interval }),
+      })
+      if (!res.ok) throw new Error('Failed to update interval')
+    } catch {
+      setResubmitIntervalLocal(report.resubmit_interval_days != null ? String(report.resubmit_interval_days) : 'default')
+    } finally {
+      setSavingInterval(false)
     }
   }
 
@@ -122,11 +194,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
     <div className="space-y-6">
       {/* Header with back, title, status, and actions */}
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/reports" className="text-th-text-muted hover:text-th-text-secondary">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
+        <BackButton href="/reports" />
         <h1 className="text-2xl font-bold text-th-text">{t('reports.detail.title')}</h1>
         <StatusBadge status={report.status as ReportStatus} type="report" />
         {isDraftEditable && (
@@ -135,7 +203,18 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           </span>
         )}
         <div className="ml-auto">
-          <ReportActions reportId={report.id} status={report.status} userRole={userRole} scCaseId={report.sc_case_id} />
+          <ReportActions
+              reportId={report.id}
+              status={report.status}
+              userRole={userRole}
+              createdBy={report.created_by}
+              currentUserId={currentUserId}
+              scCaseId={report.sc_case_id}
+              scSubmissionError={report.sc_submission_error}
+              scSubmitAttempts={report.sc_submit_attempts}
+              resubmitCount={report.resubmit_count}
+              nextResubmitAt={report.next_resubmit_at}
+            />
         </div>
       </div>
 
@@ -204,23 +283,22 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       {listing && (
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-th-text">{t('reports.detail.listing')}</h2>
-              <Button
-                variant="outline"
-                size="sm"
-                loading={capturing}
-                onClick={handleCaptureScreenshot}
-              >
-                {t('reports.detail.captureScreenshot')}
-              </Button>
-            </div>
+            <h2 className="font-semibold text-th-text">{t('reports.detail.listing')}</h2>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-4">
               <div>
                 <dt className="text-sm text-th-text-tertiary">ASIN</dt>
-                <dd className="mt-1 text-sm font-medium text-th-text">{listing.asin}</dd>
+                <dd className="mt-1 text-sm font-medium">
+                  <a
+                    href={getAmazonUrl(listing.asin, listing.marketplace)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-th-accent-text hover:underline"
+                  >
+                    {listing.asin} ↗
+                  </a>
+                </dd>
               </div>
               <div>
                 <dt className="text-sm text-th-text-tertiary">{t('reports.detail.marketplace')}</dt>
@@ -265,8 +343,75 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 </div>
               )}
             </dl>
+            {/* Related ASINs */}
+            {report.related_asins && report.related_asins.length > 0 && (
+              <div className="mt-4 border-t border-th-border pt-4">
+                <p className="text-sm font-medium text-th-text-secondary">
+                  Related ASINs ({report.related_asins.length})
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {report.related_asins.map((ra, idx) => (
+                    <a
+                      key={idx}
+                      href={getAmazonUrl(ra.asin, ra.marketplace ?? listing.marketplace)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center rounded-lg border border-th-border bg-th-bg-tertiary px-2.5 py-1 font-mono text-xs text-th-accent-text hover:bg-th-accent-soft"
+                    >
+                      {ra.asin} ↗
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Screenshot (Issue #6) */}
+      {report.screenshot_url ? (
+        <Card>
+          <CardHeader>
+            <h2 className="font-semibold text-th-text">{t('reports.detail.screenshots')}</h2>
+          </CardHeader>
+          <CardContent>
+            <img
+              src={report.screenshot_url}
+              alt="Listing screenshot"
+              className="w-full rounded-lg border border-th-border"
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="text-sm text-th-text-muted">
+          No screenshot — captured from extension only.
+        </div>
+      )}
+
+      {/* Template auto-suggestion banner */}
+      {suggestedTemplate && !templateDismissed && isDraftEditable && !editBody && (
+        <div className="flex items-center gap-3 rounded-lg border border-th-accent/30 bg-th-accent/5 px-4 py-3">
+          <span className="flex-1 text-sm text-th-text">
+            {t('reports.detail.templateSuggestion' as Parameters<typeof t>[0]).replace('{name}', suggestedTemplate.title)}
+          </span>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditBody(suggestedTemplate.body)
+              setEditTitle(suggestedTemplate.title)
+              setSuggestedTemplate(null)
+            }}
+          >
+            {t('reports.detail.templateApply' as Parameters<typeof t>[0])}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTemplateDismissed(true)}
+          >
+            {t('reports.detail.templateDismiss' as Parameters<typeof t>[0])}
+          </Button>
+        </div>
       )}
 
       {(report.draft_title || isDraftEditable) && (
@@ -275,13 +420,23 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-th-text">{t('reports.detail.reportDraft')}</h2>
               {isDraftEditable && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowTemplatePanel(true)}
-                >
-                  {t('reports.detail.applyTemplate')}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    loading={aiWriting}
+                    onClick={handleAiWrite}
+                  >
+                    AI Write
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTemplatePanel(true)}
+                  >
+                    {t('reports.detail.applyTemplate')}
+                  </Button>
+                </div>
               )}
             </div>
           </CardHeader>
@@ -339,9 +494,9 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         />
       )}
 
-      {/* Monitoring Info */}
+      {/* Monitoring Info + Resubmit Interval */}
       {monitoringStartedAt && ['monitoring', 'resolved', 'unresolved'].includes(report.status) && (
-        <div className="flex items-center gap-3 text-sm text-th-text-muted">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-th-text-muted">
           <span>
             {t('reports.monitoring.daysMonitored' as Parameters<typeof t>[0]).replace('{days}', String(
               Math.floor((Date.now() - new Date(monitoringStartedAt).getTime()) / (1000 * 60 * 60 * 24))
@@ -351,6 +506,31 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             <span>
               {t('reports.monitoring.snapshotCount' as Parameters<typeof t>[0]).replace('{count}', String(snapshots.length))}
             </span>
+          )}
+          {/* Case-specific resubmit interval dropdown */}
+          {canEdit && ['monitoring', 'unresolved'].includes(report.status) && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-th-text-tertiary">
+                {t('reports.detail.resubmitInterval' as Parameters<typeof t>[0])}:
+              </span>
+              <select
+                value={resubmitIntervalLocal}
+                onChange={(e) => handleResubmitIntervalChange(e.target.value)}
+                disabled={savingInterval}
+                className="rounded-md border border-th-border bg-th-bg-secondary px-2 py-1 text-xs text-th-text focus:border-th-accent focus:outline-none"
+              >
+                <option value="default">{t('reports.detail.resubmitIntervalDefault' as Parameters<typeof t>[0])}</option>
+                {[3, 5, 7, 14, 30].map((d) => (
+                  <option key={d} value={d}>{d} days</option>
+                ))}
+              </select>
+              {savingInterval && (
+                <svg className="h-3 w-3 animate-spin text-th-text-muted" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -368,8 +548,9 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         <TemplatePanel
           open={showTemplatePanel}
           onClose={() => setShowTemplatePanel(false)}
-          onApply={(body, _title) => {
+          onApply={(body, title) => {
             setEditBody(body)
+            if (title) setEditTitle(title)
           }}
           listing={listing ?? {}}
           report={report}

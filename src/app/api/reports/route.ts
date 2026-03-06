@@ -11,6 +11,7 @@ export const GET = withAuth(async (req) => {
   const offset = (page - 1) * limit
 
   const status = url.searchParams.get('status')
+  const listingId = url.searchParams.get('listing_id')
   const violationType = url.searchParams.get('violation_type')
   const disagreementOnly = url.searchParams.get('disagreement') === 'true'
   const search = url.searchParams.get('search')
@@ -28,6 +29,9 @@ export const GET = withAuth(async (req) => {
 
   if (status) {
     query = query.eq('status', status)
+  }
+  if (listingId) {
+    query = query.eq('listing_id', listingId)
   }
   if (violationType) {
     query = query.eq('violation_type', violationType)
@@ -62,7 +66,7 @@ export const GET = withAuth(async (req) => {
 // POST /api/reports — 신고 생성
 export const POST = withAuth(async (req) => {
   const body = (await req.json()) as CreateReportRequest
-  const { listing_id, user_violation_type, violation_category, note } = body
+  const { listing_id, user_violation_type, violation_category, note, related_asins } = body
 
   if (!listing_id || !user_violation_type || !violation_category) {
     return NextResponse.json(
@@ -119,6 +123,7 @@ export const POST = withAuth(async (req) => {
       user_violation_type,
       violation_category,
       status: 'draft',
+      related_asins: related_asins ?? [],
       created_by: authUser!.id,
     })
     .select()

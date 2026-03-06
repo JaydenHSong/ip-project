@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { notifyApproved } from '@/lib/notifications/google-chat'
+import { buildScSubmitData } from '@/lib/reports/sc-data'
 import type { ApproveReportRequest } from '@/types/api'
 
-// POST /api/reports/:id/approve — 승인
+// POST /api/reports/:id/approve — 승인 → sc_submitting 자동 전환
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -22,7 +23,7 @@ export const POST = withAuth(async (req) => {
   // 현재 상태 확인
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('status, draft_body, draft_title, original_draft_body, listing_id')
+    .select('status, draft_body, draft_title, draft_evidence, original_draft_body, listing_id, user_violation_type')
     .eq('id', id)
     .single()
 
@@ -40,13 +41,34 @@ export const POST = withAuth(async (req) => {
     )
   }
 
+  // Listing 조회 (SC 데이터 빌드용)
+  const { data: listing } = await supabase
+    .from('listings')
+    .select('asin, marketplace, title')
+    .eq('id', report.listing_id)
+    .single()
+
   const { data: { user: authUser } } = await supabase.auth.getUser()
   const now = new Date().toISOString()
 
+  // SC 데이터 준비
+  const scSubmitData = listing
+    ? buildScSubmitData({
+        report: {
+          id,
+          user_violation_type: report.user_violation_type,
+          draft_body: body.edited_draft_body ?? report.draft_body,
+          draft_evidence: report.draft_evidence as { type: string; url: string; description: string }[] | undefined,
+        },
+        listing,
+      })
+    : null
+
   const updates: Record<string, unknown> = {
-    status: 'approved',
+    status: 'sc_submitting',
     approved_by: authUser!.id,
     approved_at: now,
+    sc_submit_data: scSubmitData,
   }
 
   // 직접 수정 후 승인한 경우
@@ -74,12 +96,6 @@ export const POST = withAuth(async (req) => {
   }
 
   // 알림 (fire-and-forget)
-  const { data: listing } = await supabase
-    .from('listings')
-    .select('asin')
-    .eq('id', report.listing_id)
-    .single()
-
   notifyApproved(id, listing?.asin ?? 'N/A').catch(() => {})
 
   // Opus 학습 트리거 (fire-and-forget): 수정된 경우에만

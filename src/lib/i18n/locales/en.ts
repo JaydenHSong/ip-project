@@ -717,12 +717,14 @@ export const en = {
     fetchAnother: 'Fetch Another',
     viewReport: 'View Report',
     createManualReport: 'Create Manual Report',
-    extensionHint: 'Product info is fetched via your browser extension.',
-    extensionFallback: 'Your browser extension is fetching the product info...',
+    crawlerFetching: 'Fetching product info via crawler...',
+    extensionHint: 'Crawler fetches first. If blocked, your browser extension takes over.',
+    extensionFallback: 'Crawler was blocked. Your browser extension is fetching the product info...',
     extensionTabNotice: 'A tab may briefly open in your browser. It will close automatically.',
     extensionWaiting: 'Waiting for Extension...',
     extensionProcessing: 'Extension is fetching product info...',
-    extensionNotAvailable: 'Extension not available. Please install Sentinel Extension and enable Background Fetch in its settings.',
+    extensionNotAvailable: 'Crawler was blocked and Extension is not available. Please install Sentinel Extension and enable Background Fetch.',
+    extensionGuideLink: 'Go to Settings to install Extension',
   },
   violations: {
     categories: {

@@ -305,7 +305,10 @@ export const DashboardContent = ({
             </div>
             <div>
               <ViolationDistChart
-                data={stats.violationDist}
+                data={stats.violationDist.map((d) => ({
+                  ...d,
+                  categoryLabel: t(`violations.categories.${d.category}` as Parameters<typeof t>[0]) ?? d.categoryLabel,
+                }))}
                 onClickItem={(category) => navigateToReports({ category })}
               />
             </div>
@@ -325,7 +328,10 @@ export const DashboardContent = ({
 
           {/* Charts Row 3: Top Violations (full width) */}
           <TopViolationsChart
-            data={stats.topViolations}
+            data={stats.topViolations.map((d) => ({
+              ...d,
+              name: t(`violations.types.${d.code}` as Parameters<typeof t>[0]) ?? d.name,
+            }))}
             onClickItem={(code) => navigateToReports({ violation_type: code })}
           />
         </>

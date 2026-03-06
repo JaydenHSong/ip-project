@@ -1,36 +1,47 @@
 import type { Page } from 'playwright'
 
-// 페이지 스크린샷 캡처 (JPEG, base64)
-// 2MB 초과 시 quality 단계 하향 (80 → 60 → 40)
+// 용도별 스크린샷 품질 설정
+// - evidence: 서버 저장 + SC 신고 증거용 (적당한 품질)
+// - scan: AI 분석용 (낮은 품질로 충분, 비용 절약)
+type ScreenshotPurpose = 'evidence' | 'scan'
+
+const SCREENSHOT_CONFIG = {
+  evidence: { width: 1280, height: 800, quality: 60, maxSize: 500 * 1024 },  // 500KB
+  scan: { width: 1024, height: 640, quality: 40, maxSize: 200 * 1024 },      // 200KB
+} as const
+
 const captureScreenshot = async (
   page: Page,
   width: number,
   height: number,
+  purpose: ScreenshotPurpose = 'evidence',
 ): Promise<string> => {
-  await page.setViewportSize({ width, height })
+  const config = SCREENSHOT_CONFIG[purpose]
+  const captureWidth = purpose === 'scan' ? config.width : width
+  const captureHeight = purpose === 'scan' ? config.height : height
 
-  const qualities = [80, 60, 40] as const
-  const MAX_SIZE = 2 * 1024 * 1024 // 2MB
+  await page.setViewportSize({ width: captureWidth, height: captureHeight })
 
-  for (const quality of qualities) {
-    const buffer = await page.screenshot({
-      type: 'jpeg',
-      quality,
-      fullPage: false,
-    })
-
-    if (buffer.length <= MAX_SIZE) {
-      return buffer.toString('base64')
-    }
-  }
-
-  // 최저 quality로도 2MB 초과 시 그대로 반환
   const buffer = await page.screenshot({
     type: 'jpeg',
-    quality: 30,
+    quality: config.quality,
     fullPage: false,
   })
-  return buffer.toString('base64')
+
+  // maxSize 이하면 그대로 반환
+  if (buffer.length <= config.maxSize) {
+    return buffer.toString('base64')
+  }
+
+  // 초과 시 quality 더 낮춤
+  const lowBuffer = await page.screenshot({
+    type: 'jpeg',
+    quality: Math.max(config.quality - 20, 20),
+    fullPage: false,
+  })
+
+  return lowBuffer.toString('base64')
 }
 
 export { captureScreenshot }
+export type { ScreenshotPurpose }

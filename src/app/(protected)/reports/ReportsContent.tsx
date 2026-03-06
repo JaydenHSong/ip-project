@@ -12,7 +12,7 @@ import { SortableHeader } from '@/components/ui/SortableHeader'
 import { TableFilters } from '@/components/ui/TableFilters'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { Button } from '@/components/ui/Button'
-import { Card, CardHeader, CardContent } from '@/components/ui/Card'
+import { Modal } from '@/components/ui/Modal'
 import { NewReportForm } from './new/NewReportForm'
 import { useSortableTable } from '@/hooks/useSortableTable'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
@@ -31,9 +31,8 @@ type ReportRow = {
   ai_confidence_score: number | null
   disagreement_flag: boolean
   created_at: string
-  draft_title?: string | null
-  draft_body?: string | null
-  listings: { asin: string; title: string; marketplace: string; seller_name: string | null; rating: number | null; review_count: number | null } | null
+  related_asins?: { asin: string; marketplace?: string; url?: string }[]
+  listings: { asin: string; title: string; marketplace: string; seller_name: string | null } | null
   users?: { name: string } | null
 }
 
@@ -62,7 +61,9 @@ export const ReportsContent = ({
   const router = useRouter()
   const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
   const [showNewReport, setShowNewReport] = useState(false)
-  const [previewReportId, setPreviewReportId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState<string | null>(null)
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
@@ -89,21 +90,119 @@ export const ReportsContent = ({
 
   const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'date', direction: 'desc' }, getSortValue)
 
-  const previewReport = previewReportId ? sortedData.find((r) => r.id === previewReportId) ?? null : null
-
   const handleNewReportSuccess = useCallback(() => {
     setShowNewReport(false)
     router.refresh()
   }, [router])
 
-  const handleClosePreview = useCallback(() => setPreviewReportId(null), [])
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const handleToggleSelectAll = useCallback(() => {
+    const allIds = sortedData.map((r) => r.id)
+    setSelectedIds((prev) => {
+      if (allIds.length > 0 && allIds.every((id) => prev.has(id))) return new Set()
+      return new Set(allIds)
+    })
+  }, [sortedData])
+
+  // 선택된 리포트들의 상태별 카운트
+  const selectedStatuses = (() => {
+    const counts: Record<string, number> = {}
+    for (const id of selectedIds) {
+      const r = sortedData.find((r) => r.id === id)
+      if (r) counts[r.status] = (counts[r.status] ?? 0) + 1
+    }
+    return counts
+  })()
+
+  const isAdmin = userRole === 'owner' || userRole === 'admin'
+  const canEdit = isAdmin || userRole === 'editor'
+
+  const handleBulkApprove = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setBulkLoading('approve')
+    try {
+      const res = await fetch('/api/reports/bulk-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ report_ids: [...selectedIds] }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Bulk approve failed')
+      }
+      const result = await res.json() as { approved: number; failed: number; skipped: number }
+      setSelectedIds(new Set())
+      alert(`Approved: ${result.approved}, Failed: ${result.failed}, Skipped: ${result.skipped}`)
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setBulkLoading(null)
+    }
+  }, [selectedIds, router])
+
+  const handleBulkSubmit = useCallback(async (action: 'submit_review' | 'submit_sc') => {
+    if (selectedIds.size === 0) return
+    setBulkLoading(action)
+    try {
+      const res = await fetch('/api/reports/bulk-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ report_ids: [...selectedIds], action }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Bulk submit failed')
+      }
+      const result = await res.json() as { submitted: number; failed: number; skipped: number }
+      setSelectedIds(new Set())
+      alert(`Submitted: ${result.submitted}, Failed: ${result.failed}, Skipped: ${result.skipped}`)
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setBulkLoading(null)
+    }
+  }, [selectedIds, router])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setBulkLoading('delete')
+    try {
+      const res = await fetch('/api/reports/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ report_ids: [...selectedIds] }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Bulk delete failed')
+      }
+      const result = await res.json() as { deleted: number; failed: number }
+      setSelectedIds(new Set())
+      setShowBulkDeleteConfirm(false)
+      alert(`Deleted: ${result.deleted}, Failed: ${result.failed}`)
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setBulkLoading(null)
+    }
+  }, [selectedIds, router])
 
   const STATUS_TABS = [
     { value: '', label: t('common.all') },
     { value: 'draft', label: t('reports.tabs.draft') },
     { value: 'pending_review', label: t('reports.tabs.pending') },
-    { value: 'approved', label: t('reports.tabs.approved') },
-    { value: 'submitted', label: t('reports.tabs.submitted') },
+    { value: 'sc_submitting', label: 'SC Submitting' },
     { value: 'monitoring', label: t('reports.tabs.monitoring') },
   ]
 
@@ -168,6 +267,60 @@ export const ReportsContent = ({
 
       <TableFilters filters={filters} onFiltersChange={setFilters} />
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-th-accent/30 bg-th-accent/5 px-4 py-2.5">
+          <span className="text-sm font-medium text-th-text">{selectedIds.size}건 선택</span>
+          <div className="h-4 w-px bg-th-border" />
+          {(selectedStatuses['draft'] ?? 0) > 0 && canEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              loading={bulkLoading === 'submit_review'}
+              onClick={() => handleBulkSubmit('submit_review')}
+            >
+              Submit Review ({selectedStatuses['draft']})
+            </Button>
+          )}
+          {(selectedStatuses['pending_review'] ?? 0) > 0 && canEdit && (
+            <Button
+              size="sm"
+              loading={bulkLoading === 'approve'}
+              onClick={handleBulkApprove}
+            >
+              Approve ({selectedStatuses['pending_review']})
+            </Button>
+          )}
+          {(selectedStatuses['approved'] ?? 0) > 0 && canEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              loading={bulkLoading === 'submit_sc'}
+              onClick={() => handleBulkSubmit('submit_sc')}
+            >
+              Submit SC ({selectedStatuses['approved']})
+            </Button>
+          )}
+          {canEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-st-danger-text/30 text-st-danger-text hover:bg-st-danger-text/10"
+              onClick={() => setShowBulkDeleteConfirm(true)}
+            >
+              Delete ({selectedIds.size})
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedIds(new Set())}
+          >
+            선택 해제
+          </Button>
+        </div>
+      )}
+
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
         {sortedData.length === 0 ? (
@@ -181,7 +334,7 @@ export const ReportsContent = ({
             <button
               key={report.id}
               type="button"
-              onClick={() => setPreviewReportId(report.id)}
+              onClick={() => router.push(`/reports/${report.id}`)}
               className="w-full text-left"
             >
               <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
@@ -192,7 +345,14 @@ export const ReportsContent = ({
                   </div>
                   <StatusBadge status={report.status as ReportStatus} type="report" />
                 </div>
-                <p className="mt-2 font-mono text-sm text-th-text">{report.listings?.asin ?? '—'}</p>
+                <p className="mt-2 font-mono text-sm text-th-text">
+                  {report.listings?.asin ?? '—'}
+                  {(report.related_asins?.length ?? 0) > 0 && (
+                    <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
+                      +{report.related_asins!.length}
+                    </span>
+                  )}
+                </p>
                 <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
                 <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
                   <span>{report.listings?.seller_name ?? '—'}</span>
@@ -213,6 +373,14 @@ export const ReportsContent = ({
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
+              <th className="w-10 px-3 py-3">
+                <input
+                  type="checkbox"
+                  className="accent-th-accent"
+                  checked={sortedData.length > 0 && sortedData.every((r) => selectedIds.has(r.id))}
+                  onChange={handleToggleSelectAll}
+                />
+              </th>
               <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.title')} field="title" currentSort={sort} onSort={toggleSort} />
@@ -226,7 +394,7 @@ export const ReportsContent = ({
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-th-text-muted">
+                <td colSpan={9} className="px-4 py-12 text-center text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noReports')}
@@ -237,8 +405,16 @@ export const ReportsContent = ({
                 <tr
                   key={report.id}
                   className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
-                  onClick={() => setPreviewReportId(report.id)}
+                  onClick={() => router.push(`/reports/${report.id}`)}
                 >
+                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      className="accent-th-accent"
+                      checked={selectedIds.has(report.id)}
+                      onChange={() => handleToggleSelect(report.id)}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
@@ -248,6 +424,11 @@ export const ReportsContent = ({
                   <td className="px-4 py-3">
                     <span className="font-mono text-th-text">
                       {report.listings?.asin ?? '—'}
+                      {(report.related_asins?.length ?? 0) > 0 && (
+                        <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
+                          +{report.related_asins!.length}
+                        </span>
+                      )}
                     </span>
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-th-text-secondary">{report.listings?.title ?? '—'}</td>
@@ -294,124 +475,29 @@ export const ReportsContent = ({
         </div>
       </SlidePanel>
 
-      {/* Report Quick View SlidePanel */}
-      <SlidePanel
-        open={!!previewReportId}
-        onClose={handleClosePreview}
-        title={t('reports.detail.title')}
-        size="xl"
-        status={previewReport ? <StatusBadge status={previewReport.status as ReportStatus} type="report" /> : undefined}
+      {/* Bulk Delete Confirmation Modal */}
+      <Modal
+        open={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        title="Delete Reports"
       >
-        {previewReport && (
-          <div className="space-y-6 p-6">
-            {/* Violation Info */}
-            <Card>
-              <CardHeader>
-                <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.violationInfo')}</h3>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <p className="text-xs text-th-text-tertiary">{t('reports.detail.userViolationType')}</p>
-                  <div className="mt-1">
-                    <ViolationBadge code={previewReport.violation_type as ViolationCode} />
-                  </div>
-                </div>
-                {previewReport.disagreement_flag && (
-                  <div className="rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-2">
-                    <p className="text-xs font-medium text-st-warning-text">
-                      {t('reports.detail.disagreementWarning')}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Listing Info */}
-            {previewReport.listings && (
-              <Card>
-                <CardHeader>
-                  <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.listing')}</h3>
-                </CardHeader>
-                <CardContent>
-                  <dl className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">ASIN</dt>
-                      <dd className="mt-0.5 font-mono font-medium text-th-text">{previewReport.listings.asin}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">{t('reports.detail.marketplace')}</dt>
-                      <dd className="mt-0.5 font-medium text-th-text">{previewReport.listings.marketplace}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">{t('reports.seller')}</dt>
-                      <dd className="mt-0.5 font-medium text-th-text">{previewReport.listings.seller_name ?? '—'}</dd>
-                    </div>
-                    {previewReport.listings.rating != null && (
-                      <div>
-                        <dt className="text-xs text-th-text-tertiary">{t('reports.detail.rating')}</dt>
-                        <dd className="mt-0.5 flex items-center gap-1 font-medium text-th-text">
-                          <svg className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                          {previewReport.listings.rating.toFixed(1)}
-                          {previewReport.listings.review_count != null && (
-                            <span className="text-th-text-muted">({previewReport.listings.review_count.toLocaleString()})</span>
-                          )}
-                        </dd>
-                      </div>
-                    )}
-                    <div className="col-span-2">
-                      <dt className="text-xs text-th-text-tertiary">{t('reports.title')}</dt>
-                      <dd className="mt-0.5 font-medium text-th-text">{previewReport.listings.title}</dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Draft */}
-            {previewReport.draft_title && (
-              <Card>
-                <CardHeader>
-                  <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.reportDraft')}</h3>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div>
-                    <p className="text-xs text-th-text-tertiary">{t('reports.detail.draftTitle')}</p>
-                    <p className="mt-0.5 text-sm font-medium text-th-text">{previewReport.draft_title}</p>
-                  </div>
-                  {previewReport.draft_body && (
-                    <div>
-                      <p className="text-xs text-th-text-tertiary">{t('reports.detail.draftBody')}</p>
-                      <div className="mt-0.5 whitespace-pre-wrap rounded-lg bg-th-bg-tertiary p-3 text-xs text-th-text-secondary">
-                        {previewReport.draft_body}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* AI Confidence */}
-            {previewReport.ai_confidence_score !== null && (
-              <div className="flex items-center gap-2 text-sm text-th-text-muted">
-                <span>AI Confidence: {previewReport.ai_confidence_score}%</span>
-              </div>
-            )}
-
-            {/* Metadata + Link */}
-            <div className="flex items-center justify-between text-xs text-th-text-muted">
-              <span>{t('reports.detail.createdAt')}: {new Date(previewReport.created_at).toLocaleString()}</span>
-              <Link
-                href={`/reports/${previewReport.id}`}
-                className="text-th-accent-text hover:underline"
-              >
-                {t('common.details')} →
-              </Link>
-            </div>
-          </div>
-        )}
-      </SlidePanel>
+        <p className="text-sm text-th-text-secondary">
+          선택한 {selectedIds.size}건을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+        </p>
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowBulkDeleteConfirm(false)}>
+            취소
+          </Button>
+          <Button
+            size="sm"
+            className="bg-st-danger-text hover:bg-st-danger-text/90"
+            loading={bulkLoading === 'delete'}
+            onClick={handleBulkDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }

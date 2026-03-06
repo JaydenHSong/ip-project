@@ -34,9 +34,59 @@ export type CreateListingRequest = {
   category?: string
   rating?: number
   review_count?: number
-  source: 'crawler' | 'extension' | 'extension_passive'
+  source: 'crawler' | 'extension' | 'extension_passive' | 'manual'
   source_campaign_id?: string
   raw_data?: unknown
+}
+
+// ============================================================
+// Fetch ASIN API
+// ============================================================
+
+export type FetchAsinRequest = {
+  asin: string
+  marketplace?: string
+}
+
+export type FetchAsinResponse = {
+  listing: {
+    id: string
+    asin: string
+    marketplace: string
+    title: string
+    seller_name: string | null
+    brand: string | null
+    price_amount: number | null
+    price_currency: string | null
+    rating: number | null
+    review_count: number | null
+    images: { url: string; position: number; alt?: string }[]
+    is_suspect: boolean
+    suspect_reasons: string[]
+    created_at: string
+  }
+  screenshot_url: string | null
+  is_existing: boolean
+  ai_status: 'queued' | 'processing' | 'completed' | 'failed'
+  ai_job_id?: string
+}
+
+// Extension Background Fetch — fallback 응답
+export type FetchAsinQueuedResponse = {
+  fallback: 'extension'
+  queue_id: string
+  asin: string
+  marketplace: string
+}
+
+// Extension Background Fetch — 상태 폴링 응답
+export type FetchStatusResponse = {
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  listing?: FetchAsinResponse['listing']
+  screenshot_url?: string | null
+  is_existing?: boolean
+  ai_status?: string
+  error?: string
 }
 
 // ============================================================
@@ -65,6 +115,7 @@ export type CreateReportRequest = {
   user_violation_type: ViolationCode
   violation_category: string
   note?: string
+  related_asins?: { asin: string; marketplace?: string; url?: string }[]
 }
 
 export type ApproveReportRequest = {
@@ -87,6 +138,7 @@ export type ManualReportRequest = {
   note?: string
   screenshot_url?: string
   screenshot_urls?: string[]
+  related_asins?: { asin: string; marketplace?: string; url?: string }[]
 }
 
 export type ManualReportResponse = {

@@ -13,6 +13,7 @@ import type { Listing } from '@/types/listings'
 type RewriteRequest = {
   report_id: string
   feedback: string
+  preview_only?: boolean
 }
 
 export const POST = withAuth(async (req: NextRequest) => {
@@ -92,6 +93,11 @@ export const POST = withAuth(async (req: NextRequest) => {
     listing: listing as Listing,
   })
 
+  // preview_only: DB 업데이트 없이 결과만 반환
+  if (body.preview_only) {
+    return NextResponse.json({ ...newDraft, preview_only: true })
+  }
+
   // 드래프트 업데이트
   await supabase
     .from('reports')
@@ -100,10 +106,21 @@ export const POST = withAuth(async (req: NextRequest) => {
       draft_body: newDraft.draft_body,
       draft_evidence: newDraft.draft_evidence,
       draft_policy_references: newDraft.draft_policy_references,
-      status: 'draft',
+      status: 'pending_review',
       updated_at: new Date().toISOString(),
     })
     .eq('id', body.report_id)
+
+  // AI 학습 트리거 — Rewrite 패턴 학습
+  const baseUrl = req.nextUrl.origin
+  fetch(`${baseUrl}/api/ai/learn`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      cookie: req.headers.get('cookie') ?? '',
+    },
+    body: JSON.stringify({ report_id: body.report_id, trigger: 'rewritten' }),
+  }).catch(() => {})
 
   return NextResponse.json(newDraft)
 }, ['owner', 'admin', 'editor'])

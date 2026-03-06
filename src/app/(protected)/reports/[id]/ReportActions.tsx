@@ -7,42 +7,49 @@ import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Textarea'
 import { useI18n } from '@/lib/i18n/context'
-import { REJECTION_CATEGORIES, RESOLUTION_TYPES } from '@/types/reports'
-
-type ScSubmitData = {
-  asin: string
-  violation_type_sc: string
-  description: string
-  evidence_urls: string[]
-  marketplace: string
-  prepared_at: string
-}
 
 type ReportActionsProps = {
   reportId: string
   status: string
   userRole: string
+  createdBy?: string | null
+  currentUserId?: string | null
   scCaseId?: string | null
+  scSubmissionError?: string | null
+  scSubmitAttempts?: number
+  resubmitCount?: number
+  nextResubmitAt?: string | null
 }
 
-export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportActionsProps) => {
+export const ReportActions = ({
+  reportId,
+  status,
+  userRole,
+  createdBy,
+  currentUserId,
+  scSubmissionError,
+  scSubmitAttempts,
+  resubmitCount,
+  nextResubmitAt,
+}: ReportActionsProps) => {
   const router = useRouter()
   const { t } = useI18n()
   const [loading, setLoading] = useState<string | null>(null)
   const [showRewriteModal, setShowRewriteModal] = useState(false)
-  const [showRejectModal, setShowRejectModal] = useState(false)
-  const [showManualConfirmModal, setShowManualConfirmModal] = useState(false)
-  const [showResolveModal, setShowResolveModal] = useState(false)
-  const [showArchiveModal, setShowArchiveModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [rewriteStep, setRewriteStep] = useState<1 | 2>(1)
   const [feedback, setFeedback] = useState('')
-  const [rejectionCategory, setRejectionCategory] = useState('')
-  const [rejectionReason, setRejectionReason] = useState('')
-  const [manualCaseId, setManualCaseId] = useState('')
-  const [resolutionType, setResolutionType] = useState('')
-  const [archiveReason, setArchiveReason] = useState('')
+  const [rewritePreview, setRewritePreview] = useState<{ draft_title: string; draft_body: string } | null>(null)
+  const [previewTitle, setPreviewTitle] = useState('')
+  const [previewBody, setPreviewBody] = useState('')
 
   const canAct = userRole === 'owner' || userRole === 'admin' || userRole === 'editor'
   if (!canAct) return null
+
+  const isAdmin = userRole === 'owner' || userRole === 'admin'
+  const canDelete = isAdmin || (
+    ['draft', 'pending_review'].includes(status) && createdBy === currentUserId
+  )
 
   const handleApprove = async () => {
     setLoading('approve')
@@ -82,79 +89,8 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
     }
   }
 
-  const formatClipboardText = (data: ScSubmitData): string => {
-    return [
-      `ASIN: ${data.asin}`,
-      `Violation Type: ${data.violation_type_sc}`,
-      '',
-      '--- Description ---',
-      data.description,
-      data.evidence_urls.length > 0
-        ? `\n--- Evidence ---\n${data.evidence_urls.join('\n')}`
-        : '',
-    ].filter(Boolean).join('\n')
-  }
-
-  const handleSubmitSC = async () => {
-    setLoading('submitSC')
-    try {
-      const res = await fetch(`/api/reports/${reportId}/submit-sc`, {
-        method: 'POST',
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Submit to SC failed')
-      }
-
-      const data = await res.json() as {
-        sc_rav_url: string
-        sc_submit_data: ScSubmitData
-      }
-
-      // SC RAV 페이지 새 탭 열기
-      if (data.sc_rav_url) {
-        window.open(data.sc_rav_url, '_blank')
-      }
-
-      // 클립보드 fallback (Extension 없을 때 대비)
-      if (data.sc_submit_data) {
-        const clipboardText = formatClipboardText(data.sc_submit_data)
-        await navigator.clipboard.writeText(clipboardText).catch(() => {})
-      }
-
-      router.refresh()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  const handleConfirmSubmitted = async () => {
-    setLoading('confirmSubmitted')
-    try {
-      const res = await fetch(`/api/reports/${reportId}/confirm-submitted`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sc_case_id: manualCaseId.trim() || undefined,
-        }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Confirm failed')
-      }
-      setShowManualConfirmModal(false)
-      setManualCaseId('')
-      router.refresh()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  const handleRewrite = async () => {
+  // Rewrite Step 1: Get AI preview
+  const handleRewritePreview = async () => {
     if (!feedback.trim()) return
     setLoading('rewrite')
     try {
@@ -164,15 +100,18 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
         body: JSON.stringify({
           report_id: reportId,
           feedback: feedback.trim(),
+          preview_only: true,
         }),
       })
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.error?.message ?? 'Rewrite failed')
       }
-      setShowRewriteModal(false)
-      setFeedback('')
-      router.refresh()
+      const data = await res.json() as { draft_title: string; draft_body: string }
+      setRewritePreview(data)
+      setPreviewTitle(data.draft_title)
+      setPreviewBody(data.draft_body)
+      setRewriteStep(2)
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed')
     } finally {
@@ -180,25 +119,25 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
     }
   }
 
-  const handleReject = async () => {
-    if (!rejectionCategory || !rejectionReason.trim()) return
-    setLoading('reject')
+  // Rewrite Step 2: Save edited preview
+  const handleRewriteSave = async () => {
+    setLoading('rewriteSave')
     try {
-      const res = await fetch(`/api/reports/${reportId}/reject`, {
-        method: 'POST',
+      const res = await fetch(`/api/reports/${reportId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          rejection_reason: rejectionReason.trim(),
-          rejection_category: rejectionCategory,
+          draft_title: previewTitle,
+          draft_body: previewBody,
+          status: 'pending_review',
         }),
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error?.message ?? 'Reject failed')
+        throw new Error(err.error?.message ?? 'Save failed')
       }
-      setShowRejectModal(false)
-      setRejectionCategory('')
-      setRejectionReason('')
+      setShowRewriteModal(false)
+      resetRewriteModal()
       router.refresh()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed')
@@ -207,35 +146,26 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
     }
   }
 
-  const handleApproveAndSubmit = async () => {
-    setLoading('approveSubmit')
+  const resetRewriteModal = () => {
+    setRewriteStep(1)
+    setFeedback('')
+    setRewritePreview(null)
+    setPreviewTitle('')
+    setPreviewBody('')
+  }
+
+  const handleScRetry = async () => {
+    setLoading('scRetry')
     try {
-      const res = await fetch(`/api/reports/${reportId}/approve-submit`, {
+      const res = await fetch(`/api/reports/${reportId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       })
-      const data = await res.json()
       if (!res.ok) {
-        if (data.partial?.approved) {
-          alert(data.error?.message ?? 'Approved but SC submit failed')
-          router.refresh()
-          return
-        }
-        throw new Error(data.error?.message ?? 'Approve & Submit failed')
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Retry failed')
       }
-
-      // SC RAV 페이지 새 탭 열기
-      if (data.sc_rav_url) {
-        window.open(data.sc_rav_url, '_blank')
-      }
-
-      // 클립보드 fallback
-      if (data.sc_submit_data) {
-        const clipboardText = formatClipboardText(data.sc_submit_data)
-        await navigator.clipboard.writeText(clipboardText).catch(() => {})
-      }
-
       router.refresh()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed')
@@ -244,15 +174,15 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
     }
   }
 
-  const handleStartMonitoring = async () => {
-    setLoading('startMonitoring')
+  const handleForceResubmit = async () => {
+    setLoading('forceResubmit')
     try {
-      const res = await fetch(`/api/reports/${reportId}/start-monitoring`, {
+      const res = await fetch(`/api/reports/${reportId}/force-resubmit`, {
         method: 'POST',
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error?.message ?? 'Start monitoring failed')
+        throw new Error(err.error?.message ?? 'Force resubmit failed')
       }
       router.refresh()
     } catch (e) {
@@ -262,71 +192,28 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
     }
   }
 
-  const handleArchive = async () => {
-    setLoading('archive')
+  const handleDelete = async () => {
+    setLoading('delete')
     try {
-      const res = await fetch(`/api/reports/${reportId}/archive`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ archive_reason: archiveReason.trim() || undefined }),
-      })
+      const res = await fetch(`/api/reports/${reportId}`, { method: 'DELETE' })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error?.message ?? 'Archive failed')
+        throw new Error(err.error?.message ?? 'Delete failed')
       }
-      setShowArchiveModal(false)
-      setArchiveReason('')
-      router.push('/reports/archived')
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  const handleUnarchive = async () => {
-    setLoading('unarchive')
-    try {
-      const res = await fetch(`/api/reports/${reportId}/unarchive`, { method: 'POST' })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Unarchive failed')
-      }
+      router.push('/reports')
       router.refresh()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed')
     } finally {
       setLoading(null)
-    }
-  }
-
-  const handleResolve = async (type?: string) => {
-    const rt = type ?? resolutionType
-    if (!rt) return
-    setLoading('resolve')
-    try {
-      const res = await fetch(`/api/reports/${reportId}/resolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resolution_type: rt }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Resolve failed')
-      }
-      setShowResolveModal(false)
-      setResolutionType('')
-      router.refresh()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setLoading(null)
+      setShowDeleteConfirm(false)
     }
   }
 
   return (
     <>
       <div className="flex flex-wrap gap-2">
+        {/* Draft: Submit for Review */}
         {status === 'draft' && (
           <Button
             size="sm"
@@ -336,29 +223,16 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
             {t('reports.detail.submitReview')}
           </Button>
         )}
+
+        {/* Pending Review: Approve + Rewrite only */}
         {status === 'pending_review' && (
           <>
             <Button
-              size="sm"
-              loading={loading === 'approveSubmit'}
-              onClick={handleApproveAndSubmit}
-            >
-              {t('reports.detail.approveAndSubmit')}
-            </Button>
-            <Button
-              variant="outline"
               size="sm"
               loading={loading === 'approve'}
               onClick={handleApprove}
             >
               {t('reports.detail.approve')}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowRejectModal(true)}
-            >
-              {t('reports.detail.reject')}
             </Button>
             <Button
               variant="outline"
@@ -369,6 +243,8 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
             </Button>
           </>
         )}
+
+        {/* Rejected: Rewrite + Submit for Review */}
         {status === 'rejected' && (
           <>
             <Button
@@ -387,252 +263,165 @@ export const ReportActions = ({ reportId, status, userRole, scCaseId }: ReportAc
             </Button>
           </>
         )}
-        {status === 'approved' && (userRole === 'owner' || userRole === 'admin') && (
-          <Button
-            size="sm"
-            loading={loading === 'submitSC'}
-            onClick={handleSubmitSC}
-          >
-            {t('reports.detail.submitSC')}
-          </Button>
+
+        {/* SC Submitting: Read-only spinner */}
+        {status === 'sc_submitting' && (
+          <div className="flex items-center gap-2 text-sm text-th-text-muted">
+            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span>SC 제출 중... (시도 {(scSubmitAttempts ?? 0) + 1}/3)</span>
+          </div>
         )}
-        {status === 'submitted' && (
-          <>
+
+        {/* SC Failed: approved + error → Retry button */}
+        {status === 'approved' && scSubmissionError && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-st-danger-text">SC 제출 실패: {scSubmissionError}</span>
             <Button
               size="sm"
-              loading={loading === 'startMonitoring'}
-              onClick={handleStartMonitoring}
+              loading={loading === 'scRetry'}
+              onClick={handleScRetry}
             >
-              {t('reports.monitoring.startMonitoring' as Parameters<typeof t>[0])}
+              SC 재시도
             </Button>
-            {!scCaseId && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowManualConfirmModal(true)}
-              >
-                {t('reports.detail.confirmSubmitted')}
-              </Button>
-            )}
-          </>
+          </div>
         )}
+
+        {/* Monitoring: Read-only status */}
         {status === 'monitoring' && (
-          <>
-            <Button
-              size="sm"
-              onClick={() => setShowResolveModal(true)}
-            >
-              {t('reports.monitoring.resolve' as Parameters<typeof t>[0])}
-            </Button>
+          <div className="text-sm text-th-text-muted">
+            모니터링 중...
+          </div>
+        )}
+
+        {/* Unresolved: Resubmit info + Force resubmit */}
+        {status === 'unresolved' && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-th-text-muted">
+              {nextResubmitAt
+                ? `재제출 예정: ${new Date(nextResubmitAt).toLocaleDateString()} (${resubmitCount ?? 0}회 완료)`
+                : `미해결 (${resubmitCount ?? 0}회 재제출)`}
+            </span>
             <Button
               variant="outline"
               size="sm"
-              loading={loading === 'resolve'}
-              onClick={() => handleResolve('no_change')}
+              loading={loading === 'forceResubmit'}
+              onClick={handleForceResubmit}
             >
-              {t('reports.monitoring.markUnresolved' as Parameters<typeof t>[0])}
+              강제 재제출
             </Button>
-          </>
+          </div>
         )}
-        {['draft', 'pending_review', 'approved', 'monitoring', 'unresolved', 'resolved'].includes(status) && (
+
+        {/* Resolved: Done */}
+        {status === 'resolved' && (
+          <div className="text-sm text-st-success-text">
+            해결 완료
+          </div>
+        )}
+
+        {/* Delete */}
+        {canDelete && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowArchiveModal(true)}
+            className="border-st-danger-text/30 text-st-danger-text hover:bg-st-danger-text/10"
+            onClick={() => setShowDeleteConfirm(true)}
           >
-            {['monitoring', 'unresolved', 'resolved'].includes(status)
-              ? t('reports.detail.forceArchive' as Parameters<typeof t>[0])
-              : t('reports.detail.archiveReport')}
-          </Button>
-        )}
-        {status === 'archived' && (
-          <Button
-            variant="outline"
-            size="sm"
-            loading={loading === 'unarchive'}
-            onClick={handleUnarchive}
-          >
-            {t('reports.detail.unarchive' as Parameters<typeof t>[0])}
+            Delete
           </Button>
         )}
       </div>
 
-      {/* Rewrite Modal */}
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Delete Report"
+      >
+        <p className="text-sm text-th-text-secondary">
+          이 신고를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+        </p>
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            className="bg-st-danger-text hover:bg-st-danger-text/90"
+            loading={loading === 'delete'}
+            onClick={handleDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Rewrite Modal — 2-step flow */}
       <Modal
         open={showRewriteModal}
-        onClose={() => setShowRewriteModal(false)}
-        title={t('reports.detail.rewrite')}
+        onClose={() => { setShowRewriteModal(false); resetRewriteModal() }}
+        title={rewriteStep === 1 ? t('reports.detail.rewrite') : 'Review AI Rewrite'}
       >
-        <Textarea
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-          placeholder={t('reports.detail.rewriteFeedback')}
-          rows={4}
-        />
-        <div className="mt-4 flex justify-end gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setShowRewriteModal(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            size="sm"
-            loading={loading === 'rewrite'}
-            disabled={!feedback.trim()}
-            onClick={handleRewrite}
-          >
-            {t('reports.detail.rewriteConfirm')}
-          </Button>
-        </div>
-      </Modal>
-
-      {/* Reject Modal */}
-      <Modal
-        open={showRejectModal}
-        onClose={() => setShowRejectModal(false)}
-        title={t('reports.detail.reject')}
-      >
-        <fieldset className="mb-4 space-y-2">
-          <legend className="mb-2 text-sm font-medium text-th-text-secondary">
-            {t('reports.detail.rejectionCategory')}
-          </legend>
-          {REJECTION_CATEGORIES.map((cat) => (
-            <label key={cat} className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                name="rejection_category"
-                value={cat}
-                checked={rejectionCategory === cat}
-                onChange={(e) => setRejectionCategory(e.target.value)}
-                className="accent-th-accent"
+        {rewriteStep === 1 ? (
+          <>
+            <Textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder={t('reports.detail.rewriteFeedback')}
+              rows={4}
+            />
+            <div className="mt-4 flex justify-end gap-3">
+              <Button variant="ghost" size="sm" onClick={() => { setShowRewriteModal(false); resetRewriteModal() }}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                size="sm"
+                loading={loading === 'rewrite'}
+                disabled={!feedback.trim()}
+                onClick={handleRewritePreview}
+              >
+                {t('reports.detail.rewriteConfirm')}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <Input
+                label="Title"
+                value={previewTitle}
+                onChange={(e) => setPreviewTitle(e.target.value)}
               />
-              <span className="text-sm text-th-text">
-                {t(`reports.detail.rejectionCategories.${cat}` as Parameters<typeof t>[0])}
-              </span>
-            </label>
-          ))}
-        </fieldset>
-        <Textarea
-          label={t('reports.detail.rejectionReasonLabel')}
-          value={rejectionReason}
-          onChange={(e) => setRejectionReason(e.target.value)}
-          rows={3}
-        />
-        <div className="mt-4 flex justify-end gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setShowRejectModal(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            loading={loading === 'reject'}
-            disabled={!rejectionCategory || !rejectionReason.trim()}
-            onClick={handleReject}
-          >
-            {t('reports.detail.rejectConfirm')}
-          </Button>
-        </div>
-      </Modal>
-
-      {/* Manual Confirm Modal */}
-      <Modal
-        open={showManualConfirmModal}
-        onClose={() => setShowManualConfirmModal(false)}
-        title={t('reports.detail.confirmSubmitted')}
-      >
-        <p className="mb-3 text-sm text-th-text-secondary">
-          {t('reports.detail.confirmSubmittedDesc')}
-        </p>
-        <Input
-          label={t('reports.detail.scCaseId')}
-          value={manualCaseId}
-          onChange={(e) => setManualCaseId(e.target.value)}
-          placeholder={t('reports.detail.scCaseIdPlaceholder')}
-        />
-        <div className="mt-4 flex justify-end gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setShowManualConfirmModal(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            size="sm"
-            loading={loading === 'confirmSubmitted'}
-            onClick={handleConfirmSubmitted}
-          >
-            {t('reports.detail.confirmSubmitted')}
-          </Button>
-        </div>
-      </Modal>
-
-      {/* Resolve Modal */}
-      <Modal
-        open={showResolveModal}
-        onClose={() => setShowResolveModal(false)}
-        title={t('reports.monitoring.resolveTitle' as Parameters<typeof t>[0])}
-      >
-        <p className="mb-3 text-sm text-th-text-secondary">
-          {t('reports.monitoring.resolveDesc' as Parameters<typeof t>[0])}
-        </p>
-        <fieldset className="space-y-2">
-          {RESOLUTION_TYPES.filter((rt) => rt !== 'no_change').map((rt) => (
-            <label key={rt} className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                name="resolution_type"
-                value={rt}
-                checked={resolutionType === rt}
-                onChange={(e) => setResolutionType(e.target.value)}
-                className="accent-th-accent"
+              <Textarea
+                label="Body"
+                value={previewBody}
+                onChange={(e) => setPreviewBody(e.target.value)}
+                rows={8}
               />
-              <span className="text-sm text-th-text">
-                {t(`reports.monitoring.resolutionTypes.${rt}` as Parameters<typeof t>[0])}
-              </span>
-            </label>
-          ))}
-        </fieldset>
-        <div className="mt-4 flex justify-end gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setShowResolveModal(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            size="sm"
-            loading={loading === 'resolve'}
-            disabled={!resolutionType}
-            onClick={() => handleResolve()}
-          >
-            {t('reports.monitoring.resolve' as Parameters<typeof t>[0])}
-          </Button>
-        </div>
+            </div>
+            <div className="mt-4 flex justify-between">
+              <Button variant="ghost" size="sm" onClick={() => setRewriteStep(1)}>
+                ← Back
+              </Button>
+              <div className="flex gap-3">
+                <Button variant="ghost" size="sm" onClick={() => { setShowRewriteModal(false); resetRewriteModal() }}>
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  size="sm"
+                  loading={loading === 'rewriteSave'}
+                  onClick={handleRewriteSave}
+                >
+                  Save & Submit
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </Modal>
-
-      {/* Archive Modal */}
-      <Modal
-        open={showArchiveModal}
-        onClose={() => setShowArchiveModal(false)}
-        title={t('reports.detail.forceArchive' as Parameters<typeof t>[0])}
-      >
-        <p className="mb-3 text-sm text-th-text-secondary">
-          {t('reports.detail.archiveConfirm' as Parameters<typeof t>[0])}
-        </p>
-        <Textarea
-          label={t('reports.detail.archiveReason' as Parameters<typeof t>[0])}
-          value={archiveReason}
-          onChange={(e) => setArchiveReason(e.target.value)}
-          placeholder={t('reports.detail.archiveReasonPlaceholder' as Parameters<typeof t>[0])}
-          rows={3}
-        />
-        <div className="mt-4 flex justify-end gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setShowArchiveModal(false)}>
-            {t('common.cancel')}
-          </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            loading={loading === 'archive'}
-            onClick={handleArchive}
-          >
-            {t('reports.detail.forceArchive' as Parameters<typeof t>[0])}
-          </Button>
-        </div>
-      </Modal>
-
     </>
   )
 }

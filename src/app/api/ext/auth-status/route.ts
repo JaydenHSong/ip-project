@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClientFromToken } from '@/lib/supabase/server-token'
 
 // GET /api/ext/auth-status — Extension 인증 상태 확인
-// 미인증이어도 200 반환 (Extension에서 상태 판단용)
+// Bearer 토큰 기반 인증 (Extension은 쿠키 없음)
 export const GET = async (req: NextRequest): Promise<NextResponse> => {
   try {
     const authHeader = req.headers.get('authorization')
@@ -13,8 +13,9 @@ export const GET = async (req: NextRequest): Promise<NextResponse> => {
       })
     }
 
-    const supabase = await createClient()
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const token = authHeader.slice(7)
+    const supabase = createClientFromToken(token)
+    const { data: { user }, error } = await supabase.auth.getUser(token)
 
     if (error || !user) {
       return NextResponse.json({

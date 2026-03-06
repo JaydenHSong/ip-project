@@ -76,11 +76,31 @@ const processAiAnalysis = async (
   // [Step 2] Skill 로드
   const skillContent = await loadRelevantSkills(suspectCheck.reasons)
 
-  // [Step 3] AI 위반 분석 (Sonnet)
+  // [Step 2.5] 스크린샷 이미지 준비 (있으면 다운로드해서 base64 변환)
+  let analysisImages: { base64: string; mediaType: string }[] | undefined
+  if (deps.screenshotUrl) {
+    try {
+      const imgResponse = await fetch(deps.screenshotUrl)
+      if (imgResponse.ok) {
+        const buffer = Buffer.from(await imgResponse.arrayBuffer())
+        const contentType = imgResponse.headers.get('content-type') ?? 'image/jpeg'
+        const mediaType = contentType.startsWith('image/') ? contentType : 'image/jpeg'
+        analysisImages = [{
+          base64: buffer.toString('base64'),
+          mediaType,
+        }]
+      }
+    } catch {
+      // 이미지 다운로드 실패해도 텍스트만으로 분석 계속
+    }
+  }
+
+  // [Step 3] AI 위반 분석 (Sonnet) — 스크린샷 포함 멀티모달
   const analysisResult = await analyzeListingViolation(client, listing, {
     skillContent,
     trademarks: deps.trademarks,
     patents: deps.patents,
+    images: analysisImages,
   })
 
   result.analysisResult = {

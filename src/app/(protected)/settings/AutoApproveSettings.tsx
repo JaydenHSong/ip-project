@@ -5,7 +5,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Toggle } from '@/components/ui/Toggle'
-import { VIOLATION_TYPES, VIOLATION_CATEGORIES } from '@/constants/violations'
+import { VIOLATION_TYPES } from '@/constants/violations'
 import type { ViolationCategory, ViolationCode } from '@/constants/violations'
 
 type AutoApproveConfig = {
@@ -22,18 +22,10 @@ const CATEGORY_ORDER: ViolationCategory[] = [
   'regulatory_safety',
 ]
 
-const CATEGORY_LABELS: Record<ViolationCategory, { en: string; ko: string }> = {
-  intellectual_property: { en: 'Intellectual Property', ko: '지적재산권 침해' },
-  listing_content: { en: 'Listing Content', ko: '리스팅 콘텐츠' },
-  review_manipulation: { en: 'Review Manipulation', ko: '리뷰 조작' },
-  selling_practice: { en: 'Selling Practices', ko: '판매 관행' },
-  regulatory_safety: { en: 'Regulatory / Safety', ko: '규제/안전' },
-}
-
 const IP_CATEGORIES: ViolationCategory[] = ['intellectual_property']
 
 export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const [config, setConfig] = useState<AutoApproveConfig>({
     enabled: false,
     threshold: 90,
@@ -73,11 +65,15 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
 
   const violationsByCategory = CATEGORY_ORDER.map((cat) => ({
     category: cat,
-    label: locale === 'ko' ? CATEGORY_LABELS[cat].ko : CATEGORY_LABELS[cat].en,
+    label: t(`violations.categories.${cat}` as Parameters<typeof t>[0]),
     isIp: IP_CATEGORIES.includes(cat),
     violations: Object.entries(VIOLATION_TYPES)
       .filter(([, v]) => v.category === cat)
-      .map(([code, v]) => ({ code: code as ViolationCode, name: v.name, codeLabel: v.code })),
+      .map(([code, v]) => ({
+        code: code as ViolationCode,
+        name: t(`violations.types.${code}` as Parameters<typeof t>[0]) ?? v.name,
+        codeLabel: v.code,
+      })),
   }))
 
   return (
