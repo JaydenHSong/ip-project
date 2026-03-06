@@ -43,7 +43,7 @@ const getSettings = (): Promise<ScAutoSettings> =>
   new Promise((resolve) => {
     chrome.storage.local.get(['sc_auto_settings'], (result) => {
       resolve((result.sc_auto_settings as ScAutoSettings) ?? {
-        autoSubmitEnabled: false,
+        autoSubmitEnabled: true,
         countdownSeconds: 3,
         minDelaySec: 30,
         maxDelaySec: 60,

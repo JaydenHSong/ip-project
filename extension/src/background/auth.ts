@@ -117,8 +117,8 @@ export const getSession = async (): Promise<{ access_token: string; user: AuthUs
 
   if (!accessToken || !refreshToken || !user) return null
 
-  // 토큰 만료 임박 시 자동 갱신
-  if (expiresAt && isTokenExpiringSoon(expiresAt)) {
+  // 토큰 만료 임박 시 자동 갱신 (expiresAt 없거나 0이면 무조건 갱신 시도)
+  if (!expiresAt || isTokenExpiringSoon(expiresAt)) {
     const { data, error } = await supabase.auth.refreshSession({
       refresh_token: refreshToken,
     })
@@ -133,6 +133,25 @@ export const getSession = async (): Promise<{ access_token: string; user: AuthUs
   }
 
   return { access_token: accessToken, user }
+}
+
+// 401 발생 시 강제 토큰 갱신 — API 재시도용
+export const forceRefreshSession = async (): Promise<{ access_token: string; user: AuthUser } | null> => {
+  const refreshToken = await storage.get('auth.refresh_token')
+  const user = await storage.get('auth.user')
+  if (!refreshToken || !user) return null
+
+  const { data, error } = await supabase.auth.refreshSession({
+    refresh_token: refreshToken,
+  })
+
+  if (error || !data.session) {
+    await clearSession()
+    return null
+  }
+
+  await storeSession(data.session)
+  return { access_token: data.session.access_token, user }
 }
 
 export const signOut = async (): Promise<void> => {

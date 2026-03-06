@@ -1,11 +1,12 @@
 {
   "name": "sentinel-extension",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "private": true,
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release": "npx tsx scripts/release.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.300",

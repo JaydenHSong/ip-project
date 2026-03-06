@@ -1,84 +1,99 @@
-// SC 자동 제출 설정 뷰
+// Language + Theme + Background Fetch 설정 뷰
 
-type ScAutoSettings = {
-  autoSubmitEnabled: boolean
-  countdownSeconds: number
-  minDelaySec: number
-  maxDelaySec: number
-}
+import { t, getLocale, setLocale, getTheme, setTheme } from '@shared/i18n'
+import type { Locale, Theme } from '@shared/i18n'
 
-const DEFAULTS: ScAutoSettings = {
-  autoSubmitEnabled: false,
-  countdownSeconds: 3,
-  minDelaySec: 30,
-  maxDelaySec: 60,
+type BgFetchSettings = {
+  enabled: boolean
 }
 
 export const renderSettingsView = (
   container: HTMLElement,
   onBack: () => void,
+  onLocaleChange?: () => void,
 ): void => {
-  chrome.storage.local.get(['sc_auto_settings'], (result) => {
-    const settings: ScAutoSettings = (result.sc_auto_settings as ScAutoSettings) ?? DEFAULTS
+  chrome.storage.local.get(['bgfetch.settings'], (result) => {
+    const bgSettings: BgFetchSettings = (result['bgfetch.settings'] as BgFetchSettings) ?? { enabled: true }
+    const locale = getLocale()
+    const theme = getTheme()
 
     container.innerHTML = `
-      <div style="padding: 12px 16px;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-          <button id="btn-settings-back" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;">
-            &larr;
-          </button>
-          <h2 style="margin: 0; font-size: 15px; font-weight: 600;">SC Auto Submit</h2>
+      <div class="settings-container">
+        <div class="settings-header">
+          <button id="btn-settings-back" class="settings-header__back">&larr;</button>
+          <h2 class="settings-header__title">${t('settings.title')}</h2>
         </div>
 
-        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; cursor: pointer;">
-          <input type="checkbox" id="auto-submit-toggle" ${settings.autoSubmitEnabled ? 'checked' : ''} />
-          <span style="font-size: 13px;">Enable Auto Submit</span>
-        </label>
-
-        <div style="margin-bottom: 12px;">
-          <label style="font-size: 12px; color: #888; display: block; margin-bottom: 4px;">Countdown (seconds)</label>
-          <select id="countdown-select" style="width: 100%; padding: 6px 8px; border: 1px solid #444; border-radius: 6px; background: #1a1a2e; color: #fff; font-size: 13px;">
-            <option value="3" ${settings.countdownSeconds === 3 ? 'selected' : ''}>3 seconds</option>
-            <option value="5" ${settings.countdownSeconds === 5 ? 'selected' : ''}>5 seconds</option>
-            <option value="10" ${settings.countdownSeconds === 10 ? 'selected' : ''}>10 seconds</option>
-          </select>
+        <div class="settings-section">
+          <h3 class="settings-section__title">${t('settings.language')}</h3>
+          <div class="settings-lang-switcher">
+            <button class="settings-lang-btn ${locale === 'en' ? 'settings-lang-btn--active' : ''}" data-lang="en">EN</button>
+            <button class="settings-lang-btn ${locale === 'ko' ? 'settings-lang-btn--active' : ''}" data-lang="ko">KO</button>
+          </div>
         </div>
 
-        <div style="margin-bottom: 14px;">
-          <label style="font-size: 12px; color: #888; display: block; margin-bottom: 4px;">Batch Delay</label>
-          <select id="delay-select" style="width: 100%; padding: 6px 8px; border: 1px solid #444; border-radius: 6px; background: #1a1a2e; color: #fff; font-size: 13px;">
-            <option value="30" ${settings.minDelaySec === 30 ? 'selected' : ''}>30~60s</option>
-            <option value="60" ${settings.minDelaySec === 60 ? 'selected' : ''}>60~90s</option>
-            <option value="90" ${settings.minDelaySec === 90 ? 'selected' : ''}>90~120s</option>
-          </select>
+        <div class="settings-divider"></div>
+
+        <div class="settings-section">
+          <h3 class="settings-section__title">${t('settings.theme')}</h3>
+          <div class="settings-lang-switcher">
+            <button class="settings-lang-btn settings-theme-btn ${theme === 'light' ? 'settings-lang-btn--active' : ''}" data-theme="light">☀️ ${t('settings.theme.light')}</button>
+            <button class="settings-lang-btn settings-theme-btn ${theme === 'dark' ? 'settings-lang-btn--active' : ''}" data-theme="dark">🌙 ${t('settings.theme.dark')}</button>
+          </div>
         </div>
 
-        <p style="font-size: 11px; color: #666; margin: 0;">
-          Auto submit also requires Admin to enable it in Sentinel Web Settings.
-        </p>
+        <div class="settings-divider"></div>
+
+        <div class="settings-section">
+          <h3 class="settings-section__title">${t('settings.bgfetch.title')}</h3>
+
+          <label class="settings-toggle-row">
+            <span class="toggle-switch">
+              <input type="checkbox" id="bgfetch-toggle" ${bgSettings.enabled ? 'checked' : ''} />
+              <span class="toggle-switch__slider"></span>
+            </span>
+            <span class="settings-toggle-row__label">${t('settings.bgfetch.toggle')}</span>
+          </label>
+
+          <p class="settings-hint">${t('settings.bgfetch.hint1')}</p>
+          <p class="settings-hint" style="margin-top:4px">${t('settings.bgfetch.hint2')}</p>
+          <p class="settings-hint settings-hint--info" style="margin-top:4px">${t('settings.bgfetch.hint3')}</p>
+        </div>
       </div>
     `
 
     container.querySelector('#btn-settings-back')?.addEventListener('click', onBack)
 
-    const saveSettings = (): void => {
-      const toggle = container.querySelector<HTMLInputElement>('#auto-submit-toggle')
-      const countdown = container.querySelector<HTMLSelectElement>('#countdown-select')
-      const delayEl = container.querySelector<HTMLSelectElement>('#delay-select')
-      const minDelay = Number(delayEl?.value ?? 30)
+    // Language switcher
+    container.querySelectorAll<HTMLButtonElement>('.settings-lang-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const lang = btn.dataset.lang as Locale
+        if (lang === getLocale()) return
+        setLocale(lang)
+        renderSettingsView(container, onBack, onLocaleChange)
+        onLocaleChange?.()
+      })
+    })
 
+    // Theme switcher
+    container.querySelectorAll<HTMLButtonElement>('.settings-theme-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const newTheme = btn.dataset.theme as Theme
+        if (newTheme === getTheme()) return
+        setTheme(newTheme)
+        renderSettingsView(container, onBack, onLocaleChange)
+      })
+    })
+
+    const saveBgFetchSettings = (): void => {
+      const toggle = container.querySelector<HTMLInputElement>('#bgfetch-toggle')
       chrome.storage.local.set({
-        sc_auto_settings: {
-          autoSubmitEnabled: toggle?.checked ?? false,
-          countdownSeconds: Number(countdown?.value ?? 3),
-          minDelaySec: minDelay,
-          maxDelaySec: minDelay + 30,
-        } satisfies ScAutoSettings,
+        'bgfetch.settings': {
+          enabled: toggle?.checked ?? false,
+        } satisfies BgFetchSettings,
       })
     }
 
-    container.querySelector('#auto-submit-toggle')?.addEventListener('change', saveSettings)
-    container.querySelector('#countdown-select')?.addEventListener('change', saveSettings)
-    container.querySelector('#delay-select')?.addEventListener('change', saveSettings)
+    container.querySelector('#bgfetch-toggle')?.addEventListener('change', saveBgFetchSettings)
   })
 }

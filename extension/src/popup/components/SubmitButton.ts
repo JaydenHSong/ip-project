@@ -1,5 +1,7 @@
 // 제출 버튼 컴포넌트
 
+import { t } from '@shared/i18n'
+
 const LOCK_ICON = `
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -14,9 +16,9 @@ export const renderSubmitButton = (
   container.innerHTML = `
     <button id="btn-submit" class="btn btn--primary" disabled>
       ${LOCK_ICON}
-      Submit Report
+      ${t('form.submit')}
     </button>
-    <p class="hint-text">Screenshot will be captured automatically.</p>
+    <p class="hint-text">${t('form.screenshot.hint')}</p>
   `
 
   const btn = container.querySelector('#btn-submit') as HTMLButtonElement
@@ -34,9 +36,9 @@ export const setSubmitLoading = (loading: boolean): void => {
 
   if (loading) {
     btn.disabled = true
-    btn.innerHTML = `<span class="spinner"></span> Submitting...`
+    btn.innerHTML = `<span class="spinner"></span> ${t('form.submit.loading')}`
   } else {
     btn.disabled = false
-    btn.innerHTML = `${LOCK_ICON} Submit Report`
+    btn.innerHTML = `${LOCK_ICON} ${t('form.submit')}`
   }
 }

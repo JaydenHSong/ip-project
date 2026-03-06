@@ -1,19 +1,25 @@
 // Popup 엔트리 — 뷰 라우터 + 초기화
 
 import type { BackgroundResponse, AuthStatusResponse, PageDataResponse } from '@shared/messages'
-import type { AuthUser } from '@shared/types'
+import type { AuthUser, SubmitReportResponse } from '@shared/types'
+import { initLocale, initTheme, t } from '@shared/i18n'
 import { renderLoadingView } from './views/LoadingView'
 import { renderLoginView } from './views/LoginView'
 import { renderReportFormView } from './views/ReportFormView'
+import { renderPreviewView } from './views/PreviewView'
+import type { PreviewData } from './views/PreviewView'
+import { renderSendingView } from './views/SendingView'
 import { renderSuccessView } from './views/SuccessView'
 import { renderSettingsView } from './views/SettingsView'
 
-type ViewName = 'loading' | 'login' | 'form' | 'success' | 'settings'
+type ViewName = 'loading' | 'login' | 'form' | 'preview' | 'sending' | 'success' | 'settings'
 
 const views: Record<ViewName, HTMLElement | null> = {
   loading: document.getElementById('view-loading'),
   login: document.getElementById('view-login'),
   form: document.getElementById('view-form'),
+  preview: document.getElementById('view-preview'),
+  sending: document.getElementById('view-sending'),
   success: document.getElementById('view-success'),
   settings: document.getElementById('view-settings'),
 }
@@ -39,71 +45,214 @@ const setAvatar = (user: AuthUser | null): void => {
   }
 }
 
+// 타임아웃 포함 메시지 전송 — SW 비활성 시 무한 대기 방지
+const MESSAGE_TIMEOUT_MS = 10_000
+
 const sendMessage = <T>(message: unknown): Promise<BackgroundResponse<T>> => {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage(message, resolve)
+    const timer = setTimeout(() => {
+      resolve({ success: false, error: 'Service worker not responding. Try again.' } as BackgroundResponse<T>)
+    }, MESSAGE_TIMEOUT_MS)
+
+    try {
+      chrome.runtime.sendMessage(message, (response) => {
+        clearTimeout(timer)
+        // chrome.runtime.lastError 발생 시 (SW 연결 끊김 등)
+        if (chrome.runtime.lastError) {
+          resolve({ success: false, error: chrome.runtime.lastError.message ?? 'Connection lost' } as BackgroundResponse<T>)
+          return
+        }
+        resolve(response ?? { success: false, error: 'No response from background' } as BackgroundResponse<T>)
+      })
+    } catch {
+      clearTimeout(timer)
+      resolve({ success: false, error: 'Failed to connect to background' } as BackgroundResponse<T>)
+    }
   })
 }
 
-const showNotAmazonPage = (container: HTMLElement): void => {
+// 에러 코드 → i18n 키 매핑
+const ERROR_KEY_MAP: Record<string, { title: string; desc: string; icon: string }> = {
+  NOT_AMAZON: { title: 'error.not_amazon.title', desc: 'error.not_amazon.desc', icon: '\uD83C\uDF10' },
+  NOT_PRODUCT_PAGE: { title: 'error.not_product.title', desc: 'error.not_product.desc', icon: '\uD83D\uDD0D' },
+  PARSE_FAILED: { title: 'error.parse.title', desc: 'error.parse.desc', icon: '\u26A0\uFE0F' },
+  NO_TAB: { title: 'error.no_tab.title', desc: 'error.no_tab.desc', icon: '\uD83D\uDCD1' },
+  CONNECTION_ERROR: { title: 'error.connection.title', desc: 'error.connection.desc', icon: '\uD83D\uDD0C' },
+}
+
+const showErrorView = (container: HTMLElement, errorCode: string): void => {
+  const key = errorCode.startsWith('PARSE_FAILED') ? 'PARSE_FAILED' : errorCode
+  const mapping = ERROR_KEY_MAP[key] ?? ERROR_KEY_MAP.PARSE_FAILED
+  const debugInfo = errorCode.startsWith('PARSE_FAILED:') ? errorCode.substring(13) : ''
+
   container.innerHTML = `
-    <div class="status-message">
-      <div class="status-message__icon">&#128722;</div>
-      <h2 class="status-message__title">Not an Amazon Product Page</h2>
-      <p class="status-message__desc">
-        Navigate to an Amazon product page (e.g., amazon.com/dp/...) to report a violation.
-      </p>
+    <div class="status-message error-view">
+      <div class="error-view__icon">${mapping.icon}</div>
+      <h2 class="status-message__title">${t(mapping.title as Parameters<typeof t>[0])}</h2>
+      <p class="status-message__desc">${t(mapping.desc as Parameters<typeof t>[0])}</p>
+      ${debugInfo ? `<p class="status-message__desc" style="font-size:11px;color:var(--text-muted);word-break:break-all;margin-top:8px">${debugInfo}</p>` : ''}
     </div>
   `
 }
 
-const init = async (): Promise<void> => {
-  // 1. 로딩 표시
-  showView('loading')
-  renderLoadingView(views.loading!)
+const sendToServiceWorker = (data: PreviewData): void => {
+  showView('sending')
+  renderSendingView(views.sending!)
 
-  // 2. 인증 확인
-  const authResponse = await sendMessage<AuthStatusResponse>({ type: 'GET_AUTH_STATUS' })
-
-  if (!authResponse.success || !authResponse.data.authenticated) {
-    showView('login')
-    renderLoginView(views.login!, () => {
-      init()
-    })
-    return
-  }
-
-  setAvatar(authResponse.data.user)
-
-  // 3. 페이지 데이터 가져오기
-  const pageResponse = await sendMessage<PageDataResponse>({ type: 'GET_PAGE_DATA_FROM_TAB' })
-
-  if (!pageResponse.success || !pageResponse.data) {
+  const timer = setTimeout(() => {
+    // 15초 후에도 응답 없으면 에러 표시
     showView('form')
-    showNotAmazonPage(views.form!)
-    return
+    showErrorView(views.form!, 'CONNECTION_ERROR')
+  }, 15_000)
+
+  try {
+    chrome.runtime.sendMessage(
+      {
+        type: 'QUEUE_REPORT',
+        payload: {
+          page_data: data.pageData,
+          violation_type: data.violationType,
+          violation_category: data.violationCategory,
+          note: data.note,
+          screenshot_base64: data.screenshotBase64,
+        },
+      },
+      (response: BackgroundResponse<SubmitReportResponse>) => {
+        clearTimeout(timer)
+
+        if (chrome.runtime.lastError) {
+          showView('form')
+          showErrorView(views.form!, 'CONNECTION_ERROR')
+          return
+        }
+
+        if (response?.success) {
+          showView('success')
+          renderSuccessView(views.success!, response.data.report_id, response.data.is_duplicate)
+
+          const btnNew = views.success!.querySelector('#btn-new-report')
+          btnNew?.addEventListener('click', () => init())
+        } else {
+          // 인증 에러 시 로그인 화면으로 리다이렉트 (세션 만료 안내)
+          const isAuthError = response?.error?.toLowerCase().includes('session expired')
+            || response?.error?.toLowerCase().includes('not authenticated')
+          if (isAuthError) {
+            setAvatar(null)
+            showView('login')
+            renderLoginView(views.login!, () => init(), 'session_expired')
+            return
+          }
+
+          showView('form')
+          const errorEl = views.form!.querySelector('#form-error')
+          if (errorEl) {
+            errorEl.textContent = response?.error ?? t('form.error.submit')
+            errorEl.classList.remove('hidden')
+          }
+        }
+      },
+    )
+  } catch {
+    clearTimeout(timer)
+    showView('form')
+    showErrorView(views.form!, 'CONNECTION_ERROR')
   }
-
-  // 4. 신고 폼 표시
-  showView('form')
-  renderReportFormView(views.form!, pageResponse.data, (reportId) => {
-    // 5. 성공 화면
-    showView('success')
-    renderSuccessView(views.success!, reportId)
-
-    const btnNew = views.success!.querySelector('#btn-new-report')
-    btnNew?.addEventListener('click', () => init())
-  })
 }
 
-// 설정 버튼 이벤트
+const init = async (): Promise<void> => {
+  try {
+    // 1. 로딩
+    showView('loading')
+    renderLoadingView(views.loading!)
+
+    // 2. 인증
+    const authResponse = await sendMessage<AuthStatusResponse>({ type: 'GET_AUTH_STATUS' })
+
+    if (!authResponse.success || !authResponse.data?.authenticated) {
+      setAvatar(null)
+      showView('login')
+      renderLoginView(views.login!, () => init())
+      return
+    }
+
+    setAvatar(authResponse.data.user)
+
+    // 3. 페이지 데이터
+    const pageResponse = await sendMessage<PageDataResponse>({ type: 'GET_PAGE_DATA_FROM_TAB' })
+
+    if (!pageResponse.success || !pageResponse.data) {
+      showView('form')
+      showErrorView(views.form!, (!pageResponse.success ? pageResponse.error : null) ?? 'PARSE_FAILED')
+      return
+    }
+
+    // 4. 폼
+    showView('form')
+    renderReportFormView(views.form!, pageResponse.data, (previewData) => {
+      // 5. 프리뷰 + 카운트다운
+      showView('preview')
+      renderPreviewView(
+        views.preview!,
+        previewData,
+        () => sendToServiceWorker(previewData),
+        () => {
+          // 취소 → 폼으로 복귀
+          showView('form')
+        },
+      )
+    })
+  } catch {
+    // init 중 예상치 못한 에러 → 로딩 뷰에서 멈추지 않도록
+    showView('form')
+    showErrorView(views.form!, 'CONNECTION_ERROR')
+  }
+}
+
+// 설정 버튼 토글 이벤트
+let previousView: ViewName = 'form'
 const settingsBtn = document.getElementById('btn-settings')
 settingsBtn?.addEventListener('click', () => {
-  showView('settings')
-  renderSettingsView(views.settings!, () => {
-    init()
-  })
+  const isSettingsOpen = views.settings?.classList.contains('view--active')
+  if (isSettingsOpen) {
+    showView(previousView)
+  } else {
+    // 현재 활성 뷰 기억
+    for (const [key, el] of Object.entries(views)) {
+      if (el?.classList.contains('view--active') && key !== 'settings') {
+        previousView = key as ViewName
+        break
+      }
+    }
+    showView('settings')
+    renderSettingsView(views.settings!, () => {
+      showView(previousView)
+    }, () => {
+      // locale 변경 시 전체 UI 재초기화
+      init()
+    })
+  }
 })
 
-// 팝업 오픈 시 초기화
-init()
+// Background Fetch 진행 배너
+const bgFetchBanner = document.getElementById('bgfetch-banner')
+const updateBgFetchBanner = (): void => {
+  chrome.storage.local.get('bgfetch.status', (result) => {
+    const status = result['bgfetch.status'] as { active: boolean; asin: string | null; marketplace: string | null } | undefined
+    if (bgFetchBanner) {
+      if (status?.active && status.asin) {
+        bgFetchBanner.textContent = `${t('bgfetch.banner')}: ${status.asin} (${status.marketplace ?? 'US'})`
+        bgFetchBanner.classList.remove('hidden')
+      } else {
+        bgFetchBanner.classList.add('hidden')
+      }
+    }
+  })
+}
+updateBgFetchBanner()
+// storage 변경 시 배너 업데이트
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes['bgfetch.status']) updateBgFetchBanner()
+})
+
+// 팝업 오픈 시 초기화 — locale + theme 먼저 로드
+Promise.all([initLocale(), initTheme()]).then(() => init())

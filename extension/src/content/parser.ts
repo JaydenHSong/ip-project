@@ -19,8 +19,12 @@ const trySelectors = <T>(selectors: (() => T | null | undefined)[]): T | null =>
 const SELECTORS = {
   asin: [
     () => document.querySelector<HTMLInputElement>('input[name="ASIN"]')?.value,
-    () => window.location.pathname.match(/\/dp\/([A-Z0-9]{10})/)?.[1],
+    () => window.location.pathname.match(/\/dp\/([A-Z0-9]{10})/i)?.[1]?.toUpperCase(),
+    () => window.location.pathname.match(/\/gp\/product\/([A-Z0-9]{10})/i)?.[1]?.toUpperCase(),
+    () => window.location.pathname.match(/\/gp\/aw\/d\/([A-Z0-9]{10})/i)?.[1]?.toUpperCase(),
+    () => window.location.href.match(/(?:[?&]|%3[Ff])asin=([A-Z0-9]{10})/i)?.[1]?.toUpperCase(),
     () => document.querySelector('[data-asin]')?.getAttribute('data-asin'),
+    () => document.querySelector('[data-csa-c-asin]')?.getAttribute('data-csa-c-asin'),
   ],
   title: [
     () => document.querySelector('#productTitle')?.textContent?.trim(),

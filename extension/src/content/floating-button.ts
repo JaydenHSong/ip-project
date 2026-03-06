@@ -31,6 +31,14 @@ const BUTTON_STYLES = `
   .sentinel-btn:active {
     transform: scale(0.95);
   }
+  @keyframes sentinel-pulse {
+    0% { box-shadow: 0 4px 12px rgba(249,115,22,0.4); }
+    50% { box-shadow: 0 4px 24px rgba(249,115,22,0.7); }
+    100% { box-shadow: 0 4px 12px rgba(249,115,22,0.4); }
+  }
+  .sentinel-btn--pulse {
+    animation: sentinel-pulse 2s ease-in-out 3;
+  }
   .sentinel-btn svg {
     width: 24px;
     height: 24px;
@@ -56,7 +64,7 @@ export const createFloatingButton = (): void => {
   style.textContent = BUTTON_STYLES
 
   const button = document.createElement('button')
-  button.className = 'sentinel-btn'
+  button.className = 'sentinel-btn sentinel-btn--pulse'
   button.innerHTML = SENTINEL_ICON_SVG
   button.title = 'Report Violation — Sentinel'
   button.addEventListener('click', () => {

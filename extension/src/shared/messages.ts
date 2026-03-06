@@ -8,6 +8,9 @@ export type PopupMessage =
   | { type: 'SIGN_IN' }
   | { type: 'SIGN_OUT' }
   | { type: 'SUBMIT_REPORT'; payload: SubmitReportPayload }
+  | { type: 'QUEUE_REPORT'; payload: SubmitReportPayload }
+  | { type: 'PREPARE_REPORT'; payload: SubmitReportPayload }
+  | { type: 'CONFIRM_REPORT' }
   | { type: 'GET_PAGE_DATA_FROM_TAB' }
   | { type: 'CAPTURE_SCREENSHOT' }
 

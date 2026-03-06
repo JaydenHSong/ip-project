@@ -101,6 +101,19 @@ export type DedupeEntry = {
   expires_at: number
 }
 
+// Background Fetch 설정
+export type BackgroundFetchSettings = {
+  enabled: boolean
+}
+
+// Background Fetch 진행 상태
+export type BackgroundFetchStatus = {
+  active: boolean
+  asin: string | null
+  marketplace: string | null
+  queueId: string | null
+}
+
 export type ExtensionStorage = {
   'auth.access_token': string
   'auth.refresh_token': string
@@ -108,4 +121,9 @@ export type ExtensionStorage = {
   'auth.expires_at': number
   'passive.queue': PassiveQueueItem[]
   'passive.dedup': DedupeEntry[]
+  'bgfetch.settings': BackgroundFetchSettings
+  'bgfetch.status': BackgroundFetchStatus
+  'bgfetch.windowId': number
+  'ext.locale': string
+  'ext.theme': string
 }

@@ -1,9 +1,10 @@
 // 로그인 화면
 
 import type { BackgroundResponse, AuthStatusResponse } from '@shared/messages'
+import { t } from '@shared/i18n'
 
 const SENTINEL_SVG = `
-  <svg class="login-logo" viewBox="0 0 24.8 28" fill="#F97316" xmlns="http://www.w3.org/2000/svg">
+  <svg class="login-logo" viewBox="0 0 24.8 28" fill="var(--accent)" xmlns="http://www.w3.org/2000/svg">
     <path d="M14,0c2.6,0,4.6,2.1,4.6,4.7S16.5,9.3,14,9.3c-2.6,0-4.7,2.1-4.7,4.7s2,4.8,4.7,4.8s4.6,2.1,4.6,4.6c0,2.6-2.1,4.6-4.6,4.6c-2.6,0-4.7-2.1-4.7-4.6c0-2.6-2.1-4.6-4.6-4.6l0,0c-2.6,0-4.6-2.1-4.6-4.7s2.1-4.6,4.7-4.6l0,0c2.6,0,4.6-2.1,4.6-4.7C9.3,2.1,11.4,0,14,0z"/>
     <path d="M21,10.2c2.1,0,3.8,1.7,3.8,3.7c0,2.1-1.7,3.8-3.8,3.8s-3.7-1.7-3.7-3.8C17.2,11.9,18.9,10.2,21,10.2z"/>
   </svg>
@@ -21,17 +22,22 @@ const GOOGLE_ICON = `
 export const renderLoginView = (
   container: HTMLElement,
   onSuccess: () => void,
+  reason?: 'session_expired',
 ): void => {
+  const desc = reason === 'session_expired'
+    ? t('login.desc.expired')
+    : t('login.desc')
+
   container.innerHTML = `
     <div class="login-container">
       ${SENTINEL_SVG}
-      <h1 class="login-title">Sentinel</h1>
-      <p class="login-desc">Sign in with your Spigen Google account to report violations.</p>
-      <button id="btn-google-login" class="btn btn--ghost" style="max-width: 280px;">
+      <h1 class="login-title">${t('login.title')}</h1>
+      <p class="login-desc">${desc}</p>
+      <button id="btn-google-login" class="btn btn--ghost login-btn">
         ${GOOGLE_ICON}
-        Sign in with Google
+        ${t('login.btn')}
       </button>
-      <div id="login-error" class="error-text" style="display: none;"></div>
+      <div id="login-error" class="error-text hidden"></div>
     </div>
   `
 
@@ -40,8 +46,8 @@ export const renderLoginView = (
 
   btn.addEventListener('click', async () => {
     btn.disabled = true
-    btn.innerHTML = `<span class="spinner"></span> Signing in...`
-    errorEl.style.display = 'none'
+    btn.innerHTML = `<span class="spinner"></span> ${t('login.btn.loading')}`
+    errorEl.classList.add('hidden')
 
     chrome.runtime.sendMessage(
       { type: 'SIGN_IN' },
@@ -49,10 +55,10 @@ export const renderLoginView = (
         if (response?.success) {
           onSuccess()
         } else {
-          errorEl.textContent = response?.error ?? 'Sign in failed'
-          errorEl.style.display = 'block'
+          errorEl.textContent = response?.error ?? t('login.error')
+          errorEl.classList.remove('hidden')
           btn.disabled = false
-          btn.innerHTML = `${GOOGLE_ICON} Sign in with Google`
+          btn.innerHTML = `${GOOGLE_ICON} ${t('login.btn')}`
         }
       },
     )

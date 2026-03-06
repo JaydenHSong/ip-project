@@ -1,5 +1,7 @@
 // 메모 입력 컴포넌트
 
+import { t } from '@shared/i18n'
+
 type OnChangeCallback = (note: string) => void
 
 export const renderNoteInput = (
@@ -8,11 +10,11 @@ export const renderNoteInput = (
 ): void => {
   container.innerHTML = `
     <div class="form-group">
-      <label class="form-label">Note (optional)</label>
+      <label class="form-label">${t('form.note.label')}</label>
       <textarea
         id="note-input"
         class="form-textarea"
-        placeholder="Describe the violation..."
+        placeholder="${t('form.note.placeholder')}"
         rows="4"
         maxlength="2000"
       ></textarea>

@@ -2,11 +2,13 @@
 
 import type { ParsedPageData } from '@shared/types'
 import type { ViolationCategory, ViolationCode } from '@shared/constants'
-import { MARKETPLACE_MAP } from '@shared/constants'
 import type { BackgroundResponse } from '@shared/messages'
+import type { PreviewData } from './PreviewView'
+import { t } from '@shared/i18n'
 import { renderViolationSelector } from '../components/ViolationSelector'
 import { renderNoteInput } from '../components/NoteInput'
 import { renderSubmitButton, setSubmitEnabled, setSubmitLoading } from '../components/SubmitButton'
+import { escapeHtml } from '../utils'
 
 type FormState = {
   violationType: ViolationCode | null
@@ -14,16 +16,10 @@ type FormState = {
   note: string
 }
 
-const escapeHtml = (str: string): string => {
-  const div = document.createElement('div')
-  div.textContent = str
-  return div.innerHTML
-}
-
 export const renderReportFormView = (
   container: HTMLElement,
   pageData: ParsedPageData,
-  onSubmitSuccess: (reportId: string) => void,
+  onPreview: (data: PreviewData) => void,
 ): void => {
   const state: FormState = {
     violationType: null,
@@ -38,7 +34,7 @@ export const renderReportFormView = (
       <div class="product-info">
         <span class="product-info__asin">${escapeHtml(pageData.asin)}</span>
         <p class="product-info__title">${escapeHtml(pageData.title)}</p>
-        ${pageData.seller_name ? `<span class="product-info__seller">Seller: ${escapeHtml(pageData.seller_name)}</span>` : ''}
+        ${pageData.seller_name ? `<span class="product-info__seller">${t('form.seller')}: ${escapeHtml(pageData.seller_name)}</span>` : ''}
         <span class="product-info__marketplace">${mp}</span>
       </div>
       <div id="violation-selector"></div>
@@ -79,29 +75,15 @@ export const renderReportFormView = (
     })
 
     const screenshot = screenshotResponse.success ? screenshotResponse.data : ''
+    setSubmitLoading(false)
 
-    // 신고 제출
-    chrome.runtime.sendMessage(
-      {
-        type: 'SUBMIT_REPORT',
-        payload: {
-          page_data: pageData,
-          violation_type: state.violationType,
-          violation_category: state.violationCategory,
-          note: state.note,
-          screenshot_base64: screenshot,
-        },
-      },
-      (response: BackgroundResponse<{ report_id: string }>) => {
-        setSubmitLoading(false)
-
-        if (response?.success) {
-          onSubmitSuccess(response.data.report_id)
-        } else {
-          errorEl.textContent = response?.error ?? 'Submission failed. Please try again.'
-          errorEl.classList.remove('hidden')
-        }
-      },
-    )
+    // Preview 화면으로 전환
+    onPreview({
+      pageData,
+      violationType: state.violationType,
+      violationCategory: state.violationCategory,
+      note: state.note,
+      screenshotBase64: screenshot,
+    })
   })
 }
