@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
+import { BackButton } from '@/components/ui/BackButton'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
@@ -244,11 +245,7 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
     <form onSubmit={handleSubmit} className="space-y-6">
       {!embedded && (
         <div className="flex items-center gap-3">
-          <Link href="/reports" className="text-th-text-muted hover:text-th-text-secondary">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
+          <BackButton href="/reports" />
           <h1 className="text-2xl font-bold text-th-text">{t('reports.new.title')}</h1>
         </div>
       )}

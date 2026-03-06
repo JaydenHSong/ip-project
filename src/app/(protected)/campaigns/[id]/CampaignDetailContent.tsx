@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
+import { BackButton } from '@/components/ui/BackButton'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Badge } from '@/components/ui/Badge'
@@ -84,11 +85,7 @@ export const CampaignDetailContent = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/campaigns" className="text-th-text-muted hover:text-th-text-secondary">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
+          <BackButton href="/campaigns" />
           <h1 className="text-2xl font-bold text-th-text">{campaign.keyword}</h1>
           <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
         </div>

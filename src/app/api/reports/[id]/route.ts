@@ -53,6 +53,7 @@ export const PATCH = withAuth(async (req) => {
   const allowedFields = [
     'draft_title', 'draft_body', 'user_violation_type',
     'violation_category', 'confirmed_violation_type',
+    'resubmit_interval_days',
   ]
 
   const updates: Record<string, unknown> = {}
