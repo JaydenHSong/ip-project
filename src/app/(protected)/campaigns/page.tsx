@@ -51,7 +51,27 @@ const CampaignsPage = async ({
 
     const { data, error, count } = await query
     if (error) console.error('Campaigns query error:', error.message)
-    campaigns = data
+
+    // 실제 DB listings count 조회 (total_listings 컬럼은 부정확할 수 있음)
+    if (data && data.length > 0) {
+      const campaignIds = data.map((c) => c.id)
+      const { data: counts } = await supabase
+        .rpc('count_listings_by_campaigns', { campaign_ids: campaignIds })
+
+      const countMap = new Map<string, number>()
+      if (counts) {
+        for (const row of counts as { source_campaign_id: string; cnt: number }[]) {
+          countMap.set(row.source_campaign_id, row.cnt)
+        }
+      }
+
+      campaigns = data.map((c) => ({
+        ...c,
+        total_listings: countMap.get(c.id) ?? 0,
+      }))
+    } else {
+      campaigns = data
+    }
     totalPages = Math.ceil((count ?? 0) / limit)
   }
 

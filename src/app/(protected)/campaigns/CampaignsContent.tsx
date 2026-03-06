@@ -47,6 +47,46 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
   const { t } = useI18n()
   const router = useRouter()
   const [showNewCampaign, setShowNewCampaign] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
+
+  const canDelete = userRole === 'owner' || userRole === 'admin'
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (!campaigns) return
+    if (selectedIds.size === campaigns.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(campaigns.map((c) => c.id)))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`${selectedIds.size}개 캠페인을 삭제하시겠습니까?`)) return
+
+    setDeleting(true)
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map((id) =>
+          fetch(`/api/campaigns/${id}`, { method: 'DELETE' })
+        )
+      )
+      setSelectedIds(new Set())
+      router.refresh()
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const handleNewCampaignSuccess = useCallback(() => {
     setShowNewCampaign(false)
@@ -132,11 +172,44 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
         )}
       </div>
 
+      {/* Bulk delete bar */}
+      {canDelete && selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 dark:border-red-900 dark:bg-red-950">
+          <span className="text-sm font-medium text-red-700 dark:text-red-300">
+            {selectedIds.size}개 선택됨
+          </span>
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={handleBulkDelete}
+            disabled={deleting}
+          >
+            {deleting ? '삭제 중...' : '선택 삭제'}
+          </Button>
+          <button
+            className="ml-auto text-sm text-th-text-muted hover:text-th-text"
+            onClick={() => setSelectedIds(new Set())}
+          >
+            취소
+          </button>
+        </div>
+      )}
+
       {/* Desktop: table */}
       <div className="hidden overflow-hidden rounded-xl border border-th-border shadow-sm md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
+              {canDelete && (
+                <th className="w-10 px-3 py-3.5">
+                  <input
+                    type="checkbox"
+                    checked={campaigns !== null && campaigns.length > 0 && selectedIds.size === campaigns.length}
+                    onChange={toggleAll}
+                    className="h-4 w-4 rounded border-th-border accent-th-accent"
+                  />
+                </th>
+              )}
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.keyword')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.marketplace')}</th>
               <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.frequency')}</th>
@@ -150,15 +223,25 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
           <tbody className="divide-y divide-th-border">
             {(!campaigns || campaigns.length === 0) ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-th-text-muted">{t('campaigns.noCampaigns')}</td>
+                <td colSpan={canDelete ? 9 : 8} className="px-4 py-12 text-center text-th-text-muted">{t('campaigns.noCampaigns')}</td>
               </tr>
             ) : (
               campaigns.map((campaign) => (
                 <tr
                   key={campaign.id}
-                  className="cursor-pointer bg-surface-card transition-all duration-150 hover:bg-th-bg-hover"
+                  className={`cursor-pointer bg-surface-card transition-all duration-150 hover:bg-th-bg-hover ${selectedIds.has(campaign.id) ? 'bg-th-bg-hover' : ''}`}
                   onClick={() => router.push(`/campaigns/${campaign.id}`)}
                 >
+                  {canDelete && (
+                    <td className="w-10 px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(campaign.id)}
+                        onChange={() => toggleSelect(campaign.id)}
+                        className="h-4 w-4 rounded border-th-border accent-th-accent"
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-3.5">
                     <span className="font-medium text-th-text">
                       {campaign.keyword}
