@@ -28,4 +28,14 @@ CREATE TABLE IF NOT EXISTS ai_learning_records (
 -- 카테고리 + 기간으로 조회
 CREATE INDEX idx_ai_learning_category ON ai_learning_records (category, period_end DESC);
 
+-- campaigns 테이블에 크롤링 결과 컬럼 추가
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS last_crawled_at timestamptz;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS total_listings integer DEFAULT 0;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS last_result jsonb;
+
+-- frequency 제약 조건 업데이트 (every_3d, weekly 추가)
+ALTER TABLE campaigns DROP CONSTRAINT IF EXISTS campaigns_frequency_check;
+ALTER TABLE campaigns ADD CONSTRAINT campaigns_frequency_check
+  CHECK (frequency IN ('daily', 'every_12h', 'every_6h', 'every_3d', 'weekly'));
+
 NOTIFY pgrst, 'reload schema';

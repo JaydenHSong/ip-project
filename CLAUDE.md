@@ -157,6 +157,24 @@ extension/                # Sentinel Extension (Chrome Extension)
 - 절대 경로 사용: `@/components/...`, `@/lib/...`
 - 외부 → 내부 → 상대 경로 순서
 
+## Version Management
+
+| Component | Current Version | Location |
+|-----------|:--------------:|----------|
+| Web (Next.js) | - | `package.json` |
+| Extension | 1.3.0 | `extension/manifest.json`, `extension/package.json` |
+| Crawler | - | `crawler/package.json` |
+
+### Extension 버전 규칙 (Semantic Versioning)
+- **Major** (X.0.0): 메시지 프로토콜 호환 깨짐, manifest 구조 변경 등 breaking change
+- **Minor** (0.X.0): 새 기능 추가, UX 개선, 뷰 추가 등 기능 변경
+- **Patch** (0.0.X): 버그 수정, 텍스트 변경, 스타일 미세 조정
+
+### 버전 업데이트 시 변경할 파일
+1. `extension/manifest.json` → `"version"`
+2. `extension/package.json` → `"version"`
+3. 빌드 후 `extension/sentinel-extension/manifest.json` → `"version"`
+
 ## Restrictions
 
 - console.log 금지 → 디버깅 후 반드시 제거
