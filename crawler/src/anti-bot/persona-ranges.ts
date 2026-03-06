@@ -91,7 +91,7 @@ const DEFAULT_RANGES: PersonaRanges = {
     backToNextClickDelayMax: [1200, 8000],
     betweenPagesDelayMin: [1000, 5000],
     betweenPagesDelayMax: [2500, 12000],
-    productsToViewPerPage: [2, 10],
+    productsToViewPerPage: [15, 22],
     useBackButton: [0, 1],
   },
 }
