@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "echo \"No tests configured yet\"",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:demo": "DEMO_MODE=true playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
