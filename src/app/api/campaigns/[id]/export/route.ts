@@ -30,35 +30,11 @@ export const GET = withAuth(async (req) => {
     )
   }
 
-  // 캠페인에 연결된 리스팅 조회
-  const { data: links, error: linkError } = await supabase
-    .from('campaign_listings')
-    .select('listing_id')
-    .eq('campaign_id', id)
-
-  if (linkError) {
-    return NextResponse.json(
-      { error: { code: 'DB_ERROR', message: linkError.message } },
-      { status: 500 },
-    )
-  }
-
-  const listingIds = (links ?? []).map((l) => l.listing_id)
-
-  if (listingIds.length === 0) {
-    const emptyCSV = 'ASIN,Title,Seller,Suspect,Reasons,Crawled At\n'
-    return new NextResponse(emptyCSV, {
-      headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="campaign-${campaign.keyword}-${campaign.marketplace}.csv"`,
-      },
-    })
-  }
-
+  // 캠페인에 연결된 리스팅 조회 (source_campaign_id로 직접 조회)
   const { data: listings, error: listError } = await supabase
     .from('listings')
     .select('asin, title, seller_name, is_suspect, suspect_reasons, crawled_at')
-    .in('id', listingIds)
+    .eq('source_campaign_id', id)
     .order('crawled_at', { ascending: false })
 
   if (listError) {

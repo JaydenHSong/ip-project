@@ -37,9 +37,9 @@ export const GET = withAuth(async (req) => {
 
   // 수집 현황 통계
   const { count: listingCount } = await supabase
-    .from('campaign_listings')
+    .from('listings')
     .select('*', { count: 'exact', head: true })
-    .eq('campaign_id', id)
+    .eq('source_campaign_id', id)
 
   const { count: suspectCount } = await supabase
     .from('listings')
