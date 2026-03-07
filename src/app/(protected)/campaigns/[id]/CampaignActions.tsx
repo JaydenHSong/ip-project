@@ -18,21 +18,18 @@ export const CampaignActions = ({ campaignId, status, userRole }: CampaignAction
   const [loading, setLoading] = useState<string | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
-  const [forceRunResult, setForceRunResult] = useState<string | null>(null)
-
   const handleForceRun = async () => {
     setLoading('force-run')
-    setForceRunResult(null)
     try {
       const res = await fetch(`/api/campaigns/${campaignId}/force-run`, { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
-        setForceRunResult('Crawl job queued successfully')
+        addToast({ type: 'success', title: 'Crawl job queued successfully' })
       } else {
-        setForceRunResult(data.error?.message ?? 'Failed to trigger crawl')
+        addToast({ type: 'error', title: data.error?.message ?? 'Failed to trigger crawl' })
       }
     } catch {
-      setForceRunResult('Failed to connect to crawler')
+      addToast({ type: 'error', title: 'Failed to connect to crawler' })
     }
     setLoading(null)
   }
@@ -74,13 +71,6 @@ export const CampaignActions = ({ campaignId, status, userRole }: CampaignAction
   return (
     <>
       <div className="flex items-center gap-2">
-        {forceRunResult && (
-          <span className={`rounded-lg px-3 py-1.5 text-xs ${
-            forceRunResult.includes('success') ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-          }`}>
-            {forceRunResult}
-          </span>
-        )}
         {status === 'active' && (userRole === 'owner' || userRole === 'admin') && (
           <Button
             variant="outline"

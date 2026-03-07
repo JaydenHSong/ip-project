@@ -28,6 +28,8 @@ type ListingRow = {
   seller_name: string | null
   is_suspect: boolean
   source: string
+  screenshot_url: string | null
+  suspect_reasons: string[]
 }
 
 type ReportRow = {
@@ -71,6 +73,8 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
       seller_name: l.seller_name,
       is_suspect: l.is_suspect,
       source: l.source,
+      screenshot_url: (l as { screenshot_url?: string | null }).screenshot_url ?? null,
+      suspect_reasons: (l as { suspect_reasons?: string[] }).suspect_reasons ?? [],
     }))
     totalListings = listings.length
     suspectCount = listings.filter((l) => l.is_suspect).length
@@ -122,7 +126,7 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
 
     const { data: listingData } = await supabase
       .from('listings')
-      .select('id, asin, title, seller_name, is_suspect, source')
+      .select('id, asin, title, seller_name, is_suspect, source, screenshot_url, suspect_reasons')
       .eq('source_campaign_id', id)
       .order('is_suspect', { ascending: false })
       .limit(50)
