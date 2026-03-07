@@ -22,6 +22,7 @@ export type PreviousPeriod = {
   activeCampaigns: number
   pendingReports: number
   totalListings: number
+  suspectListings: number
   resolvedRate: number
   aiAccuracy: number
   monitoringCount: number
@@ -32,6 +33,7 @@ export type DashboardStats = {
     activeCampaigns: number
     pendingReports: number
     totalListings: number
+    suspectListings: number
     resolvedRate: number
     aiAccuracy: number
     monitoringCount: number

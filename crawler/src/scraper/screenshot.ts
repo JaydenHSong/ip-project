@@ -6,8 +6,8 @@ import type { Page } from 'playwright'
 type ScreenshotPurpose = 'evidence' | 'scan'
 
 const SCREENSHOT_CONFIG = {
-  evidence: { width: 1280, height: 800, quality: 60, maxSize: 500 * 1024 },  // 500KB
-  scan: { width: 1024, height: 640, quality: 40, maxSize: 200 * 1024 },      // 200KB
+  evidence: { width: 720, height: 550, quality: 60, maxSize: 300 * 1024 },  // 300KB
+  scan: { width: 720, height: 550, quality: 40, maxSize: 150 * 1024 },      // 150KB
 } as const
 
 const captureScreenshot = async (

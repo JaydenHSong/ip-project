@@ -96,12 +96,32 @@ export const GET = async (request: Request): Promise<NextResponse> => {
       .from('listings')
       .select('*, campaigns!inner(created_by)', { count: 'exact', head: true })
       .eq('campaigns.created_by', userId)
+      .in('source', ['crawler', 'extension', 'extension_passive'])
     listingsCount = count ?? 0
   } else {
     const { count } = await supabase
       .from('listings')
       .select('*', { count: 'exact', head: true })
+      .in('source', ['crawler', 'extension', 'extension_passive'])
     listingsCount = count ?? 0
+  }
+
+  let suspectCount = 0
+  if (userId) {
+    const { count } = await supabase
+      .from('listings')
+      .select('*, campaigns!inner(created_by)', { count: 'exact', head: true })
+      .eq('campaigns.created_by', userId)
+      .in('source', ['crawler', 'extension', 'extension_passive'])
+      .eq('is_suspect', true)
+    suspectCount = count ?? 0
+  } else {
+    const { count } = await supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .in('source', ['crawler', 'extension', 'extension_passive'])
+      .eq('is_suspect', true)
+    suspectCount = count ?? 0
   }
 
   const pendingReports = allReports.filter((r) => ['draft', 'pending_review'].includes(r.status)).length
@@ -204,6 +224,7 @@ export const GET = async (request: Request): Promise<NextResponse> => {
       activeCampaigns: activeCampaigns ?? 0,
       pendingReports,
       totalListings: listingsCount,
+      suspectListings: suspectCount,
       resolvedRate,
       aiAccuracy: avgConfidence,
       monitoringCount,
@@ -212,6 +233,7 @@ export const GET = async (request: Request): Promise<NextResponse> => {
       activeCampaigns: activeCampaigns ?? 0,
       pendingReports: prevPending,
       totalListings: listingsCount,
+      suspectListings: suspectCount,
       resolvedRate: prevResolvedRate,
       aiAccuracy: prevAiAccuracy,
       monitoringCount: prevMonitoring,

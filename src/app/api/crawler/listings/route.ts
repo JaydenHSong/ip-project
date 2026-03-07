@@ -1,7 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withServiceAuth } from '@/lib/auth/service-middleware'
 import { checkSuspectListing } from '@/lib/utils/suspect-filter'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+
+const uploadScreenshot = async (
+  supabase: ReturnType<typeof createAdminClient>,
+  asin: string,
+  base64Data: string,
+): Promise<string | null> => {
+  try {
+    const isWebp = base64Data.startsWith('UklGR')
+    const ext = isWebp ? 'webp' : 'jpg'
+    const contentType = isWebp ? 'image/webp' : 'image/jpeg'
+    const fileName = `crawler/${asin}_${Date.now()}.${ext}`
+    const buffer = Buffer.from(base64Data, 'base64')
+    const { error } = await supabase.storage
+      .from('screenshots')
+      .upload(fileName, buffer, { contentType, upsert: false })
+
+    if (error) return null
+
+    const { data: urlData } = supabase.storage
+      .from('screenshots')
+      .getPublicUrl(fileName)
+
+    return urlData.publicUrl
+  } catch {
+    return null
+  }
+}
 
 // POST /api/crawler/listings — 단건 리스팅 저장 (Crawler 전용)
 export const POST = withServiceAuth(async (req) => {
@@ -39,7 +66,12 @@ export const POST = withServiceAuth(async (req) => {
     seller_name: body.seller_name,
   })
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
+
+  let screenshotUrl: string | null = null
+  if (body.screenshot_base64) {
+    screenshotUrl = await uploadScreenshot(supabase, body.asin, body.screenshot_base64)
+  }
 
   const { data, error } = await supabase
     .from('listings')
@@ -60,6 +92,7 @@ export const POST = withServiceAuth(async (req) => {
       review_count: body.review_count ?? null,
       is_suspect,
       suspect_reasons,
+      screenshot_url: screenshotUrl,
       source: 'crawler',
       source_campaign_id: body.source_campaign_id,
       source_user_id: null,

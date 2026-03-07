@@ -30,6 +30,11 @@ const VARIATION_THRESHOLD = 7
 
 // 키워드 + 베리에이션 기반 1차 스캔
 const preScanResult = (result: SearchResult): PreScanResult => {
+  // 자사(Spigen) 제품은 항상 non-suspect
+  if (result.isSpigen) {
+    return { isSuspect: false, suspectReasons: [], score: 0 }
+  }
+
   const reasons: string[] = []
   let score = 0
 

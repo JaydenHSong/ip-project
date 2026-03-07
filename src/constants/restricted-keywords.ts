@@ -12,7 +12,7 @@ export const RESTRICTED_KEYWORDS = {
     'spigen compatible', 'works with spigen',
   ],
   counterfeit_signals: [
-    'oem', 'original quality', 'same as', 'replica',
+    'oem', 'same as', 'replica',
     'replacement for spigen', 'alternative to spigen',
   ],
   image_theft: [

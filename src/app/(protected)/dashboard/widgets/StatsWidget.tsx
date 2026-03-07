@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import {
   FileText,
@@ -56,7 +57,14 @@ export const StatsWidget = () => {
     },
     {
       label: t('dashboard.collectedListings'),
-      value: summary?.totalListings ?? 0,
+      value: summary ? (
+        <span>
+          <span className="text-red-400">{summary.suspectListings ?? 0}</span>
+          <span className="text-th-text-muted text-base font-normal"> / </span>
+          <span>{(summary.totalListings ?? 0) - (summary.suspectListings ?? 0)}</span>
+        </span>
+      ) : 0,
+      subtitle: 'suspect / normal',
       numericValue: summary?.totalListings ?? 0,
       prevValue: prev?.totalListings ?? 0,
       icon: FileText,
@@ -112,6 +120,9 @@ export const StatsWidget = () => {
               {prev && <TrendIndicator current={stat.numericValue} previous={stat.prevValue} />}
             </div>
             <p className="mt-1 text-xs font-medium text-th-text-muted">{stat.label}</p>
+            {'subtitle' in stat && stat.subtitle && (
+              <p className="text-[10px] text-th-text-tertiary">{stat.subtitle}</p>
+            )}
           </Link>
         )
       })}
