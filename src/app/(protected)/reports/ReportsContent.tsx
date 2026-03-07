@@ -204,7 +204,6 @@ export const ReportsContent = ({
   const STATUS_TABS = [
     { value: '', label: t('common.all') },
     { value: 'draft', label: t('reports.tabs.draft') },
-    { value: 'pending_review', label: t('reports.tabs.pending') },
     { value: 'sc_submitting', label: 'SC Submitting' },
     { value: 'monitoring', label: t('reports.tabs.monitoring') },
   ]

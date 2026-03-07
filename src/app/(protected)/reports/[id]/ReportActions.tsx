@@ -215,17 +215,6 @@ export const ReportActions = ({
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        {/* Draft: Submit for Review */}
-        {status === 'draft' && (
-          <Button
-            size="sm"
-            loading={loading === 'submitReview'}
-            onClick={handleSubmitReview}
-          >
-            {t('reports.detail.submitReview')}
-          </Button>
-        )}
-
         {/* Pending Review: Approve + Rewrite only */}
         {status === 'pending_review' && (
           <>

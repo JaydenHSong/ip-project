@@ -193,7 +193,7 @@ export const en = {
       approve: 'Approve Only',
       approveAndSubmit: 'Approve & Submit',
       rewrite: 'Re-write',
-      submitReview: 'Submit for Review',
+      submitReview: 'Submit',
       submitSC: 'Submit to SC',
       archiveReport: 'Archive',
       applyTemplate: 'Apply Template',

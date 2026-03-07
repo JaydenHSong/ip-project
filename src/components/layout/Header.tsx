@@ -8,7 +8,6 @@ import { NotificationBell } from './NotificationBell'
 import { NoticeDropdown } from './NoticeDropdown'
 import { getStoredTheme, toggleTheme } from '@/lib/theme'
 import { useI18n } from '@/lib/i18n/context'
-import { DEMO_NOTICES } from '@/lib/demo/data'
 import type { User } from '@/types/users'
 
 type HeaderProps = {
@@ -44,7 +43,7 @@ export const Header = ({ user }: HeaderProps) => {
         <span className="hidden text-xs text-th-text-muted sm:block">v0.1.0</span>
 
         {/* Notices Dropdown */}
-        <NoticeDropdown demoNotices={DEMO_NOTICES} />
+        <NoticeDropdown />
 
         {/* Separator */}
         <div className="h-5 w-px bg-th-border" />

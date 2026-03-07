@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
@@ -85,9 +85,9 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
 
   const [editTitle, setEditTitle] = useState(report.draft_title ?? '')
   const [editBody, setEditBody] = useState(report.draft_body ?? '')
-  const [saving, setSaving] = useState(false)
   const [draftTab, setDraftTab] = useState<'edit' | 'templates'>('edit')
   const [aiWriting, setAiWriting] = useState(false)
+  const [approving, setApproving] = useState(false)
   const [suggestedTemplate, setSuggestedTemplate] = useState<{ id: string; title: string; body: string } | null>(null)
   const [templateDismissed, setTemplateDismissed] = useState(false)
   const [resubmitIntervalLocal, setResubmitIntervalLocal] = useState<string>(
@@ -114,6 +114,28 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       })
       .catch(() => {})
   }, [report.status, report.draft_body, report.user_violation_type, templateDismissed])
+
+  const handleSubmit = async () => {
+    setApproving(true)
+    try {
+      const res = await fetch(`/api/reports/${report.id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(hasChanges ? { edited_draft_title: editTitle, edited_draft_body: editBody } : {}),
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Submit failed')
+      }
+      router.refresh()
+    } catch (e) {
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
+    } finally {
+      setApproving(false)
+    }
+  }
 
   const handleAiWrite = async () => {
     setAiWriting(true)
@@ -154,29 +176,37 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   }
 
   const hasChanges = editTitle !== (report.draft_title ?? '') || editBody !== (report.draft_body ?? '')
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastSavedRef = useRef({ title: report.draft_title ?? '', body: report.draft_body ?? '' })
 
-  const handleSave = async () => {
-    setSaving(true)
+  const autoSave = useCallback(async (title: string, body: string) => {
+    if (title === lastSavedRef.current.title && body === lastSavedRef.current.body) return
+    setAutoSaveStatus('saving')
     try {
       const res = await fetch(`/api/reports/${report.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          draft_title: editTitle,
-          draft_body: editBody,
-        }),
+        body: JSON.stringify({ draft_title: title, draft_body: body }),
       })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Save failed')
+      if (res.ok) {
+        lastSavedRef.current = { title, body }
+        setAutoSaveStatus('saved')
+        setTimeout(() => setAutoSaveStatus('idle'), 2000)
       }
-      router.refresh()
-    } catch (e) {
-      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
-    } finally {
-      setSaving(false)
+    } catch {
+      setAutoSaveStatus('idle')
     }
-  }
+  }, [report.id])
+
+  // Debounced autosave — 1.5s after last keystroke
+  useEffect(() => {
+    if (!isDraftEditable) return
+    if (editTitle === lastSavedRef.current.title && editBody === lastSavedRef.current.body) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => autoSave(editTitle, editBody), 1500)
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current) }
+  }, [editTitle, editBody, isDraftEditable, autoSave])
 
   return (
     <div className="space-y-6">
@@ -433,14 +463,25 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 <h2 className="font-semibold text-th-text">{t('reports.detail.reportDraft')}</h2>
               )}
               {isDraftEditable && draftTab === 'edit' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  loading={aiWriting}
-                  onClick={handleAiWrite}
-                >
-                  AI Write
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    loading={aiWriting}
+                    onClick={handleAiWrite}
+                  >
+                    AI Write
+                  </Button>
+                  {canEdit && (
+                    <Button
+                      size="sm"
+                      loading={approving}
+                      onClick={handleSubmit}
+                    >
+                      {t('reports.detail.submitReview')}
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </CardHeader>
@@ -469,15 +510,19 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                   onChange={(e) => setEditBody(e.target.value)}
                   rows={8}
                 />
-                {hasChanges && (
+                {autoSaveStatus !== 'idle' && (
                   <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      loading={saving}
-                      onClick={handleSave}
-                    >
-                      {t('reports.detail.saveChanges')}
-                    </Button>
+                    <span className="inline-flex items-center gap-1 rounded-md border border-th-border bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary">
+                      {autoSaveStatus === 'saving' ? (
+                        <>
+                          <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Saving...
+                        </>
+                      ) : '✓ Saved'}
+                    </span>
                   </div>
                 )}
               </>

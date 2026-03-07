@@ -38,9 +38,9 @@ export const POST = withAuth(async (req, { user }) => {
     )
   }
 
-  if (report.status !== 'submitted') {
+  if (report.status !== 'sc_submitting') {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'submitted 상태의 신고만 확인 가능합니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'sc_submitting 상태의 신고만 확인 가능합니다.' } },
       { status: 400 },
     )
   }
@@ -48,6 +48,8 @@ export const POST = withAuth(async (req, { user }) => {
   const now = new Date().toISOString()
 
   const updateData: Record<string, unknown> = {
+    status: 'submitted',
+    sc_submitted_at: now,
     sc_submit_data: null, // 사용 완료 클리어
     updated_at: now,
   }

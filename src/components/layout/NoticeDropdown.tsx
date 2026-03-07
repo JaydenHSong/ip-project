@@ -2,25 +2,22 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { Megaphone, ExternalLink } from 'lucide-react'
+import { Megaphone, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import type { Notice, NoticeCategory } from '@/types/notices'
 
-const CATEGORY_COLORS: Record<NoticeCategory, string> = {
-  update: 'bg-emerald-500',
-  policy: 'bg-blue-500',
-  notice: 'bg-amber-500',
-  system: 'bg-gray-400',
+const CATEGORY_STYLES: Record<NoticeCategory, { dot: string; bg: string; text: string; label: string }> = {
+  update: { dot: 'bg-emerald-500', bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', label: 'Update' },
+  policy: { dot: 'bg-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', label: 'Policy' },
+  notice: { dot: 'bg-amber-500', bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', label: 'Notice' },
+  system: { dot: 'bg-gray-400', bg: 'bg-gray-400/10', text: 'text-gray-600 dark:text-gray-400', label: 'System' },
 }
 
-type NoticeDropdownProps = {
-  demoNotices?: Notice[]
-}
-
-export const NoticeDropdown = ({ demoNotices }: NoticeDropdownProps) => {
+export const NoticeDropdown = () => {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
-  const [notices, setNotices] = useState<Notice[]>(demoNotices ?? [])
+  const [notices, setNotices] = useState<Notice[]>([])
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   const [now] = useState(() => Date.now())
@@ -37,7 +34,7 @@ export const NoticeDropdown = ({ demoNotices }: NoticeDropdownProps) => {
   }, [])
 
   useEffect(() => {
-    if (open && !demoNotices) {
+    if (open) {
       fetch('/api/notices?limit=5')
         .then((res) => res.json())
         .then((data) => {
@@ -45,7 +42,7 @@ export const NoticeDropdown = ({ demoNotices }: NoticeDropdownProps) => {
         })
         .catch(() => {})
     }
-  }, [open, demoNotices])
+  }, [open])
 
   const formatTimeAgo = (dateStr: string): string => {
     const diff = now - new Date(dateStr).getTime()
@@ -59,20 +56,129 @@ export const NoticeDropdown = ({ demoNotices }: NoticeDropdownProps) => {
     return `${weeks}w`
   }
 
-  return (
-    <div ref={ref} className="static">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
-        title={tNotices('title')}
-      >
-        <Megaphone className="h-4 w-4" />
-        <span className="hidden text-xs font-medium sm:block">{t('nav.notices')}</span>
-      </button>
+  const handleNoticeClick = (notice: Notice) => {
+    setOpen(false)
+    setSelectedNotice(notice)
+  }
 
-      {open && <NoticeDropdownPanel notices={notices} tNotices={tNotices} formatTimeAgo={formatTimeAgo} onClose={() => setOpen(false)} />}
-    </div>
+  return (
+    <>
+      <div ref={ref} className="static">
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
+          title={tNotices('title')}
+        >
+          <Megaphone className="h-4 w-4" />
+          <span className="hidden text-xs font-medium sm:block">{t('nav.notices')}</span>
+        </button>
+
+        {open && (
+          <NoticeDropdownPanel
+            notices={notices}
+            tNotices={tNotices}
+            formatTimeAgo={formatTimeAgo}
+            onClose={() => setOpen(false)}
+            onSelect={handleNoticeClick}
+          />
+        )}
+      </div>
+
+      {/* Notice Detail Modal */}
+      {selectedNotice && (() => {
+        const currentIdx = notices.findIndex((n) => n.id === selectedNotice.id)
+        const hasPrev = currentIdx > 0
+        const hasNext = currentIdx < notices.length - 1
+        const style = CATEGORY_STYLES[selectedNotice.category]
+
+        return (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
+            onClick={() => setSelectedNotice(null)}
+          >
+            {/* Prev Arrow */}
+            {hasPrev && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setSelectedNotice(notices[currentIdx - 1]) }}
+                className="absolute left-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-th-border bg-surface-card/90 text-th-text-muted shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-surface-card hover:text-th-text md:left-8"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+            )}
+
+            <div
+              className="relative mx-14 w-full max-w-lg overflow-hidden rounded-2xl border border-th-border bg-surface-card shadow-2xl animate-slide-up md:mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Accent top bar */}
+              <div className={`h-1 w-full ${style.dot}`} />
+
+              {/* Header */}
+              <div className="flex items-start justify-between px-6 pt-5 pb-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${style.bg} ${style.text}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+                      {style.label}
+                    </span>
+                    <span className="text-xs text-th-text-muted">
+                      {new Date(selectedNotice.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <h3 className="mt-2.5 text-lg font-bold leading-snug text-th-text">{selectedNotice.title}</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedNotice(null)}
+                  className="ml-3 -mt-1 shrink-0 rounded-full p-1.5 text-th-text-muted transition-colors hover:bg-th-bg-hover hover:text-th-text"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="max-h-[55vh] overflow-y-auto border-t border-th-border/50 px-6 py-5">
+                <div className="text-sm leading-7 text-th-text-secondary whitespace-pre-wrap">
+                  {selectedNotice.content}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between border-t border-th-border px-6 py-3">
+                <p className="text-xs text-th-text-muted">
+                  {selectedNotice.users?.name ? `Posted by ${selectedNotice.users.name}` : ''}
+                </p>
+                {notices.length > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    {notices.map((_, i) => (
+                      <button
+                        key={notices[i].id}
+                        type="button"
+                        onClick={() => setSelectedNotice(notices[i])}
+                        className={`h-1.5 rounded-full transition-all ${i === currentIdx ? `w-4 ${style.dot}` : 'w-1.5 bg-th-text-muted/30 hover:bg-th-text-muted/50'}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Next Arrow */}
+            {hasNext && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setSelectedNotice(notices[currentIdx + 1]) }}
+                className="absolute right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-th-border bg-surface-card/90 text-th-text-muted shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-surface-card hover:text-th-text md:right-8"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+        )
+      })()}
+    </>
   )
 }
 
@@ -81,9 +187,10 @@ type PanelProps = {
   tNotices: (key: string) => string
   formatTimeAgo: (dateStr: string) => string
   onClose: () => void
+  onSelect: (notice: Notice) => void
 }
 
-const NoticeDropdownPanel = ({ notices, tNotices, formatTimeAgo, onClose }: PanelProps) => {
+const NoticeDropdownPanel = ({ notices, tNotices, formatTimeAgo, onClose, onSelect }: PanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollDown, setCanScrollDown] = useState(false)
 
@@ -122,14 +229,14 @@ const NoticeDropdownPanel = ({ notices, tNotices, formatTimeAgo, onClose }: Pane
             </div>
           ) : (
             notices.slice(0, 5).map((notice) => (
-              <Link
+              <button
                 key={notice.id}
-                href="/notices"
-                onClick={onClose}
-                className="block border-b border-th-border px-4 py-3 last:border-b-0 hover:bg-th-bg-hover/50"
+                type="button"
+                onClick={() => onSelect(notice)}
+                className="block w-full border-b border-th-border px-4 py-3 text-left last:border-b-0 hover:bg-th-bg-hover/50"
               >
                 <div className="flex items-start gap-2.5">
-                  <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${CATEGORY_COLORS[notice.category]}`} />
+                  <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${CATEGORY_STYLES[notice.category].dot}`} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium text-th-text">{notice.title}</p>
                     <p className="mt-0.5 text-xs text-th-text-muted">
@@ -138,7 +245,7 @@ const NoticeDropdownPanel = ({ notices, tNotices, formatTimeAgo, onClose }: Pane
                     </p>
                   </div>
                 </div>
-              </Link>
+              </button>
             ))
           )}
         </div>

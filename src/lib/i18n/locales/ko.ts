@@ -193,7 +193,7 @@ export const ko = {
       approve: '승인만',
       approveAndSubmit: '승인 및 제출',
       rewrite: '재작성 요청',
-      submitReview: '검토 요청',
+      submitReview: '제출',
       submitSC: 'SC 신고',
       archiveReport: '아카이브',
       applyTemplate: '템플릿 적용',

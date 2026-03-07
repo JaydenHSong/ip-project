@@ -12,7 +12,7 @@ export const GET = withAuth(async (_req, { user }) => {
   const { data: report, error } = await supabase
     .from('reports')
     .select('id, sc_submit_data')
-    .eq('status', 'submitted')
+    .eq('status', 'sc_submitting')
     .eq('approved_by', user.id)
     .not('sc_submit_data', 'is', null)
     .is('sc_case_id', null)
