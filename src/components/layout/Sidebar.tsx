@@ -151,7 +151,7 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
       <div className="border-t border-th-sidebar-border px-2 py-3">
         <div className={cn(
           'flex items-center gap-3 px-2',
-          collapsed && 'justify-center',
+          collapsed && 'flex-col gap-2',
         )}>
           {user.avatar_url ? (
             <img
@@ -164,7 +164,16 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
               {user.name.charAt(0).toUpperCase()}
             </div>
           )}
-          {!collapsed && (
+          {collapsed ? (
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              title={t('common.logout')}
+              className="rounded-lg p-1.5 text-th-text-muted hover:bg-th-sidebar-hover hover:text-th-text-secondary transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          ) : (
             <>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-th-sidebar-text">{user.name}</p>
@@ -213,13 +222,13 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
 
       {/* Collapse Toggle */}
       <div className={cn(
-        'flex items-center border-t border-th-sidebar-border px-3 py-2',
-        collapsed ? 'justify-center' : 'justify-end',
+        'flex items-center border-t border-th-sidebar-border py-2',
+        collapsed ? 'justify-center px-3' : 'justify-end px-4',
       )}>
         <button
           type="button"
           onClick={onToggle}
-          className="rounded-lg p-1.5 text-th-text-muted hover:bg-th-sidebar-hover hover:text-th-text-secondary"
+          className="rounded-lg p-1.5 text-th-text-muted hover:bg-th-sidebar-hover hover:text-th-text-secondary transition-colors"
           aria-label={collapsed ? t('common.expandSidebar') : t('common.collapseSidebar')}
         >
           {collapsed ? (

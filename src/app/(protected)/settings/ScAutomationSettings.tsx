@@ -53,12 +53,12 @@ export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => 
   useEffect(() => {
     fetch('/api/settings/sc-automation')
       .then((res) => res.json())
-      .then((data: SettingsData) => setSettings(data))
+      .then((data: Partial<SettingsData>) => setSettings((prev) => ({ ...prev, ...data })))
       .catch(() => {})
 
     fetch('/api/settings/resubmit-defaults')
       .then((res) => res.json())
-      .then((data: ResubmitSettingsData) => setResubmitSettings(data))
+      .then((data: Partial<ResubmitSettingsData>) => setResubmitSettings((prev) => ({ ...prev, ...data })))
       .catch(() => {})
   }, [])
 

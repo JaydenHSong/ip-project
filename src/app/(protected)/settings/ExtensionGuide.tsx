@@ -86,12 +86,10 @@ export const ExtensionGuide = () => {
                 </span>
               </div>
             </div>
-            <div className="flex shrink-0 flex-col items-center gap-2">
-              <a href={downloadUrl} download>
-                <Button variant="primary" disabled={loading} className="gap-2 px-6 py-2.5 text-base">
-                  <Download className="h-5 w-5" />
-                  {loading ? '...' : `Download v${latestVersion}`}
-                </Button>
+            <div className="flex shrink-0 flex-col items-center gap-1.5">
+              <a href={downloadUrl} download className="inline-flex items-center gap-2 rounded-xl bg-th-accent px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-th-accent/90">
+                <Download className="h-4.5 w-4.5" />
+                {loading ? '...' : `Download v${latestVersion}`}
               </a>
               {webStoreUrl && (
                 <a
@@ -115,10 +113,9 @@ export const ExtensionGuide = () => {
             {t('settings.extension.install.manual.title' as Parameters<typeof t>[0])}
           </h3>
 
-          {/* Modern Stepper */}
-          <div className="mb-6 flex items-center">
+          {/* Stepper */}
+          <div className="mb-6 flex items-center gap-0">
             {stepKeys.map((key, i) => {
-              const Icon = STEP_ICONS[i]
               const isActive = i === currentStep
               const isCompleted = i < currentStep
 
@@ -126,29 +123,23 @@ export const ExtensionGuide = () => {
                 <div key={key} className="flex flex-1 items-center">
                   <button
                     onClick={() => setCurrentStep(i)}
-                    className={`group flex flex-col items-center gap-1.5 transition-all ${
-                      isActive ? 'scale-105' : ''
-                    }`}
+                    className="group flex items-center gap-2"
                   >
                     <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-all ${
                         isActive
-                          ? 'bg-th-accent text-white shadow-md shadow-th-accent/25'
+                          ? 'bg-th-accent text-white'
                           : isCompleted
                             ? 'bg-green-500/15 text-green-500'
-                            : 'bg-th-bg-secondary text-th-text-muted group-hover:bg-th-bg-tertiary'
+                            : 'bg-th-bg-tertiary text-th-text-muted group-hover:bg-th-bg-hover'
                       }`}
                     >
-                      {isCompleted ? (
-                        <CheckCircle className="h-5 w-5" />
-                      ) : (
-                        <Icon className="h-5 w-5" />
-                      )}
+                      {isCompleted ? '✓' : i + 1}
                     </div>
                     <span
-                      className={`text-[11px] font-medium ${
+                      className={`hidden text-xs font-medium sm:inline ${
                         isActive
-                          ? 'text-th-accent-text'
+                          ? 'text-th-text'
                           : isCompleted
                             ? 'text-green-500'
                             : 'text-th-text-muted'
@@ -159,7 +150,7 @@ export const ExtensionGuide = () => {
                   </button>
                   {i < TOTAL_STEPS - 1 && (
                     <div
-                      className={`mx-1 mt-[-18px] h-0.5 flex-1 rounded-full transition-colors ${
+                      className={`mx-2 h-px flex-1 transition-colors ${
                         isCompleted ? 'bg-green-500/40' : 'bg-th-border'
                       }`}
                     />
@@ -173,21 +164,14 @@ export const ExtensionGuide = () => {
           <div className="rounded-xl border border-th-border bg-th-bg-secondary p-5">
             {/* Step 1: Download */}
             {currentStep === 0 && (
-              <div className="space-y-4">
+              <div className="flex flex-col items-start gap-3">
                 <p className="text-sm text-th-text-secondary">
                   {t('settings.extension.install.manual.steps.download.description' as Parameters<typeof t>[0])}
                 </p>
-                <a href={downloadUrl} download>
-                  <Button variant="primary" size="sm" disabled={loading} className="gap-2">
-                    <Download className="h-4 w-4" />
-                    {loading
-                      ? '...'
-                      : `${t('settings.extension.install.manual.steps.download.button' as Parameters<typeof t>[0])} (v${latestVersion})`}
-                  </Button>
+                <a href={downloadUrl} download className="inline-flex items-center gap-2 rounded-lg bg-th-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-th-accent/90">
+                  <Download className="h-4 w-4" />
+                  sentinel-extension-v{latestVersion}.zip
                 </a>
-                <p className="text-xs text-th-text-muted">
-                  {t('settings.extension.install.manual.steps.download.size' as Parameters<typeof t>[0])}
-                </p>
               </div>
             )}
 
@@ -300,36 +284,6 @@ export const ExtensionGuide = () => {
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Background ASIN Fetch */}
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="mb-3 text-base font-semibold text-th-text">
-            {t('settings.extension.bgFetch.title' as Parameters<typeof t>[0])}
-          </h3>
-          <p className="text-sm text-th-text-secondary">
-            {t('settings.extension.bgFetch.description' as Parameters<typeof t>[0])}
-          </p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
-              <div
-                key={step}
-                className="flex items-start gap-2.5 rounded-lg border border-th-border bg-th-bg-secondary p-3"
-              >
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-blue-500/15 text-[10px] font-bold text-blue-500">
-                  {i + 1}
-                </span>
-                <span className="text-xs text-th-text-secondary">
-                  {t(`settings.extension.bgFetch.${step}` as Parameters<typeof t>[0])}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 rounded-lg bg-blue-500/5 px-3 py-2 text-xs text-blue-500">
-            {t('settings.extension.bgFetch.enableNote' as Parameters<typeof t>[0])}
-          </p>
         </CardContent>
       </Card>
 
