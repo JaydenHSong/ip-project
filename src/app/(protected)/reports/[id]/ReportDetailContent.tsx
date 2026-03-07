@@ -245,7 +245,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             <div className="h-full w-1/3 animate-[shimmer_1.5s_ease-in-out_infinite] rounded-full bg-th-accent" />
           </div>
           <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-th-accent/20">
                 <svg className="h-5 w-5 animate-spin text-th-accent" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
@@ -253,20 +253,20 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-th-text">SC 제출 대기 중</p>
+                <p className="text-sm font-semibold text-th-text">SC 신고 대기 중</p>
                 <p className="mt-0.5 text-xs text-th-text-secondary">
-                  Seller Central에서 신고를 제출하세요.
+                  Seller Central에서 신고를 제출하세요. Extension이 자동으로 폼을 채워줍니다.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <a
-                href={report.sc_submit_data?.sc_rav_url ?? `https://sellercentral.amazon.com/reportabuse${listing ? `?asin=${listing.asin}` : ''}`}
+                href={report.sc_submit_data?.sc_rav_url ?? `https://sellercentral.amazon.com/abuse-submission/report-abuse${listing ? `?asin=${listing.asin}` : ''}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-th-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-th-accent-hover"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-th-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-th-accent-hover"
               >
-                Seller Central 열기 ↗
+                SC 신고 열기 ↗
               </a>
               <Button
                 variant="outline"
@@ -295,10 +295,10 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 제출 완료
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 loading={stopping}
-                className="border-st-danger-text/30 text-st-danger-text hover:bg-st-danger-bg"
+                className="text-st-danger-text hover:bg-st-danger-bg"
                 onClick={async () => {
                   setStopping(true)
                   try {
@@ -317,7 +317,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                   }
                 }}
               >
-                Stop
+                취소
               </Button>
             </div>
           </div>

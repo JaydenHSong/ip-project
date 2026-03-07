@@ -3,6 +3,8 @@
 
 import { parseAmazonPage } from './parser'
 import { createFloatingButton } from './floating-button'
+import { executeFrontReport, isAmazonLoggedIn } from './front-auto-reporter'
+import type { FrontReportMessage } from '@shared/messages'
 import type { PassivePageData } from '@shared/types'
 
 // 중복 주입 방어 — 동적 주입 시 이미 등록된 리스너 중복 방지
@@ -39,7 +41,38 @@ const registerMessageListener = (): void => {
       } catch {
         sendResponse({ success: false, data: null })
       }
+      return true
     }
+
+    // Front-end auto-report: Service Worker triggers this after SC backend starts
+    if (message.type === 'EXECUTE_FRONT_REPORT') {
+      const msg = message as FrontReportMessage
+      executeFrontReport(msg.violationCode, {
+        asin: msg.asin,
+        sellerName: msg.sellerName,
+        brandName: msg.brandName,
+        aiDetails: msg.aiDetails,
+        listingTitle: msg.listingTitle,
+        marketplace: msg.marketplace,
+      }).then((result) => {
+        safeSendMessage({
+          type: 'FRONT_REPORT_RESULT',
+          reportId: msg.reportId,
+          success: result.success,
+          durationMs: result.durationMs,
+          error: result.error,
+        })
+        sendResponse(result)
+      })
+      return true // async
+    }
+
+    // Check Amazon login status
+    if (message.type === 'CHECK_AMAZON_LOGIN') {
+      sendResponse({ loggedIn: isAmazonLoggedIn() })
+      return true
+    }
+
     return true
   })
 }

@@ -42,3 +42,25 @@ export type ContentMessage =
 export type ScContentMessage =
   | { type: 'SC_FORM_FILLED'; reportId: string }
   | { type: 'SC_SUBMIT_DETECTED'; reportId: string; caseId: string | null }
+
+// Service Worker → Content Script (Front-end auto-report)
+export type FrontReportMessage = {
+  type: 'EXECUTE_FRONT_REPORT'
+  violationCode: string
+  asin: string
+  sellerName?: string
+  brandName?: string
+  aiDetails: string
+  listingTitle?: string
+  marketplace?: string
+  reportId: string
+}
+
+// Content Script → Service Worker (Front-end report result)
+export type FrontReportResultMessage = {
+  type: 'FRONT_REPORT_RESULT'
+  reportId: string
+  success: boolean
+  durationMs: number
+  error?: string
+}
