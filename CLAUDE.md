@@ -161,8 +161,8 @@ extension/                # Sentinel Extension (Chrome Extension)
 
 | Component | Current Version | Location |
 |-----------|:--------------:|----------|
-| Web (Next.js) | - | `package.json` |
-| Extension | 1.3.0 | `extension/manifest.json`, `extension/package.json` |
+| Web (Next.js) | 0.9.0-beta | `package.json` |
+| Extension | 1.5.0 | `extension/manifest.json`, `extension/package.json` |
 | Crawler | - | `crawler/package.json` |
 
 ### Extension 버전 규칙 (Semantic Versioning)
