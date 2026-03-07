@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/Button'
 import { ReportActions } from './ReportActions'
 import { ReportTimeline } from './ReportTimeline'
 import { SnapshotViewer } from './SnapshotViewer'
-import { TemplatePanel } from './TemplatePanel'
+import { InlineTemplateList } from './InlineTemplateList'
 import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
 import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
@@ -86,7 +86,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [editTitle, setEditTitle] = useState(report.draft_title ?? '')
   const [editBody, setEditBody] = useState(report.draft_body ?? '')
   const [saving, setSaving] = useState(false)
-  const [showTemplatePanel, setShowTemplatePanel] = useState(false)
+  const [draftTab, setDraftTab] = useState<'edit' | 'templates'>('edit')
   const [aiWriting, setAiWriting] = useState(false)
   const [suggestedTemplate, setSuggestedTemplate] = useState<{ id: string; title: string; body: string } | null>(null)
   const [templateDismissed, setTemplateDismissed] = useState(false)
@@ -184,7 +184,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       <div className="flex flex-wrap items-center gap-3">
         <BackButton href="/reports" />
         <h1 className="text-2xl font-bold text-th-text">{t('reports.detail.title')}</h1>
-        <StatusBadge status={report.status as ReportStatus} type="report" />
+        <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
         {isDraftEditable && (
           <span className="rounded-full bg-th-accent-soft px-2 py-0.5 text-xs font-medium text-th-accent-text">
             {t('reports.detail.editing')}
@@ -215,14 +215,14 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             <div>
               <p className="text-sm text-th-text-tertiary">{t('reports.detail.userViolationType')}</p>
               <div className="mt-1">
-                <ViolationBadge code={report.user_violation_type as ViolationCode} />
+                <ViolationBadge code={report.user_violation_type as ViolationCode} size="md" />
               </div>
             </div>
             {report.ai_violation_type && (
               <div>
                 <p className="text-sm text-th-text-tertiary">{t('reports.detail.aiViolationType')}</p>
                 <div className="mt-1 flex items-center gap-2">
-                  <ViolationBadge code={report.ai_violation_type as ViolationCode} />
+                  <ViolationBadge code={report.ai_violation_type as ViolationCode} size="md" />
                   {report.ai_confidence_score !== null && (
                     <span className="text-sm text-th-text-muted">{report.ai_confidence_score}%</span>
                   )}
@@ -241,7 +241,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             <div>
               <p className="text-sm text-th-text-tertiary">{t('reports.detail.confirmedViolationType')}</p>
               <div className="mt-1">
-                <ViolationBadge code={report.confirmed_violation_type as ViolationCode} />
+                <ViolationBadge code={report.confirmed_violation_type as ViolationCode} size="md" />
               </div>
             </div>
           )}
@@ -406,30 +406,57 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-th-text">{t('reports.detail.reportDraft')}</h2>
-              {isDraftEditable && (
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    loading={aiWriting}
-                    onClick={handleAiWrite}
+              {isDraftEditable ? (
+                <div className="flex items-center gap-1 rounded-lg bg-th-bg-secondary p-0.5">
+                  <button
+                    onClick={() => setDraftTab('edit')}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                      draftTab === 'edit'
+                        ? 'bg-surface-card text-th-text shadow-sm'
+                        : 'text-th-text-muted hover:text-th-text-secondary'
+                    }`}
                   >
-                    AI Write
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowTemplatePanel(true)}
+                    {t('reports.detail.reportDraft')}
+                  </button>
+                  <button
+                    onClick={() => setDraftTab('templates')}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                      draftTab === 'templates'
+                        ? 'bg-surface-card text-th-text shadow-sm'
+                        : 'text-th-text-muted hover:text-th-text-secondary'
+                    }`}
                   >
-                    {t('reports.detail.applyTemplate')}
-                  </Button>
+                    Templates
+                  </button>
                 </div>
+              ) : (
+                <h2 className="font-semibold text-th-text">{t('reports.detail.reportDraft')}</h2>
+              )}
+              {isDraftEditable && draftTab === 'edit' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  loading={aiWriting}
+                  onClick={handleAiWrite}
+                >
+                  AI Write
+                </Button>
               )}
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {isDraftEditable ? (
+            {isDraftEditable && draftTab === 'templates' ? (
+              <InlineTemplateList
+                listing={listing ?? {}}
+                report={report}
+                currentViolationType={report.user_violation_type}
+                onApply={(body, title) => {
+                  setEditBody(body)
+                  if (title) setEditTitle(title)
+                  setDraftTab('edit')
+                }}
+              />
+            ) : isDraftEditable ? (
               <>
                 <Input
                   label={t('reports.detail.draftTitle')}
@@ -532,19 +559,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </CardContent>
       </Card>
 
-      {isDraftEditable && (
-        <TemplatePanel
-          open={showTemplatePanel}
-          onClose={() => setShowTemplatePanel(false)}
-          onApply={(body, title) => {
-            setEditBody(body)
-            if (title) setEditTitle(title)
-          }}
-          listing={listing ?? {}}
-          report={report}
-          currentViolationType={report.user_violation_type}
-        />
-      )}
     </div>
   )
 }

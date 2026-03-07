@@ -146,20 +146,20 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-th-border bg-th-bg-tertiary">
-                <th className="w-8 px-4 py-3.5" />
-                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('reports.title')}</th>
-                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{tNotices('category')}</th>
-                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{tNotices('createdBy')}</th>
-                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.date')}</th>
+                <th className="w-8 px-4 py-3" />
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('reports.title')}</th>
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{tNotices('category')}</th>
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{tNotices('createdBy')}</th>
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.date')}</th>
                 {canManage && (
-                  <th className="w-12 px-4 py-3.5" />
+                  <th className="w-12 px-4 py-3" />
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-th-border">
               {notices.length === 0 ? (
                 <tr>
-                  <td colSpan={canManage ? 6 : 5} className="px-4 py-8 text-center text-th-text-muted">
+                  <td colSpan={canManage ? 6 : 5} className="px-4 py-10 text-center text-sm text-th-text-muted">
                     {tNotices('noNotices')}
                   </td>
                 </tr>
@@ -170,25 +170,25 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
                     className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
                     onClick={() => setDetailNotice(notice)}
                   >
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3.5 text-center">
                       {notice.is_pinned && <Pin className="inline-block h-3.5 w-3.5 text-th-accent" />}
                     </td>
                     <td className="max-w-xs truncate px-4 py-3 font-medium text-th-text">
                       {notice.title}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <Badge variant={CATEGORY_VARIANTS[notice.category]}>
                         {tNotices(`categories.${notice.category}`)}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-sm text-th-text-secondary">
+                    <td className="px-4 py-3.5 text-sm text-th-text-secondary">
                       {notice.users?.name ?? tNotices('categories.system')}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-xs text-th-text-muted">
                       {formatTimeAgo(notice.created_at)}
                     </td>
                     {canManage && (
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <div className="relative">
                           <button
                             type="button"

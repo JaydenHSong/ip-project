@@ -342,10 +342,10 @@ export const ReportsContent = ({
               <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
-                    {report.disagreement_flag && <Badge variant="warning">!</Badge>}
+                    <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} size="md" />
+                    {report.disagreement_flag && <Badge variant="warning" size="md">!</Badge>}
                   </div>
-                  <StatusBadge status={report.status as ReportStatus} type="report" />
+                  <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
                 </div>
                 <p className="mt-2 font-mono text-sm text-th-text">
                   {report.listings?.asin ?? '—'}
@@ -396,7 +396,7 @@ export const ReportsContent = ({
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-th-text-muted">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noReports')}
@@ -409,7 +409,7 @@ export const ReportsContent = ({
                   className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
                   onClick={() => router.push(`/reports/${report.id}`)}
                 >
-                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       className="accent-th-accent"
@@ -417,13 +417,13 @@ export const ReportsContent = ({
                       onChange={() => handleToggleSelect(report.id)}
                     />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
                       <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
                       {report.disagreement_flag && <Badge variant="warning">!</Badge>}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <span className="font-mono text-th-text">
                       {report.listings?.asin ?? '—'}
                       {(report.related_asins?.length ?? 0) > 0 && (
@@ -434,15 +434,15 @@ export const ReportsContent = ({
                     </span>
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-th-text-secondary">{report.listings?.title ?? '—'}</td>
-                  <td className="px-4 py-3 text-th-text-secondary">{report.listings?.seller_name ?? '—'}</td>
-                  <td className="px-4 py-3 text-th-text-muted">
+                  <td className="px-4 py-3.5 text-th-text-secondary">{report.listings?.seller_name ?? '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">
                     {report.ai_confidence_score !== null ? `${report.ai_confidence_score}%` : '—'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <StatusBadge status={report.status as ReportStatus} type="report" />
                   </td>
-                  <td className="px-4 py-3 text-th-text-secondary">{report.users?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-th-text-muted">{new Date(report.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3.5 text-th-text-secondary">{report.users?.name ?? '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString()}</td>
                 </tr>
               ))
             )}

@@ -18,7 +18,7 @@ export const SortableHeader = ({ label, field, currentSort, onSort, className }:
       <button
         type="button"
         onClick={() => onSort(field)}
-        className="flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-th-text-tertiary hover:text-th-text-secondary"
+        className="flex items-center gap-1 text-xs font-semibold text-th-text-tertiary hover:text-th-text-secondary"
       >
         {label}
         {isActive ? (

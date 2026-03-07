@@ -146,7 +146,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-lg border border-th-border md:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-th-border md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
@@ -166,7 +166,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                 onSort={toggleSort}
               />
               {canAct && (
-                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-th-text-tertiary">
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">
                   {t('common.action')}
                 </th>
               )}
@@ -175,7 +175,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={canAct ? 6 : 5} className="px-4 py-12 text-center text-th-text-muted">
+                <td colSpan={canAct ? 6 : 5} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noArchived' as Parameters<typeof t>[0])}
@@ -184,10 +184,10 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
             ) : (
               sortedData.map((report) => (
                 <tr key={report.id} className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover" onClick={() => setPreviewId(report.id)}>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <Link href={`/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text">
                       {report.listings?.asin ?? '—'}
                     </Link>
@@ -198,11 +198,11 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                   <td className="max-w-xs truncate px-4 py-3 text-th-text-muted">
                     {report.archive_reason ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-th-text-muted">
+                  <td className="px-4 py-3.5 text-th-text-muted">
                     {report.archived_at ? new Date(report.archived_at).toLocaleDateString() : '—'}
                   </td>
                   {canAct && (
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <Button
                         variant="outline"
                         size="sm"

@@ -98,17 +98,17 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-th-border bg-th-bg-tertiary">
-                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.time')}</th>
-                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.user')}</th>
-                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.action')}</th>
-                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.entity')}</th>
-                <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.details')}</th>
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.time')}</th>
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.user')}</th>
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.action')}</th>
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('auditLogs.entity')}</th>
+                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.details')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-th-border">
               {(!logs || logs.length === 0) ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-th-text-muted">
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-th-text-muted">
                     {t('auditLogs.noLogs')}
                   </td>
                 </tr>
@@ -121,15 +121,15 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-th-text-muted">
                         {new Date(log.created_at).toLocaleString()}
                       </td>
-                      <td className="px-4 py-3 text-sm text-th-text">
+                      <td className="px-4 py-3.5 text-sm text-th-text">
                         {log.users?.name ?? t('auditLogs.system')}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <Badge variant={variant as 'default' | 'success' | 'warning' | 'danger' | 'info'}>
                           {log.action}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-sm text-th-text">
+                      <td className="px-4 py-3.5 text-sm text-th-text">
                         {log.resource_type}
                         {log.resource_id && (
                           <span className="ml-1 text-xs text-th-text-muted">

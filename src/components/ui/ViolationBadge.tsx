@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n/context'
 type ViolationBadgeProps = {
   code: ViolationCode
   showLabel?: boolean
+  size?: 'sm' | 'md'
   className?: string
 }
 
@@ -18,7 +19,7 @@ const CATEGORY_VARIANT = {
   regulatory_safety: 'danger',
 } as const
 
-export const ViolationBadge = ({ code, showLabel = true, className }: ViolationBadgeProps) => {
+export const ViolationBadge = ({ code, showLabel = true, size = 'sm', className }: ViolationBadgeProps) => {
   const { t } = useI18n()
   const violation = VIOLATION_TYPES[code]
 
@@ -30,7 +31,7 @@ export const ViolationBadge = ({ code, showLabel = true, className }: ViolationB
   const label = t(`violations.types.${code}` as Parameters<typeof t>[0]) ?? violation.name
 
   return (
-    <Badge variant={variant} className={className}>
+    <Badge variant={variant} size={size} className={className}>
       {code}{showLabel ? ` ${label}` : ''}
     </Badge>
   )

@@ -159,20 +159,20 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
           <div className="overflow-x-auto rounded-lg border border-th-border">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-th-border bg-th-bg-secondary">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-th-text-muted">
+                <tr className="border-b border-th-border bg-th-bg-tertiary">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-th-text-tertiary">
                     {t('settings.users.name')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-th-text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-th-text-tertiary">
                     {t('settings.users.email')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-th-text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-th-text-tertiary">
                     {t('settings.users.role')}
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-th-text-muted">
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-th-text-tertiary">
                     {t('settings.users.activeStatus')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-th-text-muted">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-th-text-tertiary">
                     {t('settings.users.lastLogin')}
                   </th>
                 </tr>
@@ -187,7 +187,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
                         !user.is_active ? 'opacity-50' : ''
                       }`}
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-th-accent/20 text-xs font-bold text-th-accent">
                             {user.name
@@ -205,8 +205,8 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-th-text-secondary">{user.email}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5 text-th-text-secondary">{user.email}</td>
+                      <td className="px-4 py-3.5">
                         {isSelf ? (
                           <span
                             className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_BADGE[user.role]}`}
@@ -228,7 +228,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
                           </select>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3.5 text-center">
                         {isSelf ? (
                           <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-500" />
                         ) : (
@@ -245,7 +245,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
                           </button>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-th-text-muted">
+                      <td className="px-4 py-3.5 text-th-text-muted">
                         {user.last_login_at
                           ? formatRelativeTime(user.last_login_at)
                           : t('settings.users.neverLoggedIn')}

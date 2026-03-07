@@ -283,18 +283,18 @@ export const TemplatesTab = () => {
                   <div className="overflow-x-auto border-t border-th-border">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-th-border bg-th-bg-secondary text-left">
-                          <th className="px-4 py-3.5 text-xs font-semibold text-th-text-muted">Title</th>
-                          <th className="px-4 py-3.5 text-xs font-semibold text-th-text-muted">Violations</th>
-                          <th className="px-4 py-3.5 text-xs font-semibold text-th-text-muted">Marketplace</th>
-                          <th className="px-4 py-3.5 text-right text-xs font-semibold text-th-text-muted">Used</th>
-                          <th className="px-4 py-3.5 text-right text-xs font-semibold text-th-text-muted">Actions</th>
+                        <tr className="border-b border-th-border bg-th-bg-tertiary text-left">
+                          <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">Title</th>
+                          <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">Violations</th>
+                          <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">Marketplace</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-th-text-tertiary">Used</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-th-text-tertiary">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-th-border">
                         {tmpls.map((tmpl) => (
                           <tr key={tmpl.id} className="group transition-colors hover:bg-th-bg-hover">
-                            <td className="px-4 py-3.5 pr-4">
+                            <td className="px-4 py-3.5">
                               <div className="flex items-center gap-1.5">
                                 {tmpl.is_default && (
                                   <Star className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
@@ -302,14 +302,14 @@ export const TemplatesTab = () => {
                                 <span className="font-medium text-th-text">{tmpl.title}</span>
                               </div>
                             </td>
-                            <td className="py-3.5 pr-4 text-th-text-muted">
+                            <td className="px-4 py-3.5 text-th-text-muted">
                               {tmpl.violation_types.length > 0 ? tmpl.violation_types.join(', ') : '—'}
                             </td>
-                            <td className="py-3.5 pr-4 text-th-text-muted">
+                            <td className="px-4 py-3.5 text-th-text-muted">
                               {tmpl.marketplace.length > 0 ? tmpl.marketplace.join(', ') : 'All'}
                             </td>
-                            <td className="py-3.5 text-right text-th-text-muted">{tmpl.usage_count}</td>
-                            <td className="py-3.5 pr-4">
+                            <td className="px-4 py-3.5 text-right text-th-text-muted">{tmpl.usage_count}</td>
+                            <td className="px-4 py-3.5">
                               <div className="flex justify-end gap-1">
                                 <button
                                   onClick={() => openEdit(tmpl)}

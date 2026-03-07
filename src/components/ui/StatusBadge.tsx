@@ -43,10 +43,11 @@ const CAMPAIGN_STATUS_MAP = {
 type StatusBadgeProps = {
   status: ReportStatus | CampaignStatus
   type?: 'report' | 'campaign'
+  size?: 'sm' | 'md'
   className?: string
 }
 
-export const StatusBadge = ({ status, type = 'report', className }: StatusBadgeProps) => {
+export const StatusBadge = ({ status, type = 'report', size = 'sm', className }: StatusBadgeProps) => {
   const map = type === 'campaign' ? CAMPAIGN_STATUS_MAP : REPORT_STATUS_MAP
   const config = (map as Record<string, { label: string; variant: string }>)[status]
 
@@ -55,6 +56,7 @@ export const StatusBadge = ({ status, type = 'report', className }: StatusBadgeP
   return (
     <Badge
       variant={config.variant as 'default' | 'success' | 'warning' | 'danger' | 'info' | 'violet'}
+      size={size}
       className={className}
     >
       {config.label}

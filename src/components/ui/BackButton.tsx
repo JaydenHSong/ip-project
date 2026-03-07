@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 
 type BackButtonProps = {
   href?: string
@@ -11,12 +11,12 @@ type BackButtonProps = {
 
 export const BackButton = ({ href, label, onClick }: BackButtonProps) => {
   const className =
-    'inline-flex items-center gap-1 rounded-lg bg-th-bg-secondary px-3 py-2 text-sm font-medium text-th-text-primary transition-colors hover:bg-th-bg-tertiary min-w-[36px] min-h-[36px]'
+    'inline-flex items-center justify-center rounded-full border border-th-border bg-surface-card p-2 text-th-text-secondary shadow-sm transition-colors hover:bg-th-bg-hover hover:text-th-text'
 
   const content = (
     <>
-      <ChevronLeft className="h-6 w-6" />
-      {label && <span>{label}</span>}
+      <ArrowLeft className="h-5 w-5" strokeWidth={2.5} />
+      {label && <span className="ml-1.5 text-sm font-medium">{label}</span>}
     </>
   )
 

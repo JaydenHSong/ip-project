@@ -8,12 +8,20 @@ type BadgeVariant =
   | 'info'
   | 'violet'
 
+type BadgeSize = 'sm' | 'md'
+
 type BadgeProps = {
   children: React.ReactNode
   variant?: BadgeVariant
   dot?: boolean
+  size?: BadgeSize
   className?: string
 }
+
+const SIZE_STYLES = {
+  sm: 'px-2.5 py-0.5 text-xs',
+  md: 'px-3 py-1 text-sm',
+} as const
 
 const VARIANT_STYLES = {
   default: 'bg-st-default-bg text-st-default-text',
@@ -33,11 +41,12 @@ const DOT_COLORS = {
   violet: 'bg-st-violet-text',
 } as const
 
-export const Badge = ({ children, variant = 'default', dot = false, className }: BadgeProps) => {
+export const Badge = ({ children, variant = 'default', dot = false, size = 'sm', className }: BadgeProps) => {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
+        'inline-flex items-center gap-1.5 rounded-full font-medium',
+        SIZE_STYLES[size],
         VARIANT_STYLES[variant],
         className,
       )}

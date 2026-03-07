@@ -28,32 +28,32 @@ const COUNTRY_OPTIONS = [
 ] as const
 
 const STATUS_COLORS: Record<IpAssetStatus, string> = {
-  preparing: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-  filed: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  preparing: 'bg-st-default-bg text-st-default-text',
+  filed: 'bg-st-info-bg text-st-info-text',
   oa: 'bg-st-warning-bg text-st-warning-text',
   registered: 'bg-st-success-bg text-st-success-text',
-  transferred: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
-  disputed: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  transferred: 'bg-st-violet-bg text-st-violet-text',
+  disputed: 'bg-st-danger-bg text-st-danger-text',
   expired: 'bg-st-danger-bg text-st-danger-text',
-  abandoned: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+  abandoned: 'bg-st-default-bg text-st-default-text',
 }
 
 const IP_TYPE_CONFIG: Record<IpType, { icon: typeof Shield; color: string }> = {
   patent: {
     icon: Shield,
-    color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    color: 'bg-st-info-bg text-st-info-text',
   },
   design_patent: {
     icon: PenTool,
-    color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+    color: 'bg-st-success-bg text-st-success-text',
   },
   trademark: {
     icon: Tag,
-    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    color: 'bg-st-violet-bg text-st-violet-text',
   },
   copyright: {
     icon: Copyright,
-    color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+    color: 'bg-st-warning-bg text-st-warning-text',
   },
 }
 
@@ -482,30 +482,30 @@ export const PatentsContent = ({
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden overflow-x-auto rounded-xl border border-th-border shadow-sm md:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-th-border md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('patents.ipType')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('patents.managementNumber')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('patents.name')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('patents.country')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('patents.registrationNumber')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('patents.expiryDate')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('patents.assignee')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.ipType')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.managementNumber')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.name')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.country')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.registrationNumber')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.expiryDate')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.assignee')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
             {(!assets || assets.length === 0) ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-th-text-muted">{t('patents.noAssets')}</td>
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-th-text-muted">{t('patents.noAssets')}</td>
               </tr>
             ) : (
               assets.map((asset) => (
                 <tr
                   key={asset.id}
-                  className="cursor-pointer bg-surface-card transition-all duration-150 hover:bg-th-bg-hover"
+                  className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
                   onClick={() => handleSelectAsset(asset)}
                 >
                   <td className="px-4 py-3.5">{renderTypeBadge(asset.ip_type)}</td>
@@ -519,7 +519,7 @@ export const PatentsContent = ({
                       )}
                     </span>
                   </td>
-                  <td className="max-w-[200px] truncate px-4 py-3.5 font-medium text-th-text">{asset.name}</td>
+                  <td className="max-w-[200px] truncate px-4 py-3 font-medium text-th-text">{asset.name}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{asset.country}</td>
                   <td className="px-4 py-3.5">{renderStatusBadge(asset.status)}</td>
                   <td className="px-4 py-3.5 font-mono text-xs text-th-text-secondary">{asset.registration_number ?? '-'}</td>

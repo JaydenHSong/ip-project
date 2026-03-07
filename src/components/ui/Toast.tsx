@@ -101,7 +101,7 @@ export const ToastContainer = ({ toasts, onDismiss }: ToastContainerProps) => {
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed top-4 right-4 z-[100] flex w-80 flex-col gap-2">
+    <div className="fixed top-4 right-4 z-[100] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
       ))}

@@ -131,7 +131,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden overflow-x-auto rounded-xl border border-th-border shadow-sm md:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-th-border md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
@@ -146,7 +146,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-th-text-muted">
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noCompleted')}
@@ -155,20 +155,20 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             ) : (
               sortedData.map((report) => (
                 <tr key={report.id} className="bg-surface-card transition-colors hover:bg-th-bg-hover">
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <Link href={`/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text">
                       {report.listings?.asin ?? '—'}
                     </Link>
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-th-text-secondary">{report.listings?.title ?? '—'}</td>
-                  <td className="px-4 py-3 font-mono text-th-text-muted">{report.sc_case_id ?? '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5 font-mono text-th-text-muted">{report.sc_case_id ?? '—'}</td>
+                  <td className="px-4 py-3.5">
                     <StatusBadge status={report.status as ReportStatus} type="report" />
                   </td>
-                  <td className="px-4 py-3 text-th-text-muted">
+                  <td className="px-4 py-3.5 text-th-text-muted">
                     {new Date(report.created_at).toLocaleDateString()}
                   </td>
                 </tr>

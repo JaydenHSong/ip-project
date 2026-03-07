@@ -207,12 +207,12 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
       )}
 
       {/* Desktop: table */}
-      <div className="hidden overflow-x-auto rounded-xl border border-th-border shadow-sm md:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-th-border md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               {canDelete && (
-                <th className="w-10 px-3 py-3.5">
+                <th className="w-10 px-3 py-3">
                   <input
                     type="checkbox"
                     checked={campaigns !== null && campaigns.length > 0 && selectedIds.size === campaigns.length}
@@ -221,30 +221,30 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                   />
                 </th>
               )}
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.keyword')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.marketplace')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.frequency')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.pages')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.collected')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.createdBy')}</th>
-              <th className="px-4 py-3.5 text-xs font-semibold text-th-text-tertiary">{t('campaigns.created')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.keyword')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.marketplace')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.frequency')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.pages')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.collected')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.createdBy')}</th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.created')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
             {(!campaigns || campaigns.length === 0) ? (
               <tr>
-                <td colSpan={canDelete ? 9 : 8} className="px-4 py-12 text-center text-th-text-muted">{t('campaigns.noCampaigns')}</td>
+                <td colSpan={canDelete ? 9 : 8} className="px-4 py-10 text-center text-sm text-th-text-muted">{t('campaigns.noCampaigns')}</td>
               </tr>
             ) : (
               campaigns.map((campaign) => (
                 <tr
                   key={campaign.id}
-                  className={`cursor-pointer bg-surface-card transition-all duration-150 hover:bg-th-bg-hover ${selectedIds.has(campaign.id) ? 'bg-th-bg-hover' : ''}`}
+                  className={`cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover ${selectedIds.has(campaign.id) ? 'bg-th-bg-hover' : ''}`}
                   onClick={() => router.push(`/campaigns/${campaign.id}`)}
                 >
                   {canDelete && (
-                    <td className="w-10 px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
+                    <td className="w-10 px-3 py-3" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedIds.has(campaign.id)}

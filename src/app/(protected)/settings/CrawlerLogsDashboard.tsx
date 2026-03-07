@@ -219,23 +219,23 @@ export const CrawlerLogsDashboard = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-th-border text-left text-th-text-muted">
-                      <th className="px-3 py-2">
+                    <tr className="border-b border-th-border bg-th-bg-tertiary text-left">
+                      <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">
                         {t('settings.crawler.logs.table.time' as Parameters<typeof t>[0])}
                       </th>
-                      <th className="px-3 py-2">
+                      <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">
                         {t('settings.crawler.logs.table.keyword' as Parameters<typeof t>[0])}
                       </th>
-                      <th className="px-3 py-2">
+                      <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">
                         {t('settings.crawler.logs.table.type' as Parameters<typeof t>[0])}
                       </th>
-                      <th className="px-3 py-2 text-right">
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-th-text-tertiary">
                         {t('settings.crawler.logs.table.new' as Parameters<typeof t>[0])}
                       </th>
-                      <th className="px-3 py-2 text-right">
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-th-text-tertiary">
                         {t('settings.crawler.logs.table.errors' as Parameters<typeof t>[0])}
                       </th>
-                      <th className="px-3 py-2 text-right">
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-th-text-tertiary">
                         {t('settings.crawler.logs.table.duration' as Parameters<typeof t>[0])}
                       </th>
                     </tr>
@@ -248,11 +248,11 @@ export const CrawlerLogsDashboard = () => {
 
                       return (
                         <tr key={log.id} className="border-b border-th-border/50">
-                          <td className="px-3 py-2 text-th-text-muted">
+                          <td className="px-4 py-3.5 text-th-text-muted">
                             <div>{formatTime(log.created_at)}</div>
                             <div className="text-xs">{formatDate(log.created_at)}</div>
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-4 py-3.5">
                             <div className="text-th-text">
                               {log.keyword ?? '-'}
                               {log.marketplace && (
@@ -265,18 +265,18 @@ export const CrawlerLogsDashboard = () => {
                               </div>
                             )}
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-4 py-3.5">
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${style.bg}`}>
                               {t(`settings.crawler.logs.types.${log.type}` as Parameters<typeof t>[0])}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-right text-th-text-secondary">
+                          <td className="px-4 py-3.5 text-right text-th-text-secondary">
                             {isComplete ? (log.new_listings ?? 0) : '-'}
                           </td>
-                          <td className="px-3 py-2 text-right text-th-text-secondary">
+                          <td className="px-4 py-3.5 text-right text-th-text-secondary">
                             {isComplete ? (log.errors ?? 0) : '-'}
                           </td>
-                          <td className="px-3 py-2 text-right text-th-text-secondary">
+                          <td className="px-4 py-3.5 text-right text-th-text-secondary">
                             {log.duration_ms ? formatDuration(log.duration_ms) : '-'}
                           </td>
                         </tr>

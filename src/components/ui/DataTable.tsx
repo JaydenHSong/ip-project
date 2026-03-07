@@ -34,7 +34,7 @@ export const DataTable = <T extends Record<string, unknown>>({
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={cn('px-4 py-3.5 text-xs font-semibold text-th-text-muted', col.className)}
+                className={cn('px-4 py-3 text-xs font-semibold text-th-text-tertiary', col.className)}
               >
                 {col.header}
               </th>
@@ -54,7 +54,7 @@ export const DataTable = <T extends Record<string, unknown>>({
                 key={idx}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
-                  'bg-surface-card transition-all duration-150 hover:bg-th-bg-hover',
+                  'bg-surface-card transition-colors hover:bg-th-bg-hover',
                   onRowClick && 'cursor-pointer',
                   selectedId && String(row.id) === selectedId && 'bg-th-bg-active',
                 )}
