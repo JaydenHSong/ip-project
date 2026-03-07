@@ -89,6 +89,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [draftTab, setDraftTab] = useState<'edit' | 'templates'>('edit')
   const [aiWriting, setAiWriting] = useState(false)
   const [approving, setApproving] = useState(false)
+  const [stopping, setStopping] = useState(false)
   const [suggestedTemplate, setSuggestedTemplate] = useState<{ id: string; title: string; body: string } | null>(null)
   const [templateDismissed, setTemplateDismissed] = useState(false)
   const [resubmitIntervalLocal, setResubmitIntervalLocal] = useState<string>(
@@ -294,10 +295,12 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 제출 완료
               </Button>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="text-st-danger-text hover:bg-st-danger-bg"
+                loading={stopping}
+                className="border-st-danger-text/30 text-st-danger-text hover:bg-st-danger-bg"
                 onClick={async () => {
+                  setStopping(true)
                   try {
                     const res = await fetch(`/api/reports/${report.id}/cancel-submit`, {
                       method: 'POST',
@@ -309,6 +312,8 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                     router.refresh()
                   } catch (e) {
                     addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
+                  } finally {
+                    setStopping(false)
                   }
                 }}
               >
