@@ -293,6 +293,27 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
               >
                 제출 완료
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-st-danger-text hover:bg-st-danger-bg"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/reports/${report.id}/cancel-submit`, {
+                      method: 'POST',
+                    })
+                    if (!res.ok) {
+                      const err = await res.json()
+                      throw new Error(err.error?.message ?? 'Cancel failed')
+                    }
+                    router.refresh()
+                  } catch (e) {
+                    addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
+                  }
+                }}
+              >
+                Stop
+              </Button>
             </div>
           </div>
         </div>
