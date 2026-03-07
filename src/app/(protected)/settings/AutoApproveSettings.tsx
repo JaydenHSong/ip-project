@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
+import { useToast } from '@/hooks/useToast'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Toggle } from '@/components/ui/Toggle'
@@ -26,6 +27,7 @@ const IP_CATEGORIES: ViolationCategory[] = ['intellectual_property']
 
 export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
   const { t } = useI18n()
+  const { addToast } = useToast()
   const [config, setConfig] = useState<AutoApproveConfig>({
     enabled: false,
     threshold: 90,
@@ -57,7 +59,7 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setSaving(false)
     }

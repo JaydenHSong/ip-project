@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
+import { useToast } from '@/hooks/useToast'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Toggle } from '@/components/ui/Toggle'
@@ -33,6 +34,7 @@ const DELAY_OPTIONS = [
 
 export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => {
   const { t } = useI18n()
+  const { addToast } = useToast()
   const [settings, setSettings] = useState<SettingsData>({
     auto_submit_enabled: false,
     rate_limit_per_hour: 10,
@@ -82,7 +84,7 @@ export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => 
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setSaving(false)
     }

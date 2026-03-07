@@ -18,6 +18,7 @@ import { TemplatePanel } from './TemplatePanel'
 import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
 import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
+import { useToast } from '@/hooks/useToast'
 import type { ReportSnapshot } from '@/types/monitoring'
 
 type ReportDetailContentProps = {
@@ -73,24 +74,11 @@ type ReportDetailContentProps = {
   monitoringStartedAt?: string | null
 }
 
-const MARKETPLACE_DOMAINS: Record<string, string> = {
-  US: 'amazon.com',
-  UK: 'amazon.co.uk',
-  JP: 'amazon.co.jp',
-  DE: 'amazon.de',
-  FR: 'amazon.fr',
-  IT: 'amazon.it',
-  ES: 'amazon.es',
-  CA: 'amazon.ca',
-}
-
-const getAmazonUrl = (asin: string, marketplace: string): string => {
-  const domain = MARKETPLACE_DOMAINS[marketplace] ?? 'amazon.com'
-  return `https://www.${domain}/dp/${asin}`
-}
+import { getAmazonUrl } from '@/lib/utils/amazon-url'
 
 export const ReportDetailContent = ({ report, listing, creatorName, canEdit, userRole, currentUserId, timeline, snapshots, monitoringStartedAt }: ReportDetailContentProps) => {
   const { t } = useI18n()
+  const { addToast } = useToast()
   const router = useRouter()
 
   const isDraftEditable = canEdit && (report.status === 'draft' || report.status === 'pending_review')
@@ -141,7 +129,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       }
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setAiWriting(false)
     }
@@ -184,7 +172,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       }
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setSaving(false)
     }

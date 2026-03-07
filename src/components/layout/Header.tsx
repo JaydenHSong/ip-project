@@ -34,9 +34,8 @@ export const Header = ({ user }: HeaderProps) => {
 
   return (
     <header className="glass sticky top-0 z-40 flex h-14 items-center justify-between border-b px-4 md:h-16 md:px-6">
-      <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
-        <SpigenLogo className="h-6 w-5 text-th-accent" />
-        <span className="text-lg font-bold text-th-text">Spigen Sentinel</span>
+      <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center md:hidden">
+        <SpigenLogo className="h-7 w-6 text-th-accent" />
       </Link>
       <div className="hidden md:block" />
 
@@ -54,7 +53,7 @@ export const Header = ({ user }: HeaderProps) => {
         <button
           type="button"
           onClick={handleToggleLocale}
-          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
+          className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
           aria-label="Toggle language"
         >
           <Globe className="h-4 w-4" />
@@ -65,7 +64,7 @@ export const Header = ({ user }: HeaderProps) => {
         <button
           type="button"
           onClick={handleToggleTheme}
-          className="rounded-lg p-2 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
           aria-label={isDark ? t('common.lightMode') : t('common.darkMode')}
         >
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

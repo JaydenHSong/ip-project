@@ -57,7 +57,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: 'pnpm dev',
+          command: process.env.DEMO_MODE === 'true' ? 'DEMO_MODE=true pnpm dev' : 'pnpm dev',
           url: BASE_URL,
           reuseExistingServer: !process.env.CI,
           timeout: 60_000,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
+import { useToast } from '@/hooks/useToast'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -12,6 +13,7 @@ type MonitoringSettingsProps = {
 
 export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
   const { t } = useI18n()
+  const { addToast } = useToast()
   const [intervalDays, setIntervalDays] = useState(7)
   const [maxDays, setMaxDays] = useState(90)
   const [saving, setSaving] = useState(false)
@@ -46,7 +48,7 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setSaving(false)
     }

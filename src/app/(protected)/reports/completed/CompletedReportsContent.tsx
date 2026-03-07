@@ -13,6 +13,7 @@ import { useFilterableTable } from '@/hooks/useFilterableTable'
 import type { ReportStatus } from '@/types/reports'
 import type { ViolationCode } from '@/constants/violations'
 import { OwnerToggle } from '@/components/ui/OwnerToggle'
+import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 
@@ -83,12 +84,12 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         </div>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
+      <ScrollTabs>
         {STATUS_TABS.map((tab) => (
           <Link
             key={tab.value}
             href={`/reports/completed${tab.value ? `?status=${tab.value}` : ''}`}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               statusFilter === tab.value
                 ? 'bg-surface-card text-th-text shadow-sm'
                 : 'text-th-text-muted hover:text-th-text-secondary'
@@ -97,7 +98,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             {tab.label}
           </Link>
         ))}
-      </div>
+      </ScrollTabs>
 
       <TableFilters filters={filters} onFiltersChange={setFilters} />
 
@@ -130,7 +131,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-xl border border-th-border shadow-sm md:block">
+      <div className="hidden overflow-x-auto rounded-xl border border-th-border shadow-sm md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">

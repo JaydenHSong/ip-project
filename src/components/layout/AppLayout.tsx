@@ -6,6 +6,7 @@ import { Header } from './Header'
 import { MobileTabBar } from './MobileTabBar'
 import { initTheme } from '@/lib/theme'
 import { I18nProvider } from '@/lib/i18n/context'
+import { ToastProvider } from '@/components/providers/ToastProvider'
 import type { User } from '@/types/users'
 
 type AppLayoutProps = {
@@ -32,6 +33,7 @@ export const AppLayout = ({ user, children }: AppLayoutProps) => {
 
   return (
     <I18nProvider>
+      <ToastProvider>
       <div className="flex h-dvh overflow-hidden bg-th-bg-secondary">
         <div className="hidden md:block">
           <Sidebar
@@ -42,13 +44,14 @@ export const AppLayout = ({ user, children }: AppLayoutProps) => {
         </div>
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header user={user} />
-          <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6">
+          <main className="min-w-0 flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6">
             {children}
           </main>
         </div>
         {/* Mobile tab bar */}
         <MobileTabBar userRole={user.role} />
       </div>
+    </ToastProvider>
     </I18nProvider>
   )
 }

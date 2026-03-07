@@ -40,9 +40,27 @@ export type RelatedAsin = {
   url?: string
 }
 
+export type ListingSnapshot = {
+  asin: string
+  marketplace: string
+  title: string | null
+  description: string | null
+  seller_name: string | null
+  seller_id: string | null
+  brand: string | null
+  price_amount: number | null
+  price_currency: string | null
+  images: unknown[]
+  bullet_points: unknown[]
+  rating: number | null
+  review_count: number | null
+  category: string | null
+}
+
 export type Report = {
   id: string
-  listing_id: string
+  listing_id: string | null
+  listing_snapshot: ListingSnapshot | null
   related_asins: RelatedAsin[]
 
   // 위반 유형 (AI vs 사용자 불일치 처리)

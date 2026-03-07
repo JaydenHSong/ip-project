@@ -21,7 +21,7 @@ export const GET = withAuth(async (req) => {
   let query = supabase
     .from('reports')
     .select(
-      '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name, rating, review_count), users!reports_created_by_fkey(name)',
+      '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name, rating, review_count), users!reports_created_by_fkey(name)',
       { count: 'exact' },
     )
     .order('created_at', { ascending: false })
@@ -52,8 +52,16 @@ export const GET = withAuth(async (req) => {
     )
   }
 
+  // listing_snapshot fallback
+  const enriched = (data ?? []).map((report) => {
+    if (!report.listings && report.listing_snapshot) {
+      return { ...report, listings: report.listing_snapshot }
+    }
+    return report
+  })
+
   return NextResponse.json({
-    data: data ?? [],
+    data: enriched,
     pagination: {
       page,
       limit,

@@ -75,7 +75,7 @@ const rewriteDraft = async (
     listing: Listing
   },
 ): Promise<AiDraftResponse> => {
-  const systemPrompt = buildSystemPrompt({
+  const systemPrompt = await buildSystemPrompt({
     trademarks: options.trademarks,
     skillContent: options.skillContent,
   })

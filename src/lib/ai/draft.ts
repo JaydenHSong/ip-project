@@ -46,12 +46,12 @@ const generateDraft = async (
     template: string | null
   },
 ): Promise<AiDraftResponse> => {
-  const systemPrompt = buildSystemPrompt({
+  const systemPrompt = await buildSystemPrompt({
     trademarks: options.trademarks,
     skillContent: options.skillContent,
   })
 
-  const userPrompt = buildDraftPrompt(analysis, listing, options.template)
+  const userPrompt = await buildDraftPrompt(analysis, listing, options.template)
 
   const response = await client.call({
     model: MODEL_ROLES.worker,

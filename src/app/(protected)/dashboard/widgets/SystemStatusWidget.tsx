@@ -61,11 +61,11 @@ export const SystemStatusWidget = () => {
 
   if (loading && !data) {
     return (
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="space-y-2">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="animate-pulse rounded-lg border border-th-border bg-th-bg-secondary p-4">
+          <div key={i} className="flex animate-pulse items-center justify-between rounded-lg border border-th-border bg-th-bg-secondary px-3 py-2.5">
             <div className="h-4 w-20 rounded bg-th-bg-hover" />
-            <div className="mt-2 h-5 w-16 rounded bg-th-bg-hover" />
+            <div className="h-5 w-16 rounded bg-th-bg-hover" />
           </div>
         ))}
       </div>
@@ -95,18 +95,18 @@ export const SystemStatusWidget = () => {
           {loading ? '...' : t('settings.systemStatus.refresh' as Parameters<typeof t>[0])}
         </Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="space-y-2">
         {data?.components.map((component) => (
-          <div key={component.name} className="rounded-lg border border-th-border bg-th-bg-secondary p-3">
-            <div className="flex items-center justify-between">
+          <div key={component.name} className="flex items-center justify-between rounded-lg border border-th-border bg-th-bg-secondary px-3 py-2.5">
+            <div className="flex items-center gap-2">
               <span className="text-sm font-medium capitalize text-th-text">{component.name}</span>
-              <Badge variant={STATUS_BADGE_VARIANT[component.status]} dot>
-                {getStatusLabel(component.status)}
-              </Badge>
+              {component.latency !== undefined && (
+                <span className="text-xs text-th-text-muted">{component.latency}ms</span>
+              )}
             </div>
-            {component.latency !== undefined && (
-              <p className="mt-1 text-xs text-th-text-muted">{component.latency}ms</p>
-            )}
+            <Badge variant={STATUS_BADGE_VARIANT[component.status]} dot>
+              {getStatusLabel(component.status)}
+            </Badge>
           </div>
         ))}
       </div>

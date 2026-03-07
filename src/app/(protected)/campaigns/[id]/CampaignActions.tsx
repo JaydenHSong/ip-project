@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { useToast } from '@/hooks/useToast'
 
 type CampaignActionsProps = {
   campaignId: string
@@ -13,6 +14,7 @@ type CampaignActionsProps = {
 
 export const CampaignActions = ({ campaignId, status, userRole }: CampaignActionsProps) => {
   const router = useRouter()
+  const { addToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
@@ -45,10 +47,17 @@ export const CampaignActions = ({ campaignId, status, userRole }: CampaignAction
     }
 
     if (action === 'delete') {
-      const res = await fetch(`/api/campaigns/${campaignId}`, { method: 'DELETE' })
-      if (res.ok) {
+      try {
+        const res = await fetch(`/api/campaigns/${campaignId}`, { method: 'DELETE' })
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error?.message ?? 'Delete failed')
+        }
+        addToast({ type: 'success', title: 'Campaign deleted' })
         router.push('/campaigns')
         router.refresh()
+      } catch (e) {
+        addToast({ type: 'error', title: 'Delete failed', message: e instanceof Error ? e.message : 'Unknown error' })
       }
       setLoading(null)
       setShowDeleteModal(false)

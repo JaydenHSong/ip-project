@@ -14,6 +14,11 @@ ALTER TABLE listings ADD CONSTRAINT listings_source_check
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'sentinel';
 -- Values: 'sentinel' (default), 'OMS' (legacy migration), 'extension'
 
+-- 2b. Add/update reports source constraint to include 'OMS'
+ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_source_check;
+ALTER TABLE reports ADD CONSTRAINT reports_source_check
+  CHECK (source IN ('sentinel', 'extension', 'OMS'));
+
 -- 3. Create system user for legacy data (if not exists)
 INSERT INTO users (id, email, name, role, created_at)
 VALUES (

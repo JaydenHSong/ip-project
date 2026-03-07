@@ -2,8 +2,11 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
+import { ExternalLink, FileWarning, ClipboardList, ShieldCheck } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
+import { getAmazonUrl } from '@/lib/utils/amazon-url'
 import { BackButton } from '@/components/ui/BackButton'
+import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Badge } from '@/components/ui/Badge'
@@ -236,154 +239,139 @@ export const CampaignDetailContent = ({
         )}
       </Card>
 
-      {/* Report Detail Slide Panel */}
+      {/* Listing Detail Slide Panel */}
       <SlidePanel
         open={!!selectedListingId}
         onClose={handleClosePanel}
-        title={t('reports.detail.title')}
-        status={selectedReports[0] ? (
-          <StatusBadge status={selectedReports[0].status as ReportStatus} type="report" />
+        title={selectedListing?.asin ?? ''}
+        status={selectedListing ? (
+          selectedListing.is_suspect
+            ? <Badge variant="danger">{t('campaigns.detail.suspect')}</Badge>
+            : <Badge variant="success">{t('campaigns.detail.normal')}</Badge>
         ) : undefined}
-        size="xl"
+        size="lg"
       >
         {selectedListing && (
-          <div className="space-y-6 p-6">
+          <div className="space-y-4 p-6">
+            {/* Listing Info Card */}
+            <div className="rounded-xl border border-th-border bg-th-bg-secondary p-4">
+              <p className="text-sm leading-relaxed text-th-text line-clamp-2">
+                {selectedListing.title}
+              </p>
+              <div className="mt-3 grid grid-cols-3 gap-3 border-t border-th-border pt-3">
+                <div>
+                  <p className="text-xs text-th-text-tertiary">{t('campaigns.detail.seller')}</p>
+                  <p className="mt-0.5 truncate text-sm font-medium text-th-text">
+                    {selectedListing.seller_name ?? '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-th-text-tertiary">Source</p>
+                  <p className="mt-0.5 text-sm font-medium text-th-text capitalize">{selectedListing.source}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-th-text-tertiary">{t('campaigns.marketplace')}</p>
+                  <p className="mt-0.5 text-sm font-medium text-th-text">{campaign.marketplace}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Amazon Link */}
+            <a
+              href={getAmazonUrl(selectedListing.asin, campaign.marketplace)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between rounded-xl border border-th-border px-4 py-3 text-sm font-medium text-th-accent-text transition-colors hover:bg-th-accent-soft"
+            >
+              <span className="flex items-center gap-2">
+                <ExternalLink className="h-4 w-4" />
+                View on Amazon
+              </span>
+              <span className="text-xs text-th-text-muted">{campaign.marketplace}</span>
+            </a>
+
+            {/* Reports or Empty State */}
             {selectedReports.length === 0 ? (
-              <p className="text-sm text-th-text-muted">{t('reports.noReports')}</p>
+              <div className="rounded-xl border border-dashed border-th-border bg-th-bg-secondary p-6 text-center">
+                {selectedListing.is_suspect ? (
+                  <>
+                    <FileWarning className="mx-auto h-10 w-10 text-th-text-muted" />
+                    <p className="mt-3 text-sm font-medium text-th-text">
+                      No report filed yet
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-th-text-muted">
+                      This listing was flagged as suspect. Create a violation report to start the review process.
+                    </p>
+                    <Link href={`/reports/new?asin=${selectedListing.asin}&listing_id=${selectedListing.id}&marketplace=${campaign.marketplace}`}>
+                      <Button className="mt-4">
+                        <ClipboardList className="mr-1.5 h-4 w-4" />
+                        Create Report
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="mx-auto h-10 w-10 text-st-success-text" />
+                    <p className="mt-3 text-sm font-medium text-th-text">
+                      This listing appears normal
+                    </p>
+                    <p className="mt-1 text-xs text-th-text-muted">
+                      No violations detected by the crawler.
+                    </p>
+                    <Link
+                      href={`/reports/new?asin=${selectedListing.asin}&listing_id=${selectedListing.id}&marketplace=${campaign.marketplace}`}
+                      className="mt-3 inline-block text-xs text-th-accent-text hover:underline"
+                    >
+                      Create report manually →
+                    </Link>
+                  </>
+                )}
+              </div>
             ) : (
-              selectedReports.map((report) => (
-                <div key={report.id} className="space-y-4">
-                  {/* Actions */}
-                  {canEdit && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-th-text-tertiary">
+                  {t('reports.title')} ({selectedReports.length})
+                </h3>
+                {selectedReports.map((report) => (
+                  <Link
+                    key={report.id}
+                    href={`/reports/${report.id}`}
+                    className="block rounded-xl border border-th-border bg-surface-card p-4 transition-colors hover:bg-th-bg-hover"
+                  >
                     <div className="flex items-center justify-between">
                       <StatusBadge status={report.status as ReportStatus} type="report" />
-                      <ReportActions
-                        reportId={report.id}
-                        status={report.status}
-                        userRole={userRole}
-                        scCaseId={report.sc_case_id}
-                      />
+                      <span className="text-xs text-th-text-muted">
+                        {new Date(report.created_at).toLocaleDateString()}
+                      </span>
                     </div>
-                  )}
-
-                  {/* Violation Info */}
-                  <Card>
-                    <CardHeader>
-                      <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.violationInfo')}</h3>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs text-th-text-tertiary">{t('reports.detail.userViolationType')}</p>
-                          <div className="mt-1">
-                            <ViolationBadge code={report.user_violation_type as ViolationCode} />
-                          </div>
-                        </div>
-                        {report.ai_violation_type && (
-                          <div>
-                            <p className="text-xs text-th-text-tertiary">{t('reports.detail.aiViolationType')}</p>
-                            <div className="mt-1 flex items-center gap-2">
-                              <ViolationBadge code={report.ai_violation_type as ViolationCode} />
-                              {report.ai_confidence_score !== null && (
-                                <span className="text-xs text-th-text-muted">{report.ai_confidence_score}%</span>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <ViolationBadge code={report.user_violation_type as ViolationCode} />
+                      {report.ai_violation_type && report.ai_confidence_score !== null && (
+                        <span className="text-xs text-th-text-muted">
+                          AI {report.ai_confidence_score}%
+                        </span>
+                      )}
+                    </div>
+                    {report.disagreement_flag && (
+                      <div className="mt-2 rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-2.5 py-1.5">
+                        <p className="text-xs font-medium text-st-warning-text">
+                          {t('reports.detail.disagreementWarning')}
+                        </p>
                       </div>
-                      {report.disagreement_flag && (
-                        <div className="rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-2">
-                          <p className="text-xs font-medium text-st-warning-text">
-                            {t('reports.detail.disagreementWarning')}
-                          </p>
-                        </div>
-                      )}
-                      {report.confirmed_violation_type && (
-                        <div>
-                          <p className="text-xs text-th-text-tertiary">{t('reports.detail.confirmedViolationType')}</p>
-                          <div className="mt-1">
-                            <ViolationBadge code={report.confirmed_violation_type as ViolationCode} />
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Listing Info */}
-                  <Card>
-                    <CardHeader>
-                      <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.listing')}</h3>
-                    </CardHeader>
-                    <CardContent>
-                      <dl className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <dt className="text-xs text-th-text-tertiary">ASIN</dt>
-                          <dd className="mt-0.5 font-mono font-medium text-th-text">{selectedListing.asin}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-th-text-tertiary">{t('campaigns.detail.seller')}</dt>
-                          <dd className="mt-0.5 font-medium text-th-text">{selectedListing.seller_name ?? '—'}</dd>
-                        </div>
-                        <div className="col-span-2">
-                          <dt className="text-xs text-th-text-tertiary">{t('reports.title')}</dt>
-                          <dd className="mt-0.5 font-medium text-th-text">{selectedListing.title}</dd>
-                        </div>
-                      </dl>
-                    </CardContent>
-                  </Card>
-
-                  {/* Draft */}
-                  {report.draft_title && (
-                    <Card>
-                      <CardHeader>
-                        <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.reportDraft')}</h3>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div>
-                          <p className="text-xs text-th-text-tertiary">{t('reports.detail.draftTitle')}</p>
-                          <p className="mt-0.5 text-sm font-medium text-th-text">{report.draft_title}</p>
-                        </div>
-                        {report.draft_body && (
-                          <div>
-                            <p className="text-xs text-th-text-tertiary">{t('reports.detail.draftBody')}</p>
-                            <div className="mt-0.5 rounded-lg bg-th-bg-tertiary p-3 text-xs text-th-text-secondary whitespace-pre-wrap">
-                              {report.draft_body}
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Rejection Reason */}
-                  {report.rejection_reason && (
-                    <Card>
-                      <CardContent>
-                        <p className="text-xs text-th-text-tertiary">{t('reports.detail.rejectionReason')}</p>
-                        <div className="mt-1 rounded-lg border border-st-danger-text/20 bg-st-danger-bg p-3 text-xs text-st-danger-text">
-                          {report.rejection_reason}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Metadata */}
-                  <div className="flex items-center justify-between text-xs text-th-text-muted">
-                    <span>{t('reports.detail.createdAt')}: {new Date(report.created_at).toLocaleString()}</span>
-                    <Link
-                      href={`/reports/${report.id}`}
-                      className="text-th-accent-text hover:underline"
-                    >
-                      {t('common.details')} →
-                    </Link>
-                  </div>
-
-                  {/* Separator between multiple reports */}
-                  {selectedReports.length > 1 && selectedReports.indexOf(report) < selectedReports.length - 1 && (
-                    <hr className="border-th-border" />
-                  )}
-                </div>
-              ))
+                    )}
+                    {report.draft_title && (
+                      <p className="mt-2 truncate text-sm text-th-text-secondary">
+                        {report.draft_title}
+                      </p>
+                    )}
+                    {report.sc_case_id && (
+                      <p className="mt-1 text-xs text-th-text-muted">
+                        SC Case: {report.sc_case_id}
+                      </p>
+                    )}
+                  </Link>
+                ))}
+              </div>
             )}
           </div>
         )}

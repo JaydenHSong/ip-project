@@ -36,14 +36,15 @@ export const Modal = ({ open, onClose, title, children, className }: ModalProps)
       {/* Backdrop */}
       <div
         ref={backdropRef}
-        className="fixed inset-0 z-50 bg-black/50"
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
         onClick={onClose}
       />
       {/* Content */}
       <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
         <div
           className={cn(
-            'pointer-events-auto mx-4 w-full max-w-lg rounded-lg border border-th-border bg-surface-card shadow-xl',
+            'pointer-events-auto mx-4 w-full max-w-lg rounded-xl border border-th-border bg-surface-card shadow-xl',
+            'animate-in fade-in zoom-in-95 duration-200',
             className,
           )}
           onClick={(e) => e.stopPropagation()}
@@ -53,7 +54,7 @@ export const Modal = ({ open, onClose, title, children, className }: ModalProps)
               <h2 className="text-lg font-semibold text-th-text">{title}</h2>
               <button
                 onClick={onClose}
-                className="rounded-md p-1 text-th-text-muted hover:bg-th-bg-hover hover:text-th-text-secondary"
+                className="rounded-lg p-1.5 text-th-text-muted hover:bg-th-bg-hover hover:text-th-text-secondary"
               >
                 <X className="h-5 w-5" />
               </button>

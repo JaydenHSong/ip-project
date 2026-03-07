@@ -19,7 +19,7 @@ export const GET = withAuth(async (req) => {
   const { data, error } = await supabase
     .from('reports')
     .select(
-      '*, listings!reports_listing_id_fkey(*), users!reports_created_by_fkey(name, email)',
+      '*, listing_snapshot, listings!reports_listing_id_fkey(*), users!reports_created_by_fkey(name, email)',
     )
     .eq('id', id)
     .single()
@@ -29,6 +29,11 @@ export const GET = withAuth(async (req) => {
       { error: { code: 'NOT_FOUND', message: '신고를 찾을 수 없습니다.' } },
       { status: 404 },
     )
+  }
+
+  // listing_id가 NULL이면 listing_snapshot 사용
+  if (!data.listings && data.listing_snapshot) {
+    (data as Record<string, unknown>).listings = data.listing_snapshot
   }
 
   return NextResponse.json(data)

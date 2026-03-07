@@ -1,11 +1,8 @@
 {
-  "sessionCount": 156,
+  "sessionCount": 5,
   "lastSession": {
-    "startedAt": "2026-03-06T02:11:33.035Z",
+    "startedAt": "2026-03-07T01:46:53.965Z",
     "platform": "claude",
     "level": "Dynamic"
-  },
-  "currentFeature": "crawler-persona",
-  "currentPhase": "archived",
-  "matchRate": 100
+  }
 }

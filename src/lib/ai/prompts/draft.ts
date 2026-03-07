@@ -2,6 +2,7 @@
 
 import type { AiAnalyzeResponse } from '@/types/api'
 import type { Listing } from '@/types/listings'
+import { promptManager } from '@/lib/ai/prompt-manager'
 
 const DRAFT_PROMPT_TEMPLATE = `Generate a formal violation report draft for Amazon Seller Central based on the analysis below.
 
@@ -49,18 +50,21 @@ const DRAFT_PROMPT_TEMPLATE = `Generate a formal violation report draft for Amaz
   ]
 }`
 
-const buildDraftPrompt = (
+const buildDraftPrompt = async (
   analysis: AiAnalyzeResponse,
   listing: Listing,
   template: string | null,
-): string => {
+): Promise<string> => {
   const analysisStr = JSON.stringify(analysis, null, 2)
 
   const templateSection = template
     ? `## Reference Template\n${template}`
     : ''
 
-  return DRAFT_PROMPT_TEMPLATE
+  const dbPrompt = await promptManager.getActive('draft')
+  const promptTemplate = dbPrompt?.content ?? DRAFT_PROMPT_TEMPLATE
+
+  return promptTemplate
     .replace('{{analysisResult}}', analysisStr)
     .replace('{{asin}}', listing.asin)
     .replace('{{title}}', listing.title ?? '(unknown)')

@@ -29,7 +29,7 @@ const CompletedReportsPage = async ({
     let query = supabase
       .from('reports')
       .select(
-        '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
+        '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
       )
       .in('status', params.status ? [params.status] : COMPLETED_STATUSES)
       .order('created_at', { ascending: false })
@@ -43,7 +43,10 @@ const CompletedReportsPage = async ({
     const { data, error: queryError } = await query
 
     if (queryError) console.error('Completed reports query error:', queryError.message)
-    reports = data as typeof DEMO_REPORTS | null
+    reports = (data ?? []).map((r: Record<string, unknown>) => {
+      if (!r.listings && r.listing_snapshot) return { ...r, listings: r.listing_snapshot }
+      return r
+    }) as typeof DEMO_REPORTS | null
   }
 
   const effectiveOwner = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')

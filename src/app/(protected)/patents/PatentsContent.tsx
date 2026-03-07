@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { RefreshCw, Search, X, Pencil, Trash2, Shield, PenTool, Tag, Copyright, ExternalLink } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
+import { useToast } from '@/hooks/useToast'
 import { Button } from '@/components/ui/Button'
+import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import type { IpAsset, IpAssetStatus, IpType } from '@/types/ip-assets'
 import { IP_ASSET_STATUSES } from '@/types/ip-assets'
@@ -130,7 +132,17 @@ export const PatentsContent = ({
   const [deleting, setDeleting] = useState(false)
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const [syncing, setSyncing] = useState(false)
-  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  const [newIds, setNewIds] = useState<Set<string>>(new Set())
+  const { addToast } = useToast()
+
+  useEffect(() => {
+    const stored = localStorage.getItem('patent_new_ids')
+    if (stored) {
+      try {
+        setNewIds(new Set(JSON.parse(stored) as string[]))
+      } catch { /* ignore */ }
+    }
+  }, [])
 
   const typeTabs: { value: string; labelKey: string; count: number }[] = [
     { value: '', labelKey: 'patents.allTypes', count: typeCounts.all },
@@ -150,7 +162,6 @@ export const PatentsContent = ({
 
   const handleSync = useCallback(async () => {
     setSyncing(true)
-    setSyncMessage(null)
     try {
       const res = await fetch('/api/patents/sync', { method: 'POST' })
       const data = await res.json() as {
@@ -158,27 +169,47 @@ export const PatentsContent = ({
         synced?: number
         total?: number
         created?: number
+        created_ids?: string[]
         updated?: number
         errors?: number
       }
       if (!res.ok) {
-        setSyncMessage(data.error?.message ?? t('patents.syncNotConfigured'))
+        addToast({
+          type: 'error',
+          title: 'Sync Failed',
+          message: data.error?.message ?? 'Monday.com sync is not configured',
+        })
       } else {
         const parts: string[] = []
-        if (data.created) parts.push(`+${data.created}`)
-        if (data.updated) parts.push(`~${data.updated}`)
-        if (data.errors) parts.push(`${data.errors} err`)
-        const detail = parts.length > 0 ? ` (${parts.join(', ')})` : ''
-        setSyncMessage(`${t('patents.syncComplete')} — ${data.total ?? 0} items${detail}`)
+        if (data.created) parts.push(`${data.created} new`)
+        if (data.updated) parts.push(`${data.updated} updated`)
+        if (data.errors) parts.push(`${data.errors} errors`)
+
+        addToast({
+          type: data.errors ? 'warning' : 'success',
+          title: 'Sync Complete',
+          message: `${data.total} items synced${parts.length > 0 ? ` (${parts.join(', ')})` : ''}`,
+        })
+
+        if (data.created_ids?.length) {
+          const existing = JSON.parse(localStorage.getItem('patent_new_ids') ?? '[]') as string[]
+          const merged = [...new Set([...existing, ...data.created_ids])]
+          localStorage.setItem('patent_new_ids', JSON.stringify(merged))
+          setNewIds(new Set(merged))
+        }
+
         router.refresh()
       }
     } catch {
-      setSyncMessage(t('patents.syncNotConfigured'))
+      addToast({
+        type: 'error',
+        title: 'Sync Failed',
+        message: 'Failed to connect to Monday.com',
+      })
     } finally {
       setSyncing(false)
-      setTimeout(() => setSyncMessage(null), 6000)
     }
-  }, [router, t])
+  }, [router, addToast])
 
   const openEdit = useCallback((asset: IpAsset) => {
     setEditingAsset(asset)
@@ -260,6 +291,18 @@ export const PatentsContent = ({
     router.push(buildHref({ search: localSearch }))
   }, [localSearch, router, buildHref])
 
+  const handleSelectAsset = useCallback((asset: IpAsset) => {
+    setSelectedAsset(asset)
+    if (newIds.has(asset.id)) {
+      setNewIds((prev) => {
+        const next = new Set(prev)
+        next.delete(asset.id)
+        localStorage.setItem('patent_new_ids', JSON.stringify([...next]))
+        return next
+      })
+    }
+  }, [newIds])
+
   const addImageUrl = useCallback(() => {
     setFormData((prev) => ({ ...prev, image_urls: [...prev.image_urls, ''] }))
   }, [])
@@ -302,33 +345,38 @@ export const PatentsContent = ({
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('patents.title')}</h1>
+        <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('patents.title')}</h1>
         {isAdmin && (
-          <div className="flex items-center gap-3">
-            {syncMessage && (
-              <span className="text-xs text-th-text-muted">{syncMessage}</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSync}
+            loading={syncing}
+            disabled={syncing}
+            icon={<RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />}
+          >
+            {syncing ? (
+              <>
+                <span className="hidden md:inline">Syncing from Monday.com...</span>
+                <span className="md:hidden">Syncing...</span>
+              </>
+            ) : (
+              <>
+                <span className="hidden md:inline">{t('patents.syncStatus')}</span>
+                <span className="md:hidden">Sync</span>
+              </>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleSync}
-              loading={syncing}
-              icon={<RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />}
-            >
-              <span className="hidden md:inline">{t('patents.syncStatus')}</span>
-              <span className="md:hidden">Sync</span>
-            </Button>
-          </div>
+          </Button>
         )}
       </div>
 
       {/* Type Tabs */}
-      <div className="flex gap-1 rounded-xl border border-th-border bg-th-bg-secondary p-1">
+      <ScrollTabs>
         {typeTabs.map((tab) => (
           <Link
             key={tab.value}
             href={buildHref({ type: tab.value, page: '' })}
-            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-medium transition-colors ${
+            className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-center text-sm font-medium transition-colors ${
               typeFilter === tab.value
                 ? 'bg-surface-card text-th-text shadow-sm'
                 : 'text-th-text-tertiary hover:text-th-text-secondary'
@@ -340,7 +388,7 @@ export const PatentsContent = ({
             )}
           </Link>
         ))}
-      </div>
+      </ScrollTabs>
 
       {/* Search */}
       <form onSubmit={handleSearchSubmit} className="flex gap-2">
@@ -366,10 +414,10 @@ export const PatentsContent = ({
       </form>
 
       {/* Status Filter */}
-      <div className="flex gap-2 overflow-x-auto">
+      <ScrollTabs pill={false} className="gap-2">
         <Link
           href={buildHref({ status: '', page: '' })}
-          className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`snap-start whitespace-nowrap rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
             !statusFilter
               ? 'bg-th-accent-soft text-th-accent-text'
               : 'text-th-text-tertiary hover:bg-th-bg-hover'
@@ -381,7 +429,7 @@ export const PatentsContent = ({
           <Link
             key={s}
             href={buildHref({ status: s, page: '' })}
-            className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`snap-start whitespace-nowrap rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
               statusFilter === s
                 ? 'bg-th-accent-soft text-th-accent-text'
                 : 'text-th-text-tertiary hover:bg-th-bg-hover'
@@ -390,7 +438,7 @@ export const PatentsContent = ({
             {t(`patents.${s}` as Parameters<typeof t>[0])}
           </Link>
         ))}
-      </div>
+      </ScrollTabs>
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
@@ -403,7 +451,7 @@ export const PatentsContent = ({
             <button
               key={asset.id}
               type="button"
-              onClick={() => setSelectedAsset(asset)}
+              onClick={() => handleSelectAsset(asset)}
               className="block w-full text-left"
             >
               <div className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
@@ -412,6 +460,11 @@ export const PatentsContent = ({
                     <div className="flex items-center gap-2">
                       {renderTypeBadge(asset.ip_type)}
                       {renderStatusBadge(asset.status)}
+                      {newIds.has(asset.id) && (
+                        <span className="rounded-full bg-th-accent px-2 py-0.5 text-[10px] font-bold text-white animate-pulse">
+                          NEW
+                        </span>
+                      )}
                     </div>
                     <p className="mt-2 font-medium text-th-text">{asset.name}</p>
                     <p className="mt-0.5 font-mono text-xs text-th-text-secondary">{asset.management_number}</p>
@@ -429,7 +482,7 @@ export const PatentsContent = ({
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-xl border border-th-border shadow-sm md:block">
+      <div className="hidden overflow-x-auto rounded-xl border border-th-border shadow-sm md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
@@ -453,10 +506,19 @@ export const PatentsContent = ({
                 <tr
                   key={asset.id}
                   className="cursor-pointer bg-surface-card transition-all duration-150 hover:bg-th-bg-hover"
-                  onClick={() => setSelectedAsset(asset)}
+                  onClick={() => handleSelectAsset(asset)}
                 >
                   <td className="px-4 py-3.5">{renderTypeBadge(asset.ip_type)}</td>
-                  <td className="px-4 py-3.5 font-mono text-sm text-th-text">{asset.management_number}</td>
+                  <td className="px-4 py-3.5 font-mono text-sm text-th-text">
+                    <span className="inline-flex items-center gap-2">
+                      {asset.management_number}
+                      {newIds.has(asset.id) && (
+                        <span className="rounded-full bg-th-accent px-1.5 py-0.5 text-[10px] font-bold text-white">
+                          NEW
+                        </span>
+                      )}
+                    </span>
+                  </td>
                   <td className="max-w-[200px] truncate px-4 py-3.5 font-medium text-th-text">{asset.name}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{asset.country}</td>
                   <td className="px-4 py-3.5">{renderStatusBadge(asset.status)}</td>

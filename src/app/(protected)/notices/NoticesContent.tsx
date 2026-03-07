@@ -7,6 +7,7 @@ import { Pin, MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent } from '@/components/ui/Card'
+import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { NoticeForm } from './NoticeForm'
 import { NoticeDetail } from './NoticeDetail'
 import type { Notice, NoticeCategory } from '@/types/notices'
@@ -76,12 +77,12 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
     <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-th-text md:text-2xl">{tNotices('title')}</h1>
+        <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{tNotices('title')}</h1>
         {canCreate && (
           <button
             type="button"
             onClick={() => { setEditNotice(null); setShowForm(true) }}
-            className="flex items-center gap-1.5 rounded-xl bg-th-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-colors"
+            className="flex items-center gap-1.5 rounded-xl bg-th-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90 transition-colors sm:px-4"
           >
             <Plus className="h-4 w-4" />
             {tNotices('newNotice')}
@@ -90,10 +91,10 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
+      <ScrollTabs>
         <Link
           href="/notices"
-          className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${!categoryFilter ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+          className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${!categoryFilter ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
         >
           {t('common.all')}
         </Link>
@@ -101,12 +102,12 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
           <Link
             key={cat}
             href={`/notices?category=${cat}`}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${categoryFilter === cat ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+            className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${categoryFilter === cat ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
           >
             {tNotices(`categories.${cat}`)}
           </Link>
         ))}
-      </div>
+      </ScrollTabs>
 
       {/* Mobile: Card List */}
       <div className="space-y-3 md:hidden">
@@ -140,7 +141,7 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
       </div>
 
       {/* Desktop: Table */}
-      <Card className="hidden md:block">
+      <Card className="hidden overflow-x-auto md:block">
         <CardContent className="p-0">
           <table className="w-full text-left text-sm">
             <thead>

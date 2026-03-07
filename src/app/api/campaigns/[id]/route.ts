@@ -122,10 +122,9 @@ export const DELETE = withAuth(async (req) => {
 
   const supabase = await createClient()
 
-  const { error } = await supabase
-    .from('campaigns')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.rpc('delete_campaign_cascade', {
+    p_campaign_id: id,
+  })
 
   if (error) {
     return NextResponse.json(

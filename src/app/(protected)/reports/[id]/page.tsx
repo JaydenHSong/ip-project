@@ -96,14 +96,15 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
     const { data, error } = await supabase
       .from('reports')
       .select(
-        '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name, brand, rating, review_count, price_amount, price_currency), users!reports_created_by_fkey(name, email)',
+        '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name, brand, rating, review_count, price_amount, price_currency), users!reports_created_by_fkey(name, email)',
       )
       .eq('id', id)
       .single()
 
     if (error || !data) notFound()
     report = data as unknown as ReportData
-    listing = data.listings as unknown as ListingInfo | null
+    // listing_snapshot fallback
+    listing = (data.listings ?? data.listing_snapshot) as unknown as ListingInfo | null
     creator = data.users as unknown as { name: string; email: string } | null
 
     timeline = buildTimelineEvents(

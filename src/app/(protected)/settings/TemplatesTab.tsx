@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/Button'
+import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Modal } from '@/components/ui/Modal'
@@ -227,10 +228,10 @@ export const TemplatesTab = () => {
       </div>
 
       {/* Category filter tabs */}
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
+      <ScrollTabs>
         <button
           onClick={() => setCategoryFilter('all')}
-          className={`rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
+          className={`snap-start whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
             categoryFilter === 'all'
               ? 'bg-surface-card text-th-text shadow-sm'
               : 'text-th-text-muted hover:text-th-text-secondary'
@@ -242,7 +243,7 @@ export const TemplatesTab = () => {
           <button
             key={cat}
             onClick={() => setCategoryFilter(cat === categoryFilter ? 'all' : cat)}
-            className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
+            className={`snap-start whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
               categoryFilter === cat
                 ? 'bg-surface-card text-th-text shadow-sm'
                 : 'text-th-text-muted hover:text-th-text-secondary'
@@ -251,7 +252,7 @@ export const TemplatesTab = () => {
             {VIOLATION_CATEGORIES[cat]} ({categoryCounts[cat] ?? 0})
           </button>
         ))}
-      </div>
+      </ScrollTabs>
 
       {loading ? (
         <p className="py-8 text-center text-sm text-th-text-muted">{t('common.loading')}</p>

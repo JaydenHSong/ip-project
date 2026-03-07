@@ -119,52 +119,93 @@ export const NotificationBell = ({ userId }: NotificationBellProps) => {
       </button>
 
       {showDropdown && (
-        <div className="glass-dropdown absolute right-0 top-full z-50 mt-1 w-80 rounded-lg border">
-          <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
-            <h3 className="text-sm font-semibold text-th-text">
-              {t('common.notifications')}
-            </h3>
-            {unreadCount > 0 && (
-              <button
-                type="button"
-                className="text-xs text-th-accent-text hover:underline"
-                onClick={handleMarkAllRead}
+        <NotificationDropdownPanel
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAllRead={handleMarkAllRead}
+          t={t}
+        />
+      )}
+    </div>
+  )
+}
+
+type PanelProps = {
+  notifications: Notification[]
+  unreadCount: number
+  onMarkAllRead: () => void
+  t: (key: string) => string
+}
+
+const NotificationDropdownPanel = ({ notifications, unreadCount, onMarkAllRead, t }: PanelProps) => {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollDown, setCanScrollDown] = useState(false)
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 4)
+  }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    checkScroll()
+    el.addEventListener('scroll', checkScroll, { passive: true })
+    return () => el.removeEventListener('scroll', checkScroll)
+  }, [checkScroll, notifications])
+
+  return (
+    <div className="absolute right-0 top-full z-50 mt-1 w-80 rounded-xl border border-th-border bg-surface-card shadow-xl">
+      <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
+        <h3 className="text-sm font-semibold text-th-text">
+          {t('common.notifications')}
+        </h3>
+        {unreadCount > 0 && (
+          <button
+            type="button"
+            className="text-xs text-th-accent-text hover:underline"
+            onClick={onMarkAllRead}
+          >
+            Mark all read
+          </button>
+        )}
+      </div>
+      <div className="relative">
+        <div ref={scrollRef} className="scrollbar-hide max-h-80 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-th-text-muted">
+              No notifications
+            </p>
+          ) : (
+            notifications.slice(0, 10).map((notif) => (
+              <div
+                key={notif.id}
+                className={`border-b border-th-border px-4 py-3 last:border-b-0 ${
+                  notif.is_read ? '' : 'bg-th-accent-soft/20'
+                }`}
               >
-                Mark all read
-              </button>
-            )}
-          </div>
-          <div className="max-h-80 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-th-text-muted">
-                No notifications
-              </p>
-            ) : (
-              notifications.slice(0, 10).map((notif) => (
-                <div
-                  key={notif.id}
-                  className={`border-b border-th-border px-4 py-3 last:border-b-0 ${
-                    notif.is_read ? '' : 'bg-th-accent-soft/20'
-                  }`}
-                >
-                  <div className="flex items-start gap-2">
-                    <div className={`mt-1 h-2 w-2 flex-shrink-0 rounded-full ${
-                      notif.is_read ? 'bg-transparent' : 'bg-th-accent'
-                    }`} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-th-text">{notif.title}</p>
-                      <p className="mt-0.5 truncate text-xs text-th-text-secondary">{notif.message}</p>
-                      <p className="mt-1 text-xs text-th-text-muted">
-                        {new Date(notif.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+                <div className="flex items-start gap-2">
+                  <div className={`mt-1 h-2 w-2 flex-shrink-0 rounded-full ${
+                    notif.is_read ? 'bg-transparent' : 'bg-th-accent'
+                  }`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-th-text">{notif.title}</p>
+                    <p className="mt-0.5 truncate text-xs text-th-text-secondary">{notif.message}</p>
+                    <p className="mt-1 text-xs text-th-text-muted">
+                      {new Date(notif.created_at).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+            ))
+          )}
         </div>
-      )}
+        <div
+          className={`pointer-events-none absolute inset-x-0 bottom-0 h-8 rounded-b-xl transition-opacity duration-200 ${canScrollDown ? 'opacity-100' : 'opacity-0'}`}
+          style={{ background: 'linear-gradient(to top, var(--surface-card), transparent)' }}
+        />
+      </div>
     </div>
   )
 }

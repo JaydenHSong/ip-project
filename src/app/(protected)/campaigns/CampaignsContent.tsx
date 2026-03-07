@@ -5,12 +5,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/Button'
+import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { CampaignForm } from '@/components/features/CampaignForm'
 import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import { MARKETPLACES, type MarketplaceCode } from '@/constants/marketplaces'
 import type { Role } from '@/types/users'
+import { useToast } from '@/hooks/useToast'
+import { Modal } from '@/components/ui/Modal'
 
 const FREQ_LABEL: Record<string, string> = {
   daily: 'Daily',
@@ -46,7 +49,9 @@ type CampaignsContentProps = {
 export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, canCreate, userRole, ownerFilter }: CampaignsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
+  const { addToast } = useToast()
   const [showNewCampaign, setShowNewCampaign] = useState(false)
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
 
@@ -72,17 +77,28 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return
-    if (!confirm(`${selectedIds.size}개 캠페인을 삭제하시겠습니까?`)) return
 
     setDeleting(true)
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         Array.from(selectedIds).map((id) =>
-          fetch(`/api/campaigns/${id}`, { method: 'DELETE' })
+          fetch(`/api/campaigns/${id}`, { method: 'DELETE' }).then((res) => {
+            if (!res.ok) throw new Error(`Failed: ${id}`)
+          })
         )
       )
+      const deleted = results.filter((r) => r.status === 'fulfilled').length
+      const failed = results.filter((r) => r.status === 'rejected').length
       setSelectedIds(new Set())
+      setShowBulkDeleteConfirm(false)
+      addToast({
+        type: failed > 0 ? 'warning' : 'success',
+        title: failed > 0 ? 'Partially deleted' : 'Deleted',
+        message: `Deleted: ${deleted}${failed > 0 ? `, Failed: ${failed}` : ''}`,
+      })
       router.refresh()
+    } catch (e) {
+      addToast({ type: 'error', title: 'Delete failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setDeleting(false)
     }
@@ -104,7 +120,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('campaigns.title')}</h1>
+          <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('campaigns.title')}</h1>
           <OwnerToggle
             value={ownerFilter}
             onChange={(v) => {
@@ -115,23 +131,18 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
           />
         </div>
         {canCreate && (
-          <div>
-            <Button size="sm" className="md:hidden" onClick={() => setShowNewCampaign(true)}>
-              {t('campaigns.newCampaign')}
-            </Button>
-            <Button className="hidden md:inline-flex" onClick={() => setShowNewCampaign(true)}>
-              {t('campaigns.newCampaign')}
-            </Button>
-          </div>
+          <Button size="sm" onClick={() => setShowNewCampaign(true)}>
+            {t('campaigns.newCampaign')}
+          </Button>
         )}
       </div>
 
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
+      <ScrollTabs>
         {statusFilters.map((s) => (
           <Link
             key={s.value}
             href={s.value ? `/campaigns?status=${s.value}` : '/campaigns'}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               statusFilter === s.value
                 ? 'bg-surface-card text-th-text shadow-sm'
                 : 'text-th-text-muted hover:text-th-text-secondary'
@@ -140,7 +151,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
             {s.label}
           </Link>
         ))}
-      </div>
+      </ScrollTabs>
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
@@ -181,7 +192,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
           <Button
             size="sm"
             variant="danger"
-            onClick={handleBulkDelete}
+            onClick={() => setShowBulkDeleteConfirm(true)}
             disabled={deleting}
           >
             {deleting ? '삭제 중...' : '선택 삭제'}
@@ -196,7 +207,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
       )}
 
       {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-xl border border-th-border shadow-sm md:block">
+      <div className="hidden overflow-x-auto rounded-xl border border-th-border shadow-sm md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
@@ -295,6 +306,28 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
         </div>
       </SlidePanel>
 
+      <Modal
+        open={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        title="Delete Campaigns"
+      >
+        <p className="text-sm text-th-text-secondary">
+          {selectedIds.size}개 캠페인을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+        </p>
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowBulkDeleteConfirm(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            loading={deleting}
+            onClick={handleBulkDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -44,12 +44,12 @@ const analyzeListingViolation = async (
     images?: { base64: string; mediaType: string }[]
   },
 ): Promise<AiAnalyzeResponse> => {
-  const systemPrompt = buildSystemPrompt({
+  const systemPrompt = await buildSystemPrompt({
     trademarks: options.trademarks,
     skillContent: options.skillContent,
   })
 
-  const userPrompt = buildAnalyzePrompt(listing, options.patents)
+  const userPrompt = await buildAnalyzePrompt(listing, options.patents)
 
   // 이미지가 있으면 멀티모달 호출
   if (options.images && options.images.length > 0) {

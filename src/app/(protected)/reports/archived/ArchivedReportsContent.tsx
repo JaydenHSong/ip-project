@@ -13,6 +13,7 @@ import { SlidePanel } from '@/components/ui/SlidePanel'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { useSortableTable } from '@/hooks/useSortableTable'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
+import { useToast } from '@/hooks/useToast'
 import type { ReportStatus } from '@/types/reports'
 import type { ViolationCode } from '@/constants/violations'
 import type { TableFilters as TableFiltersType } from '@/types/table'
@@ -35,6 +36,7 @@ type ArchivedReportsContentProps = {
 export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
+  const { addToast } = useToast()
   const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
   const [unarchiving, setUnarchiving] = useState<string | null>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
@@ -79,7 +81,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
       }
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setUnarchiving(null)
     }

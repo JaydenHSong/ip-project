@@ -35,7 +35,7 @@ export default async function ArchivedReportsPage() {
     const supabase = await createClient()
     const { data, error } = await supabase
       .from('reports')
-      .select('id, violation_type, status, created_at, archived_at, archive_reason, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name)')
+      .select('id, violation_type, status, created_at, archived_at, archive_reason, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name)')
       .eq('status', 'archived')
       .order('archived_at', { ascending: false, nullsFirst: false })
 
@@ -44,7 +44,7 @@ export default async function ArchivedReportsPage() {
     if (data) {
       reports = data.map((r) => ({
         ...r,
-        listings: Array.isArray(r.listings) ? r.listings[0] : r.listings,
+        listings: (Array.isArray(r.listings) ? r.listings[0] : r.listings) ?? r.listing_snapshot,
       })) as ReportRow[]
     }
   }

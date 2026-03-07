@@ -2,6 +2,7 @@
 
 import type { Listing } from '@/types/listings'
 import type { Patent } from '@/types/patents'
+import { promptManager } from '@/lib/ai/prompt-manager'
 
 const ANALYZE_PROMPT_TEMPLATE = `Analyze the following Amazon listing for potential policy violations against Spigen.
 
@@ -64,10 +65,10 @@ const ANALYZE_PROMPT_TEMPLATE = `Analyze the following Amazon listing for potent
 
 If no violations found, return: {"violation_detected": false, "violations": [], "summary": "No violations detected"}`
 
-const buildAnalyzePrompt = (
+const buildAnalyzePrompt = async (
   listing: Listing,
   patents?: Patent[],
-): string => {
+): Promise<string> => {
   const bulletPointsStr = listing.bullet_points.length > 0
     ? listing.bullet_points.map((bp, i) => `${i + 1}. ${bp}`).join('\n')
     : '(none)'
@@ -85,7 +86,11 @@ const buildAnalyzePrompt = (
     ? '## Images\n[Product images are attached for visual analysis. Check for logo/trademark usage and image theft.]'
     : ''
 
-  return ANALYZE_PROMPT_TEMPLATE
+  // DB에서 활성 프롬프트 로딩, 실패 시 하드코딩 fallback
+  const dbPrompt = await promptManager.getActive('analyze')
+  const template = dbPrompt?.content ?? ANALYZE_PROMPT_TEMPLATE
+
+  return template
     .replace('{{asin}}', listing.asin)
     .replace('{{title}}', listing.title ?? '(unknown)')
     .replace('{{brand}}', listing.brand ?? '(unknown)')

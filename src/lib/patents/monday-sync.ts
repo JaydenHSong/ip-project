@@ -175,14 +175,17 @@ const syncBoardToDatabase = async (
         }
       } else {
         // 새로 생성
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from('ip_assets')
           .insert(row)
+          .select('id')
+          .single()
 
         if (error) {
           result.errors.push({ itemId: item.id, error: error.message })
         } else {
           result.created++
+          if (inserted?.id) result.created_ids.push(inserted.id as string)
         }
       }
     } catch (error: unknown) {
@@ -202,6 +205,7 @@ const runMondaySync = async (): Promise<MondaySyncResult> => {
     return {
       total: 0,
       created: 0,
+      created_ids: [],
       updated: 0,
       unchanged: 0,
       errors: [{ itemId: '', error: 'MONDAY_API_KEY not configured' }],
@@ -212,6 +216,7 @@ const runMondaySync = async (): Promise<MondaySyncResult> => {
   const result: MondaySyncResult = {
     total: 0,
     created: 0,
+    created_ids: [],
     updated: 0,
     unchanged: 0,
     errors: [],

@@ -12,6 +12,7 @@ import { SortableHeader } from '@/components/ui/SortableHeader'
 import { TableFilters } from '@/components/ui/TableFilters'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { Button } from '@/components/ui/Button'
+import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Modal } from '@/components/ui/Modal'
 import { NewReportForm } from './new/NewReportForm'
 import { useSortableTable } from '@/hooks/useSortableTable'
@@ -23,6 +24,7 @@ import type { ViolationCode } from '@/constants/violations'
 import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
+import { useToast } from '@/hooks/useToast'
 
 type ReportRow = {
   id: string
@@ -59,6 +61,7 @@ export const ReportsContent = ({
 }: ReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
+  const { addToast } = useToast()
   const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
   const [showNewReport, setShowNewReport] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -140,10 +143,10 @@ export const ReportsContent = ({
       }
       const result = await res.json() as { approved: number; failed: number; skipped: number }
       setSelectedIds(new Set())
-      alert(`Approved: ${result.approved}, Failed: ${result.failed}, Skipped: ${result.skipped}`)
+      addToast({ type: result.failed > 0 ? 'warning' : 'success', title: result.failed > 0 ? 'Partially approved' : 'Approved', message: `Approved: ${result.approved}, Failed: ${result.failed}, Skipped: ${result.skipped}` })
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setBulkLoading(null)
     }
@@ -164,10 +167,10 @@ export const ReportsContent = ({
       }
       const result = await res.json() as { submitted: number; failed: number; skipped: number }
       setSelectedIds(new Set())
-      alert(`Submitted: ${result.submitted}, Failed: ${result.failed}, Skipped: ${result.skipped}`)
+      addToast({ type: result.failed > 0 ? 'warning' : 'success', title: result.failed > 0 ? 'Partially submitted' : 'Submitted', message: `Submitted: ${result.submitted}, Failed: ${result.failed}, Skipped: ${result.skipped}` })
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setBulkLoading(null)
     }
@@ -189,10 +192,10 @@ export const ReportsContent = ({
       const result = await res.json() as { deleted: number; failed: number }
       setSelectedIds(new Set())
       setShowBulkDeleteConfirm(false)
-      alert(`Deleted: ${result.deleted}, Failed: ${result.failed}`)
+      addToast({ type: result.failed > 0 ? 'warning' : 'success', title: result.failed > 0 ? 'Partially deleted' : 'Deleted', message: `Deleted: ${result.deleted}${result.failed > 0 ? `, Failed: ${result.failed}` : ''}` })
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setBulkLoading(null)
     }
@@ -207,18 +210,23 @@ export const ReportsContent = ({
   ]
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-th-text">{t('reports.queueTitle')}</h1>
-          <OwnerToggle
-            value={ownerFilter}
-            onChange={(v) => {
-              const url = new URL(window.location.href)
-              url.searchParams.set('owner', v)
-              router.push(url.pathname + url.search)
-            }}
-          />
+    <div className="space-y-4 md:space-y-6">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('reports.queueTitle')}</h1>
+            <OwnerToggle
+              value={ownerFilter}
+              onChange={(v) => {
+                const url = new URL(window.location.href)
+                url.searchParams.set('owner', v)
+                router.push(url.pathname + url.search)
+              }}
+            />
+          </div>
+          <Button size="sm" onClick={() => setShowNewReport(true)}>
+            {t('reports.new.title')}
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           {categoryFilter && (
@@ -240,21 +248,15 @@ export const ReportsContent = ({
           >
             {t('reports.disagreementOnly')}
           </Link>
-          <Button size="sm" className="md:hidden" onClick={() => setShowNewReport(true)}>
-            {t('reports.new.title')}
-          </Button>
-          <Button className="hidden md:inline-flex" onClick={() => setShowNewReport(true)}>
-            {t('reports.new.title')}
-          </Button>
         </div>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
+      <ScrollTabs>
         {STATUS_TABS.map((tab) => (
           <Link
             key={tab.value}
             href={`/reports${tab.value ? `?status=${tab.value}` : ''}`}
-            className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
+            className={`snap-start whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
               statusFilter === tab.value
                 ? 'bg-surface-card text-th-text shadow-sm'
                 : 'text-th-text-muted hover:text-th-text-secondary'
@@ -263,7 +265,7 @@ export const ReportsContent = ({
             {tab.label}
           </Link>
         ))}
-      </div>
+      </ScrollTabs>
 
       <TableFilters filters={filters} onFiltersChange={setFilters} />
 
@@ -369,7 +371,7 @@ export const ReportsContent = ({
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden overflow-hidden rounded-lg border border-th-border md:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-th-border md:block">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">

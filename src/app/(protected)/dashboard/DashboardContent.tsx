@@ -2,8 +2,6 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout'
-import type { LayoutItem, ResponsiveLayouts, Layout } from 'react-grid-layout'
 import { useI18n } from '@/lib/i18n/context'
 import { isDemoMode } from '@/lib/demo'
 import { getDemoDashboardStats } from '@/lib/demo/dashboard'
@@ -11,8 +9,8 @@ import { WelcomeNotice } from '@/components/features/WelcomeNotice'
 import type { DashboardStats, PeriodFilter } from '@/types/dashboard'
 import type { Role } from '@/types/users'
 import { DashboardProvider } from './widgets/DashboardContext'
-import { getAvailableWidgets, getDefaultLayouts } from './widgets/widget-config'
-import type { UserDashboardLayout } from './widgets/widget-config'
+import { getAvailableWidgets, getDefaultOrder } from './widgets/widget-config'
+import type { UserDashboardLayout, WidgetSize } from './widgets/widget-config'
 import { WidgetWrapper } from './widgets/WidgetWrapper'
 import { AddWidgetPanel } from './widgets/AddWidgetPanel'
 import { StatsWidget } from './widgets/StatsWidget'
@@ -23,6 +21,7 @@ import { AiPerformanceWidget } from './widgets/AiPerformanceWidget'
 import { TopViolationsWidget } from './widgets/TopViolationsWidget'
 import { RecentReportsWidget } from './widgets/RecentReportsWidget'
 import { ActiveCampaignsWidget } from './widgets/ActiveCampaignsWidget'
+import { AiAccuracyWidget } from './widgets/AiAccuracyWidget'
 import { SystemStatusWidget } from './widgets/SystemStatusWidget'
 
 const WIDGET_COMPONENTS: Record<string, React.ComponentType> = {
@@ -34,7 +33,14 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType> = {
   'top-violations': TopViolationsWidget,
   'recent-reports': RecentReportsWidget,
   'active-campaigns': ActiveCampaignsWidget,
+  'ai-accuracy': AiAccuracyWidget,
   'system-status': SystemStatusWidget,
+}
+
+const SIZE_CLASS: Record<WidgetSize, string> = {
+  full: 'col-span-full',
+  medium: 'col-span-1',
+  standard: 'col-span-1',
 }
 
 const PERIODS: PeriodFilter[] = ['7d', '30d', '90d']
@@ -55,7 +61,7 @@ type DashboardContentProps = {
   initialStats: DashboardStats | null
 }
 
-const LAYOUT_SAVE_DEBOUNCE = 1000
+const SAVE_DEBOUNCE = 1000
 
 export const DashboardContent = ({
   userName,
@@ -73,51 +79,44 @@ export const DashboardContent = ({
   const scope = isAdmin ? 'all' : 'my'
 
   const availableWidgets = useMemo(() => getAvailableWidgets(userRole), [userRole])
-  const defaultLayouts = useMemo(() => getDefaultLayouts(userRole), [userRole])
+  const defaultOrder = useMemo(() => getDefaultOrder(userRole), [userRole])
 
-  const [layouts, setLayouts] = useState<LayoutItem[]>(defaultLayouts)
+  const [widgetOrder, setWidgetOrder] = useState<string[]>(defaultOrder)
   const [hiddenWidgetIds, setHiddenWidgetIds] = useState<string[]>([])
-  const [layoutLoaded, setLayoutLoaded] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const { width: containerWidth, containerRef, mounted } = useContainerWidth({ initialWidth: 1200 })
 
-  // Load saved layout
+  // Load saved preferences
   useEffect(() => {
-    const loadLayout = async () => {
+    const load = async () => {
       try {
         const res = await fetch('/api/user/preferences?key=dashboard_layout')
         if (res.ok) {
           const { value } = await res.json() as { value: UserDashboardLayout | null }
-          if (value?.layouts) {
-            const savedIds = new Set(value.layouts.map((l) => l.i))
-            const merged: LayoutItem[] = [
-              ...value.layouts,
-              ...defaultLayouts.filter((dl) => !savedIds.has(dl.i)),
-            ]
-            setLayouts(merged)
+          if (value) {
+            if (value.order?.length) {
+              // Merge: saved order + any new widgets not in saved order
+              const savedSet = new Set(value.order)
+              const merged = [
+                ...value.order.filter((id) => availableWidgets.some((w) => w.id === id)),
+                ...defaultOrder.filter((id) => !savedSet.has(id)),
+              ]
+              setWidgetOrder(merged)
+            }
             setHiddenWidgetIds(value.hidden ?? [])
           }
         }
       } catch {
         // use defaults
       } finally {
-        setLayoutLoaded(true)
+        setLoaded(true)
       }
     }
-    loadLayout()
-  }, [defaultLayouts])
+    load()
+  }, [availableWidgets, defaultOrder])
 
-  // Mobile detection
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
-
-  // Save layout to server (debounced)
-  const saveLayout = useCallback((newLayouts: LayoutItem[], newHidden: string[]) => {
+  // Save preferences (debounced)
+  const savePrefs = useCallback((order: string[], hidden: string[]) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
       try {
@@ -126,32 +125,26 @@ export const DashboardContent = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             key: 'dashboard_layout',
-            value: { layouts: newLayouts, hidden: newHidden },
+            value: { order, hidden } satisfies UserDashboardLayout,
           }),
         })
       } catch {
-        // silent fail
+        // silent
       }
-    }, LAYOUT_SAVE_DEBOUNCE)
+    }, SAVE_DEBOUNCE)
   }, [])
-
-  const handleLayoutChange = useCallback((currentLayout: Layout, allLayouts: ResponsiveLayouts) => {
-    const lgLayout = (allLayouts.lg ?? currentLayout) as LayoutItem[]
-    setLayouts(lgLayout)
-    saveLayout(lgLayout, hiddenWidgetIds)
-  }, [hiddenWidgetIds, saveLayout])
 
   const handleHideWidget = useCallback((widgetId: string) => {
     const newHidden = [...hiddenWidgetIds, widgetId]
     setHiddenWidgetIds(newHidden)
-    saveLayout(layouts, newHidden)
-  }, [hiddenWidgetIds, layouts, saveLayout])
+    savePrefs(widgetOrder, newHidden)
+  }, [hiddenWidgetIds, widgetOrder, savePrefs])
 
   const handleAddWidget = useCallback((widgetId: string) => {
     const newHidden = hiddenWidgetIds.filter((id) => id !== widgetId)
     setHiddenWidgetIds(newHidden)
-    saveLayout(layouts, newHidden)
-  }, [hiddenWidgetIds, layouts, saveLayout])
+    savePrefs(widgetOrder, newHidden)
+  }, [hiddenWidgetIds, widgetOrder, savePrefs])
 
   // Stats fetching
   const buildUrl = useCallback((p: PeriodFilter, mp: string): string => {
@@ -199,9 +192,17 @@ export const DashboardContent = ({
     router.push(`/reports?${search}`)
   }, [router])
 
+  // Build widget map for quick lookup
+  const widgetMap = useMemo(() => {
+    const map = new Map(availableWidgets.map((w) => [w.id, w]))
+    return map
+  }, [availableWidgets])
+
   const visibleWidgets = useMemo(
-    () => availableWidgets.filter((w) => !hiddenWidgetIds.includes(w.id)),
-    [availableWidgets, hiddenWidgetIds]
+    () => widgetOrder
+      .filter((id) => !hiddenWidgetIds.includes(id) && widgetMap.has(id))
+      .map((id) => widgetMap.get(id)!),
+    [widgetOrder, hiddenWidgetIds, widgetMap]
   )
 
   const hiddenWidgets = useMemo(
@@ -209,28 +210,15 @@ export const DashboardContent = ({
     [availableWidgets, hiddenWidgetIds]
   )
 
-  const visibleLayouts = useMemo(
-    () => layouts.filter((l) => visibleWidgets.some((w) => w.id === l.i)),
-    [layouts, visibleWidgets]
-  )
-
-  const gridLayouts: ResponsiveLayouts = useMemo(() => ({
-    lg: visibleLayouts,
-    md: visibleLayouts,
-    sm: visibleLayouts.map((l) => ({ ...l, w: 6, x: 0 })),
-    xs: visibleLayouts.map((l) => ({ ...l, w: 1, x: 0 })),
-  }), [visibleLayouts])
-
-  if (!layoutLoaded) {
+  if (!loaded) {
     return (
       <div className="space-y-6">
         <div className="h-10 w-48 animate-pulse rounded-lg bg-th-bg-secondary" />
-        <div className="grid grid-cols-6 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl bg-th-bg-secondary" />
+            <div key={i} className="h-48 animate-pulse rounded-xl bg-th-bg-secondary" />
           ))}
         </div>
-        <div className="h-64 animate-pulse rounded-xl bg-th-bg-secondary" />
       </div>
     )
   }
@@ -241,10 +229,10 @@ export const DashboardContent = ({
       initialStats={stats}
       onNavigateReports={navigateToReports}
     >
-      <div className="space-y-6" ref={containerRef}>
+      <div className="space-y-6">
         <WelcomeNotice userId={userId} />
 
-        {/* Header: Greeting + Filters + Add Widget */}
+        {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-th-text">{t('dashboard.title')}</h1>
@@ -257,7 +245,7 @@ export const DashboardContent = ({
               </div>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <AddWidgetPanel hiddenWidgets={hiddenWidgets} onAdd={handleAddWidget} />
             <select
               value={marketplace}
@@ -273,7 +261,7 @@ export const DashboardContent = ({
                 <button
                   key={p}
                   onClick={() => handlePeriodChange(p)}
-                  className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                  className={`rounded-lg px-3.5 py-2 text-xs font-medium transition-all duration-200 ${
                     period === p
                       ? 'bg-th-accent text-white shadow-sm'
                       : 'text-th-text-secondary hover:bg-th-bg-hover'
@@ -286,26 +274,17 @@ export const DashboardContent = ({
           </div>
         </div>
 
-        {/* Widget Grid */}
-        {mounted && <ResponsiveGridLayout
-          width={containerWidth}
-          layouts={gridLayouts}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
-          cols={{ lg: 12, md: 12, sm: 6, xs: 1 }}
-          rowHeight={80}
-          dragConfig={{ enabled: !isMobile, handle: '.drag-handle', bounded: false, threshold: 3 }}
-          resizeConfig={{ enabled: !isMobile, handles: ['se'] }}
-          onLayoutChange={handleLayoutChange}
-          margin={[16, 16]}
-        >
+        {/* Masonry Widget Grid */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visibleWidgets.map((widget) => {
             const WidgetComponent = WIDGET_COMPONENTS[widget.id]
             if (!WidgetComponent) return null
             return (
-              <div key={widget.id}>
+              <div key={widget.id} className={SIZE_CLASS[widget.size]}>
                 <WidgetWrapper
                   title={widget.title}
                   widgetId={widget.id}
+                  size={widget.size}
                   onHide={handleHideWidget}
                 >
                   <WidgetComponent />
@@ -313,7 +292,7 @@ export const DashboardContent = ({
               </div>
             )
           })}
-        </ResponsiveGridLayout>}
+        </div>
       </div>
     </DashboardProvider>
   )

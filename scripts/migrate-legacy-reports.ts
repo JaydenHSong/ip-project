@@ -371,6 +371,20 @@ const main = async (): Promise<void> => {
           continue
         }
 
+        // Skip if report already exists (resume-safe)
+        const { count: existingReport } = await supabase
+          .from('reports')
+          .select('id', { count: 'exact', head: true })
+          .eq('listing_id', listingId)
+          .eq('source', 'OMS')
+          .contains('ai_analysis', { legacy_id: row.amazon_violation_report_id })
+
+        if (existingReport && existingReport > 0) {
+          reportsCreated++ // count as success (already done)
+          skipped++
+          continue
+        }
+
         // Create report with related_asins
         const reportData: Record<string, unknown> = {
           listing_id: listingId,

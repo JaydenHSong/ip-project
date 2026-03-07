@@ -53,7 +53,7 @@ const ReportsPage = async ({
     let query = supabase
       .from('reports')
       .select(
-        '*, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
+        '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
@@ -81,7 +81,11 @@ const ReportsPage = async ({
 
     const { data, error, count } = await query
     if (error) console.error('Reports query error:', error.message)
-    reports = data as typeof DEMO_REPORTS | null
+    // listing_snapshot fallback
+    reports = (data ?? []).map((r: Record<string, unknown>) => {
+      if (!r.listings && r.listing_snapshot) return { ...r, listings: r.listing_snapshot }
+      return r
+    }) as typeof DEMO_REPORTS | null
     totalPages = Math.ceil((count ?? 0) / limit)
   }
 

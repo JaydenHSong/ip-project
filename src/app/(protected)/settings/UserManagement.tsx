@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useI18n } from '@/lib/i18n/context'
+import { useToast } from '@/hooks/useToast'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { ROLES } from '@/types/users'
@@ -40,6 +41,7 @@ const formatRelativeTime = (dateStr: string | null): string => {
 
 export const UserManagement = ({ currentUserId }: UserManagementProps) => {
   const { t } = useI18n()
+  const { addToast } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -80,7 +82,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
       })
       const data = await res.json()
       if (!res.ok) {
-        alert(data.error?.message ?? t('settings.users.updateError'))
+        addToast({ type: 'error', title: t('settings.users.updateError'), message: data.error?.message })
         return
       }
       setUsers((prev) =>
@@ -89,7 +91,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
         ),
       )
     } catch {
-      alert(t('settings.users.updateError'))
+      addToast({ type: 'error', title: t('settings.users.updateError') })
     } finally {
       setUpdating(null)
       setConfirmModal(null)
@@ -98,7 +100,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
 
   const openRoleChange = (user: User, newRole: Role) => {
     if (user.id === currentUserId) {
-      alert(t('settings.users.selfEditBlocked'))
+      addToast({ type: 'warning', title: t('settings.users.selfEditBlocked') })
       return
     }
     setConfirmModal({
@@ -112,7 +114,7 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
 
   const openActiveToggle = (user: User) => {
     if (user.id === currentUserId) {
-      alert(t('settings.users.selfEditBlocked'))
+      addToast({ type: 'warning', title: t('settings.users.selfEditBlocked') })
       return
     }
     setConfirmModal({

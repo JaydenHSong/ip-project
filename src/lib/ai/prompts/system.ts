@@ -2,6 +2,7 @@
 // Sonnet/Opus 공통으로 사용하는 시스템 프롬프트 빌더
 
 import { VIOLATION_TYPES, type ViolationCode } from '@/constants/violations'
+import { promptManager } from '@/lib/ai/prompt-manager'
 
 const SYSTEM_PROMPT_BASE = `You are Sentinel AI, an Amazon marketplace violation detection system for Spigen Inc.
 
@@ -38,16 +39,20 @@ const formatViolationTypes = (): string => {
     .join('\n')
 }
 
-const buildSystemPrompt = (params: {
+const buildSystemPrompt = async (params: {
   trademarks: string[]
   skillContent: string
-}): string => {
+}): Promise<string> => {
   const violationTypesStr = formatViolationTypes()
   const trademarksStr = params.trademarks.length > 0
     ? params.trademarks.map(t => `- ${t}`).join('\n')
     : '(No trademarks loaded)'
 
-  return SYSTEM_PROMPT_BASE
+  // DB에서 활성 프롬프트 로딩, 실패 시 하드코딩 fallback
+  const dbPrompt = await promptManager.getActive('system')
+  const template = dbPrompt?.content ?? SYSTEM_PROMPT_BASE
+
+  return template
     .replace('{{VIOLATION_TYPES}}', violationTypesStr)
     .replace('{{TRADEMARKS}}', trademarksStr)
     .replace('{{SKILL_CONTENT}}', params.skillContent || '(No skill document loaded)')

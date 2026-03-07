@@ -99,7 +99,7 @@ export const POST = async (req: Request) => {
     ? Math.floor((Date.now() - new Date(report.sc_submitted_at).getTime()) / (1000 * 60 * 60 * 24))
     : 0
 
-  const systemPrompt = buildSystemPrompt({ trademarks: trademarkNames, skillContent: '' })
+  const systemPrompt = await buildSystemPrompt({ trademarks: trademarkNames, skillContent: '' })
   const userPrompt = STRENGTHEN_PROMPT
     .replace('{{daysSince}}', String(daysSince))
     .replace('{{resubmitCount}}', String((report.resubmit_count ?? 0) + 1))

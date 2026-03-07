@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { Modal } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Textarea'
 import { useI18n } from '@/lib/i18n/context'
+import { useToast } from '@/hooks/useToast'
 
 type ReportActionsProps = {
   reportId: string
@@ -34,6 +35,7 @@ export const ReportActions = ({
 }: ReportActionsProps) => {
   const router = useRouter()
   const { t } = useI18n()
+  const { addToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
   const [showRewriteModal, setShowRewriteModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -65,7 +67,7 @@ export const ReportActions = ({
       }
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setLoading(null)
     }
@@ -83,7 +85,7 @@ export const ReportActions = ({
       }
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setLoading(null)
     }
@@ -113,7 +115,7 @@ export const ReportActions = ({
       setPreviewBody(data.draft_body)
       setRewriteStep(2)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setLoading(null)
     }
@@ -140,7 +142,7 @@ export const ReportActions = ({
       resetRewriteModal()
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setLoading(null)
     }
@@ -168,7 +170,7 @@ export const ReportActions = ({
       }
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setLoading(null)
     }
@@ -186,7 +188,7 @@ export const ReportActions = ({
       }
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setLoading(null)
     }
@@ -203,7 +205,7 @@ export const ReportActions = ({
       router.push('/reports')
       router.refresh()
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed')
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setLoading(null)
       setShowDeleteConfirm(false)

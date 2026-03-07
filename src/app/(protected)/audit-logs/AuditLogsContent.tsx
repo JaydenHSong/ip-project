@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
+import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 
@@ -39,10 +40,10 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
     <div className="space-y-4 md:space-y-6">
       <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('auditLogs.title')}</h1>
 
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
+      <ScrollTabs>
         <Link
           href="/audit-logs"
-          className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${!actionFilter ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+          className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${!actionFilter ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
         >
           {t('common.all')}
         </Link>
@@ -50,12 +51,12 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
           <Link
             key={a}
             href={`/audit-logs?action=${a}`}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium capitalize transition-colors ${actionFilter === a ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
+            className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium capitalize transition-colors ${actionFilter === a ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
           >
             {a}
           </Link>
         ))}
-      </div>
+      </ScrollTabs>
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">

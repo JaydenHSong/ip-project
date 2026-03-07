@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
+import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { MonitoringSettings } from './MonitoringSettings'
 import { ScAutomationSettings } from './ScAutomationSettings'
 import { AutoApproveSettings } from './AutoApproveSettings'
@@ -11,6 +12,7 @@ import { TemplatesTab } from './TemplatesTab'
 import { ExtensionGuide } from './ExtensionGuide'
 import { UserManagement } from './UserManagement'
 import { AiLearningTab } from './AiLearningTab'
+import { AiPromptsTab } from './AiPromptsTab'
 
 type SettingsContentProps = {
   isOwner: boolean
@@ -24,10 +26,10 @@ type SettingsContentProps = {
 // owner: + users
 const VIEWER_TABS = ['extension'] as const
 const EDITOR_TABS = ['extension'] as const
-const ADMIN_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'ai-learning'] as const
-const OWNER_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'ai-learning', 'users'] as const
+const ADMIN_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'ai-learning', 'ai-prompts'] as const
+const OWNER_TABS = ['monitoring', 'extension', 'crawler', 'sc-automation', 'auto-approve', 'templates', 'ai-learning', 'ai-prompts', 'users'] as const
 
-type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'templates' | 'ai-learning' | 'users'
+type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'templates' | 'ai-learning' | 'ai-prompts' | 'users'
 
 export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: SettingsContentProps) => {
   const { t } = useI18n()
@@ -53,6 +55,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
       case 'auto-approve': return t('settings.autoApprove.title' as Parameters<typeof t>[0])
       case 'templates': return 'Templates'
       case 'ai-learning': return t('settings.aiLearning.title' as Parameters<typeof t>[0])
+      case 'ai-prompts': return 'AI Prompts'
       case 'users': return t('settings.users.title')
     }
   }
@@ -61,12 +64,12 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-th-text">{t('nav.settings')}</h1>
 
-      <div className="flex gap-1 overflow-x-auto rounded-xl border border-th-border bg-th-bg-secondary p-1">
+      <ScrollTabs>
         {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+            className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
               activeTab === tab
                 ? 'bg-surface-card text-th-text shadow-sm'
                 : 'text-th-text-muted hover:text-th-text-secondary'
@@ -75,7 +78,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
             {tabLabel(tab)}
           </button>
         ))}
-      </div>
+      </ScrollTabs>
 
       {activeTab === 'monitoring' && <MonitoringSettings isAdmin={isAdmin} />}
       {activeTab === 'extension' && <ExtensionGuide />}
@@ -84,6 +87,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
       {activeTab === 'auto-approve' && <AutoApproveSettings isAdmin={isAdmin} />}
       {activeTab === 'templates' && <TemplatesTab />}
       {activeTab === 'ai-learning' && <AiLearningTab />}
+      {activeTab === 'ai-prompts' && <AiPromptsTab />}
       {activeTab === 'users' && isOwner && (
         <UserManagement currentUserId={currentUserId} />
       )}

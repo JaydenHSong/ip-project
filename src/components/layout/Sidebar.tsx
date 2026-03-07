@@ -133,9 +133,6 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
         collapsed && 'justify-center px-2',
       )}>
         <SpigenLogo className="h-7 w-6 shrink-0 text-th-accent" />
-        {!collapsed && (
-          <span className="text-lg font-bold text-th-text">Spigen Sentinel</span>
-        )}
       </div>
 
       {/* Main Nav */}

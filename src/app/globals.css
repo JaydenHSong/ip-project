@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "react-grid-layout/css/styles.css";
 
 /* ─── Light Theme (default) — Clean White + Vibrant Orange ─── */
 :root {
@@ -80,13 +79,13 @@
   --text-inverse: #0c0e12;
   --text-active: #FF9F5A;
 
-  --border-primary: rgba(255, 255, 255, 0.06);
-  --border-secondary: rgba(255, 255, 255, 0.10);
+  --border-primary: rgba(255, 255, 255, 0.10);
+  --border-secondary: rgba(255, 255, 255, 0.16);
   --border-active: #FF6D1F;
 
-  --surface-card: rgba(255, 255, 255, 0.03);
-  --surface-overlay: rgba(0, 0, 0, 0.7);
-  --surface-panel: rgba(255, 255, 255, 0.02);
+  --surface-card: #171a21;
+  --surface-overlay: rgba(0, 0, 0, 0.75);
+  --surface-panel: #141720;
 
   --accent-primary: #FF6D1F;
   --accent-primary-hover: #FF9F5A;
@@ -255,6 +254,15 @@ body {
   box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-primary);
 }
 
+/* ─── Scrollbar Hide ─── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Fade in animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -272,4 +280,9 @@ body {
 
 .animate-slide-up {
   animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
 }

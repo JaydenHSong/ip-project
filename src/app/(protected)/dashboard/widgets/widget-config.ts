@@ -1,60 +1,26 @@
-import type { LayoutItem } from 'react-grid-layout'
 import type { Role } from '@/types/users'
+
+export type WidgetSize = 'full' | 'medium' | 'standard'
 
 export type WidgetConfig = {
   id: string
   title: string
+  size: WidgetSize
   minRole?: Role
-  defaultLayout: LayoutItem
+  order: number
 }
 
 export const WIDGET_CONFIGS: WidgetConfig[] = [
-  {
-    id: 'stats',
-    title: 'Stats Overview',
-    defaultLayout: { i: 'stats', x: 0, y: 0, w: 12, h: 2, minW: 6, minH: 2 },
-  },
-  {
-    id: 'report-trend',
-    title: 'Report Trend',
-    defaultLayout: { i: 'report-trend', x: 0, y: 2, w: 8, h: 4, minW: 4, minH: 3 },
-  },
-  {
-    id: 'violation-dist',
-    title: 'Violation Distribution',
-    defaultLayout: { i: 'violation-dist', x: 8, y: 2, w: 4, h: 4, minW: 4, minH: 3 },
-  },
-  {
-    id: 'status-pipeline',
-    title: 'Status Pipeline',
-    defaultLayout: { i: 'status-pipeline', x: 0, y: 6, w: 6, h: 4, minW: 4, minH: 3 },
-  },
-  {
-    id: 'ai-performance',
-    title: 'AI Performance',
-    defaultLayout: { i: 'ai-performance', x: 6, y: 6, w: 6, h: 4, minW: 4, minH: 3 },
-  },
-  {
-    id: 'top-violations',
-    title: 'Top Violations',
-    defaultLayout: { i: 'top-violations', x: 0, y: 10, w: 12, h: 4, minW: 6, minH: 3 },
-  },
-  {
-    id: 'recent-reports',
-    title: 'Recent Reports',
-    defaultLayout: { i: 'recent-reports', x: 0, y: 14, w: 6, h: 5, minW: 4, minH: 3 },
-  },
-  {
-    id: 'active-campaigns',
-    title: 'Active Campaigns',
-    defaultLayout: { i: 'active-campaigns', x: 6, y: 14, w: 6, h: 5, minW: 4, minH: 3 },
-  },
-  {
-    id: 'system-status',
-    title: 'System Status',
-    minRole: 'owner',
-    defaultLayout: { i: 'system-status', x: 0, y: 19, w: 12, h: 3, minW: 6, minH: 2 },
-  },
+  { id: 'stats', title: 'Stats Overview', size: 'full', order: 0 },
+  { id: 'report-trend', title: 'Report Trend', size: 'medium', order: 1 },
+  { id: 'violation-dist', title: 'Violation Distribution', size: 'medium', order: 2 },
+  { id: 'status-pipeline', title: 'Status Pipeline', size: 'medium', order: 3 },
+  { id: 'ai-performance', title: 'AI Performance', size: 'medium', order: 4 },
+  { id: 'top-violations', title: 'Top Violations', size: 'full', order: 5 },
+  { id: 'recent-reports', title: 'Recent Reports', size: 'standard', order: 6 },
+  { id: 'active-campaigns', title: 'Active Campaigns', size: 'standard', order: 7 },
+  { id: 'ai-accuracy', title: 'AI Accuracy', size: 'medium', minRole: 'admin', order: 9 },
+  { id: 'system-status', title: 'System Status', size: 'standard', minRole: 'owner', order: 10 },
 ]
 
 const ROLE_HIERARCHY: Record<Role, number> = {
@@ -70,10 +36,10 @@ export const getAvailableWidgets = (role: Role): WidgetConfig[] =>
     (w) => !w.minRole || ROLE_HIERARCHY[role] >= ROLE_HIERARCHY[w.minRole]
   )
 
-export const getDefaultLayouts = (role: Role): LayoutItem[] =>
-  getAvailableWidgets(role).map((w) => ({ ...w.defaultLayout }))
+export const getDefaultOrder = (role: Role): string[] =>
+  getAvailableWidgets(role).sort((a, b) => a.order - b.order).map((w) => w.id)
 
 export type UserDashboardLayout = {
-  layouts: LayoutItem[]
+  order: string[]
   hidden: string[]
 }

@@ -125,6 +125,7 @@ export type AiAnalysisJobResult = {
 export type MondaySyncResult = {
   total: number
   created: number
+  created_ids: string[]
   updated: number
   unchanged: number
   errors: { itemId: string; error: string }[]
