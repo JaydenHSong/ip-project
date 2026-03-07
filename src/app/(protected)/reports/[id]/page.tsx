@@ -50,6 +50,8 @@ type ReportData = {
   monitoring_started_at: string | null
   resolved_at: string | null
   resolution_type: string | null
+  // SC data
+  sc_submit_data: { sc_rav_url?: string; asin?: string; marketplace?: string } | null
   // Ownership
   created_by: string
   // Multi-ASIN

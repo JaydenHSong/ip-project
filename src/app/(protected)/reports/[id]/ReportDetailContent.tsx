@@ -44,6 +44,7 @@ type ReportDetailContentProps = {
     sc_case_id: string | null
     sc_submission_error: string | null
     sc_submit_attempts: number
+    sc_submit_data: { sc_rav_url?: string; asin?: string; marketplace?: string } | null
     resubmit_count: number
     resubmit_interval_days: number | null
     next_resubmit_at: string | null
@@ -235,6 +236,85 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             />
         </div>
       </div>
+
+      {/* SC Submitting Banner */}
+      {report.status === 'sc_submitting' && (
+        <div className="overflow-hidden rounded-xl border border-th-accent/30 bg-th-accent-soft">
+          <div className="h-1 w-full overflow-hidden bg-th-accent/20">
+            <div className="h-full w-1/3 animate-[shimmer_1.5s_ease-in-out_infinite] rounded-full bg-th-accent" />
+          </div>
+          <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-th-accent/20">
+                <svg className="h-5 w-5 animate-spin text-th-accent" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-th-text">SC 제출 대기 중</p>
+                <p className="mt-0.5 text-xs text-th-text-secondary">
+                  Seller Central에서 신고를 제출하세요.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={report.sc_submit_data?.sc_rav_url ?? `https://sellercentral.amazon.com/reportabuse${listing ? `?asin=${listing.asin}` : ''}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-th-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-th-accent-hover"
+              >
+                Seller Central 열기 ↗
+              </a>
+              <Button
+                variant="outline"
+                size="sm"
+                loading={approving}
+                onClick={async () => {
+                  setApproving(true)
+                  try {
+                    const res = await fetch(`/api/reports/${report.id}/confirm-submitted`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({}),
+                    })
+                    if (!res.ok) {
+                      const err = await res.json()
+                      throw new Error(err.error?.message ?? 'Confirm failed')
+                    }
+                    router.refresh()
+                  } catch (e) {
+                    addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
+                  } finally {
+                    setApproving(false)
+                  }
+                }}
+              >
+                제출 완료
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submitted Success Banner */}
+      {report.status === 'submitted' && (
+        <div className="flex items-center gap-4 rounded-xl border border-st-success-text/30 bg-st-success-bg px-5 py-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-st-success-text/20">
+            <svg className="h-5 w-5 text-st-success-text" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-th-text">SC 제출 완료</p>
+            <p className="mt-0.5 text-xs text-th-text-secondary">
+              Seller Central에 성공적으로 신고되었습니다.
+              {report.sc_case_id && <span className="ml-1 font-medium">Case ID: {report.sc_case_id}</span>}
+            </p>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
