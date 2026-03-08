@@ -7,6 +7,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
 import type { ViolationCode } from '@/constants/violations'
+import type { ReportStatus } from '@/types/reports'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_REPORTS } from '@/lib/demo/data'
 import { useDashboardContext } from './DashboardContext'
@@ -97,7 +98,7 @@ export const RecentReportsWidget = () => {
                   </p>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-2">
-                  <StatusBadge status={report.status as 'draft' | 'pending_review' | 'approved'} type="report" />
+                  <StatusBadge status={report.status as ReportStatus} type="report" />
                   <ChevronRight className="h-4 w-4 text-th-text-muted" />
                 </div>
               </div>

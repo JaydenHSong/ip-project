@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { notifyApproved } from '@/lib/notifications/google-chat'
 import { buildScSubmitData } from '@/lib/reports/sc-data'
+import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
 import type { ApproveReportRequest } from '@/types/api'
 
 // POST /api/reports/:id/approve — 승인 → sc_submitting 자동 전환
@@ -44,7 +45,7 @@ export const POST = withAuth(async (req) => {
   // Listing 조회 (SC 데이터 빌드용)
   const { data: listing } = await supabase
     .from('listings')
-    .select('asin, marketplace, title')
+    .select('asin, marketplace, title, url')
     .eq('id', report.listing_id)
     .single()
 
@@ -64,11 +65,25 @@ export const POST = withAuth(async (req) => {
       })
     : null
 
+  // BR 데이터 준비 (BR 대상 위반 유형인 경우에만)
+  const brSubmitData = listing && isBrReportable(report.user_violation_type)
+    ? buildBrSubmitData({
+        report: {
+          id,
+          user_violation_type: report.user_violation_type,
+          draft_body: body.edited_draft_body ?? report.draft_body,
+          draft_title: body.edited_draft_title ?? report.draft_title,
+        },
+        listing: { asin: listing.asin, url: listing.url ?? null, marketplace: listing.marketplace },
+      })
+    : null
+
   const updates: Record<string, unknown> = {
     status: 'sc_submitting',
     approved_by: authUser!.id,
     approved_at: now,
     sc_submit_data: scSubmitData,
+    br_submit_data: brSubmitData,
   }
 
   // 직접 수정 후 승인한 경우

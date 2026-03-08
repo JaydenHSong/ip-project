@@ -27,7 +27,7 @@ export const POST = withAuth(async (req, { user }) => {
   // 현재 상태 확인
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('status')
+    .select('status, br_submit_data')
     .eq('id', id)
     .single()
 
@@ -47,10 +47,14 @@ export const POST = withAuth(async (req, { user }) => {
 
   const now = new Date().toISOString()
 
+  // BR 데이터가 있으면 BR Track으로 전환, 없으면 submitted
+  const hasBrData = report.br_submit_data !== null
+  const nextStatus = hasBrData ? 'br_submitting' : 'submitted'
+
   const updateData: Record<string, unknown> = {
-    status: 'submitted',
+    status: nextStatus,
     sc_submitted_at: now,
-    sc_submit_data: null, // 사용 완료 클리어
+    sc_submit_data: null,
     updated_at: now,
   }
 

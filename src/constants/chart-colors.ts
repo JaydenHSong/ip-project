@@ -11,6 +11,8 @@ export const CHART_COLORS = {
   pending_review: '#f59e0b',
   approved: '#3b82f6',
   submitted: '#8b5cf6',
+  sc_submitting: '#6366f1',
+  br_submitting: '#0ea5e9',
   monitoring: '#06b6d4',
   resolved: '#10b981',
   rejected: '#ef4444',

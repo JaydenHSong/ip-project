@@ -266,6 +266,17 @@ export const ReportActions = ({
           </div>
         )}
 
+        {/* BR Submitting: Read-only spinner */}
+        {status === 'br_submitting' && (
+          <div className="flex items-center gap-2 text-sm text-th-text-muted">
+            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span>BR 제출 중...</span>
+          </div>
+        )}
+
         {/* SC Failed: approved + error → Retry button */}
         {status === 'approved' && scSubmissionError && (
           <div className="flex items-center gap-3">

@@ -4,6 +4,73 @@
 
 ---
 
+## [2026-03-07] - Brand Registry (BR) Auto-Reporter Engine 완료
+
+### 요약
+Amazon Brand Registry (BR) 자동 신고 엔진 통합 — SC 및 수동 트랙에 이어 3번째 신고 채널 추가. 19개 위반 유형(V01~V19)을 4가지 BR 폼 타입으로 매핑, Playwright 기반 자동화, BullMQ 큐 관리. 설계-구현 일치율 97%.
+
+### Added
+- **DB Schema** (`024_add_br_submit_columns.sql`)
+  - `br_submit_data` (JSONB): BR 폼 페이로드
+  - `br_case_id` (string): Amazon 케이스 ID
+  - `br_submitted_at` (timestamp): 제출 시간
+  - `br_submission_error` (text): 에러 로그
+  - `br_submit_attempts` (integer): 재시도 횟수
+  - Partial index on status + br_submitting
+
+- **Type System** (`src/types/reports.ts`)
+  - `BrFormType`: other_policy | incorrect_variation | product_review | product_not_as_described
+  - `BrSubmitData`: V01~V19 매핑 데이터 구조
+  - Report 타입 확장
+
+- **BR Helper Library** (`src/lib/reports/br-data.ts`)
+  - `buildBrSubmitData()`: BR 페이로드 생성
+  - `getBrFormType()`: V01~V19 → BR 폼 타입 매핑
+  - `isBrReportable()`: BR 신고 가능 여부 판단
+
+- **API Endpoints** (Web)
+  - `GET /api/crawler/br-pending`: 크롤러 폴링 (대기 중인 BR 작업)
+  - `POST /api/crawler/br-result`: BR 제출 결과 콜백 (성공/실패)
+
+- **Approval Flow Integration**
+  - `approve`, `bulk-approve` 엔드포인트: BR 데이터 자동 생성
+  - `sc-result` 엔드포인트: SC 성공 시 `br_submitting` 상태 전환
+  - `cancel-submit`: BR 데이터 초기화
+
+- **UI Components**
+  - `StatusBadge.tsx`: `br_submitting` 뱃지 추가
+  - ReportsContent: `br_submitting` 탭 추가
+  - ReportDetailContent: BR 제출 중 배너 & 취소 버튼
+  - ReportActions: BR 제출 중 스피너
+
+- **Crawler BR Module** (`crawler/src/br-submit/`)
+  - `worker.ts`: Playwright BR 폼 자동화 (KAT Shadow DOM)
+  - `queue.ts`: BullMQ 큐 (10 jobs/hour, 동시성 1)
+  - `scheduler.ts`: 2분 폴링 스케줄러
+  - `types.ts`: 작업 데이터 타입
+
+### Changed
+- Report lifecycle: `approve` → `sc_submitting` → `br_submitting` → `monitoring`
+- V01~V19 매핑 완성 (모든 19개 위반 타입 지원)
+- chart-colors.ts: `br_submitting` 색상 추가
+
+### Fixed
+- StatusBadge: `br_submitting` case 추가
+- ReportsContent: `br_submitting` 탭 추가
+- ReportActions: BR 스피너 누락
+- RecentReportsWidget: ReportStatus import 타입 에러
+- bulk-submit: listingMap 타입 정확화
+
+### Metrics
+- **Design Match Rate**: 97% (초기 90% 목표 초과)
+- **Files Created**: 7개
+- **Files Modified**: 13개
+- **Issues Found**: 6개 → 모두 해결
+- **Final Typecheck**: CLEAN (0 errors)
+- **Final Lint**: CLEAN (0 warnings)
+
+---
+
 ## [2026-03-02] - IP Registry (Patents) 완료
 
 ### 요약

@@ -36,10 +36,10 @@ export const POST = async (req: Request) => {
   const supabase = createAdminClient()
   const now = new Date().toISOString()
 
-  // 현재 리포트 조회
+  // 현재 리포트 조회 (br_submit_data도 함께 조회하여 BR 전환 판단)
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, sc_submit_attempts, listing_id')
+    .select('id, status, sc_submit_attempts, listing_id, br_submit_data')
     .eq('id', body.report_id)
     .single()
 
@@ -51,16 +51,20 @@ export const POST = async (req: Request) => {
   }
 
   if (body.success) {
-    // 성공: sc_submitting → monitoring (submitted 거치지 않고 바로)
+    // 성공: br_submit_data가 있으면 BR Track으로 전환, 없으면 monitoring
+    const hasBrData = report.br_submit_data !== null
+    const nextStatus = hasBrData ? 'br_submitting' : 'monitoring'
+
     const { error: updateError } = await supabase
       .from('reports')
       .update({
-        status: 'monitoring',
+        status: nextStatus,
         sc_case_id: body.sc_case_id ?? null,
         sc_submitted_at: now,
         sc_last_attempt_at: now,
-        monitoring_started_at: now,
         sc_submission_error: null,
+        sc_submit_data: null,
+        ...(hasBrData ? {} : { monitoring_started_at: now }),
       })
       .eq('id', body.report_id)
 
@@ -71,40 +75,41 @@ export const POST = async (req: Request) => {
       )
     }
 
-    // 초기 모니터링 스냅샷 생성 (listings 데이터 사용)
-    const { data: listing } = await supabase
-      .from('listings')
-      .select('asin, title, seller_name, price_amount, price_currency, images, rating, review_count')
-      .eq('id', report.listing_id)
-      .single()
+    // monitoring 진입 시에만 초기 스냅샷 + AI 학습 (BR 대기 중이면 BR 완료 후에)
+    if (!hasBrData) {
+      const { data: listing } = await supabase
+        .from('listings')
+        .select('asin, title, seller_name, price_amount, price_currency, images, rating, review_count')
+        .eq('id', report.listing_id)
+        .single()
 
-    if (listing) {
-      await supabase.from('report_snapshots').insert({
-        report_id: body.report_id,
-        snapshot_type: 'initial',
-        crawled_at: now,
-        title: listing.title,
-        seller_name: listing.seller_name,
-        price_amount: listing.price_amount,
-        price_currency: listing.price_currency,
-        images: listing.images,
-        rating: listing.rating,
-        review_count: listing.review_count,
-      })
+      if (listing) {
+        await supabase.from('report_snapshots').insert({
+          report_id: body.report_id,
+          snapshot_type: 'initial',
+          crawled_at: now,
+          title: listing.title,
+          seller_name: listing.seller_name,
+          price_amount: listing.price_amount,
+          price_currency: listing.price_currency,
+          images: listing.images,
+          rating: listing.rating,
+          review_count: listing.review_count,
+        })
+      }
+
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+      fetch(`${baseUrl}/api/ai/learn`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${serviceToken}`,
+        },
+        body: JSON.stringify({ report_id: body.report_id, trigger: 'sc_submitted' }),
+      }).catch(() => {})
     }
 
-    // AI 학습 트리거 — 성공 제출은 좋은 드래프트로 학습
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-    fetch(`${baseUrl}/api/ai/learn`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceToken}`,
-      },
-      body: JSON.stringify({ report_id: body.report_id, trigger: 'sc_submitted' }),
-    }).catch(() => {})
-
-    return NextResponse.json({ status: 'monitoring', sc_case_id: body.sc_case_id })
+    return NextResponse.json({ status: nextStatus, sc_case_id: body.sc_case_id })
   } else {
     // 실패
     const attempts = (report.sc_submit_attempts ?? 0) + 1

@@ -15,6 +15,13 @@ type ScSubmitResult = {
   error: string | null
 }
 
+type BrSubmitResult = {
+  reportId: string
+  success: boolean
+  brCaseId: string | null
+  error: string | null
+}
+
 type CampaignResultUpdate = {
   found: number
   sent: number
@@ -39,6 +46,8 @@ type SentinelClient = {
   reportScResult: (result: ScSubmitResult) => Promise<void>
   getPendingResubmits: () => Promise<{ reports: unknown[]; defaults: unknown }>
   strengthenDraft: (reportId: string) => Promise<void>
+  getPendingBrSubmits: () => Promise<unknown[]>
+  reportBrResult: (result: BrSubmitResult) => Promise<void>
 }
 
 const API_RETRY_MAX = 3
@@ -228,6 +237,30 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       if (!response.ok) {
         const body = await response.text()
         throw new Error(`Failed to strengthen draft: ${response.status} ${body}`)
+      }
+    },
+
+    getPendingBrSubmits: async (): Promise<unknown[]> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/br-pending`,
+        { method: 'GET', headers },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to fetch BR pending: ${response.status} ${body}`)
+      }
+      const data = (await response.json()) as { reports: unknown[] }
+      return data.reports
+    },
+
+    reportBrResult: async (result: BrSubmitResult): Promise<void> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/br-result`,
+        { method: 'POST', headers, body: JSON.stringify(result) },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to report BR result: ${response.status} ${body}`)
       }
     },
   }

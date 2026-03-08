@@ -8,6 +8,9 @@ import { createScSubmitQueue, createScSubmitWorker } from './sc-submit/queue.js'
 import { processScSubmitJob } from './sc-submit/worker.js'
 import { startScScheduler } from './sc-submit/scheduler.js'
 import { startResubmitScheduler } from './sc-submit/resubmit-scheduler.js'
+import { createBrSubmitQueue, createBrSubmitWorker } from './br-submit/queue.js'
+import { processBrSubmitJob, closeBrBrowser } from './br-submit/worker.js'
+import { startBrScheduler } from './br-submit/scheduler.js'
 import { createHealthServer } from './health.js'
 import { createVisionAnalyzer } from './ai/vision-analyzer.js'
 import { log } from './logger.js'
@@ -97,6 +100,19 @@ const init = async (): Promise<void> => {
 
   log('info', 'main', 'SC submit queue + worker + schedulers started')
 
+  // BR Submit Queue + Worker + Scheduler
+  const brQueue = createBrSubmitQueue(redisUrl)
+  const brWorker = createBrSubmitWorker(redisUrl, async (job) => {
+    const result = await processBrSubmitJob(job)
+    await sentinelClient.reportBrResult(result).catch((err) => {
+      log('error', 'main', `Failed to report BR result: ${err instanceof Error ? err.message : String(err)}`)
+    })
+    return result
+  })
+  const brSchedulerInterval = startBrScheduler(brQueue, sentinelClient)
+
+  log('info', 'main', 'BR submit queue + worker + scheduler started')
+
   redisConnected = true
   workerRunning = true
 
@@ -117,7 +133,11 @@ const init = async (): Promise<void> => {
     clearInterval(schedulerInterval)
     clearInterval(scSchedulerInterval)
     clearInterval(resubmitSchedulerInterval)
+    clearInterval(brSchedulerInterval)
     healthServer.close()
+    await closeBrBrowser()
+    await brWorker.close()
+    await brQueue.close()
     await scWorker.close()
     await scQueue.close()
     await worker.close()

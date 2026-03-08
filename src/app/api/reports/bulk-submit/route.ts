@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { buildScSubmitData } from '@/lib/reports/sc-data'
+import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
 
 type BulkSubmitRequest = {
   report_ids: string[]
@@ -50,12 +51,12 @@ export const POST = withAuth(async (req, { user }) => {
   const skippedCount = body.report_ids.length - validReports.length
 
   // SC submit인 경우 listing 정보 필요
-  let listingMap = new Map<string, { id: string; asin: string; marketplace: string; title: string }>()
+  let listingMap = new Map<string, { id: string; asin: string; marketplace: string; title: string; url: string | null }>()
   if (body.action === 'submit_sc') {
     const listingIds = [...new Set(validReports.map((r) => r.listing_id))]
     const { data: listings } = await supabase
       .from('listings')
-      .select('id, asin, marketplace, title')
+      .select('id, asin, marketplace, title, url')
       .in('id', listingIds)
     listingMap = new Map((listings ?? []).map((l) => [l.id, l]))
   }
@@ -80,6 +81,17 @@ export const POST = withAuth(async (req, { user }) => {
           },
           listing,
         })
+        if (isBrReportable(report.user_violation_type)) {
+          updates.br_submit_data = buildBrSubmitData({
+            report: {
+              id: report.id,
+              user_violation_type: report.user_violation_type,
+              draft_body: report.draft_body,
+              draft_title: null,
+            },
+            listing: { asin: listing.asin, url: listing.url ?? null, marketplace: listing.marketplace },
+          })
+        }
       }
     }
 

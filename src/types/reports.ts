@@ -2,7 +2,7 @@ import type { ViolationCategory, ViolationCode } from '@/constants/violations'
 
 export const REPORT_STATUSES = [
   'draft', 'pending_review', 'approved', 'rejected', 'cancelled',
-  'sc_submitting', 'submitted', 'monitoring', 'resolved', 'unresolved',
+  'sc_submitting', 'br_submitting', 'submitted', 'monitoring', 'resolved', 'unresolved',
   'resubmitted', 'escalated', 'archived',
 ] as const
 export type ReportStatus = (typeof REPORT_STATUSES)[number]
@@ -135,6 +135,13 @@ export type Report = {
   sc_last_attempt_at: string | null
   sc_submit_data: ScSubmitData | null
 
+  // BR 제출 추적
+  br_submit_data: BrSubmitData | null
+  br_case_id: string | null
+  br_submitted_at: string | null
+  br_submission_error: string | null
+  br_submit_attempts: number
+
   // 메타
   created_by: string
   created_at: string
@@ -148,6 +155,24 @@ export type ScSubmitData = {
   evidence_urls: string[]
   marketplace: string
   sc_rav_url: string
+  prepared_at: string
+}
+
+export type BrFormType =
+  | 'other_policy'
+  | 'incorrect_variation'
+  | 'product_review'
+  | 'product_not_as_described'
+
+export type BrSubmitData = {
+  form_type: BrFormType
+  subject: string
+  description: string
+  product_urls: string[]
+  seller_storefront_url?: string
+  policy_url?: string
+  asins?: string[]
+  order_id?: string
   prepared_at: string
 }
 

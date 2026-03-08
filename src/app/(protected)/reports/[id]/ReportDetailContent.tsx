@@ -324,6 +324,56 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </div>
       )}
 
+      {/* BR Submitting Banner */}
+      {report.status === 'br_submitting' && (
+        <div className="overflow-hidden rounded-xl border border-sky-500/30 bg-sky-50 dark:bg-sky-950/30">
+          <div className="h-1 w-full overflow-hidden bg-sky-500/20">
+            <div className="h-full w-1/3 animate-[shimmer_1.5s_ease-in-out_infinite] rounded-full bg-sky-500" />
+          </div>
+          <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-500/20">
+                <svg className="h-5 w-5 animate-spin text-sky-500" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-th-text">BR 신고 제출 중</p>
+                <p className="mt-0.5 text-xs text-th-text-secondary">
+                  Brand Registry에 자동으로 신고를 제출하고 있습니다.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              loading={stopping}
+              className="text-st-danger-text hover:bg-st-danger-bg"
+              onClick={async () => {
+                setStopping(true)
+                try {
+                  const res = await fetch(`/api/reports/${report.id}/cancel-submit`, {
+                    method: 'POST',
+                  })
+                  if (!res.ok) {
+                    const err = await res.json()
+                    throw new Error(err.error?.message ?? 'Cancel failed')
+                  }
+                  router.refresh()
+                } catch (e) {
+                  addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
+                } finally {
+                  setStopping(false)
+                }
+              }}
+            >
+              취소
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Submitted Success Banner */}
       {report.status === 'submitted' && (
         <div className="flex items-center gap-4 rounded-xl border border-st-success-text/30 bg-st-success-bg px-5 py-4">

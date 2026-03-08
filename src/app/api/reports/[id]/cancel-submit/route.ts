@@ -29,9 +29,9 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  if (report.status !== 'sc_submitting') {
+  if (report.status !== 'sc_submitting' && report.status !== 'br_submitting') {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'sc_submitting 상태에서만 취소 가능합니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'sc_submitting 또는 br_submitting 상태에서만 취소 가능합니다.' } },
       { status: 400 },
     )
   }
@@ -41,6 +41,8 @@ export const POST = withAuth(async (req) => {
     .update({
       status: 'draft',
       sc_submit_data: null,
+      br_submit_data: null,
+      br_submit_attempts: 0,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
