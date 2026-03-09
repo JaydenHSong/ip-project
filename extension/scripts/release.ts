@@ -46,7 +46,7 @@ const main = async (): Promise<void> => {
   // 파일 복사
   const filesToCopy = [
     'popup.js', 'background.js', 'content.js',
-    'sc-content.js', 'search-content.js', 'bot-status.js',
+    'sc-content.js', 'search-content.js', 'br-content.js', 'bot-status.js',
   ]
   for (const f of filesToCopy) {
     const src = join(DIST, f)
