@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Sentinel - Spigen Brand Protection",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "Report policy violations on Amazon listings",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqzAUeTineuKfLU6/VL4aQpAPSiDdGJyhacwlK0AZ67xXh7P1ZXiGPU09UpOwukyRpk1mhHN0Z61yKqyCmWaaNc0gIIZllpjX5NpWydY7xyROwF6NChf4yBIMgdqGrBfcB3TmK2F6a5ZQqP9FhyqxfORvV/7LiqWla7w2+yl7fJWtJ7fUKgdga74E/7JsPgDC1wXE30Gjpv7+Ev2JHAu4Uov48erqfhf89Rs0Hn7vSxjAfd5/Rd2CetFX2KEl7OWrSvuO1SdqOe0xqa5j+W2C4iX9xIG6/FiXgVmdjvK+mF+s6HajV+Tb5bRJqsQBgIm5LGqy/Kt6en7BrK9WyWoTjwIDAQAB",
   "permissions": [

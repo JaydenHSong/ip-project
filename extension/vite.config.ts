@@ -30,8 +30,8 @@ function stripCrossoriginPlugin(): Plugin {
         let html = readFileSync(fullPath, 'utf-8')
         // crossorigin 속성 제거
         html = html.replace(/\s+crossorigin/g, '')
-        // modulepreload → preload (Chrome Extension 호환)
-        html = html.replace(/rel="modulepreload"/g, 'rel="preload" as="script"')
+        // modulepreload 라인 완전 제거 (Chrome Extension에서 불필요, 타입 불일치 에러 유발)
+        html = html.replace(/\s*<link rel="modulepreload"[^>]*>\s*/g, '\n')
         writeFileSync(fullPath, html)
       }
     },
