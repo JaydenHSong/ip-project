@@ -15,6 +15,7 @@ export const GET = withAuth(async (req) => {
   const violationType = url.searchParams.get('violation_type')
   const disagreementOnly = url.searchParams.get('disagreement') === 'true'
   const search = url.searchParams.get('search')
+  const brCaseStatus = url.searchParams.get('br_case_status')
 
   const supabase = await createClient()
 
@@ -41,6 +42,9 @@ export const GET = withAuth(async (req) => {
   }
   if (search) {
     query = query.or(`draft_title.ilike.%${search}%`)
+  }
+  if (brCaseStatus) {
+    query = query.eq('br_case_status', brCaseStatus)
   }
 
   const { data, error, count } = await query

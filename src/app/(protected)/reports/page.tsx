@@ -22,6 +22,8 @@ const ReportsPage = async ({
     category?: string
     disagreement?: string
     owner?: string
+    br_case_status?: string
+    smart_queue?: string
   }>
 }) => {
   const user = await getCurrentUser()
@@ -56,6 +58,7 @@ const ReportsPage = async ({
         '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
         { count: 'exact' },
       )
+      // br_sla_deadline_at, br_case_status already included via '*'
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -74,6 +77,20 @@ const ReportsPage = async ({
       query = query.eq('disagreement_flag', true)
     }
 
+    if (params.br_case_status) {
+      query = query.eq('br_case_status', params.br_case_status)
+    }
+    if (params.smart_queue === 'needs_attention') {
+      query = query.eq('br_case_status', 'needs_attention')
+    } else if (params.smart_queue === 'new_reply') {
+      query = query.not('br_last_amazon_reply_at', 'is', null)
+    } else if (params.smart_queue === 'sla_warning') {
+      query = query.not('br_sla_deadline_at', 'is', null)
+        .lt('br_sla_deadline_at', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
+    } else if (params.smart_queue === 'stale') {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      query = query.or(`br_last_scraped_at.lt.${sevenDaysAgo},br_last_scraped_at.is.null`)
+    }
     const ownerFilter = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
     if (ownerFilter === 'my') {
       query = query.eq('created_by', user.id)

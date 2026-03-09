@@ -52,6 +52,15 @@ type ReportData = {
   resolution_type: string | null
   // SC data
   sc_submit_data: { sc_rav_url?: string; asin?: string; marketplace?: string } | null
+  // BR Case Management
+  br_case_id: string | null
+  br_case_status: string | null
+  br_last_amazon_reply_at: string | null
+  br_last_our_reply_at: string | null
+  br_submitted_at: string | null
+  br_sla_deadline_at: string | null
+  parent_report_id: string | null
+  escalation_level: number | null
   // Ownership
   created_by: string
   // Multi-ASIN

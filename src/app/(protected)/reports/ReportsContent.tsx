@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/Button'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Modal } from '@/components/ui/Modal'
 import { NewReportForm } from './new/NewReportForm'
+import { BrCaseQueueBar } from '@/components/features/BrCaseQueueBar'
+import { SlaBadge } from '@/components/ui/SlaBadge'
 import { useSortableTable } from '@/hooks/useSortableTable'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import { VIOLATION_CATEGORIES } from '@/constants/violations'
@@ -36,6 +38,9 @@ type ReportRow = {
   related_asins?: { asin: string; marketplace?: string; url?: string }[]
   listings: { asin: string; title: string; marketplace: string; seller_name: string | null } | null
   users?: { name: string } | null
+  br_case_status?: string | null
+  br_case_id?: string | null
+  br_sla_deadline_at?: string | null
 }
 
 type ReportsContentProps = {
@@ -86,6 +91,7 @@ export const ReportsContent = ({
       case 'seller': return item.listings?.seller_name ?? null
       case 'ai': return item.ai_confidence_score
       case 'status': return item.status
+      case 'sla': return item.br_sla_deadline_at ? new Date(item.br_sla_deadline_at).getTime() : null
       case 'date': return new Date(item.created_at).getTime()
       default: return null
     }
@@ -267,6 +273,8 @@ export const ReportsContent = ({
         ))}
       </ScrollTabs>
 
+      <BrCaseQueueBar />
+
       <TableFilters filters={filters} onFiltersChange={setFilters} />
 
       {/* Bulk Action Bar */}
@@ -359,8 +367,16 @@ export const ReportsContent = ({
                 <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
                   <span>{report.listings?.seller_name ?? '—'}</span>
                   <div className="flex items-center gap-2">
+                    {report.br_sla_deadline_at && (
+                      <SlaBadge
+                        deadline={report.br_sla_deadline_at}
+                        paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
+                      />
+                    )}
+                    {report.br_case_status && (
+                      <StatusBadge status={report.br_case_status as Parameters<typeof StatusBadge>[0]['status']} type="br_case" size="sm" />
+                    )}
                     {report.ai_confidence_score !== null && <span>AI: {report.ai_confidence_score}%</span>}
-                    {report.users?.name && <span>{report.users.name}</span>}
                     <span>{new Date(report.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
@@ -389,6 +405,8 @@ export const ReportsContent = ({
               <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.ai')} field="ai" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort} />
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">BR Case</th>
+              <SortableHeader label="SLA" field="sla" currentSort={sort} onSort={toggleSort} />
               <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('reports.createdBy')}</th>
               <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort} />
             </tr>
@@ -396,7 +414,7 @@ export const ReportsContent = ({
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-th-text-muted">
+                <td colSpan={11} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noReports')}
@@ -440,6 +458,25 @@ export const ReportsContent = ({
                   </td>
                   <td className="px-4 py-3.5">
                     <StatusBadge status={report.status as ReportStatus} type="report" />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    {report.br_case_status ? (
+                      <StatusBadge status={report.br_case_status as Parameters<typeof StatusBadge>[0]['status']} type="br_case" />
+                    ) : report.br_case_id ? (
+                      <span className="text-xs text-th-text-muted">{report.br_case_id}</span>
+                    ) : (
+                      <span className="text-xs text-th-text-muted">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3.5">
+                    {report.br_sla_deadline_at ? (
+                      <SlaBadge
+                        deadline={report.br_sla_deadline_at}
+                        paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
+                      />
+                    ) : (
+                      <span className="text-xs text-th-text-muted">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{report.users?.name ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString()}</td>

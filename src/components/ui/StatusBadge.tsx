@@ -18,6 +18,16 @@ type ReportStatus =
 
 type CampaignStatus = 'active' | 'paused' | 'completed' | 'scheduled'
 
+type BrCaseStatus = 'open' | 'work_in_progress' | 'answered' | 'needs_attention' | 'closed'
+
+const BR_CASE_STATUS_MAP = {
+  open: { label: 'Open', variant: 'info' },
+  work_in_progress: { label: 'Awaiting Amazon', variant: 'info' },
+  answered: { label: 'Awaiting Amazon', variant: 'info' },
+  needs_attention: { label: 'Action Required', variant: 'danger' },
+  closed: { label: 'Case Closed', variant: 'default' },
+} as const
+
 const REPORT_STATUS_MAP = {
   draft: { label: 'Draft', variant: 'default' },
   pending_review: { label: 'Pending', variant: 'warning' },
@@ -43,14 +53,18 @@ const CAMPAIGN_STATUS_MAP = {
 } as const
 
 type StatusBadgeProps = {
-  status: ReportStatus | CampaignStatus
-  type?: 'report' | 'campaign'
+  status: ReportStatus | CampaignStatus | BrCaseStatus
+  type?: 'report' | 'campaign' | 'br_case'
   size?: 'sm' | 'md'
   className?: string
 }
 
 export const StatusBadge = ({ status, type = 'report', size = 'sm', className }: StatusBadgeProps) => {
-  const map = type === 'campaign' ? CAMPAIGN_STATUS_MAP : REPORT_STATUS_MAP
+  const map = type === 'br_case'
+    ? BR_CASE_STATUS_MAP
+    : type === 'campaign'
+      ? CAMPAIGN_STATUS_MAP
+      : REPORT_STATUS_MAP
   const config = (map as Record<string, { label: string; variant: string }>)[status]
 
   if (!config) return <Badge className={className}>{status}</Badge>

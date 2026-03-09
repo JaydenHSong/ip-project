@@ -16,8 +16,14 @@ import { ReportTimeline } from './ReportTimeline'
 import { SnapshotViewer } from './SnapshotViewer'
 import { InlineTemplateList } from './InlineTemplateList'
 import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
+import { CaseThread } from '@/components/features/case-thread/CaseThread'
+import { CaseActivityLog } from '@/components/features/case-thread/CaseActivityLog'
+import { SlaBadge } from '@/components/ui/SlaBadge'
+import { CaseChain } from '@/components/features/CaseChain'
+import { RelatedReports } from '@/components/features/RelatedReports'
 import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
+import type { BrCaseStatus } from '@/types/br-case'
 import { useToast } from '@/hooks/useToast'
 import type { ReportSnapshot } from '@/types/monitoring'
 
@@ -54,6 +60,15 @@ type ReportDetailContentProps = {
     approved_at: string | null
     rejected_at: string | null
     created_by?: string
+    br_case_id?: string | null
+    br_case_status?: string | null
+    br_last_amazon_reply_at?: string | null
+    br_last_our_reply_at?: string | null
+    br_submitted_at?: string | null
+    br_sla_deadline_at?: string | null
+    br_reply_pending_text?: string | null
+    parent_report_id?: string | null
+    escalation_level?: number | null
   }
   listing: {
     asin: string
@@ -96,6 +111,20 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
     report.resubmit_interval_days != null ? String(report.resubmit_interval_days) : 'default'
   )
   const [savingInterval, setSavingInterval] = useState(false)
+  const [caseThreadTab, setCaseThreadTab] = useState<'thread' | 'activity'>('thread')
+  const [relatedData, setRelatedData] = useState<{
+    parent_chain: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
+    children: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
+    same_listing: Array<{ id: string; status: string; br_case_id: string | null; br_case_status: string | null; created_at: string; user_violation_type: string; listings: { asin: string; title: string } | null }>
+  } | null>(null)
+
+  // Fetch related reports data
+  useEffect(() => {
+    fetch(`/api/reports/${report.id}/related`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data) setRelatedData(data) })
+      .catch(() => {})
+  }, [report.id])
 
   // Issue #9: Sync state when report.draft_title/draft_body changes (e.g. after rewrite)
   useEffect(() => {
@@ -390,6 +419,82 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             </p>
           </div>
         </div>
+      )}
+
+      {/* BR Case Info */}
+      {report.br_case_id && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-th-text">BR Case</h2>
+              {report.br_case_status && (
+                <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-sm text-th-text-tertiary">Case ID</dt>
+                <dd className="mt-1 font-mono text-sm font-medium text-th-text">{report.br_case_id}</dd>
+              </div>
+              {report.br_sla_deadline_at && (
+                <div>
+                  <dt className="text-sm text-th-text-tertiary">SLA</dt>
+                  <dd className="mt-1">
+                    <SlaBadge
+                      deadline={report.br_sla_deadline_at}
+                      paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
+                    />
+                  </dd>
+                </div>
+              )}
+              {report.br_submitted_at && (
+                <div>
+                  <dt className="text-sm text-th-text-tertiary">Submitted</dt>
+                  <dd className="mt-1 text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
+                </div>
+              )}
+              {report.br_last_amazon_reply_at && (
+                <div>
+                  <dt className="text-sm text-th-text-tertiary">Last Amazon Reply</dt>
+                  <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
+                </div>
+              )}
+              {report.br_last_our_reply_at && (
+                <div>
+                  <dt className="text-sm text-th-text-tertiary">Last Our Reply</dt>
+                  <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_our_reply_at).toLocaleString()}</dd>
+                </div>
+              )}
+            </dl>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Case Chain (R07) */}
+      {relatedData && (relatedData.parent_chain.length > 0 || relatedData.children.length > 0) && (
+        <Card>
+          <CardHeader>
+            <h2 className="font-semibold text-th-text">Case Chain</h2>
+          </CardHeader>
+          <CardContent>
+            <CaseChain
+              currentId={report.id}
+              parentChain={relatedData.parent_chain}
+              children={relatedData.children}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Related Reports (R07) */}
+      {relatedData && relatedData.same_listing.length > 0 && (
+        <Card>
+          <CardContent className="pt-5">
+            <RelatedReports reports={relatedData.same_listing} />
+          </CardContent>
+        </Card>
       )}
 
       <Card>
@@ -749,6 +854,50 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             </div>
           )}
         </div>
+      )}
+
+      {/* Case Thread (R03) + Activity Log (R05) */}
+      {report.br_case_id && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-1 rounded-lg bg-th-bg-secondary p-0.5">
+              <button
+                onClick={() => setCaseThreadTab('thread')}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  caseThreadTab === 'thread'
+                    ? 'bg-surface-card text-th-text shadow-sm'
+                    : 'text-th-text-muted hover:text-th-text-secondary'
+                }`}
+              >
+                Case Thread
+              </button>
+              <button
+                onClick={() => setCaseThreadTab('activity')}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  caseThreadTab === 'activity'
+                    ? 'bg-surface-card text-th-text shadow-sm'
+                    : 'text-th-text-muted hover:text-th-text-secondary'
+                }`}
+              >
+                Activity Log
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {caseThreadTab === 'thread' ? (
+              <CaseThread
+                reportId={report.id}
+                currentUserId={currentUserId}
+                canEdit={canEdit}
+                hasPendingReply={!!report.br_reply_pending_text}
+                brCaseStatus={report.br_case_status}
+                onCaseChanged={() => router.refresh()}
+              />
+            ) : (
+              <CaseActivityLog reportId={report.id} />
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <Card>

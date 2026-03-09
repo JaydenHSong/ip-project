@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
 import {
-  Activity, Puzzle, Search, Bot, ShieldCheck, FileText, Brain, Sparkles, Users, ChevronDown,
+  Activity, Puzzle, Search, Bot, ShieldCheck, FileText, Brain, Sparkles, Users, ChevronDown, Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { MonitoringSettings } from './MonitoringSettings'
@@ -16,6 +16,7 @@ import { ExtensionGuide } from './ExtensionGuide'
 import { UserManagement } from './UserManagement'
 import { AiLearningTab } from './AiLearningTab'
 import { AiPromptsTab } from './AiPromptsTab'
+import { SlaSettings } from './SlaSettings'
 
 type SettingsContentProps = {
   isOwner: boolean
@@ -24,7 +25,7 @@ type SettingsContentProps = {
   currentUserId: string
 }
 
-type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'templates' | 'ai-learning' | 'ai-prompts' | 'users'
+type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'sla' | 'templates' | 'ai-learning' | 'ai-prompts' | 'users'
 
 type NavItem = {
   key: SettingsTab
@@ -42,6 +43,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'General',
     items: [
       { key: 'monitoring', icon: Activity, minRole: 'admin' },
+      { key: 'sla', icon: Timer, minRole: 'admin' },
       { key: 'extension', icon: Puzzle, minRole: 'viewer' },
     ],
   },
@@ -99,6 +101,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
   const tabLabel = (tab: SettingsTab): string => {
     switch (tab) {
       case 'monitoring': return t('settings.monitoring.title')
+      case 'sla': return 'SLA'
       case 'extension': return t('settings.extension.title' as Parameters<typeof t>[0])
       case 'crawler': return t('settings.crawler.title' as Parameters<typeof t>[0])
       case 'sc-automation': return t('settings.scAutomation.title' as Parameters<typeof t>[0])
@@ -200,6 +203,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
 
         <div className="min-w-0 flex-1">
           {activeTab === 'monitoring' && <MonitoringSettings isAdmin={isAdmin} />}
+          {activeTab === 'sla' && <SlaSettings isAdmin={isAdmin} />}
           {activeTab === 'extension' && <ExtensionGuide />}
           {activeTab === 'crawler' && <CrawlerSettings isAdmin={isAdmin} />}
           {activeTab === 'sc-automation' && <ScAutomationSettings isAdmin={isAdmin} />}
@@ -214,6 +218,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
       {/* Mobile: Content */}
       <div className="md:hidden">
         {activeTab === 'monitoring' && <MonitoringSettings isAdmin={isAdmin} />}
+        {activeTab === 'sla' && <SlaSettings isAdmin={isAdmin} />}
         {activeTab === 'extension' && <ExtensionGuide />}
         {activeTab === 'crawler' && <CrawlerSettings isAdmin={isAdmin} />}
         {activeTab === 'sc-automation' && <ScAutomationSettings isAdmin={isAdmin} />}

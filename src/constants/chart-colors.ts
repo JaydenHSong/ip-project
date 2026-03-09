@@ -20,6 +20,19 @@ export const CHART_COLORS = {
   unresolved: '#f97316',
   archived: '#9ca3af',
 
+  // BR Case Status colors
+  br_open: '#6b7280',
+  br_work_in_progress: '#3b82f6',
+  br_answered: '#3b82f6',
+  br_needs_attention: '#ef4444',
+  br_closed: '#9ca3af',
+
+  // SLA Status colors
+  sla_on_track: '#10b981',
+  sla_warning: '#f59e0b',
+  sla_breached: '#ef4444',
+  sla_paused: '#9ca3af',
+
   // Trend chart
   newReports: '#3b82f6',
   resolvedLine: '#10b981',

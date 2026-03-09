@@ -11,6 +11,12 @@ import { startResubmitScheduler } from './sc-submit/resubmit-scheduler.js'
 import { createBrSubmitQueue, createBrSubmitWorker } from './br-submit/queue.js'
 import { processBrSubmitJob, closeBrBrowser } from './br-submit/worker.js'
 import { startBrScheduler } from './br-submit/scheduler.js'
+import { createBrMonitorQueue, createBrMonitorWorker } from './br-monitor/queue.js'
+import { processBrMonitorJob, closeMonitorBrowser, setMonitorNotifier } from './br-monitor/worker.js'
+import { startBrMonitorScheduler } from './br-monitor/scheduler.js'
+import { createBrReplyQueue, createBrReplyWorker } from './br-reply/queue.js'
+import { processBrReplyJob, setBrowserPageAccessor } from './br-reply/worker.js'
+import { startBrReplyScheduler } from './br-reply/scheduler.js'
 import { createHealthServer } from './health.js'
 import { createVisionAnalyzer } from './ai/vision-analyzer.js'
 import { log } from './logger.js'
@@ -113,6 +119,43 @@ const init = async (): Promise<void> => {
 
   log('info', 'main', 'BR submit queue + worker + scheduler started')
 
+  // BR Monitor Queue + Worker + Scheduler
+  setMonitorNotifier(async (msg) => {
+    if (config.googleChatWebhookUrl) {
+      await chatNotifier.notifyMessage(msg).catch(() => {})
+    }
+  })
+  const brMonitorQueue = createBrMonitorQueue(redisUrl)
+  const brMonitorWorker = createBrMonitorWorker(redisUrl, async (job) => {
+    await processBrMonitorJob(job, async (result) => {
+      await sentinelClient.reportBrMonitorResult(result).catch((err) => {
+        log('error', 'main', `Failed to report BR monitor result: ${err instanceof Error ? err.message : String(err)}`)
+      })
+    })
+  })
+  const brMonitorSchedulerInterval = startBrMonitorScheduler(brMonitorQueue, sentinelClient)
+
+  log('info', 'main', 'BR monitor queue + worker + scheduler started')
+
+  // BR Reply Queue + Worker + Scheduler (Browser 3 공유)
+  // br-monitor의 ensureMonitorBrowser/ensureLoggedIn을 공유
+  const { ensureMonitorBrowser, ensureLoggedIn: monitorEnsureLoggedIn } = await import('./br-monitor/worker.js')
+  setBrowserPageAccessor(async () => {
+    const { page } = await ensureMonitorBrowser()
+    return { page, ensureLoggedIn: monitorEnsureLoggedIn }
+  })
+  const brReplyQueue = createBrReplyQueue(redisUrl)
+  const brReplyWorker = createBrReplyWorker(redisUrl, async (job) => {
+    await processBrReplyJob(job, async (result) => {
+      await sentinelClient.reportBrReplyResult(result).catch((err) => {
+        log('error', 'main', `Failed to report BR reply result: ${err instanceof Error ? err.message : String(err)}`)
+      })
+    })
+  })
+  const brReplySchedulerInterval = startBrReplyScheduler(brReplyQueue, sentinelClient)
+
+  log('info', 'main', 'BR reply queue + worker + scheduler started')
+
   redisConnected = true
   workerRunning = true
 
@@ -134,7 +177,14 @@ const init = async (): Promise<void> => {
     clearInterval(scSchedulerInterval)
     clearInterval(resubmitSchedulerInterval)
     clearInterval(brSchedulerInterval)
+    clearInterval(brMonitorSchedulerInterval)
+    clearInterval(brReplySchedulerInterval)
     healthServer.close()
+    await brReplyWorker.close()
+    await brReplyQueue.close()
+    await closeMonitorBrowser()
+    await brMonitorWorker.close()
+    await brMonitorQueue.close()
     await closeBrBrowser()
     await brWorker.close()
     await brQueue.close()

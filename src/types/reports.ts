@@ -1,4 +1,5 @@
 import type { ViolationCategory, ViolationCode } from '@/constants/violations'
+import type { BrCaseStatus, BrReplyPendingAttachment } from '@/types/br-case'
 
 export const REPORT_STATUSES = [
   'draft', 'pending_review', 'approved', 'rejected', 'cancelled',
@@ -141,6 +142,15 @@ export type Report = {
   br_submitted_at: string | null
   br_submission_error: string | null
   br_submit_attempts: number
+
+  // BR 케이스 관리
+  br_case_status: BrCaseStatus | null
+  br_last_amazon_reply_at: string | null
+  br_last_our_reply_at: string | null
+  br_sla_deadline_at: string | null
+  br_reply_pending_text: string | null
+  br_reply_pending_attachments: BrReplyPendingAttachment[] | null
+  br_last_scraped_at: string | null
 
   // 메타
   created_by: string

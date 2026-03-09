@@ -22,6 +22,27 @@ type BrSubmitResult = {
   error: string | null
 }
 
+type BrReplyResultData = {
+  reportId: string
+  brCaseId: string
+  success: boolean
+  error: string | null
+  sentAt: string | null
+}
+
+type BrMonitorResultData = {
+  reportId: string
+  brCaseId: string
+  brCaseStatus: string
+  newMessages: Array<{
+    direction: 'inbound' | 'outbound'
+    sender: string
+    body: string
+    sentAt: string
+  }>
+  lastAmazonReplyAt: string | null
+}
+
 type CampaignResultUpdate = {
   found: number
   sent: number
@@ -48,6 +69,10 @@ type SentinelClient = {
   strengthenDraft: (reportId: string) => Promise<void>
   getPendingBrSubmits: () => Promise<unknown[]>
   reportBrResult: (result: BrSubmitResult) => Promise<void>
+  getPendingBrMonitors: () => Promise<unknown[]>
+  reportBrMonitorResult: (data: BrMonitorResultData) => Promise<void>
+  getPendingBrReplies: () => Promise<unknown[]>
+  reportBrReplyResult: (data: BrReplyResultData) => Promise<void>
 }
 
 const API_RETRY_MAX = 3
@@ -261,6 +286,73 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       if (!response.ok) {
         const body = await response.text()
         throw new Error(`Failed to report BR result: ${response.status} ${body}`)
+      }
+    },
+
+    getPendingBrMonitors: async (): Promise<unknown[]> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/br-monitor-pending`,
+        { method: 'GET', headers },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to fetch BR monitor pending: ${response.status} ${body}`)
+      }
+      const data = (await response.json()) as { reports: unknown[] }
+      return data.reports
+    },
+
+    reportBrMonitorResult: async (data: BrMonitorResultData): Promise<void> => {
+      const payload = {
+        report_id: data.reportId,
+        br_case_id: data.brCaseId,
+        br_case_status: data.brCaseStatus,
+        new_messages: data.newMessages.map((m) => ({
+          direction: m.direction,
+          sender: m.sender,
+          body: m.body,
+          sent_at: m.sentAt,
+        })),
+        last_amazon_reply_at: data.lastAmazonReplyAt,
+      }
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/br-monitor-result`,
+        { method: 'POST', headers, body: JSON.stringify(payload) },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to report BR monitor result: ${response.status} ${body}`)
+      }
+    },
+
+    getPendingBrReplies: async (): Promise<unknown[]> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/br-reply-pending`,
+        { method: 'GET', headers },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to fetch BR reply pending: ${response.status} ${body}`)
+      }
+      const data = (await response.json()) as { replies: unknown[] }
+      return data.replies
+    },
+
+    reportBrReplyResult: async (data: BrReplyResultData): Promise<void> => {
+      const payload = {
+        report_id: data.reportId,
+        br_case_id: data.brCaseId,
+        success: data.success,
+        error: data.error,
+        sent_at: data.sentAt,
+      }
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/br-reply-result`,
+        { method: 'POST', headers, body: JSON.stringify(payload) },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to report BR reply result: ${response.status} ${body}`)
       }
     },
   }

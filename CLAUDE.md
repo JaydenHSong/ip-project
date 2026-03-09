@@ -198,3 +198,18 @@ extension/                # Sentinel Extension (Chrome Extension)
 
 - `Sentinel_Project_Context.md` — 전체 기획, 결정사항, 위반 유형 체계
 - `Sentinel_Spec_Overview.html` — 스펙 시각화 요약
+- `docs/Sentinel_Software_Overview.md` — 소프트웨어 전체 기획 기술 정리서 (교육/온보딩용)
+
+## Document Maintenance (필수)
+
+**`docs/Sentinel_Software_Overview.md`는 항상 최신 상태를 유지해야 한다.**
+
+아래 상황 발생 시 반드시 해당 문서를 업데이트한다:
+- 새로운 기술 스택 도입 또는 기존 기술 변경
+- 새로운 기능 기획 또는 기존 기능 변경
+- 아키텍처 변경 (컴포넌트, 파이프라인, 데이터 모델)
+- 배포 환경 변경
+- 위반 유형 체계 변경
+- 기타 프로젝트 구조에 영향을 주는 변경사항
+
+변경 시 해당 문서의 `변경 이력` 섹션에도 날짜와 내용을 기록한다.
