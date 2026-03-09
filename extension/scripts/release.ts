@@ -60,8 +60,8 @@ const validatePackage = (extDir: string, manifest: ManifestJson): void => {
   const missing: string[] = []
   const found: string[] = []
 
-  // JS + CSS
-  for (const f of refs.js) {
+  // manifest에서 참조하는 파일들
+  for (const f of [...refs.js, ...refs.html, ...refs.icons]) {
     const fullPath = join(extDir, f)
     if (existsSync(fullPath)) {
       found.push(`  ✅ ${f}`)
@@ -70,36 +70,30 @@ const validatePackage = (extDir: string, manifest: ManifestJson): void => {
     }
   }
 
-  // HTML
-  for (const f of refs.html) {
-    const fullPath = join(extDir, f)
-    if (existsSync(fullPath)) {
-      found.push(`  ✅ ${f}`)
-    } else {
-      missing.push(f)
+  // HTML 내부 script/link src 검증 (popup.html 등)
+  for (const htmlFile of refs.html) {
+    const htmlPath = join(extDir, htmlFile)
+    if (!existsSync(htmlPath)) continue
+    const html = readFileSync(htmlPath, 'utf-8')
+    const srcMatches = html.matchAll(/(?:src|href)="\/([^"]+)"/g)
+    for (const m of srcMatches) {
+      const refFile = m[1]
+      const refPath = join(extDir, refFile)
+      if (existsSync(refPath)) {
+        found.push(`  ✅ ${refFile} (from ${htmlFile})`)
+      } else {
+        missing.push(`${refFile} (referenced in ${htmlFile})`)
+      }
     }
   }
 
-  // Icons
-  for (const f of refs.icons) {
-    const fullPath = join(extDir, f)
-    if (existsSync(fullPath)) {
-      found.push(`  ✅ ${f}`)
-    } else {
-      missing.push(f)
-    }
-  }
-
-  // manifest.json 자체
   found.push(`  ✅ manifest.json`)
-
   for (const line of found) console.log(line)
 
   if (missing.length > 0) {
-    console.error(`\n❌ MISSING FILES (manifest에 선언됐지만 패키지에 없음):`)
+    console.error(`\n❌ MISSING FILES:`)
     for (const f of missing) console.error(`  ❌ ${f}`)
-    console.error(`\n💡 release.ts의 filesToCopy에 누락된 파일을 추가하거나,`)
-    console.error(`   vite.config.ts의 contentScriptEntries를 확인하세요.`)
+    console.error(`\n💡 빌드 출력을 확인하세요: ls extension/dist/`)
     rmSync(join(extDir, '..'), { recursive: true })
     process.exit(1)
   }
@@ -132,32 +126,29 @@ const main = async (): Promise<void> => {
   mkdirSync(join(extDir, 'chunks'), { recursive: true })
   mkdirSync(join(extDir, 'assets', 'icons'), { recursive: true })
 
-  // JS 파일 복사 — manifest content_scripts + background에서 자동 추출
-  const manifestRefs = extractManifestFiles(manifest)
-  const jsFiles = new Set([
-    ...manifestRefs.js,
-    'bot-status.js', // pages (manifest에 직접 안 뜸)
-  ])
-  for (const f of jsFiles) {
-    const src = join(DIST, f)
-    if (existsSync(src)) cpSync(src, join(extDir, f))
+  // dist/ 루트의 모든 .js 파일 복사 (popup.js, background.js, content scripts 등)
+  for (const f of readdirSync(DIST)) {
+    if (f.endsWith('.js')) {
+      cpSync(join(DIST, f), join(extDir, f))
+    }
   }
 
   // chunks
   const chunksDir = join(DIST, 'chunks')
   if (existsSync(chunksDir)) cpSync(chunksDir, join(extDir, 'chunks'), { recursive: true })
 
-  // HTML
-  const popupHtml = join(DIST, 'src', 'popup', 'popup.html')
-  if (existsSync(popupHtml)) cpSync(popupHtml, join(extDir, 'popup.html'))
-  const botHtml = join(DIST, 'src', 'pages', 'bot-status.html')
-  if (existsSync(botHtml)) cpSync(botHtml, join(extDir, 'bot-status.html'))
+  // HTML — vite는 HTML 엔트리를 src/ 하위에 출력
+  const htmlMap: Record<string, string> = {
+    [join(DIST, 'src', 'popup', 'popup.html')]: join(extDir, 'popup.html'),
+    [join(DIST, 'src', 'pages', 'bot-status.html')]: join(extDir, 'bot-status.html'),
+  }
+  for (const [src, dest] of Object.entries(htmlMap)) {
+    if (existsSync(src)) cpSync(src, dest)
+  }
 
-  // CSS
-  const popupCss = join(DIST, 'assets', 'popup.css')
-  if (existsSync(popupCss)) cpSync(popupCss, join(extDir, 'assets', 'popup.css'))
-  const botCss = join(DIST, 'assets', 'bot-status.css')
-  if (existsSync(botCss)) cpSync(botCss, join(extDir, 'assets', 'bot-status.css'))
+  // assets/ 전체 복사 (CSS 등)
+  const assetsDir = join(DIST, 'assets')
+  if (existsSync(assetsDir)) cpSync(assetsDir, join(extDir, 'assets'), { recursive: true })
 
   // Icons
   cpSync(join(ROOT, 'assets', 'icons'), join(extDir, 'assets', 'icons'), { recursive: true })
