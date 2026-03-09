@@ -4,7 +4,7 @@
 // 동작: 빌드 → zip → Supabase Storage 업로드 → DB INSERT
 
 import { execSync } from 'child_process'
-import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, cpSync } from 'fs'
+import { readFileSync, writeFileSync, readdirSync, mkdirSync, rmSync, existsSync, cpSync } from 'fs'
 import { resolve, join } from 'path'
 import { createClient } from '@supabase/supabase-js'
 
