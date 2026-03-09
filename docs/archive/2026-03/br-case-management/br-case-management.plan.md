@@ -362,7 +362,7 @@ Sentinel Web에서 "케이스 닫기" 클릭
 Crawler 시작 시 (오퍼레이터 로그인 1회)
   │
   ├── Browser 1: /tmp/sc-submit-data/
-  │   └── SC 제출 전용 (기존)
+  │   └── PD Reporting 전용 (Extension 담당, Crawler 미사용)
   │
   ├── Browser 2: /tmp/br-submit-data/
   │   └── BR 제출 전용 (기존)

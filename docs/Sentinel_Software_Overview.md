@@ -12,7 +12,7 @@
 
 ### 한 줄 요약
 
-아마존 마켓플레이스에서 경쟁사 리스팅의 **폴리시 위반을 자동 탐지**하고, **AI로 신고서를 작성**하여 **Seller Central에 자동 신고**하는 Spigen 브랜드 보호 플랫폼.
+아마존 마켓플레이스에서 경쟁사 리스팅의 **폴리시 위반을 자동 탐지**하고, **AI로 신고서를 작성**하여 **PD(Product Detail) 페이지 신고 + BR(Brand Registry) 케이스 관리를 자동화**하는 Spigen 브랜드 보호 플랫폼.
 
 ### 핵심 가치
 
@@ -21,7 +21,7 @@
 | 하루 200개+ 리스팅 수동 브라우징 | 크롤러가 자동 수집 + AI가 위반 판단 |
 | 사람이 눈으로 위반 확인 | Claude AI가 이미지+텍스트+특허 교차 분석 |
 | 엑셀에 수동 정리 | 자동 분류 + 신고서 드래프트 생성 |
-| Seller Central에 직접 신고 | 승인 후 자동 제출 (SC + BR) |
+| Seller Central에 직접 신고 | 승인 후 PD Reporting + BR 케이스 자동 제출 |
 | 제출 후 결과 추적 없음 | 자동 모니터링 + 케이스 관리 |
 
 ### 사용자
@@ -116,8 +116,8 @@
 | 서비스 | 용도 |
 |--------|------|
 | Monday.com GraphQL API | 특허 데이터 동기화 (단방향, 하루 1회) |
-| Amazon Seller Central | 위반 신고 자동 제출 (Playwright) |
-| Amazon Brand Registry | BR 신고 + 케이스 모니터링 (Playwright) |
+| Amazon Product Detail | PD Reporting — Extension이 리스팅 페이지에서 위반 신고 |
+| Amazon Brand Registry | BR 케이스 제출 + 케이스 모니터링 (Playwright) |
 
 ---
 
@@ -234,9 +234,9 @@ Draft → Review → Approve (또는 Re-write)
 ```
 Crawler 시작 (오퍼레이터 로그인 1회)
   │
-  ├── Browser 1: SC 제출 전용
-  │   └── user-data-dir: /tmp/sc-submit-data/
-  │   └── Seller Central → Report a Violation
+  ├── Browser 1: PD Reporting (Extension 전용, Crawler 미사용)
+  │   └── Extension이 Product Detail 페이지에서 직접 신고
+  │   └── 케이스 ID 없음 — 추적 불가, 주기적 재방문으로 확인
   │
   ├── Browser 2: BR 제출 전용
   │   └── user-data-dir: /tmp/br-submit-data/
@@ -426,7 +426,6 @@ src/
 crawler/                  # Sentinel Crawler (별도 패키지)
   src/
     scraper/              # 아마존 페이지 스크래핑
-    sc-submit/            # Seller Central 자동 신고
     br-submit/            # Brand Registry 자동 신고
     anti-bot/             # 프록시, Fingerprint
     scheduler/            # BullMQ 스케줄러

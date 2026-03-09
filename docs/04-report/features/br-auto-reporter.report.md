@@ -62,8 +62,8 @@
 **Objective**: Technical architecture for BR submission pipeline
 
 **Key Design Decisions**:
-- **Sequential Pipeline**: `approve` → `sc_submitting` → `br_submitting` → `monitoring`
-  - Ensures SC submission happens first, BR queued after SC completes
+- **Sequential Pipeline**: `approve` → `sc_submitting` (PD Reporting) → `br_submitting` → `monitoring`
+  - PD Reporting (Extension이 Product Detail 페이지에서 신고) 완료 후 BR 제출
   - Maintains submission order integrity
 - **Crawler-Based Automation**:
   - BullMQ queue with 10 jobs/hour rate limit, concurrency=1
@@ -113,7 +113,7 @@
 - ✅ `src/app/api/reports/[id]/cancel-submit/route.ts`: Updated to accept `br_submitting` status
   - Clears all BR-related fields on cancellation
 - ✅ `src/app/api/reports/[id]/confirm-submitted/route.ts`: SC→BR transition logic
-  - Handles status change: `sc_submitting` → `br_submitting`
+  - Handles status change: `sc_submitting` (PD Reporting) → `br_submitting`
 
 #### UI Components (Frontend)
 - ✅ `src/components/ui/StatusBadge.tsx`: Added `br_submitting` badge styling
@@ -305,7 +305,7 @@
 
 ### 7.1 What Went Well (Keep)
 
-1. **Systematic Design Approach**: Creating detailed design document before implementation prevented major rework. The sequential pipeline design (`approve` → `sc_submitting` → `br_submitting`) was clear and reduced integration complexity.
+1. **Systematic Design Approach**: Creating detailed design document before implementation prevented major rework. The sequential pipeline design (`approve` → `sc_submitting`/PD Reporting → `br_submitting`) was clear and reduced integration complexity.
 
 2. **Comprehensive Type System**: Designing types upfront (BrFormType, BrSubmitData) made the V01~V19 mapping explicit and type-safe. Zero type-related bugs post-implementation.
 

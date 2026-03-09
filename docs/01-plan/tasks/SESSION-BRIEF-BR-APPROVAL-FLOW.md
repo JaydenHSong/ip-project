@@ -38,11 +38,11 @@ pnpm typecheck && pnpm build
 ## 배경
 
 현재 Report 승인 시:
-1. `buildScSubmitData()` 호출 → `sc_submit_data` 생성
-2. `status = 'sc_submitting'` 설정
-3. Crawler가 SC 폼 자동 제출
+1. `buildScSubmitData()` 호출 → PD Reporting 데이터 생성
+2. `status = 'sc_submitting'` (= PD Reporting 단계) 설정
+3. Extension이 PD 페이지에서 신고
 
-**추가할 것:** 승인 시 BR 대상이면 `br_submit_data`도 함께 생성. SC 완료 후 BR로 자동 전환.
+**추가할 것:** 승인 시 BR 대상이면 `br_submit_data`도 함께 생성. PD Reporting 완료 후 BR로 자동 전환.
 
 ## 목표
 
@@ -106,7 +106,7 @@ const updates = {
 
 **파일:** `src/app/api/reports/[id]/confirm-submitted/route.ts`
 
-Extension의 SC 제출 확인 콜백. SC 성공 시 BR 전환 로직 필요:
+Extension의 PD Reporting 완료 확인 콜백. PD 성공 시 BR 전환 로직 필요:
 
 ```typescript
 // 기존: status = 'submitted'
@@ -136,19 +136,19 @@ const updates = {
 
 ---
 
-## 전체 상태 플로우 (SC + BR)
+## 전체 상태 플로우 (PD Reporting + BR)
 
 ```
 draft
   → pending_review
   → approve
-    → sc_submitting (sc_submit_data + br_submit_data 동시 저장)
+    → sc_submitting (= PD Reporting, pd_submit_data + br_submit_data 동시 저장)
 
-    [SC Track]
-    → Extension confirm-submitted 또는 Crawler sc-result
-      → SC 성공 + br_submit_data 있음 → br_submitting
-      → SC 성공 + br_submit_data 없음 → monitoring (또는 submitted)
-      → SC 실패 → retry 또는 approved 복귀
+    [PD Track]
+    → Extension이 PD 페이지에서 신고 → confirm-submitted 콜백
+      → PD 성공 + br_submit_data 있음 → br_submitting
+      → PD 성공 + br_submit_data 없음 → monitoring (또는 submitted)
+      → PD 실패 → retry 또는 approved 복귀
 
     [BR Track]
     → Crawler br-result

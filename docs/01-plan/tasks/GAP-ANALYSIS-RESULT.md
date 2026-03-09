@@ -106,7 +106,7 @@
 |------|------|------|
 | POST /api/reports/bulk-submit | PASS | `bulk-submit/route.ts:1-105` |
 | draft -> pending_review | PASS | `:33-34, 40` |
-| approved -> sc_submitting | PASS | `:54-84` + buildScSubmitData |
+| approved -> sc_submitting (PD Reporting) | PASS | `:54-84` + buildScSubmitData |
 | 벌크 액션 바 — Submit Review | PASS | `ReportsContent.tsx:275-283` |
 | 벌크 액션 바 — Submit SC | PASS | `:294-302` |
 | 부분 실패 에러 표시 | PASS | `:165-167` alert 표시 |

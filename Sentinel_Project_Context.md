@@ -13,7 +13,7 @@
 **Sentinel (센티널)** - 파수꾼
 
 ### 한 줄 요약
-아마존 마켓플레이스에서 경쟁사 리스팅의 폴리시(Policy) 위반을 자동 탐지하고, 검토 후 Seller Central을 통해 신고까지 자동화하는 브랜드 보호 플랫폼
+아마존 마켓플레이스에서 경쟁사 리스팅의 폴리시(Policy) 위반을 자동 탐지하고, 검토 후 PD(Product Detail) 페이지 신고 + BR(Brand Registry) 케이스 관리를 자동화하는 브랜드 보호 플랫폼
 
 ### 핵심 가치
 - 매일 200개 이상의 리스팅을 수동 브라우징하던 업무를 자동화
@@ -34,7 +34,7 @@
 1. 아마존 웹사이트를 **직접 브라우징**하여 경쟁사 리스팅 확인
 2. 각 리스팅 상세 페이지에서 **눈으로 직접** 폴리시 위반 사항 확인
 3. 위반 내용을 **엑셀에 수동 정리**
-4. **Seller Central** 내 신고 기능으로 신고 접수
+4. **Product Detail 페이지** 또는 **Brand Registry**에서 신고 접수
 
 ### 현재 Pain Points
 - 하루 200개 이상 리스팅을 수동 확인 → 막대한 시간 소요
@@ -428,7 +428,7 @@ Sentinel DB (특허 레지스트리 테이블)
 |---|------|-----------|-------------|------|
 | 1 | **이미지 위반 확인** | 리스팅 이미지 (메인/서브) | Spigen 로고/이미지 무단 사용 여부, 이미지 내 금지 텍스트, 이미지 정책 위반 (흰 배경, 텍스트 오버레이 등) | 위반 여부 + 근거 설명 |
 | 2 | **특허 침해 유사도 판단** | 리스팅 제목/설명/이미지 + Spigen 특허 레지스트리 | 등록된 특허(Design/Utility)와 리스팅 제품의 유사도 분석 | 유사도 점수 + 침해 근거 |
-| 3 | **신고서 드래프트 자동 작성** | 위반 분석 결과 + 리스팅 데이터 + 기존 OMS 템플릿(67개) + 성공 사례 | Seller Central 신고 양식에 맞는 신고서 생성 | 제출 가능한 신고서 드래프트 |
+| 3 | **신고서 드래프트 자동 작성** | 위반 분석 결과 + 리스팅 데이터 + 기존 OMS 템플릿(67개) + 성공 사례 | PD Reporting + BR 케이스 양식에 맞는 신고서 생성 | 제출 가능한 신고서 드래프트 |
 
 #### AI 신고서 작성 전략 (Outcome-Driven Case Writing)
 
@@ -483,12 +483,12 @@ AI가 신고서를 작성할 때 다음 원칙을 따릅니다:
                      - 신고서 드래프트 자동 생성 (Skill 기반 성공률 최적화)
                                      ↓
                    Auto-approve 체크 (위반유형별 설정 + AI 확신도 임계값)
-                     ├─ ON + 임계값 충족 → 바로 Seller Central 제출
+                     ├─ ON + 임계값 충족 → 바로 PD Reporting + BR 제출
                      └─ OFF 또는 미충족 → Report Queue로
                                      ↓
                    Editor/Admin: 드래프트 확인 & 인라인 편집
                                      ↓
-                     ├─ [Approve] → Seller Central 신고 접수
+                     ├─ [Approve] → PD Reporting (Extension) + BR 케이스 제출
                      └─ [Re-write] → 피드백 입력 → AI 재작성 → 다시 확인
                                      ↓
                    승인 시 수정 이력 → Opus가 Skill 업데이트 (AI 학습)
@@ -832,7 +832,7 @@ Report #R-0042 — Pending
 
 - **위반 판단은 AI(Claude)가 자동 수행**, 사람은 승인만 담당
 - **시스템은 수집/분석/판단/신고서 작성을 자동화**하고, 사람은 최종 승인만 담당
-- **신고 채널**: Seller Central 내 신고 기능
+- **신고 채널**: PD(Product Detail) 페이지 신고 + BR(Brand Registry) 케이스
 - **최종 목표**: 승인 버튼 → 자동 신고 접수까지 완전 자동화
 
 ### 인증 및 권한 (Authentication & Authorization)
@@ -962,7 +962,7 @@ Report #R-0042 — Pending
   - **승인**: AI 드래프트를 그대로 제출
   - **반려**: 반려 사유 기록 → Draft로 회귀 (AI 재분석 시 반려 사유 참고)
   - **직접 수정 후 승인**: Editor/Admin이 AI 드래프트를 직접 편집 후 바로 승인 (시간 절약용)
-- Seller Central 연동: 승인 시 자동으로 케이스 오픈 및 신고 접수
+- PD Reporting + BR 연동: 승인 시 Extension이 PD 페이지에서 신고 → BR 케이스 오픈
 - 대시보드: 위반 통계, 신고 현황, 트렌드 분석
 - 리포트 생성: 주간/월간 자동 리포트 (경영진용)
 
@@ -1038,8 +1038,8 @@ Editor/Admin이 검토 → 승인 → 자동 신고
 | F10 | 신고 대기열 관리 (Queue Management) | Web | P0 |
 | F11 | AI 신고 드래프트 자동 생성 (성공률 최적화) | Web | P0 |
 | F12 | 검토/승인 워크플로우 (Approve/Reject/Edit+Approve + 반려 사유 기록 + 직접 수정 후 즉시 승인) | Web | P0 |
-| F13a | Seller Central 반자동 신고 접수 (자동 폼 채우기 + 사람 최종 제출 클릭) | Web | P0 |
-| F13b | Seller Central 완전 자동 신고 접수 (F13a 안정화 후 전환) | Web | P1 |
+| F13a | PD Reporting 반자동 접수 (Extension이 PD 페이지에서 폼 채우기 + 사람 최종 클릭) | Web | P0 |
+| F13b | BR 케이스 자동 제출 (Brand Registry에 케이스 오픈 자동화) | Web | P1 |
 | F14 | 사용자 인증 및 권한 관리 (RBAC) | Web | P0 |
 | F15 | 위반 통계 대시보드 | Web | P1 |
 | F16 | 신고 이력 및 상태 추적 | Web | P0 |
@@ -1113,7 +1113,7 @@ Editor/Admin이 검토 → 승인 → 자동 신고
 | F20a (상태 라이프사이클 기본) | Draft→Submitted + Rejected/Cancelled 상태 관리 |
 | F30 (AI 강화 재신고) | 재신고 시 AI 강화 드래프트 자동 생성 |
 
-**마일스톤 2 검증**: "AI가 위반 판단 + 신고서 드래프트 → 승인/반려 → SC 신고 접수까지 동작하는가?"
+**마일스톤 2 검증**: "AI가 위반 판단 + 신고서 드래프트 → 승인/반려 → PD Reporting + BR 케이스 접수까지 동작하는가?"
 
 #### 마일스톤 3: 운영 기능 + 완성
 
@@ -1380,7 +1380,7 @@ Editor/Admin이 검토 → 승인 → 자동 신고
 5. **Claude API 비용 추정**: 일일 예상 호출 수 × 토큰 단가
 6. **프록시 서비스 비용 비교**: Bright Data vs Oxylabs
 7. **Google OAuth @spigen.com 도메인 제한 구현 방식 확인**
-8. **Seller Central 신고 양식(Report a Violation) 필드 매핑 조사**
+8. **PD 페이지 신고 양식 + BR 케이스 필드 매핑 조사**
 9. **Chrome Extension 배포 방식 최종 결정**: .crx vs Google Workspace Admin Console
 10. **Spigen 등록 상표 전체 목록 확보**: 법무팀/IP팀에서 전체 등록 상표 + 마크 유형 확인 (현재 10개는 교육자료 기반 일부)
 11. **기존 OMS 67개 템플릿 데이터 확보**: OMS 관리자에게 위반 유형별 템플릿 전체 export 요청 → Sentinel DB 마이그레이션용
@@ -1413,7 +1413,7 @@ Editor/Admin이 검토 → 승인 → 자동 신고
 | Listing (리스팅) | 아마존에 등록된 상품 페이지 |
 | Policy Violation (폴리시 위반) | 아마존이 정한 판매 정책을 어기는 행위 |
 | Seller Central | 아마존 판매자용 관리 플랫폼 |
-| Case (케이스) | Seller Central에서 열리는 신고/문의 건 |
+| Case (케이스) | Brand Registry에서 열리는 신고/문의 건 |
 | ASIN | Amazon Standard Identification Number - 아마존 고유 상품 식별자 |
 | Anti-bot | 자동화된 접근을 탐지/차단하는 보안 시스템 |
 | Proxy (프록시) | IP 주소를 변경하여 접속하는 중계 서버 |

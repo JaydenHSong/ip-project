@@ -11,7 +11,7 @@
 
 - 벌크 Approve: 있음 (체크박스 → 일괄 승인, pending_review 상태만)
 - 벌크 Submit: **없음**
-- 단건 Submit: ReportActions.tsx에서 "Submit for Review" 버튼 (draft → pending_review 또는 sc_submitting)
+- 단건 Submit: ReportActions.tsx에서 "Submit for Review" 버튼 (draft → pending_review 또는 PD Reporting)
 
 ## 변경 사항
 
@@ -20,7 +20,7 @@
 | 현재 상태 | Submit 동작 | 결과 상태 |
 |----------|-----------|----------|
 | draft | Submit for Review | pending_review |
-| approved | Submit to SC | sc_submitting |
+| approved | PD Report | sc_submitting (PD Reporting) |
 
 ### 2. API 구현
 
@@ -29,7 +29,7 @@
 ```typescript
 type BulkSubmitRequest = {
   report_ids: string[]
-  action: 'submit_review' | 'submit_sc'  // Review 제출 vs SC 신고
+  action: 'submit_review' | 'submit_sc'  // Review 제출 vs PD Reporting
 }
 
 type BulkSubmitResponse = {
@@ -40,7 +40,7 @@ type BulkSubmitResponse = {
 
 // 권한: Editor 이상
 // submit_review: draft → pending_review
-// submit_sc: approved → sc_submitting (SC 자동화 트리거)
+// submit_sc: approved → sc_submitting (PD Reporting 트리거)
 ```
 
 ### 3. UI 구현

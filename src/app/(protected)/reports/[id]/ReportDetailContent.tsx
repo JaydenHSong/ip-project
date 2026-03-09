@@ -267,7 +267,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </div>
       </div>
 
-      {/* SC Submitting Banner */}
+      {/* PD Reporting Banner */}
       {report.status === 'sc_submitting' && (
         <div className="overflow-hidden rounded-xl border border-th-accent/30 bg-th-accent-soft">
           <div className="h-1 w-full overflow-hidden bg-th-accent/20">
@@ -282,9 +282,9 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-th-text">SC 신고 대기 중</p>
+                <p className="text-sm font-semibold text-th-text">PD Reporting 대기 중</p>
                 <p className="mt-0.5 text-xs text-th-text-secondary">
-                  Seller Central에서 신고를 제출하세요. Extension이 자동으로 폼을 채워줍니다.
+                  Product Detail 페이지에서 신고를 제출하세요. Extension이 자동으로 폼을 채워줍니다.
                 </p>
               </div>
             </div>
@@ -295,7 +295,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-th-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-th-accent-hover"
               >
-                SC 신고 열기 ↗
+                PD Report 열기 ↗
               </a>
               <Button
                 variant="outline"
@@ -412,9 +412,9 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-th-text">SC 제출 완료</p>
+            <p className="text-sm font-semibold text-th-text">PD Report 완료</p>
             <p className="mt-0.5 text-xs text-th-text-secondary">
-              Seller Central에 성공적으로 신고되었습니다.
+              Product Detail 페이지에서 성공적으로 신고되었습니다.
               {report.sc_case_id && <span className="ml-1 font-medium">Case ID: {report.sc_case_id}</span>}
             </p>
           </div>

@@ -48,7 +48,7 @@ const notifyApproved = async (
   const text = [
     `✅ *[Sentinel]* 신고서 승인됨`,
     `Report: ${reportId} | ASIN: ${asin}`,
-    `→ SC 신고 제출이 가능합니다.`,
+    `→ PD Reporting 제출이 가능합니다.`,
   ].join('\n')
   await sendGoogleChatMessage(text)
 }
@@ -73,9 +73,9 @@ const notifySubmittedToSC = async (
   asin: string,
 ): Promise<void> => {
   const text = [
-    `📮 *[Sentinel]* SC 신고 접수됨`,
+    `📮 *[Sentinel]* PD Report 접수됨`,
     `Report: ${reportId} | ASIN: ${asin}`,
-    `→ Seller Central에 접수되었습니다.`,
+    `→ Product Detail 페이지에서 신고가 접수되었습니다.`,
   ].join('\n')
   await sendGoogleChatMessage(text)
 }

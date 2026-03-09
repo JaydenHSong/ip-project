@@ -1,6 +1,6 @@
 # Sentinel (센티널)
 
-아마존 마켓플레이스에서 경쟁사 리스팅의 폴리시 위반을 자동 탐지하고, AI로 신고서를 작성하여 Seller Central에 자동 신고하는 Spigen 브랜드 보호 플랫폼
+아마존 마켓플레이스에서 경쟁사 리스팅의 폴리시 위반을 자동 탐지하고, AI로 신고서를 작성하여 PD(Product Detail) 페이지 신고 + BR(Brand Registry) 케이스 관리를 자동화하는 Spigen 브랜드 보호 플랫폼
 
 ## Product Architecture
 
@@ -15,7 +15,7 @@
 |------|------|
 | Web Frontend + API | Next.js 15 (App Router) + TypeScript + Tailwind CSS |
 | Database / Auth / Storage | Supabase (PostgreSQL + Google OAuth + Storage) |
-| Crawler + SC 자동화 | Node.js + Playwright |
+| Crawler + BR 자동화 | Node.js + Playwright |
 | Chrome Extension | Manifest V3 |
 | AI 분석 엔진 | Anthropic Claude API (Opus: 학습, Sonnet: 드래프트, Haiku: 모니터링) |
 | 작업 큐 / 스케줄링 | BullMQ |
@@ -31,8 +31,9 @@
   → Claude AI 위반 판단 (이미지 + 텍스트 + 특허)
   → 신고서 드래프트 자동 생성
   → Editor/Admin 승인
-  → Seller Central 자동 신고
-  → 팔로업 모니터링 (삭제/수정/미해결 감지)
+  → PD Reporting (Extension이 Product Detail 페이지에서 신고)
+  → BR 케이스 제출 (Brand Registry에 케이스 오픈)
+  → BR 팔로업 모니터링 (삭제/수정/미해결 감지)
   → 미해결 시 AI 강화 재신고
 ```
 

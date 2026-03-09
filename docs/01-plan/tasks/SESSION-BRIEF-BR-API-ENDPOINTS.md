@@ -142,8 +142,8 @@ if (report.br_submit_data) {
 
 ```
 approve
-  → sc_submitting + br_submit_data 준비
-  → SC 성공
+  → sc_submitting (PD Reporting) + br_submit_data 준비
+  → PD Reporting 성공
     → br_submit_data 있음? → br_submitting (BR 큐)
                               → BR 성공 → monitoring
                               → BR 3회 실패 → approved (수동)

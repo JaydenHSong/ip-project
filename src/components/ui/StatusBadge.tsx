@@ -34,7 +34,7 @@ const REPORT_STATUS_MAP = {
   approved: { label: 'Approved', variant: 'success' },
   rejected: { label: 'Rejected', variant: 'danger' },
   cancelled: { label: 'Cancelled', variant: 'default' },
-  sc_submitting: { label: 'SC Submitting', variant: 'info' },
+  sc_submitting: { label: 'PD Reporting', variant: 'info' },
   br_submitting: { label: 'BR Submitting', variant: 'info' },
   submitted: { label: 'Submitted', variant: 'info' },
   monitoring: { label: 'Monitoring', variant: 'violet' },

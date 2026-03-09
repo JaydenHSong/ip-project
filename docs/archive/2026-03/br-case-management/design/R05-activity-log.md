@@ -51,7 +51,7 @@
 │   📤 BR Case submitted (#19614678571)    │
 │                                          │
 │ ● Mar 6, 12:19 PM — System              │
-│   ✅ Report approved → sc_submitting     │
+│   ✅ Report approved → PD Reporting       │
 └─────────────────────────────────────────┘
 ```
 
