@@ -1,8 +1,11 @@
 {
-  "sessionCount": 21,
+  "sessionCount": 28,
   "lastSession": {
-    "startedAt": "2026-03-08T07:15:16.089Z",
+    "startedAt": "2026-03-09T03:33:05.883Z",
     "platform": "claude",
     "level": "Dynamic"
-  }
+  },
+  "currentFeature": "br-case-management",
+  "phase": "archived",
+  "matchRate": 98
 }

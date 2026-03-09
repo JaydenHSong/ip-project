@@ -8,6 +8,7 @@ const contentScriptEntries: Record<string, string> = {
   content: resolve(__dirname, 'src/content/index.ts'),
   'search-content': resolve(__dirname, 'src/content/search-content.ts'),
   'sc-content': resolve(__dirname, 'src/content/sc-form-filler.ts'),
+  'br-content': resolve(__dirname, 'src/content/br-form-filler.ts'),
 }
 
 function buildContentScriptsPlugin(): Plugin {

@@ -64,3 +64,25 @@ export type FrontReportResultMessage = {
   durationMs: number
   error?: string
 }
+
+// Service Worker → Content Script (BR auto-report)
+export type BrReportMessage = {
+  type: 'EXECUTE_BR_REPORT'
+  reportId: string
+  violationType: 'other_policy' | 'incorrect_variation' | 'product_review' | 'product_not_as_described'
+  description: string
+  productUrls: string[]       // 최대 10개
+  sellerStorefrontUrl?: string
+  policyUrl?: string
+  asins?: string[]            // Product review용
+  orderId?: string            // Product review용
+}
+
+// Content Script → Service Worker (BR report result)
+export type BrReportResultMessage = {
+  type: 'BR_REPORT_RESULT'
+  reportId: string
+  success: boolean
+  durationMs: number
+  error?: string
+}

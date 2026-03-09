@@ -176,6 +176,11 @@ extension/                # Sentinel Extension (Chrome Extension)
 2. `extension/package.json` → `"version"`
 3. 빌드 후 `extension/sentinel-extension/manifest.json` → `"version"`
 
+### Extension 릴리스 절차 (필수)
+- **반드시 `pnpm ext:release` 스크립트로 릴리스** — 수동으로 버전만 올리면 DB 미등록으로 설정 페이지에 구버전 표시됨
+- 스크립트 동작: 빌드 → zip → Supabase Storage 업로드 → `extension_releases` 테이블 INSERT
+- 변경사항 전달: `pnpm ext:release "변경1|변경2|변경3"`
+
 ## Restrictions
 
 - console.log 금지 → 디버깅 후 반드시 제거
