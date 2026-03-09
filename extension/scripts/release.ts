@@ -18,9 +18,98 @@ const run = (cmd: string, cwd = ROOT): string => {
   return execSync(cmd, { cwd, encoding: 'utf-8', stdio: 'pipe' })
 }
 
+// ─── Manifest 파일 참조 자동 추출 ────────────────────────────
+type ManifestJson = {
+  version: string
+  background?: { service_worker?: string }
+  content_scripts?: Array<{ js?: string[]; css?: string[] }>
+  action?: { default_popup?: string; default_icon?: Record<string, string> }
+  icons?: Record<string, string>
+}
+
+const extractManifestFiles = (manifest: ManifestJson): { js: string[]; html: string[]; icons: string[] } => {
+  const js = new Set<string>()
+  const html = new Set<string>()
+  const icons = new Set<string>()
+
+  // background service worker
+  if (manifest.background?.service_worker) {
+    js.add(manifest.background.service_worker)
+  }
+
+  // content scripts
+  for (const cs of manifest.content_scripts ?? []) {
+    for (const f of cs.js ?? []) js.add(f)
+    for (const f of cs.css ?? []) js.add(f) // CSS도 검증
+  }
+
+  // popup
+  if (manifest.action?.default_popup) html.add(manifest.action.default_popup)
+
+  // icons
+  for (const path of Object.values(manifest.action?.default_icon ?? {})) icons.add(path)
+  for (const path of Object.values(manifest.icons ?? {})) icons.add(path)
+
+  return { js: [...js], html: [...html], icons: [...icons] }
+}
+
+// ─── 패키징 전 검증 ─────────────────────────────────────────
+const validatePackage = (extDir: string, manifest: ManifestJson): void => {
+  console.log('\n🔍 Pre-package validation...')
+  const refs = extractManifestFiles(manifest)
+  const missing: string[] = []
+  const found: string[] = []
+
+  // JS + CSS
+  for (const f of refs.js) {
+    const fullPath = join(extDir, f)
+    if (existsSync(fullPath)) {
+      found.push(`  ✅ ${f}`)
+    } else {
+      missing.push(f)
+    }
+  }
+
+  // HTML
+  for (const f of refs.html) {
+    const fullPath = join(extDir, f)
+    if (existsSync(fullPath)) {
+      found.push(`  ✅ ${f}`)
+    } else {
+      missing.push(f)
+    }
+  }
+
+  // Icons
+  for (const f of refs.icons) {
+    const fullPath = join(extDir, f)
+    if (existsSync(fullPath)) {
+      found.push(`  ✅ ${f}`)
+    } else {
+      missing.push(f)
+    }
+  }
+
+  // manifest.json 자체
+  found.push(`  ✅ manifest.json`)
+
+  for (const line of found) console.log(line)
+
+  if (missing.length > 0) {
+    console.error(`\n❌ MISSING FILES (manifest에 선언됐지만 패키지에 없음):`)
+    for (const f of missing) console.error(`  ❌ ${f}`)
+    console.error(`\n💡 release.ts의 filesToCopy에 누락된 파일을 추가하거나,`)
+    console.error(`   vite.config.ts의 contentScriptEntries를 확인하세요.`)
+    rmSync(join(extDir, '..'), { recursive: true })
+    process.exit(1)
+  }
+
+  console.log(`  ── ${found.length} files verified, 0 missing`)
+}
+
 const main = async (): Promise<void> => {
   // 1. manifest에서 버전 읽기
-  const manifest = JSON.parse(readFileSync(MANIFEST, 'utf-8'))
+  const manifest = JSON.parse(readFileSync(MANIFEST, 'utf-8')) as ManifestJson
   const version: string = manifest.version
   console.log(`\n📦 Releasing Sentinel Extension v${version}\n`)
 
@@ -43,12 +132,13 @@ const main = async (): Promise<void> => {
   mkdirSync(join(extDir, 'chunks'), { recursive: true })
   mkdirSync(join(extDir, 'assets', 'icons'), { recursive: true })
 
-  // 파일 복사
-  const filesToCopy = [
-    'popup.js', 'background.js', 'content.js',
-    'sc-content.js', 'search-content.js', 'br-content.js', 'bot-status.js',
-  ]
-  for (const f of filesToCopy) {
+  // JS 파일 복사 — manifest content_scripts + background에서 자동 추출
+  const manifestRefs = extractManifestFiles(manifest)
+  const jsFiles = new Set([
+    ...manifestRefs.js,
+    'bot-status.js', // pages (manifest에 직접 안 뜸)
+  ])
+  for (const f of jsFiles) {
     const src = join(DIST, f)
     if (existsSync(src)) cpSync(src, join(extDir, f))
   }
@@ -75,10 +165,13 @@ const main = async (): Promise<void> => {
   // Manifest
   cpSync(MANIFEST, join(extDir, 'manifest.json'))
 
+  // 5. 패키징 전 검증 — manifest 참조 파일 전수 체크
+  validatePackage(extDir, manifest)
+
   const zipName = `sentinel-extension-v${version}.zip`
   const zipPath = join(TMP, zipName)
   run(`zip -r "${zipPath}" sentinel-extension/`, TMP)
-  console.log(`✅ ${zipName} created`)
+  console.log(`\n✅ ${zipName} created`)
 
   // 5. Supabase 연결
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
