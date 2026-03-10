@@ -107,12 +107,27 @@ export const POST = withAuth(async (req) => {
         summary: 'User-reported violation',
       }
 
+  // BR 템플릿 조회 — 위반 유형에 매핑된 템플릿을 few-shot으로 주입
+  const violationType = typedReport.ai_violation_type ?? typedReport.user_violation_type
+  const { data: templates } = await supabase
+    .from('br_templates')
+    .select('code, title, body, br_form_type, category')
+    .eq('active', true)
+    .contains('violation_codes', [violationType])
+    .limit(3)
+
+  const templateContext = templates && templates.length > 0
+    ? templates.map((t: { code: string; title: string; body: string; category: string }) =>
+        `[${t.code}] ${t.category} — ${t.title}\n${t.body}`
+      ).join('\n\n---\n\n')
+    : null
+
   const client = createClaudeClient(apiKey)
 
   const draft = await generateDraft(client, analysis, listing as Listing, {
     skillContent,
     trademarks: trademarkNames,
-    template: null,
+    template: templateContext,
   })
 
   // DB 업데이트
