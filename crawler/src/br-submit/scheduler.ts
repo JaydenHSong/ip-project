@@ -10,11 +10,12 @@ type BrPendingReport = {
   id: string
   br_submit_data: {
     form_type: BrFormType
-    subject: string
     description: string
     product_urls: string[]
     seller_storefront_url?: string
     policy_url?: string
+    asins?: string[]
+    order_id?: string
   } | null
 }
 
@@ -49,11 +50,12 @@ const startBrScheduler = (
         const jobData: BrSubmitJobData = {
           reportId: report.id,
           formType: report.br_submit_data.form_type,
-          subject: report.br_submit_data.subject,
           description: report.br_submit_data.description,
           productUrls: report.br_submit_data.product_urls,
           sellerStorefrontUrl: report.br_submit_data.seller_storefront_url,
           policyUrl: report.br_submit_data.policy_url,
+          asins: report.br_submit_data.asins,
+          orderId: report.br_submit_data.order_id,
         }
 
         await queue.add('br-submit', jobData, { jobId })

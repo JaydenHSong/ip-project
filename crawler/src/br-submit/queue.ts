@@ -35,8 +35,8 @@ const createBrSubmitWorker = (
       connection: { url: redisUrl },
       concurrency: 1, // BR 세션 하나만 사용
       limiter: {
-        max: 10,
-        duration: 3_600_000, // 10 per hour
+        max: 2,
+        duration: 60_000, // 2 per minute (넉넉하게, ~30 per 15min)
       },
     },
   )

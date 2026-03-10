@@ -259,6 +259,37 @@ Amazon은 `kat-*` Shadow DOM 웹 컴포넌트를 사용:
 - `kat-dropdown` → 선택 항목 자동화
 - Shadow DOM 내부 접근: `element.shadowRoot.querySelector()`
 
+### BR 폼 자동 채우기 — Playwright Crawler 전용 (Extension 불가)
+
+> **결론**: BR 폼 채우기는 **Crawler(Playwright)에서만 가능**. Extension(Content Script)은 구조적으로 불가.
+
+**불가 원인 (Extension)**:
+1. BR 폼은 `spl-hill-form` → shadowRoot → **iframe** → `kat-*` 구조. Chrome Extension content script는 **Isolated World**에서 실행되어 shadow DOM 내부 iframe의 `contentDocument` 접근 불가
+2. MAIN world 실행(`chrome.scripting.executeScript({ world: 'MAIN' })`) 시도했으나, Vite 빌드된 함수의 직렬화 문제로 결과 미반환
+3. `<script>` 인라인 주입은 Amazon BR 페이지 CSP가 차단
+4. KAT 메뉴 확장(`kat-expander`)은 `isTrusted=true` 물리 클릭 필요 — 프로그래밍 `.click()`은 `isTrusted=false`
+
+**BR 폼 DOM 구조** (2026-03 확인):
+```
+메인 프레임 (brandregistry.amazon.com/cu/contact-us)
+  ├── 좌측 메뉴: kat-expander → li.cu-tree-browseTree-ctExpander-type
+  └── 우측 폼 영역:
+      └── spl-hill-form (custom element)
+          └── shadowRoot (open)
+              └── iframe.spl-element-frame
+                  (src: brandregistry.amazon.com/hill/website/form/{id})
+                  └── kat-label → "라벨 텍스트"
+                      kat-textarea / kat-input (custom element)
+                        └── shadowRoot (open)
+                            └── native textarea / input
+```
+
+**필드 찾기 전략**: 라벨 텍스트 기반 (`kat-label.textContent.startsWith(prefix)`) → 다음 형제에서 `kat-textarea`/`kat-input` → shadowRoot → native element
+
+**값 입력 패턴**: `Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(native, value)` + `input`/`change` 이벤트 dispatch
+
+**Playwright 장점**: CDP(Chrome DevTools Protocol) 기반으로 MAIN world 접근 + `page.frames()`에서 shadow DOM 내부 iframe도 자동 탐지 + 실제 물리 클릭 시뮬레이션
+
 ---
 
 ## 8. 데이터 모델 요약
@@ -485,3 +516,4 @@ docs/                     # 문서
 |------|------|
 | 2026-03-08 | 문서 초판 작성, BR 케이스 관리 시스템 계획 포함 |
 | 2026-03-08 | 두 트랙 모니터링 체계, 아마존 거부 대응 전략 추가 |
+| 2026-03-09 | BR 폼 자동 채우기: Extension 불가 사유 + Crawler 전용 DOM 구조 기술 명시 |

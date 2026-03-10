@@ -1,42 +1,37 @@
 // BR (Brand Registry) Contact Support 폼 자동 제출 워커 — Playwright
-// SC와 달리 persistent context 사용 (로그인 세션 유지, 브라우저 재사용)
+// persistent context 사용 (로그인 세션 유지, 브라우저 재사용)
+//
+// DOM 구조 (2026-03 확인):
+//   메인 프레임
+//     └─ spl-hill-form (custom element) → shadowRoot (open)
+//         └─ iframe.spl-element-frame (same-origin: brandregistry.amazon.com/hill/website/form/...)
+//             └─ kat-label → kat-textarea/kat-input (custom element) → shadowRoot → textarea/input
+//
+// 필드 찾기: kat-label 텍스트 기반 (인덱스 아님, 폼 타입별 필드 순서가 다름)
+
 import { chromium, type BrowserContext, type Page, type Frame } from 'playwright'
 import type { Job } from 'bullmq'
 import type { BrSubmitJobData, BrSubmitResult, BrFormType } from './types.js'
+import { BR_FORM_CONFIG, PARENT_MENU_TEXT } from './form-config.js'
 import { log } from '../logger.js'
 
 const BR_URL = 'https://brandregistry.amazon.com/cu/contact-us?serviceId=SOA'
 const USER_DATA_DIR = process.env['BR_USER_DATA_DIR'] || '/tmp/br-worker-data'
-const MENU_CLICK_TIMEOUT = 5_000
-
-// 메뉴 텍스트 매핑
-const MENU_TEXT: Record<BrFormType, string> = {
-  other_policy: 'Other policy violations',
-  incorrect_variation: 'Incorrect variation',
-  product_review: 'Product review violation',
-  product_not_as_described: 'Product not as described',
-}
-
-const PARENT_MENU_TEXT = 'Report a store policy violation'
 
 // ─── Persistent Browser Session ─────────────────────────────
-// 브라우저를 한 번 열고 계속 재사용 (로그인 유지)
 let browserContext: BrowserContext | null = null
 let browserPage: Page | null = null
 
 const ensureBrowser = async (): Promise<{ context: BrowserContext; page: Page }> => {
   if (browserContext && browserPage) {
-    // 페이지가 닫혔는지 확인
     try {
       await browserPage.title()
       return { context: browserContext, page: browserPage }
     } catch {
-      // 페이지 닫힘 — 재생성
       log('warn', 'br-worker', 'Page closed, recreating...')
     }
   }
 
-  // Persistent context (세션 쿠키 유지)
   browserContext = await chromium.launchPersistentContext(USER_DATA_DIR, {
     headless: process.env['BR_HEADLESS'] !== 'false',
     args: ['--no-sandbox', '--disable-dev-shm-usage'],
@@ -53,18 +48,18 @@ const ensureBrowser = async (): Promise<{ context: BrowserContext; page: Page }>
 // ─── Login Check ─────────────────────────────────────────────
 const ensureLoggedIn = async (page: Page): Promise<void> => {
   const url = page.url()
+  log('info', 'br-worker', `Current URL before login check: ${url}`)
 
-  // 이미 BR 페이지에 있으면 로그인 됨
+  // 이미 BR 페이지에 있으면 스킵
   if (url.includes('brandregistry.amazon.com') && !url.includes('/ap/') && !url.includes('signin')) {
+    log('info', 'br-worker', 'Already on BR page, skipping login')
     return
   }
 
-  // BR 페이지로 이동
   await page.goto(BR_URL, { waitUntil: 'networkidle', timeout: 30_000 })
+  log('info', 'br-worker', `After goto: ${page.url()}`)
 
-  // 로그인 필요한지 체크
   if (page.url().includes('signin') || page.url().includes('/ap/')) {
-    // 자동 로그인 시도 (환경변수가 있으면)
     const email = process.env['BR_EMAIL']
     const password = process.env['BR_PASSWORD']
 
@@ -74,7 +69,6 @@ const ensureLoggedIn = async (page: Page): Promise<void> => {
       await page.fill('#ap_password', password, { timeout: 10_000 }).catch(() => {})
       await page.click('#signInSubmit').catch(() => {})
 
-      // OTP 필요 시
       const otpInput = await page.waitForSelector('#auth-mfa-otpcode', { timeout: 5_000 }).catch(() => null)
       if (otpInput) {
         const secret = process.env['BR_OTP_SECRET']
@@ -84,219 +78,266 @@ const ensureLoggedIn = async (page: Page): Promise<void> => {
           await otpInput.fill(totp.generate())
           await page.click('#auth-signin-button').catch(() => {})
         } else {
-          // OTP 시크릿 없으면 수동 대기
           log('warn', 'br-worker', 'OTP required but BR_OTP_SECRET not set — waiting for manual input')
           await page.waitForURL((u) => !u.toString().includes('/ap/'), { timeout: 300_000 })
         }
       }
 
-      await page.waitForURL((u) => u.toString().includes('brandregistry.amazon.com/cu/'), { timeout: 30_000 })
-      log('info', 'br-worker', 'BR login successful')
+      await page.waitForURL((u) => u.toString().includes('brandregistry.amazon.com'), { timeout: 30_000 })
+      log('info', 'br-worker', 'BR login successful (auto)')
     } else {
-      // 환경변수 없으면 수동 로그인 대기
-      log('warn', 'br-worker', 'BR login required — waiting for manual login (5min timeout)')
-      await page.waitForURL((u) => !u.toString().includes('/ap/'), { timeout: 300_000 })
+      log('warn', 'br-worker', 'Please log in manually in the browser window (5min timeout)...')
+      await page.waitForURL(
+        (u) => u.toString().includes('brandregistry.amazon.com') && !u.toString().includes('/ap/') && !u.toString().includes('signin'),
+        { timeout: 300_000 },
+      )
+      log('info', 'br-worker', 'BR login successful (manual)')
     }
+  }
+
+  // 로그인 후 contact-us 페이지로 이동 확인
+  if (!page.url().includes('/cu/contact-us')) {
+    log('info', 'br-worker', 'Navigating to contact-us page...')
+    await page.goto(BR_URL, { waitUntil: 'networkidle', timeout: 30_000 })
+    await page.waitForTimeout(3000)
+    log('info', 'br-worker', `Now on: ${page.url()}`)
   }
 }
 
-// ─── Menu Navigation ─────────────────────────────────────────
+// ─── Menu Navigation (Playwright 물리 클릭 사용) ─────────────
 const navigateToFormType = async (page: Page, formType: BrFormType): Promise<void> => {
-  const menuText = MENU_TEXT[formType]
+  const menuText = BR_FORM_CONFIG[formType].menuText
   log('info', 'br-worker', `Navigating to menu: "${menuText}"`)
 
-  // BR 페이지로 이동 (또는 이미 있으면 새로고침)
+  // contact-us 페이지가 아니면 이동
   if (!page.url().includes('brandregistry.amazon.com/cu/contact-us')) {
     await page.goto(BR_URL, { waitUntil: 'networkidle', timeout: 30_000 })
-    await page.waitForTimeout(2000)
+    await page.waitForTimeout(3000)
   }
 
-  // 타겟 메뉴 아이템이 이미 보이는지 확인
-  const target = page.getByText(menuText, { exact: true })
-  if (await target.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await target.click()
-    log('info', 'br-worker', `Menu clicked: "${menuText}"`)
+  log('info', 'br-worker', `Current URL: ${page.url()}`)
+
+  // 1. 타겟 메뉴 아이템이 이미 보이면 바로 클릭
+  const targetSelector = `li.cu-tree-browseTree-ctExpander-type`
+  const targetItem = page.locator(targetSelector).filter({ hasText: menuText })
+  if (await targetItem.isVisible({ timeout: 2000 }).catch(() => false)) {
+    log('info', 'br-worker', `Target menu already visible, clicking...`)
+    await targetItem.click({ force: true })
+    await page.waitForTimeout(2000)
     return
   }
 
-  // 상위 메뉴 펼치기
-  const parent = page.getByText(PARENT_MENU_TEXT, { exact: true })
-  if (await parent.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await parent.click()
-    log('info', 'br-worker', 'Parent menu expanded')
-  } else {
-    // fallback: evaluate
-    await page.evaluate((text) => {
-      const items = document.querySelectorAll('li[role="listitem"]')
-      for (const el of Array.from(items)) {
-        if (el.textContent?.trim() === text) {
-          (el as HTMLElement).click()
-          break
+  log('info', 'br-worker', `Target menu not visible, expanding parent...`)
+
+  // 2. 상위 메뉴 펼치기 — Playwright의 물리 클릭 사용
+  //    kat-expander shadowRoot 안의 button.header를 클릭해야 함
+  //    Playwright locator('pierce/...') 또는 evaluate로 좌표 가져와서 page.click
+  const parentRect = await page.evaluate((parentText) => {
+    const expanders = Array.from(document.querySelectorAll('kat-expander.cu-tree-browseTree-ctExpander-category'))
+    for (const expander of expanders) {
+      if (expander.textContent?.includes(parentText)) {
+        const headerBtn = expander.shadowRoot?.querySelector('button.header') as HTMLElement | null
+        if (headerBtn) {
+          const rect = headerBtn.getBoundingClientRect()
+          return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
         }
+        // fallback: expander 자체 좌표
+        const rect = (expander as HTMLElement).getBoundingClientRect()
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
       }
-    }, PARENT_MENU_TEXT)
+    }
+    return null
+  }, PARENT_MENU_TEXT)
+
+  if (parentRect) {
+    log('info', 'br-worker', `Parent menu found at (${parentRect.x}, ${parentRect.y}), clicking...`)
+    await page.mouse.click(parentRect.x, parentRect.y)
+    await page.waitForTimeout(2000)
+  } else {
+    // fallback: 텍스트 기반 클릭
+    log('info', 'br-worker', `Parent menu not found via shadow DOM, trying text match...`)
+    const parentByText = page.getByText(PARENT_MENU_TEXT)
+    if (await parentByText.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await parentByText.click()
+      await page.waitForTimeout(2000)
+    } else {
+      log('error', 'br-worker', 'Parent menu not found at all')
+      // 디버깅: 페이지에 있는 메뉴 아이템 목록 출력
+      const menuItems = await page.evaluate(() => {
+        const items = Array.from(document.querySelectorAll('li'))
+        return items.slice(0, 20).map(li => li.textContent?.trim().substring(0, 60))
+      })
+      log('error', 'br-worker', `Available menu items: ${JSON.stringify(menuItems)}`)
+      throw new Error(`Parent menu "${PARENT_MENU_TEXT}" not found`)
+    }
   }
 
-  await page.waitForTimeout(2000)
-
-  // 하위 메뉴 클릭
-  const targetAfterExpand = page.getByText(menuText, { exact: true })
-  if (await targetAfterExpand.isVisible({ timeout: MENU_CLICK_TIMEOUT }).catch(() => false)) {
-    await targetAfterExpand.click()
-    log('info', 'br-worker', `Menu clicked: "${menuText}"`)
+  // 3. 하위 메뉴 클릭 — 물리 클릭
+  const targetAfterExpand = page.locator(targetSelector).filter({ hasText: menuText })
+  if (await targetAfterExpand.isVisible({ timeout: 5000 }).catch(() => false)) {
+    log('info', 'br-worker', `Sub-menu visible, clicking "${menuText}"...`)
+    await targetAfterExpand.click({ force: true })
+    await page.waitForTimeout(2000)
   } else {
-    // fallback: evaluate force click
-    await page.evaluate((text) => {
-      const items = document.querySelectorAll('li[role="listitem"]')
-      for (const el of Array.from(items)) {
-        if (el.textContent?.trim() === text) {
-          (el as HTMLElement).click()
-          break
-        }
-      }
-    }, menuText)
-    log('info', 'br-worker', `Menu force-clicked: "${menuText}"`)
+    // 디버깅: 펼쳐진 하위 메뉴 아이템 목록 출력
+    const subItems = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('li.cu-tree-browseTree-ctExpander-type'))
+      return items.map(li => li.textContent?.trim())
+    })
+    log('error', 'br-worker', `Available sub-menu items: ${JSON.stringify(subItems)}`)
+    throw new Error(`Menu item not found: "${menuText}"`)
   }
+
+  log('info', 'br-worker', `Menu navigation complete: "${menuText}"`)
 }
 
 // ─── Find Form Frame ─────────────────────────────────────────
+// spl-hill-form → shadowRoot → iframe.spl-element-frame
 const findFormFrame = async (page: Page): Promise<Frame> => {
-  // iframe 로드 대기
-  await page.waitForTimeout(3000)
-
-  for (const frame of page.frames()) {
-    if (frame.url().includes('hill/website/form')) {
-      return frame
-    }
-  }
-
-  // 재시도
-  await page.waitForTimeout(3000)
-  for (const frame of page.frames()) {
-    if (frame.url().includes('hill/website/form')) {
-      return frame
-    }
-  }
-
-  throw new Error('BR form frame not found')
-}
-
-// ─── KAT Component Fill Helper ───────────────────────────────
-// KAT 웹 컴포넌트는 Shadow DOM 내부에 실제 input/textarea를 가짐
-const fillKatInput = async (frame: Frame, index: number, value: string): Promise<void> => {
-  await frame.evaluate(({ idx, val }) => {
-    const inputs = document.querySelectorAll('kat-input[type="text"]')
-    const el = inputs[idx]
-    if (!el) return
-
-    const shadow = el.shadowRoot
-    if (shadow) {
-      const inner = shadow.querySelector('input')
-      if (inner) {
-        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
-        if (setter) setter.call(inner, val)
-        else inner.value = val
-        inner.dispatchEvent(new Event('input', { bubbles: true }))
-        inner.dispatchEvent(new Event('change', { bubbles: true }))
+  // Playwright page.frames()에는 shadow DOM 안의 iframe도 포함
+  for (let attempt = 0; attempt < 10; attempt++) {
+    for (const frame of page.frames()) {
+      if (frame.url().includes('hill/website/form')) {
+        // kat-textarea가 있는지 확인 (폼 로드 완료)
+        const count = await frame.evaluate(() =>
+          document.querySelectorAll('kat-textarea').length
+        ).catch(() => 0)
+        if (count > 0) return frame
       }
     }
-  }, { idx: index, val: value })
+    await page.waitForTimeout(1500)
+  }
+
+  throw new Error('BR form frame not found (15s timeout)')
 }
 
-const fillKatTextarea = async (frame: Frame, index: number, value: string): Promise<void> => {
-  await frame.evaluate(({ idx, val }) => {
-    const textareas = document.querySelectorAll('kat-textarea')
-    const el = textareas[idx]
-    if (!el) return
+// ─── Label-based Field Finder ────────────────────────────────
+// kat-label 텍스트 → 다음 형제 kat-textarea/kat-input → shadowRoot → native element
+const fillFieldByLabel = async (
+  frame: Frame,
+  labelPrefix: string,
+  tagName: 'kat-textarea' | 'kat-input',
+  value: string,
+): Promise<boolean> => {
+  return frame.evaluate(
+    ([lp, tn, val]: [string, string, string]) => {
+      const labels = Array.from(document.querySelectorAll('kat-label'))
+      for (const label of labels) {
+        const text = label.textContent?.trim() ?? ''
+        if (!text.startsWith(lp)) continue
 
-    const shadow = el.shadowRoot
-    if (shadow) {
-      const inner = shadow.querySelector('textarea')
-      if (inner) {
-        const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set
-        if (setter) setter.call(inner, val)
-        else inner.value = val
-        inner.dispatchEvent(new Event('input', { bubbles: true }))
-        inner.dispatchEvent(new Event('change', { bubbles: true }))
+        let sibling = label.nextElementSibling
+        while (sibling) {
+          if (sibling.tagName.toLowerCase() === tn && sibling.shadowRoot) {
+            const native = sibling.shadowRoot.querySelector('textarea, input') as HTMLInputElement | HTMLTextAreaElement | null
+            if (!native) return false
+            const proto = native instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+            const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
+            if (setter) setter.call(native, val)
+            else native.value = val
+            native.dispatchEvent(new Event('input', { bubbles: true }))
+            native.dispatchEvent(new Event('change', { bubbles: true }))
+            return true
+          }
+          const nested = sibling.querySelector(tn)
+          if (nested?.shadowRoot) {
+            const native = nested.shadowRoot.querySelector('textarea, input') as HTMLInputElement | HTMLTextAreaElement | null
+            if (!native) return false
+            const proto = native instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+            const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
+            if (setter) setter.call(native, val)
+            else native.value = val
+            native.dispatchEvent(new Event('input', { bubbles: true }))
+            native.dispatchEvent(new Event('change', { bubbles: true }))
+            return true
+          }
+          sibling = sibling.nextElementSibling
+        }
+
+        const container = label.closest('div')
+        if (container) {
+          const field = container.querySelector(tn)
+          if (field?.shadowRoot) {
+            const native = field.shadowRoot.querySelector('textarea, input') as HTMLInputElement | HTMLTextAreaElement | null
+            if (!native) return false
+            const proto = native instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+            const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
+            if (setter) setter.call(native, val)
+            else native.value = val
+            native.dispatchEvent(new Event('input', { bubbles: true }))
+            native.dispatchEvent(new Event('change', { bubbles: true }))
+            return true
+          }
+        }
       }
-    }
-  }, { idx: index, val: value })
+      return false
+    },
+    [labelPrefix, tagName, value] as [string, string, string],
+  )
 }
 
-// ─── Fill Form ───────────────────────────────────────────────
-const fillBrForm = async (frame: Frame, data: BrSubmitJobData): Promise<void> => {
-  // KAT-INPUT 순서: [0]=Subject, [1]=Seller storefront, [2]=Policy URL, [3]=Email
-  // KAT-TEXTAREA 순서: [0]=Description, [1]=Product URLs
+// ─── Fill Form (label-based) ─────────────────────────────────
+const fillBrForm = async (frame: Frame, data: BrSubmitJobData): Promise<{ filled: string[]; missed: string[] }> => {
+  const filled: string[] = []
+  const missed: string[] = []
 
-  // Subject
-  await fillKatInput(frame, 0, data.subject)
-  log('info', 'br-worker', 'Filled: Subject')
-  await delay(500)
+  // 데이터 키 → 값 매핑
+  const dataMap: Record<string, string | undefined> = {
+    description: data.description,
+    urls: data.productUrls.length > 0 ? data.productUrls.join('\n') : undefined,
+    storefront_url: data.sellerStorefrontUrl,
+    policy_url: data.policyUrl,
+    asins: data.asins && data.asins.length > 0 ? data.asins.join(', ') : undefined,
+    order_id: data.orderId,
+  }
 
-  // Description
-  await fillKatTextarea(frame, 0, data.description)
-  log('info', 'br-worker', 'Filled: Description')
-  await delay(500)
+  const formConfig = BR_FORM_CONFIG[data.formType]
 
-  // Product URLs
-  if (data.productUrls.length > 0) {
-    await fillKatTextarea(frame, 1, data.productUrls.join('\n'))
-    log('info', 'br-worker', `Filled: Product URLs (${data.productUrls.length})`)
+  for (const field of formConfig.fields) {
+    const value = dataMap[field.key]
+    if (!value) {
+      if (field.required) missed.push(field.key)
+      continue
+    }
+
+    if (await fillFieldByLabel(frame, field.labelPrefix, field.element, value)) {
+      filled.push(field.key)
+    } else {
+      if (field.required) missed.push(field.key)
+    }
+    log('info', 'br-worker', `${field.key}: ${filled.includes(field.key) ? 'OK' : 'MISSED'}`)
     await delay(500)
   }
 
-  // Seller storefront URL (optional)
-  if (data.sellerStorefrontUrl) {
-    await fillKatInput(frame, 1, data.sellerStorefrontUrl)
-    log('info', 'br-worker', 'Filled: Seller storefront URL')
-    await delay(500)
-  }
-
-  // Policy URL (optional)
-  if (data.policyUrl) {
-    await fillKatInput(frame, 2, data.policyUrl)
-    log('info', 'br-worker', 'Filled: Policy URL')
-    await delay(500)
-  }
+  return { filled, missed }
 }
 
 // ─── Submit Form ─────────────────────────────────────────────
 const submitBrForm = async (frame: Frame): Promise<string | null> => {
-  // KAT-BUTTON Send 클릭
   const clicked = await frame.evaluate(() => {
-    const btn = document.querySelector('kat-button')
-    if (!btn) return false
-
-    const shadow = btn.shadowRoot
-    if (shadow) {
-      const inner = shadow.querySelector('button')
-      if (inner) {
-        inner.click()
+    const btns = Array.from(document.querySelectorAll('kat-button'))
+    for (const btn of btns) {
+      if (btn.textContent?.trim() === 'Send') {
+        const shadowBtn = btn.shadowRoot?.querySelector('button') as HTMLElement | null
+        if (shadowBtn) { shadowBtn.click(); return true }
+        ;(btn as HTMLElement).click()
         return true
       }
     }
-    // fallback: 직접 클릭
-    (btn as HTMLElement).click()
-    return true
+    return false
   })
 
   if (!clicked) throw new Error('Send button not found')
   log('info', 'br-worker', 'Send button clicked')
 
-  // 제출 후 확인 페이지 대기
   await delay(5000)
 
   // Case ID 추출 시도
   const caseId = await frame.evaluate(() => {
-    // 확인 메시지에서 case ID 패턴 찾기
     const body = document.body?.textContent || ''
     const match = body.match(/case\s*(?:id|#|number)[:\s]*(\d{5,})/i)
     if (match) return match[1]
-
-    // "Thank you" 확인 메시지 체크
-    const thankYou = body.includes('Thank you') || body.includes('submitted')
-    if (thankYou) return 'submitted'
-
+    if (body.includes('Thank you') || body.includes('submitted')) return 'submitted'
     return null
   }).catch(() => null)
 
@@ -305,6 +346,7 @@ const submitBrForm = async (frame: Frame): Promise<string | null> => {
 
 // ─── Delay Helper ────────────────────────────────────────────
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+const randomDelay = (): Promise<void> => delay(2000 + Math.random() * 1500) // 2~3.5초 랜덤 (봇 감지 회피)
 
 // ─── Main Job Processor ──────────────────────────────────────
 const processBrSubmitJob = async (job: Job<BrSubmitJobData>): Promise<BrSubmitResult> => {
@@ -314,23 +356,40 @@ const processBrSubmitJob = async (job: Job<BrSubmitJobData>): Promise<BrSubmitRe
   try {
     const { page } = await ensureBrowser()
 
-    // 로그인 확인
     await ensureLoggedIn(page)
-
-    // 메뉴 네비게이션
     await navigateToFormType(page, data.formType)
 
-    // 폼 프레임 찾기
     const formFrame = await findFormFrame(page)
     log('info', 'br-worker', `Form frame found: ${formFrame.url().substring(0, 80)}`)
 
-    // 폼 채우기
-    await fillBrForm(formFrame, data)
+    const { filled, missed } = await fillBrForm(formFrame, data)
+
+    // 필수 필드 누락 체크
+    const requiredMissed = missed.filter((f) => f === 'description' || f === 'urls')
+    if (requiredMissed.length > 0) {
+      throw new Error(`Required fields missed: ${requiredMissed.join(', ')}`)
+    }
+
+    log('info', 'br-worker', `Form filled — OK: [${filled.join(', ')}], Missed: [${missed.join(', ')}]`)
+
+    // dry-run이면 제출 스킵
+    if (data.dryRun) {
+      log('info', 'br-worker', `DRY RUN — skipping submit for report ${data.reportId}`)
+      return {
+        reportId: data.reportId,
+        success: true,
+        brCaseId: null,
+        error: null,
+      }
+    }
 
     // 제출
     const caseId = await submitBrForm(formFrame)
 
     log('info', 'br-worker', `BR submit successful for report ${data.reportId}, case: ${caseId}`)
+
+    // 봇 감지 회피 — 다음 건 처리 전 랜덤 딜레이
+    await randomDelay()
 
     return {
       reportId: data.reportId,
