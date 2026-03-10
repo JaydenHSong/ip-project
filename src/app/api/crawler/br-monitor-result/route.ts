@@ -82,6 +82,47 @@ export const POST = async (req: Request) => {
     }
   }
 
+  // 2.5 AI 답변 분류 — inbound 메시지 자동 태깅
+  const amazonMessages = body.new_messages.filter((m) => m.direction === 'inbound')
+  if (amazonMessages.length > 0) {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (apiKey) {
+      try {
+        const latestMsg = amazonMessages[amazonMessages.length - 1]
+        const classifyResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 100,
+            messages: [{
+              role: 'user',
+              content: `Classify this Amazon Brand Registry case reply into ONE category. Reply with ONLY the category word.\n\nCategories:\n- approved (violation confirmed, action taken)\n- rejected (no violation found, case closed)\n- info_needed (requesting more info/evidence)\n- in_progress (investigating, will update)\n- partial (some action taken, not fully resolved)\n\nAmazon reply:\n"${latestMsg.body.slice(0, 500)}"`,
+            }],
+          }),
+        })
+
+        if (classifyResponse.ok) {
+          const result = await classifyResponse.json() as { content: Array<{ text: string }> }
+          const classification = result.content?.[0]?.text?.trim().toLowerCase() ?? ''
+          const validTypes = ['approved', 'rejected', 'info_needed', 'in_progress', 'partial']
+          if (validTypes.includes(classification)) {
+            await supabase
+              .from('reports')
+              .update({ br_reply_classification: classification })
+              .eq('id', body.report_id)
+          }
+        }
+      } catch {
+        // AI 분류 실패는 non-fatal
+      }
+    }
+  }
+
   // 3. 상태 변경 이벤트 기록 (br_case_events)
   const events: Array<{
     report_id: string
@@ -103,7 +144,6 @@ export const POST = async (req: Request) => {
   }
 
   // 아마존 답장 이벤트
-  const amazonMessages = body.new_messages.filter((m) => m.direction === 'inbound')
   if (amazonMessages.length > 0) {
     events.push({
       report_id: body.report_id,

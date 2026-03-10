@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
@@ -14,6 +14,7 @@ import type { ReportStatus } from '@/types/reports'
 import type { ViolationCode } from '@/constants/violations'
 import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
+import { Button } from '@/components/ui/Button'
 import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 
@@ -37,6 +38,58 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   const { t } = useI18n()
   const router = useRouter()
   const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState<string | null>(null)
+
+  const canBulk = userRole === 'owner' || userRole === 'admin'
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleAll = useCallback((ids: string[]) => {
+    setSelectedIds((prev) => {
+      if (ids.every((id) => prev.has(id))) return new Set()
+      return new Set(ids)
+    })
+  }, [])
+
+  const handleBulkBrResubmit = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setBulkLoading('brResubmit')
+    try {
+      await fetch('/api/reports/bulk-br-resubmit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ report_ids: [...selectedIds] }),
+      })
+      setSelectedIds(new Set())
+      router.refresh()
+    } finally {
+      setBulkLoading(null)
+    }
+  }, [selectedIds, router])
+
+  const handleBulkArchive = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setBulkLoading('archive')
+    try {
+      await fetch('/api/reports/bulk-archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ report_ids: [...selectedIds] }),
+      })
+      setSelectedIds(new Set())
+      router.refresh()
+    } finally {
+      setBulkLoading(null)
+    }
+  }, [selectedIds, router])
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
@@ -102,6 +155,30 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
 
       <TableFilters filters={filters} onFiltersChange={setFilters} />
 
+      {/* Bulk Actions Bar */}
+      {canBulk && selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-th-border bg-surface-card px-4 py-2">
+          <span className="text-sm font-medium text-th-text">{selectedIds.size}건 선택</span>
+          <Button
+            size="sm"
+            variant="outline"
+            loading={bulkLoading === 'brResubmit'}
+            onClick={handleBulkBrResubmit}
+          >
+            BR 재신고
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-st-danger-text/30 text-st-danger-text hover:bg-st-danger-text/10"
+            loading={bulkLoading === 'archive'}
+            onClick={handleBulkArchive}
+          >
+            Archive
+          </Button>
+        </div>
+      )}
+
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
         {sortedData.length === 0 ? (
@@ -135,6 +212,16 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
+              {canBulk && (
+                <th className="w-10 px-3 py-3">
+                  <input
+                    type="checkbox"
+                    className="rounded"
+                    checked={sortedData.length > 0 && sortedData.every((r) => selectedIds.has(r.id))}
+                    onChange={() => toggleAll(sortedData.map((r) => r.id))}
+                  />
+                </th>
+              )}
               <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.title')} field="title" currentSort={sort} onSort={toggleSort} />
@@ -146,7 +233,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-th-text-muted">
+                <td colSpan={canBulk ? 7 : 6} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noCompleted')}
@@ -155,6 +242,16 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             ) : (
               sortedData.map((report) => (
                 <tr key={report.id} className="bg-surface-card transition-colors hover:bg-th-bg-hover">
+                  {canBulk && (
+                    <td className="w-10 px-3 py-3.5">
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        checked={selectedIds.has(report.id)}
+                        onChange={() => toggleSelect(report.id)}
+                      />
+                    </td>
+                  )}
                   <td className="px-4 py-3.5">
                     <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
                   </td>
