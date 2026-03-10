@@ -7,12 +7,15 @@ import { createClient } from '@/lib/supabase/server'
 import { createClaudeClient } from '@/lib/ai/client'
 import { generateDraft } from '@/lib/ai/draft'
 import { loadSkillForType } from '@/lib/ai/skills/loader'
-import type { Report } from '@/types/reports'
+import type { Report, BrFormType } from '@/types/reports'
 import type { Listing } from '@/types/listings'
 import type { AiAnalyzeResponse } from '@/types/api'
+import { getBrFormType } from '@/lib/reports/br-data'
 
 type DraftRequest = {
   report_id: string
+  br_form_type?: BrFormType
+  preview?: boolean
 }
 
 export const POST = withAuth(async (req) => {
@@ -107,14 +110,21 @@ export const POST = withAuth(async (req) => {
         summary: 'User-reported violation',
       }
 
-  // BR 템플릿 조회 — 위반 유형에 매핑된 템플릿을 few-shot으로 주입
+  // BR 템플릿 조회 — form type 기반 필터링 (사용자 선택 우선, 없으면 자동매핑)
   const violationType = typedReport.ai_violation_type ?? typedReport.user_violation_type
-  const { data: templates } = await supabase
+  const brFormType = body.br_form_type ?? getBrFormType(violationType)
+
+  let templateQuery = supabase
     .from('br_templates')
     .select('code, title, body, br_form_type, category')
     .eq('active', true)
-    .contains('violation_codes', [violationType])
-    .limit(3)
+
+  if (brFormType) {
+    templateQuery = templateQuery.eq('br_form_type', brFormType)
+  }
+  templateQuery = templateQuery.contains('violation_codes', [violationType]).limit(3)
+
+  const { data: templates } = await templateQuery
 
   const templateContext = templates && templates.length > 0
     ? templates.map((t: { code: string; title: string; body: string; category: string }) =>
@@ -129,19 +139,22 @@ export const POST = withAuth(async (req) => {
     trademarks: trademarkNames,
     template: templateContext,
     violationCode: typedReport.user_violation_type,
+    brFormType: body.br_form_type,
   })
 
-  // DB 업데이트
-  await supabase
-    .from('reports')
-    .update({
-      draft_title: draft.draft_title,
-      draft_body: draft.draft_body,
-      draft_evidence: draft.draft_evidence,
-      draft_policy_references: draft.draft_policy_references,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', body.report_id)
+  // preview 모드: DB 저장 없이 결과만 반환
+  if (!body.preview) {
+    await supabase
+      .from('reports')
+      .update({
+        draft_title: draft.draft_title,
+        draft_body: draft.draft_body,
+        draft_evidence: draft.draft_evidence,
+        draft_policy_references: draft.draft_policy_references,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', body.report_id)
+  }
 
-  return NextResponse.json(draft)
+  return NextResponse.json({ ...draft, preview: !!body.preview })
 }, ['owner', 'admin', 'editor'])

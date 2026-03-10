@@ -14,7 +14,9 @@ import { Button } from '@/components/ui/Button'
 import { ReportActions } from './ReportActions'
 import { ReportTimeline } from './ReportTimeline'
 import { SnapshotViewer } from './SnapshotViewer'
-import { InlineTemplateList } from './InlineTemplateList'
+import { BrTemplateList } from './BrTemplateList'
+import { isBrReportable, getBrFormType, BR_FORM_OPTIONS, BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT } from '@/lib/reports/br-data'
+import type { BrFormType } from '@/types/reports'
 import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
 import { CaseThread } from '@/components/features/case-thread/CaseThread'
 import { CaseActivityLog } from '@/components/features/case-thread/CaseActivityLog'
@@ -108,6 +110,19 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [stopping, setStopping] = useState(false)
   const [suggestedTemplate, setSuggestedTemplate] = useState<{ id: string; title: string; body: string } | null>(null)
   const [templateDismissed, setTemplateDismissed] = useState(false)
+  const showBrFormType = isDraftEditable && isBrReportable(report.user_violation_type)
+  const [brFormType, setBrFormType] = useState<BrFormType>(
+    getBrFormType(report.user_violation_type) ?? 'other_policy'
+  )
+  const [brFields, setBrFields] = useState({
+    product_urls: listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : '',
+    seller_storefront_url: '',
+    policy_url: '',
+    asins: listing?.asin ?? '',
+    order_id: '',
+  })
+  const [brFieldsExpanded, setBrFieldsExpanded] = useState(false)
+  const [aiPreview, setAiPreview] = useState<{ draft_title: string; draft_body: string } | null>(null)
   const [resubmitIntervalLocal, setResubmitIntervalLocal] = useState<string>(
     report.resubmit_interval_days != null ? String(report.resubmit_interval_days) : 'default'
   )
@@ -137,19 +152,17 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
     setEditBody(report.draft_body ?? '')
   }, [report.draft_title, report.draft_body])
 
-  // Sprint 3-6: Template auto-suggestion for draft + empty body
+  // Template auto-suggestion — br_templates 기반
   useEffect(() => {
     if (report.status !== 'draft' || report.draft_body || templateDismissed) return
-    fetch('/api/templates')
+    fetch(`/api/br-templates?form_type=${brFormType}`)
       .then((res) => res.json())
-      .then((templates: { id: string; title: string; body: string; violation_types: string[]; is_default: boolean }[]) => {
-        const match = templates.find((t) =>
-          t.violation_types.includes(report.user_violation_type) || t.is_default
-        )
+      .then((data: { templates: { id: string; title: string; body: string; code: string }[] }) => {
+        const match = data.templates?.[0]
         if (match) setSuggestedTemplate({ id: match.id, title: match.title, body: match.body })
       })
       .catch(() => {})
-  }, [report.status, report.draft_body, report.user_violation_type, templateDismissed])
+  }, [report.status, report.draft_body, brFormType, templateDismissed])
 
   const handleSubmit = async () => {
     setApproving(true)
@@ -159,6 +172,16 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...(hasChanges ? { edited_draft_title: editTitle, edited_draft_body: editBody } : {}),
+          ...(showBrFormType ? { br_form_type: brFormType } : {}),
+          ...(showBrFormType ? {
+            br_extra_fields: {
+              ...(brFields.product_urls ? { product_urls: brFields.product_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
+              ...(brFields.seller_storefront_url ? { seller_storefront_url: brFields.seller_storefront_url } : {}),
+              ...(brFields.policy_url ? { policy_url: brFields.policy_url } : {}),
+              ...(brFields.asins ? { asins: brFields.asins.split(/[,;\n]/).map((a) => a.trim()).filter(Boolean) } : {}),
+              ...(brFields.order_id ? { order_id: brFields.order_id } : {}),
+            },
+          } : {}),
         }),
       })
       if (!res.ok) {
@@ -179,18 +202,31 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       const res = await fetch('/api/ai/draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ report_id: report.id }),
+        body: JSON.stringify({
+          report_id: report.id,
+          preview: true,
+          ...(showBrFormType ? { br_form_type: brFormType } : {}),
+        }),
       })
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.error?.message ?? 'AI Write failed')
       }
-      router.refresh()
+      const data = await res.json()
+      setAiPreview({ draft_title: data.draft_title, draft_body: data.draft_body })
     } catch (e) {
       addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setAiWriting(false)
     }
+  }
+
+  const handleAiApply = () => {
+    if (!aiPreview) return
+    setEditTitle(aiPreview.draft_title)
+    setEditBody(aiPreview.draft_body)
+    setAiPreview(null)
+    addToast({ type: 'success', title: 'AI draft applied' })
   }
 
   const handleResubmitIntervalChange = async (value: string) => {
@@ -444,249 +480,251 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </div>
       )}
 
-      {/* BR Case Info */}
+      {/* BR Case + Case Chain — side-by-side on desktop */}
       {report.br_case_id && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-th-text">BR Case</h2>
-              {report.br_case_status && (
-                <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-2 gap-4">
-              <div>
-                <dt className="text-sm text-th-text-tertiary">Case ID</dt>
-                <dd className="mt-1 font-mono text-sm font-medium text-th-text">{report.br_case_id}</dd>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-th-text">BR Case</h2>
+                {report.br_case_status && (
+                  <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
+                )}
               </div>
-              {report.br_sla_deadline_at && (
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-sm text-th-text-tertiary">SLA</dt>
-                  <dd className="mt-1">
-                    <SlaBadge
-                      deadline={report.br_sla_deadline_at}
-                      paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
-                    />
-                  </dd>
+                  <dt className="text-sm text-th-text-tertiary">Case ID</dt>
+                  <dd className="mt-1 font-mono text-sm font-medium text-th-text">{report.br_case_id}</dd>
                 </div>
-              )}
-              {report.br_submitted_at && (
-                <div>
-                  <dt className="text-sm text-th-text-tertiary">Submitted</dt>
-                  <dd className="mt-1 text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
-                </div>
-              )}
-              {report.br_last_amazon_reply_at && (
-                <div>
-                  <dt className="text-sm text-th-text-tertiary">Last Amazon Reply</dt>
-                  <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
-                </div>
-              )}
-              {report.br_last_our_reply_at && (
-                <div>
-                  <dt className="text-sm text-th-text-tertiary">Last Our Reply</dt>
-                  <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_our_reply_at).toLocaleString()}</dd>
-                </div>
-              )}
-            </dl>
-          </CardContent>
-        </Card>
-      )}
+                {report.br_sla_deadline_at && (
+                  <div>
+                    <dt className="text-sm text-th-text-tertiary">SLA</dt>
+                    <dd className="mt-1">
+                      <SlaBadge
+                        deadline={report.br_sla_deadline_at}
+                        paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
+                      />
+                    </dd>
+                  </div>
+                )}
+                {report.br_submitted_at && (
+                  <div>
+                    <dt className="text-sm text-th-text-tertiary">Submitted</dt>
+                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
+                  </div>
+                )}
+                {report.br_last_amazon_reply_at && (
+                  <div>
+                    <dt className="text-sm text-th-text-tertiary">Last Amazon Reply</dt>
+                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
+                  </div>
+                )}
+                {report.br_last_our_reply_at && (
+                  <div>
+                    <dt className="text-sm text-th-text-tertiary">Last Our Reply</dt>
+                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_our_reply_at).toLocaleString()}</dd>
+                  </div>
+                )}
+              </dl>
+            </CardContent>
+          </Card>
 
-      {/* Case Chain (R07) */}
-      {relatedData && (relatedData.parent_chain.length > 0 || relatedData.children.length > 0) && (
-        <Card>
-          <CardHeader>
-            <h2 className="font-semibold text-th-text">Case Chain</h2>
-          </CardHeader>
-          <CardContent>
-            <CaseChain
-              currentId={report.id}
-              parentChain={relatedData.parent_chain}
-              children={relatedData.children}
-            />
-          </CardContent>
-        </Card>
+          {relatedData && (relatedData.parent_chain.length > 0 || relatedData.children.length > 0) && (
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-th-text">Case Chain</h2>
+              </CardHeader>
+              <CardContent>
+                <CaseChain
+                  currentId={report.id}
+                  parentChain={relatedData.parent_chain}
+                  children={relatedData.children}
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Related Reports (R07) */}
       {relatedData && relatedData.same_listing.length > 0 && (
         <Card>
           <CardContent className="pt-5">
-            <RelatedReports reports={relatedData.same_listing} />
+            <RelatedReports reports={relatedData.same_listing} currentReportId={report.id} />
           </CardContent>
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <h2 className="font-semibold text-th-text">{t('reports.detail.violationInfo')}</h2>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-th-text-tertiary">{t('reports.detail.userViolationType')}</p>
-              <div className="mt-1">
-                <ViolationBadge code={report.user_violation_type as ViolationCode} size="md" />
-              </div>
-            </div>
-            {report.ai_violation_type && (
+      {/* Violation Info + Listing — side-by-side on desktop */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <h2 className="font-semibold text-th-text">{t('reports.detail.violationInfo')}</h2>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-th-text-tertiary">{t('reports.detail.aiViolationType')}</p>
-                <div className="mt-1 flex items-center gap-2">
-                  <ViolationBadge code={report.ai_violation_type as ViolationCode} size="md" />
-                  {report.ai_confidence_score !== null && (
-                    <span className="text-sm text-th-text-muted">{report.ai_confidence_score}%</span>
-                  )}
+                <p className="text-sm text-th-text-tertiary">{t('reports.detail.userViolationType')}</p>
+                <div className="mt-1">
+                  <ViolationBadge code={report.user_violation_type as ViolationCode} size="md" />
+                </div>
+              </div>
+              {report.ai_violation_type && (
+                <div>
+                  <p className="text-sm text-th-text-tertiary">{t('reports.detail.aiViolationType')}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <ViolationBadge code={report.ai_violation_type as ViolationCode} size="md" />
+                    {report.ai_confidence_score !== null && (
+                      <span className="text-sm text-th-text-muted">{report.ai_confidence_score}%</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            {report.disagreement_flag && (
+              <div className="rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-4 py-3">
+                <p className="text-sm font-medium text-st-warning-text">
+                  {t('reports.detail.disagreementWarning')}
+                </p>
+              </div>
+            )}
+            {report.confirmed_violation_type && (
+              <div>
+                <p className="text-sm text-th-text-tertiary">{t('reports.detail.confirmedViolationType')}</p>
+                <div className="mt-1">
+                  <ViolationBadge code={report.confirmed_violation_type as ViolationCode} size="md" />
                 </div>
               </div>
             )}
-          </div>
-          {report.disagreement_flag && (
-            <div className="rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-4 py-3">
-              <p className="text-sm font-medium text-st-warning-text">
-                {t('reports.detail.disagreementWarning')}
-              </p>
-            </div>
-          )}
-          {report.confirmed_violation_type && (
-            <div>
-              <p className="text-sm text-th-text-tertiary">{t('reports.detail.confirmedViolationType')}</p>
-              <div className="mt-1">
-                <ViolationBadge code={report.confirmed_violation_type as ViolationCode} size="md" />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* AI Analysis Section */}
-      {(report.ai_analysis || report.ai_violation_type) && (
-        <Card>
-          <CardHeader>
-            <h2 className="font-semibold text-th-text">AI Analysis</h2>
-          </CardHeader>
-          <CardContent>
-            <AiAnalysisTab
-              aiAnalysis={report.ai_analysis}
-              aiViolationType={report.ai_violation_type}
-              aiSeverity={report.ai_severity}
-              aiConfidenceScore={report.ai_confidence_score}
-              userViolationType={report.user_violation_type}
-              disagreementFlag={report.disagreement_flag}
-              policyReferences={report.policy_references ?? []}
-            />
           </CardContent>
         </Card>
-      )}
 
-      {listing && (
-        <Card>
-          <CardHeader>
-            <h2 className="font-semibold text-th-text">{t('reports.detail.listing')}</h2>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-2 gap-4">
-              <div>
-                <dt className="text-sm text-th-text-tertiary">ASIN</dt>
-                <dd className="mt-1 text-sm font-medium">
-                  <a
-                    href={getAmazonUrl(listing.asin, listing.marketplace)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-th-accent-text hover:underline"
-                  >
-                    {listing.asin} ↗
-                  </a>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-th-text-tertiary">{t('reports.detail.marketplace')}</dt>
-                <dd className="mt-1 text-sm font-medium text-th-text">{listing.marketplace}</dd>
-              </div>
-              <div className="col-span-2">
-                <dt className="text-sm text-th-text-tertiary">{t('reports.title')}</dt>
-                <dd className="mt-1 text-sm font-medium text-th-text">{listing.title}</dd>
-              </div>
-              {listing.seller_name && (
+        {listing && (
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-th-text">{t('reports.detail.listing')}</h2>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-2 gap-4">
                 <div>
-                  <dt className="text-sm text-th-text-tertiary">{t('reports.seller')}</dt>
-                  <dd className="mt-1 text-sm font-medium text-th-text">{listing.seller_name}</dd>
-                </div>
-              )}
-              {listing.brand && (
-                <div>
-                  <dt className="text-sm text-th-text-tertiary">{t('reports.detail.brand')}</dt>
-                  <dd className="mt-1 text-sm font-medium text-th-text">{listing.brand}</dd>
-                </div>
-              )}
-              {listing.rating != null && (
-                <div>
-                  <dt className="text-sm text-th-text-tertiary">{t('reports.detail.rating')}</dt>
-                  <dd className="mt-1 flex items-center gap-1.5 text-sm font-medium text-th-text">
-                    <svg className="h-4 w-4 fill-yellow-400 text-yellow-400" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    {listing.rating.toFixed(1)}
-                    {listing.review_count != null && (
-                      <span className="text-th-text-muted">({listing.review_count.toLocaleString()})</span>
-                    )}
-                  </dd>
-                </div>
-              )}
-              {listing.price_amount != null && (
-                <div>
-                  <dt className="text-sm text-th-text-tertiary">{t('reports.detail.price')}</dt>
-                  <dd className="mt-1 text-sm font-medium text-th-text">
-                    {listing.price_currency === 'JPY' ? '¥' : '$'}{listing.price_amount.toLocaleString()}
-                  </dd>
-                </div>
-              )}
-            </dl>
-            {/* Related ASINs */}
-            {report.related_asins && report.related_asins.length > 0 && (
-              <div className="mt-4 border-t border-th-border pt-4">
-                <p className="text-sm font-medium text-th-text-secondary">
-                  Related ASINs ({report.related_asins.length})
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {report.related_asins.map((ra, idx) => (
+                  <dt className="text-sm text-th-text-tertiary">ASIN</dt>
+                  <dd className="mt-1 text-sm font-medium">
                     <a
-                      key={idx}
-                      href={getAmazonUrl(ra.asin, ra.marketplace ?? listing.marketplace)}
+                      href={getAmazonUrl(listing.asin, listing.marketplace)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center rounded-lg border border-th-border bg-th-bg-tertiary px-2.5 py-1 font-mono text-xs text-th-accent-text hover:bg-th-accent-soft"
+                      className="text-th-accent-text hover:underline"
                     >
-                      {ra.asin} ↗
+                      {listing.asin} ↗
                     </a>
-                  ))}
+                  </dd>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+                <div>
+                  <dt className="text-sm text-th-text-tertiary">{t('reports.detail.marketplace')}</dt>
+                  <dd className="mt-1 text-sm font-medium text-th-text">{listing.marketplace}</dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-sm text-th-text-tertiary">{t('reports.title')}</dt>
+                  <dd className="mt-1 text-sm font-medium text-th-text line-clamp-2">{listing.title}</dd>
+                </div>
+                {listing.seller_name && (
+                  <div>
+                    <dt className="text-sm text-th-text-tertiary">{t('reports.seller')}</dt>
+                    <dd className="mt-1 text-sm font-medium text-th-text">{listing.seller_name}</dd>
+                  </div>
+                )}
+                {listing.brand && (
+                  <div>
+                    <dt className="text-sm text-th-text-tertiary">{t('reports.detail.brand')}</dt>
+                    <dd className="mt-1 text-sm font-medium text-th-text">{listing.brand}</dd>
+                  </div>
+                )}
+                {listing.rating != null && (
+                  <div>
+                    <dt className="text-sm text-th-text-tertiary">{t('reports.detail.rating')}</dt>
+                    <dd className="mt-1 flex items-center gap-1.5 text-sm font-medium text-th-text">
+                      <svg className="h-4 w-4 fill-yellow-400 text-yellow-400" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      {listing.rating.toFixed(1)}
+                      {listing.review_count != null && (
+                        <span className="text-th-text-muted">({listing.review_count.toLocaleString()})</span>
+                      )}
+                    </dd>
+                  </div>
+                )}
+                {listing.price_amount != null && (
+                  <div>
+                    <dt className="text-sm text-th-text-tertiary">{t('reports.detail.price')}</dt>
+                    <dd className="mt-1 text-sm font-medium text-th-text">
+                      {listing.price_currency === 'JPY' ? '¥' : '$'}{listing.price_amount.toLocaleString()}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              {/* Related ASINs */}
+              {report.related_asins && report.related_asins.length > 0 && (
+                <div className="mt-4 border-t border-th-border pt-4">
+                  <p className="text-sm font-medium text-th-text-secondary">
+                    Related ASINs ({report.related_asins.length})
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {report.related_asins.map((ra, idx) => (
+                      <a
+                        key={idx}
+                        href={getAmazonUrl(ra.asin, ra.marketplace ?? listing.marketplace)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center rounded-lg border border-th-border bg-th-bg-tertiary px-2.5 py-1 font-mono text-xs text-th-accent-text hover:bg-th-accent-soft"
+                      >
+                        {ra.asin} ↗
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
-      {/* Screenshot (Issue #6) */}
-      {report.screenshot_url ? (
-        <Card>
-          <CardHeader>
-            <h2 className="font-semibold text-th-text">{t('reports.detail.screenshots')}</h2>
-          </CardHeader>
-          <CardContent>
-            <img
-              src={report.screenshot_url}
-              alt="Listing screenshot"
-              className="w-full rounded-lg border border-th-border"
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="text-sm text-th-text-muted">
-          No screenshot — captured from extension only.
+      {/* AI Analysis + Screenshot — side-by-side on desktop */}
+      {((report.ai_analysis || report.ai_violation_type) || report.screenshot_url) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          {(report.ai_analysis || report.ai_violation_type) && (
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-th-text">AI Analysis</h2>
+              </CardHeader>
+              <CardContent>
+                <AiAnalysisTab
+                  aiAnalysis={report.ai_analysis}
+                  aiViolationType={report.ai_violation_type}
+                  aiSeverity={report.ai_severity}
+                  aiConfidenceScore={report.ai_confidence_score}
+                  userViolationType={report.user_violation_type}
+                  disagreementFlag={report.disagreement_flag}
+                  policyReferences={report.policy_references ?? []}
+                />
+              </CardContent>
+            </Card>
+          )}
+          {report.screenshot_url && (
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-th-text">{t('reports.detail.screenshots')}</h2>
+              </CardHeader>
+              <CardContent>
+                <img
+                  src={report.screenshot_url}
+                  alt="Listing screenshot"
+                  className="w-full rounded-lg border border-th-border"
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -774,15 +812,38 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* BR Form Type 드롭다운 + 가이드 배너 */}
+            {showBrFormType && (
+              <div className="rounded-lg border border-th-border bg-th-bg-secondary/50 p-3 space-y-2">
+                <div className="flex items-center gap-3">
+                  <label className="shrink-0 text-xs font-semibold uppercase tracking-wider text-th-text-muted">
+                    BR Report Category
+                  </label>
+                  <select
+                    value={brFormType}
+                    onChange={(e) => setBrFormType(e.target.value as BrFormType)}
+                    className="flex-1 rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text"
+                  >
+                    {BR_FORM_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:bg-sky-950/30 dark:text-sky-300">
+                  <p className="font-medium">{BR_FORM_DESCRIPTION_GUIDE[brFormType]}</p>
+                  <p className="mt-1 text-sky-600 dark:text-sky-400">{BR_FORM_FIELD_CONTEXT[brFormType]}</p>
+                </div>
+              </div>
+            )}
+
             {isDraftEditable ? (
               <>
                 {/* Mobile: tab-based view */}
                 <div className="md:hidden">
                   {draftTab === 'templates' ? (
-                    <InlineTemplateList
+                    <BrTemplateList
+                      formType={brFormType}
                       listing={listing ?? {}}
-                      report={report}
-                      currentViolationType={report.user_violation_type}
                       compact
                       onApply={(body, title) => {
                         setEditBody(body)
@@ -792,6 +853,21 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                     />
                   ) : (
                     <div className="space-y-3">
+                      {/* Mobile: AI Preview banner */}
+                      {aiPreview && (
+                        <div className="rounded-lg border border-th-accent/30 bg-th-accent/5 p-3">
+                          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-th-accent-text">AI Preview</p>
+                          <p className="text-sm font-medium text-th-text">{aiPreview.draft_title}</p>
+                          <div className="mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-md bg-th-bg-tertiary p-2 text-xs text-th-text-secondary">
+                            {aiPreview.draft_body}
+                          </div>
+                          <div className="mt-2 flex gap-2">
+                            <Button size="sm" onClick={handleAiApply}>Apply</Button>
+                            <Button variant="outline" size="sm" loading={aiWriting} onClick={handleAiWrite}>Rewrite</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setAiPreview(null)}>Discard</Button>
+                          </div>
+                        </div>
+                      )}
                       <Input
                         label={t('reports.detail.draftTitle')}
                         value={editTitle}
@@ -820,9 +896,81 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                       )}
                     </div>
                   )}
+                  {/* Mobile: BR Form Fields below editor */}
+                  {showBrFormType && (
+                    <div className="mt-3 rounded-lg border border-th-border bg-th-bg-secondary/30 p-3">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-th-text-muted">
+                        BR Form Fields
+                      </p>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                            Product URLs <span className="text-th-text-muted">(one per line, max 10)</span>
+                          </label>
+                          <textarea
+                            placeholder={'https://www.amazon.com/dp/B0...\nhttps://www.amazon.com/dp/B0...'}
+                            value={brFields.product_urls}
+                            onChange={(e) => setBrFields((f) => ({ ...f, product_urls: e.target.value }))}
+                            rows={2}
+                            className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                          />
+                        </div>
+                        {brFormType === 'other_policy' && (
+                          <>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">Seller Storefront URL</label>
+                              <input
+                                type="url"
+                                placeholder="https://www.amazon.com/stores/..."
+                                value={brFields.seller_storefront_url}
+                                onChange={(e) => setBrFields((f) => ({ ...f, seller_storefront_url: e.target.value }))}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">Amazon Policy URL</label>
+                              <input
+                                type="url"
+                                placeholder="https://sellercentral.amazon.com/..."
+                                value={brFields.policy_url}
+                                onChange={(e) => setBrFields((f) => ({ ...f, policy_url: e.target.value }))}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
+                          </>
+                        )}
+                        {brFormType === 'product_review' && (
+                          <>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                ASINs <span className="text-th-text-muted">(comma separated)</span>
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="B09F2J4SX1, B09F2J4SX2"
+                                value={brFields.asins}
+                                onChange={(e) => setBrFields((f) => ({ ...f, asins: e.target.value }))}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">Order ID</label>
+                              <input
+                                type="text"
+                                placeholder="111-1234567-1234567"
+                                value={brFields.order_id}
+                                onChange={(e) => setBrFields((f) => ({ ...f, order_id: e.target.value }))}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Desktop: side-by-side */}
+                {/* Desktop: side-by-side — Draft editor + Additional Fields or Templates */}
                 <div className="hidden gap-5 md:flex">
                   {/* Left: Draft editor */}
                   <div className="basis-1/2 space-y-3">
@@ -852,20 +1000,142 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                         </span>
                       </div>
                     )}
+                    {/* Additional Fields — below body editor */}
+                    {showBrFormType && (
+                      <div className="rounded-lg border border-th-border bg-th-bg-secondary/30 p-3">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-th-text-muted">
+                          BR Form Fields
+                        </p>
+                        <div className="space-y-3">
+                          {/* Product URLs — all form types */}
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                              Product URLs <span className="text-th-text-muted">(one per line, max 10)</span>
+                            </label>
+                            <textarea
+                              placeholder={'https://www.amazon.com/dp/B0...\nhttps://www.amazon.com/dp/B0...'}
+                              value={brFields.product_urls}
+                              onChange={(e) => setBrFields((f) => ({ ...f, product_urls: e.target.value }))}
+                              rows={3}
+                              className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                            />
+                          </div>
+                          {/* other_policy: Seller Storefront URL + Policy URL */}
+                          {brFormType === 'other_policy' && (
+                            <>
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">Seller Storefront URL</label>
+                                <input
+                                  type="url"
+                                  placeholder="https://www.amazon.com/stores/..."
+                                  value={brFields.seller_storefront_url}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, seller_storefront_url: e.target.value }))}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">Amazon Policy URL</label>
+                                <input
+                                  type="url"
+                                  placeholder="https://sellercentral.amazon.com/..."
+                                  value={brFields.policy_url}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, policy_url: e.target.value }))}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
+                            </>
+                          )}
+                          {/* product_review: ASINs + Order ID */}
+                          {brFormType === 'product_review' && (
+                            <>
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                  ASINs <span className="text-th-text-muted">(comma separated, max 10)</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="B09F2J4SX1, B09F2J4SX2"
+                                  value={brFields.asins}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, asins: e.target.value }))}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">Order ID</label>
+                                <input
+                                  type="text"
+                                  placeholder="111-1234567-1234567"
+                                  value={brFields.order_id}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, order_id: e.target.value }))}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {/* Right: Compact template list */}
+                  {/* Right: AI Preview or Templates */}
                   <div className="basis-1/2 rounded-lg border border-th-border bg-th-bg-secondary/50 p-3">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-th-text-muted">Templates</p>
-                    <InlineTemplateList
-                      listing={listing ?? {}}
-                      report={report}
-                      currentViolationType={report.user_violation_type}
-                      compact
-                      onApply={(body, title) => {
-                        setEditBody(body)
-                        if (title) setEditTitle(title)
-                      }}
-                    />
+                    {aiPreview ? (
+                      <>
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-th-accent-text">AI Preview</p>
+                          <button
+                            onClick={() => setAiPreview(null)}
+                            className="text-xs text-th-text-muted hover:text-th-text-secondary"
+                          >
+                            Back to templates
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs text-th-text-tertiary">Title</p>
+                            <p className="mt-0.5 text-sm font-medium text-th-text">{aiPreview.draft_title}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-th-text-tertiary">Body</p>
+                            <div className="mt-0.5 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-md bg-th-bg-tertiary p-3 text-sm text-th-text-secondary">
+                              {aiPreview.draft_body}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <Button size="sm" onClick={handleAiApply}>
+                              Apply
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              loading={aiWriting}
+                              onClick={handleAiWrite}
+                            >
+                              Rewrite
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setAiPreview(null)}
+                            >
+                              Discard
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-th-text-muted">Templates</p>
+                        <BrTemplateList
+                          formType={brFormType}
+                          listing={listing ?? {}}
+                          compact
+                          onApply={(body, title) => {
+                            setEditBody(body)
+                            if (title) setEditTitle(title)
+                          }}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
               </>

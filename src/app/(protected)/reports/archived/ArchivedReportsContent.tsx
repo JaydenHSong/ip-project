@@ -88,8 +88,8 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 md:h-full md:gap-6">
+      <div className="shrink-0 flex items-center justify-between">
         <h1 className="text-xl font-bold text-th-text md:text-2xl">
           {t('reports.archivedTitle' as Parameters<typeof t>[0])}
         </h1>
@@ -145,9 +145,9 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
         )}
       </div>
 
-      {/* Desktop: table */}
-      <div className="hidden overflow-x-auto rounded-lg border border-th-border md:block">
-        <table className="w-full text-left text-sm">
+      {/* Desktop: table — pocket scroll */}
+      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+        <table className="w-full shrink-0 text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort} />
@@ -172,6 +172,9 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
               )}
             </tr>
           </thead>
+        </table>
+        <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
+          <table className="w-full text-left text-sm">
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
@@ -217,7 +220,8 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
               ))
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
       {/* Archived Report Quick View */}
       <SlidePanel

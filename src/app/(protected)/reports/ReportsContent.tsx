@@ -216,8 +216,8 @@ export const ReportsContent = ({
   ]
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="space-y-3">
+    <div className="flex flex-col gap-4 md:h-full md:gap-6">
+      <div className="shrink-0 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('reports.queueTitle')}</h1>
@@ -386,9 +386,9 @@ export const ReportsContent = ({
         )}
       </div>
 
-      {/* Desktop: table */}
-      <div className="hidden overflow-x-auto rounded-lg border border-th-border md:block">
-        <table className="w-full text-left text-sm">
+      {/* Desktop: table — pocket scroll: thead fixed, tbody scrolls */}
+      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+        <table className="w-full shrink-0 text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               <th className="w-10 px-3 py-3">
@@ -411,6 +411,9 @@ export const ReportsContent = ({
               <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort} />
             </tr>
           </thead>
+        </table>
+        <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
+          <table className="w-full text-left text-sm">
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
@@ -484,7 +487,8 @@ export const ReportsContent = ({
               ))
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {totalPages > 1 && (

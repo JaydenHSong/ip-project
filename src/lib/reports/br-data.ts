@@ -32,8 +32,8 @@ const BR_FORM_FIELD_CONTEXT: Record<BrFormType, string> = {
  * Returns a prompt-injection string describing how to write the BR description
  * for the given violation code. Returns null if the violation is not BR-reportable.
  */
-const getBrFormContext = (violationCode: string): string | null => {
-  const formType = BR_VIOLATION_MAP[violationCode]
+const getBrFormContext = (violationCode: string | null, formTypeOverride?: BrFormType): string | null => {
+  const formType = formTypeOverride ?? (violationCode ? BR_VIOLATION_MAP[violationCode] : null)
   if (!formType) return null
 
   const menuLabel: Record<BrFormType, string> = {
@@ -66,7 +66,7 @@ const BR_VIOLATION_MAP: Record<string, BrFormType | null> = {
   V04: 'other_policy',
   V05: 'other_policy',
   V06: 'other_policy',
-  V07: 'product_not_as_described',
+  V07: 'other_policy',
   V08: 'other_policy',
   V09: 'other_policy',
   V10: 'incorrect_variation',
@@ -79,6 +79,14 @@ const BR_VIOLATION_MAP: Record<string, BrFormType | null> = {
   V17: 'other_policy',
   V18: 'other_policy',
   V19: 'other_policy',
+}
+
+export type BrExtraFields = {
+  product_urls?: string[]
+  seller_storefront_url?: string
+  policy_url?: string
+  asins?: string[]
+  order_id?: string
 }
 
 type BuildBrDataInput = {
@@ -94,6 +102,8 @@ type BuildBrDataInput = {
     marketplace?: string
     seller_storefront_url?: string | null
   }
+  formTypeOverride?: BrFormType
+  extraFields?: BrExtraFields
 }
 
 export const isBrReportable = (violationCode: string): boolean =>
@@ -102,10 +112,16 @@ export const isBrReportable = (violationCode: string): boolean =>
 export const getBrFormType = (violationCode: string): BrFormType | null =>
   BR_VIOLATION_MAP[violationCode] ?? null
 
-export { getBrFormContext }
+export const BR_FORM_OPTIONS: { value: BrFormType; label: string }[] = [
+  { value: 'other_policy', label: 'Other policy violations' },
+  { value: 'incorrect_variation', label: 'Incorrect variation' },
+  { value: 'product_review', label: 'Product review violation' },
+]
 
-export const buildBrSubmitData = ({ report, listing }: BuildBrDataInput): BrSubmitData | null => {
-  const formType = BR_VIOLATION_MAP[report.user_violation_type]
+export { getBrFormContext, BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT }
+
+export const buildBrSubmitData = ({ report, listing, formTypeOverride, extraFields }: BuildBrDataInput): BrSubmitData | null => {
+  const formType = formTypeOverride ?? BR_VIOLATION_MAP[report.user_violation_type]
   if (!formType) return null
 
   const productUrls: string[] = []
@@ -129,6 +145,23 @@ export const buildBrSubmitData = ({ report, listing }: BuildBrDataInput): BrSubm
 
   if (listing.asin) {
     data.asins = [listing.asin]
+  }
+
+  // extraFields 오버라이드 (사용자 입력 우선)
+  if (extraFields?.product_urls && extraFields.product_urls.length > 0) {
+    data.product_urls = extraFields.product_urls
+  }
+  if (extraFields?.seller_storefront_url) {
+    data.seller_storefront_url = extraFields.seller_storefront_url
+  }
+  if (extraFields?.policy_url) {
+    data.policy_url = extraFields.policy_url
+  }
+  if (extraFields?.asins && extraFields.asins.length > 0) {
+    data.asins = extraFields.asins
+  }
+  if (extraFields?.order_id) {
+    data.order_id = extraFields.order_id
   }
 
   return data

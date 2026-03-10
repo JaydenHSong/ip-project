@@ -342,9 +342,9 @@ export const PatentsContent = ({
   const inputClass = 'w-full rounded-xl border border-th-border bg-surface-card px-4 py-2.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/20'
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="flex flex-col gap-4 md:h-full md:gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="shrink-0 flex items-center justify-between">
         <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('patents.title')}</h1>
         {isAdmin && (
           <Button
@@ -482,8 +482,8 @@ export const PatentsContent = ({
       </div>
 
       {/* Desktop: table */}
-      <div className="hidden overflow-x-auto rounded-lg border border-th-border md:block">
-        <table className="w-full text-left text-sm">
+      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+        <table className="w-full shrink-0 text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.ipType')}</th>
@@ -496,6 +496,9 @@ export const PatentsContent = ({
               <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.assignee')}</th>
             </tr>
           </thead>
+        </table>
+        <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
+          <table className="w-full text-left text-sm">
           <tbody className="divide-y divide-th-border">
             {(!assets || assets.length === 0) ? (
               <tr>
@@ -531,7 +534,8 @@ export const PatentsContent = ({
               ))
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {/* Pagination */}

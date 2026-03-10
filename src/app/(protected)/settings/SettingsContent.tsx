@@ -117,8 +117,8 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
   const ActiveIcon = activeItem?.icon ?? Activity
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-th-text">{t('nav.settings')}</h1>
+    <div className="flex h-full flex-col gap-4">
+      <h1 className="shrink-0 text-2xl font-bold text-th-text">{t('nav.settings')}</h1>
 
       {/* Mobile: Dropdown */}
       <div className="relative md:hidden">
@@ -167,9 +167,9 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
         )}
       </div>
 
-      {/* Desktop: Side nav + Content */}
-      <div className="hidden gap-6 md:flex">
-        <nav className="w-52 shrink-0 space-y-4">
+      {/* Desktop: Side nav (sticky) + Content (scrolls in main) */}
+      <div className="hidden min-h-0 flex-1 gap-6 md:flex">
+        <nav className="sticky top-0 w-52 shrink-0 self-start space-y-4">
           {visibleGroups.map((group) => (
             <div key={group.label}>
               <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-th-text-muted">
@@ -201,7 +201,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
           ))}
         </nav>
 
-        <div className="min-w-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {activeTab === 'monitoring' && <MonitoringSettings isAdmin={isAdmin} />}
           {activeTab === 'sla' && <SlaSettings isAdmin={isAdmin} />}
           {activeTab === 'extension' && <ExtensionGuide />}

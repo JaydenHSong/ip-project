@@ -117,8 +117,8 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
   ]
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 md:h-full md:gap-6">
+      <div className="shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('campaigns.title')}</h1>
           <OwnerToggle
@@ -206,9 +206,9 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
         </div>
       )}
 
-      {/* Desktop: table */}
-      <div className="hidden overflow-x-auto rounded-lg border border-th-border md:block">
-        <table className="w-full text-left text-sm">
+      {/* Desktop: table — pocket scroll */}
+      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+        <table className="w-full shrink-0 text-left text-sm">
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               {canDelete && (
@@ -231,6 +231,9 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
               <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.created')}</th>
             </tr>
           </thead>
+        </table>
+        <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
+          <table className="w-full text-left text-sm">
           <tbody className="divide-y divide-th-border">
             {(!campaigns || campaigns.length === 0) ? (
               <tr>
@@ -275,7 +278,8 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
               ))
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {totalPages > 1 && (

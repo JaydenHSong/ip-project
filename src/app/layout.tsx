@@ -37,7 +37,7 @@ const RootLayout = ({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} overflow-hidden antialiased`}
       >
         {children}
       </body>
