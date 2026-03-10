@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // PATCH /api/br-templates/:id — 수정
 export const PATCH = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 1]
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const body = await req.json() as Record<string, unknown>
 
   const allowed = ['code', 'category', 'title', 'body', 'br_form_type', 'instruction', 'violation_codes', 'placeholders', 'active']
@@ -45,7 +45,7 @@ export const DELETE = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 1]
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { error } = await supabase
     .from('br_templates')

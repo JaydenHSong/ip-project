@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { MonitoringSettings } from '@/types/monitoring'
 
 // GET /api/settings/monitoring
@@ -33,7 +34,7 @@ export const GET = withAuth(async () => {
 export const PUT = withAuth(async (req, { user }) => {
   const body = await req.json().catch(() => ({})) as Partial<MonitoringSettings>
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const now = new Date().toISOString()
 
   if (body.monitoring_interval_days !== undefined) {
@@ -76,6 +77,17 @@ export const PUT = withAuth(async (req, { user }) => {
     monitoring_interval_days: body.monitoring_interval_days ?? 7,
     monitoring_max_days: body.monitoring_max_days ?? 90,
   }
+
+  // 감사 로그
+  void supabase
+    .from('audit_logs')
+    .insert({
+      user_id: user.id,
+      action: 'update',
+      resource_type: 'system_config',
+      resource_id: 'monitoring_settings',
+      details: { updated: settings },
+    })
 
   return NextResponse.json(settings)
 }, ['owner', 'admin'])

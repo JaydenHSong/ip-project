@@ -86,3 +86,33 @@ export type BrReportResultMessage = {
   durationMs: number
   error?: string
 }
+
+// Content Script → Service Worker (BR 폼 채우기 요청 — MAIN world 실행 위임)
+export type BrFillFormRequest = {
+  type: 'BR_FILL_FORM'
+  data: BrFillFormData
+}
+
+export type BrFillFormData = {
+  descLabelPrefix: string
+  description: string
+  urlLabelPrefix: string
+  productUrls: string
+  dryRun: boolean
+  sendButtonText: string
+  sellerStorefrontUrl?: string
+  storefrontLabelPrefix?: string
+  policyUrl?: string
+  policyUrlLabelPrefix?: string
+  asins?: string
+  asinLabelPrefix?: string
+  orderId?: string
+  orderIdLabelPrefix?: string
+}
+
+export type BrFillFormResult = {
+  success: boolean
+  filled?: string[]
+  missed?: string[]
+  error?: string
+}

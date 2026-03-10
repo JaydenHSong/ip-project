@@ -99,7 +99,7 @@
 | 기술 | 용도 |
 |------|------|
 | Node.js | 런타임 |
-| Playwright | 브라우저 자동화 (아마존, SC, BR) |
+| Playwright | 브라우저 자동화 (아마존, PD, BR) |
 | BullMQ | 작업 큐 / 스케줄링 |
 | Bright Data / Oxylabs | 프록시 (Anti-bot 우회) |
 
@@ -143,7 +143,7 @@
    Editor/Admin이 내용 검토 + 승인/수정
          ↓
 5. 자동 신고 (Submission)
-   ├── Track A: Seller Central (SC) → Report a Violation
+   ├── Track A: Seller Central (PD) → Report a Violation
    └── Track B: Brand Registry (BR) → Report Infringement
          ↓
 6. 모니터링 (Monitoring)
@@ -167,7 +167,7 @@ Draft → Review → Approve (또는 Re-write)
 - **Draft**: AI 드래프트 생성됨, 검토 대기
 - **Review**: Editor가 검토 중
 - **Approved**: 승인됨, 제출 대기
-- **Submitted**: SC/BR에 자동 제출 완료
+- **Submitted**: PD/BR에 자동 제출 완료
 - **Monitoring**: 제출 후 결과 모니터링 중
 - **Done**: 아마존이 조치 완료 (리스팅 삭제/수정)
 - **Re-submitted**: 미해결로 재신고
@@ -441,7 +441,7 @@ src/
       patents/            # 특허 레지스트리
       ai/                 # Claude AI 분석
       monitoring/         # 리스팅 모니터링 (Track 1)
-      crawler/            # 크롤러 연동 (SC/BR 제출, 모니터링)
+      crawler/            # 크롤러 연동 (PD/BR 제출, 모니터링)
   components/
     ui/                   # 기본 UI (Button, Input, Modal, Badge 등)
     features/             # 비즈니스 컴포넌트 (ReportCard, CampaignForm 등)

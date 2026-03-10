@@ -8,10 +8,10 @@ import type {
 import type { PersonaRanges } from '../anti-bot/persona-ranges.js'
 import { log } from '../logger.js'
 
-type ScSubmitResult = {
+type PdSubmitResult = {
   reportId: string
   success: boolean
-  scCaseId: string | null
+  pdCaseId: string | null
   error: string | null
 }
 
@@ -56,16 +56,26 @@ type CampaignResultUpdate = {
   success: boolean
 }
 
+type PdFollowupResultData = {
+  reportId: string
+  screenshotUrl: string | null
+  listingData: Record<string, unknown>
+  crawledAt: string
+  listingRemoved: boolean
+}
+
 type SentinelClient = {
   getActiveCampaigns: () => Promise<Campaign[]>
+  verifyCampaignExists: (campaignId: string) => Promise<boolean>
+  verifyReportExists: (reportId: string) => Promise<boolean>
   submitListing: (data: CrawlerListingRequest) => Promise<CrawlerListingResponse>
   submitBatch: (listings: CrawlerListingRequest[]) => Promise<CrawlerBatchResponse>
   submitLog: (logData: CrawlerLogRequest) => Promise<void>
   updateCampaignResult: (campaignId: string, result: CampaignResultUpdate) => Promise<void>
   getPersonaRanges: () => Promise<PersonaRanges | null>
-  getPendingScSubmits: () => Promise<unknown[]>
-  reportScResult: (result: ScSubmitResult) => Promise<void>
-  getPendingResubmits: () => Promise<{ reports: unknown[]; defaults: unknown }>
+  getPendingPdSubmits: () => Promise<unknown[]>
+  reportPdResult: (result: PdSubmitResult) => Promise<void>
+  getPendingPdResubmits: () => Promise<{ reports: unknown[]; defaults: unknown }>
   strengthenDraft: (reportId: string) => Promise<void>
   getPendingBrSubmits: () => Promise<unknown[]>
   reportBrResult: (result: BrSubmitResult) => Promise<void>
@@ -73,6 +83,8 @@ type SentinelClient = {
   reportBrMonitorResult: (data: BrMonitorResultData) => Promise<void>
   getPendingBrReplies: () => Promise<unknown[]>
   reportBrReplyResult: (data: BrReplyResultData) => Promise<void>
+  getPendingFollowups: () => Promise<{ reports: unknown[] }>
+  reportFollowupResult: (data: PdFollowupResultData) => Promise<void>
 }
 
 const API_RETRY_MAX = 3
@@ -126,6 +138,31 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
   const baseUrl = apiUrl.replace(/\/$/, '')
 
   return {
+    verifyCampaignExists: async (campaignId: string): Promise<boolean> => {
+      try {
+        const response = await fetch(`${baseUrl}/api/campaigns/${campaignId}`, {
+          method: 'GET',
+          headers,
+        })
+        return response.ok
+      } catch {
+        // 네트워크 에러 시 존재한다고 가정 (안전 방향)
+        return true
+      }
+    },
+
+    verifyReportExists: async (reportId: string): Promise<boolean> => {
+      try {
+        const response = await fetch(`${baseUrl}/api/reports/${reportId}`, {
+          method: 'GET',
+          headers,
+        })
+        return response.ok
+      } catch {
+        return true
+      }
+    },
+
     getActiveCampaigns: async (): Promise<Campaign[]> => {
       log('info', 'api-client', 'Fetching active campaigns')
 
@@ -218,9 +255,9 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       }
     },
 
-    getPendingScSubmits: async (): Promise<unknown[]> => {
+    getPendingPdSubmits: async (): Promise<unknown[]> => {
       const response = await fetchWithRetry(
-        `${baseUrl}/api/crawler/sc-pending`,
+        `${baseUrl}/api/crawler/pd-pending`,
         { method: 'GET', headers },
       )
       if (!response.ok) {
@@ -231,18 +268,18 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       return data.reports
     },
 
-    reportScResult: async (result: ScSubmitResult): Promise<void> => {
+    reportPdResult: async (result: PdSubmitResult): Promise<void> => {
       const response = await fetchWithRetry(
-        `${baseUrl}/api/crawler/sc-result`,
+        `${baseUrl}/api/crawler/pd-result`,
         { method: 'POST', headers, body: JSON.stringify(result) },
       )
       if (!response.ok) {
         const body = await response.text()
-        throw new Error(`Failed to report SC result: ${response.status} ${body}`)
+        throw new Error(`Failed to report PD result: ${response.status} ${body}`)
       }
     },
 
-    getPendingResubmits: async (): Promise<{ reports: unknown[]; defaults: unknown }> => {
+    getPendingPdResubmits: async (): Promise<{ reports: unknown[]; defaults: unknown }> => {
       const response = await fetchWithRetry(
         `${baseUrl}/api/crawler/resubmit-pending`,
         { method: 'GET', headers },
@@ -353,6 +390,36 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       if (!response.ok) {
         const body = await response.text()
         throw new Error(`Failed to report BR reply result: ${response.status} ${body}`)
+      }
+    },
+
+    getPendingFollowups: async (): Promise<{ reports: unknown[] }> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/pd-followup-pending`,
+        { method: 'GET', headers },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to fetch PD follow-up pending: ${response.status} ${body}`)
+      }
+      return (await response.json()) as { reports: unknown[] }
+    },
+
+    reportFollowupResult: async (data: PdFollowupResultData): Promise<void> => {
+      const payload = {
+        report_id: data.reportId,
+        screenshot_url: data.screenshotUrl,
+        listing_data: data.listingData,
+        crawled_at: data.crawledAt,
+        listing_removed: data.listingRemoved,
+      }
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/pd-followup-result`,
+        { method: 'POST', headers, body: JSON.stringify(payload) },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to report PD follow-up result: ${response.status} ${body}`)
       }
     },
   }

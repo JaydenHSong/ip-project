@@ -40,9 +40,9 @@ export type AuthUser = {
   role: string
 }
 
-export type ScSubmitData = {
+export type PdSubmitData = {
   asin: string
-  violation_type_sc: string
+  violation_type_pd: string
   description: string
   evidence_urls: string[]
   marketplace: string

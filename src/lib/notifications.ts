@@ -7,8 +7,8 @@ type NotificationType =
   | 'followup_change_detected'
   | 'followup_no_change'
   | 'patent_sync_completed'
-  | 'sc_submit_success'
-  | 'sc_submit_failed'
+  | 'pd_submit_success'
+  | 'pd_submit_failed'
   | 'system_error'
 
 type CreateNotificationParams = {

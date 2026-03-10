@@ -5,13 +5,13 @@
 import { SC_SELECTORS } from './sc-selectors'
 import { showCountdown } from './sc-countdown'
 import { humanSubmit, delay } from './sc-human-behavior'
-import { markItem } from './sc-queue'
+import { markItem } from './pd-queue'
 import { API_BASE } from '@shared/constants'
-import type { ScSubmitData } from '@shared/types'
+import type { PdSubmitData } from '@shared/types'
 
 // --- 설정 타입 ---
 
-type ScAutoSettings = {
+type PdAutoSettings = {
   autoSubmitEnabled: boolean
   countdownSeconds: number
   minDelaySec: number
@@ -20,7 +20,7 @@ type ScAutoSettings = {
 
 // --- 유틸리티 ---
 
-const trySelectors = <T>(selectors: (() => T | null | undefined)[]): T | null => {
+const trySelectors = <T>(selectors: readonly (() => T | null | undefined)[]): T | null => {
   for (const selector of selectors) {
     try {
       const result = selector()
@@ -39,10 +39,10 @@ const getStoredToken = (): Promise<string | null> =>
     })
   })
 
-const getSettings = (): Promise<ScAutoSettings> =>
+const getSettings = (): Promise<PdAutoSettings> =>
   new Promise((resolve) => {
-    chrome.storage.local.get(['sc_auto_settings'], (result) => {
-      resolve((result.sc_auto_settings as ScAutoSettings) ?? {
+    chrome.storage.local.get(['pd_auto_settings'], (result) => {
+      resolve((result.pd_auto_settings as PdAutoSettings) ?? {
         autoSubmitEnabled: true,
         countdownSeconds: 3,
         minDelaySec: 30,
@@ -55,14 +55,17 @@ const getSettings = (): Promise<ScAutoSettings> =>
 
 const fetchPendingSubmitData = async (): Promise<{
   report_id: string
-  sc_submit_data: ScSubmitData
+  pd_submit_data: PdSubmitData
   auto_submit_enabled: boolean
+  countdown_seconds?: number
+  min_delay_sec?: number
+  max_delay_sec?: number
 } | null> => {
   try {
     const token = await getStoredToken()
     if (!token) return null
 
-    const res = await fetch(`${API_BASE}/reports/pending-sc-submit`, {
+    const res = await fetch(`${API_BASE}/reports/pending-pd-submit`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'X-Extension-Version': chrome.runtime.getManifest().version,
@@ -94,7 +97,7 @@ const confirmSubmitted = async (
         'X-Extension-Version': chrome.runtime.getManifest().version,
       },
       body: JSON.stringify({
-        sc_case_id: caseId ?? undefined,
+        pd_case_id: caseId ?? undefined,
         auto_submit: autoSubmit || undefined,
         auto_submit_success: autoSubmit ? autoSubmitSuccess : undefined,
       }),
@@ -124,7 +127,7 @@ const setSelectValue = (el: HTMLSelectElement, value: string): void => {
   el.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
-const fillForm = (data: ScSubmitData): boolean => {
+const fillForm = (data: PdSubmitData): boolean => {
   let allFilled = true
 
   const asinInput = trySelectors(SC_SELECTORS.asinInput)
@@ -136,7 +139,7 @@ const fillForm = (data: ScSubmitData): boolean => {
 
   const violationSelect = trySelectors(SC_SELECTORS.violationTypeSelect)
   if (violationSelect) {
-    setSelectValue(violationSelect, data.violation_type_sc)
+    setSelectValue(violationSelect, data.violation_type_pd)
   } else {
     allFilled = false
   }
@@ -271,7 +274,7 @@ const handleManualSubmissionComplete = async (reportId: string): Promise<void> =
   const caseId = trySelectors(SC_SELECTORS.caseId)
   await confirmSubmitted(reportId, caseId, false)
   showToast(
-    `SC 제출 완료!${caseId ? ` Case ID: ${caseId}` : ''}`,
+    `PD 제출 완료!${caseId ? ` Case ID: ${caseId}` : ''}`,
     'success',
   )
 }
@@ -332,7 +335,7 @@ const init = async (): Promise<void> => {
   if (!pendingData) return
 
   // 4. 폼 채우기
-  const allFilled = fillForm(pendingData.sc_submit_data)
+  const allFilled = fillForm(pendingData.pd_submit_data)
 
   if (!allFilled) {
     showToast('일부 필드를 채우지 못했습니다. 수동으로 확인하세요.', 'warning')
@@ -341,9 +344,9 @@ const init = async (): Promise<void> => {
   }
 
   // 5. 자동 제출 모드 확인
-  const settings = await getSettings()
+  const localSettings = await getSettings()
   const webAutoEnabled = pendingData.auto_submit_enabled ?? false
-  const localAutoEnabled = settings.autoSubmitEnabled
+  const localAutoEnabled = localSettings.autoSubmitEnabled
 
   if (!webAutoEnabled || !localAutoEnabled) {
     // F13a 동작: 폼만 채우고 사용자에게 안내
@@ -352,8 +355,9 @@ const init = async (): Promise<void> => {
     return
   }
 
-  // 6. 카운트다운
-  const countdownResult = await showCountdown(settings.countdownSeconds)
+  // 6. 카운트다운 (웹 설정 우선, 없으면 로컬 fallback)
+  const countdown = pendingData.countdown_seconds ?? localSettings.countdownSeconds
+  const countdownResult = await showCountdown(countdown)
 
   if (countdownResult === 'cancelled') {
     showToast('자동 제출 취소. 수동으로 Submit 클릭하세요.', 'warning')

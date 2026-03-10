@@ -1,4 +1,4 @@
-export type ScSubmitJobData = {
+export type PdSubmitJobData = {
   reportId: string
   asin: string
   marketplace: string
@@ -8,9 +8,9 @@ export type ScSubmitJobData = {
   scRavUrl: string
 }
 
-export type ScSubmitResult = {
+export type PdSubmitResult = {
   reportId: string
   success: boolean
-  scCaseId: string | null
+  pdCaseId: string | null
   error: string | null
 }

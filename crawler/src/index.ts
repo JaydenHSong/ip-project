@@ -4,10 +4,10 @@ import { createChatNotifier } from './notifications/google-chat.js'
 import { createCrawlQueue, createCrawlWorker } from './scheduler/queue.js'
 import { createJobProcessor } from './scheduler/jobs.js'
 import { startScheduler } from './scheduler/scheduler.js'
-import { createScSubmitQueue, createScSubmitWorker } from './sc-submit/queue.js'
-import { processScSubmitJob } from './sc-submit/worker.js'
-import { startScScheduler } from './sc-submit/scheduler.js'
-import { startResubmitScheduler } from './sc-submit/resubmit-scheduler.js'
+import { createPdSubmitQueue, createPdSubmitWorker } from './pd-submit/queue.js'
+import { processPdSubmitJob } from './pd-submit/worker.js'
+import { startPdScheduler } from './pd-submit/scheduler.js'
+import { startResubmitScheduler } from './pd-submit/resubmit-pdheduler.js'
 import { createBrSubmitQueue, createBrSubmitWorker } from './br-submit/queue.js'
 import { processBrSubmitJob, closeBrBrowser } from './br-submit/worker.js'
 import { startBrScheduler } from './br-submit/scheduler.js'
@@ -17,7 +17,11 @@ import { startBrMonitorScheduler } from './br-monitor/scheduler.js'
 import { createBrReplyQueue, createBrReplyWorker } from './br-reply/queue.js'
 import { processBrReplyJob, setBrowserPageAccessor } from './br-reply/worker.js'
 import { startBrReplyScheduler } from './br-reply/scheduler.js'
+import { createPdFollowupQueue, createPdFollowupWorker } from './pd-followup/queue.js'
+import { processPdFollowupJob, closePdFollowupBrowser } from './pd-followup/worker.js'
+import { startPdFollowupScheduler } from './pd-followup/scheduler.js'
 import { createHealthServer } from './health.js'
+import { createHeartbeatMonitor } from './heartbeat.js'
 import { createVisionAnalyzer } from './ai/vision-analyzer.js'
 import { log } from './logger.js'
 
@@ -92,25 +96,26 @@ const init = async (): Promise<void> => {
 
   const schedulerInterval = await startScheduler(queue, sentinelClient)
 
-  // SC Submit Queue + Worker + Schedulers
-  const scQueue = createScSubmitQueue(redisUrl)
-  const scWorker = createScSubmitWorker(redisUrl, async (job) => {
-    const result = await processScSubmitJob(job)
-    // Report result to Sentinel Web API
-    await sentinelClient.reportScResult(result).catch((err) => {
-      log('error', 'main', `Failed to report SC result: ${err instanceof Error ? err.message : String(err)}`)
+  // PD Submit Queue + Worker + Schedulers
+  const pdQueue = createPdSubmitQueue(redisUrl)
+  const pdWorker = createPdSubmitWorker(redisUrl, async (job) => {
+    const result = await processPdSubmitJob(job, sentinelClient)
+    if (result.error === 'REPORT_DELETED') return result
+    await sentinelClient.reportPdResult(result).catch((err) => {
+      log('error', 'main', `Failed to report PD result: ${err instanceof Error ? err.message : String(err)}`)
     })
     return result
   })
-  const scSchedulerInterval = startScScheduler(scQueue, sentinelClient)
-  const resubmitSchedulerInterval = startResubmitScheduler(scQueue, sentinelClient)
+  const pdSchedulerInterval = startPdScheduler(pdQueue, sentinelClient)
+  const resubmitSchedulerInterval = startResubmitScheduler(pdQueue, sentinelClient)
 
-  log('info', 'main', 'SC submit queue + worker + schedulers started')
+  log('info', 'main', 'PD submit queue + worker + schedulers started')
 
   // BR Submit Queue + Worker + Scheduler
   const brQueue = createBrSubmitQueue(redisUrl)
   const brWorker = createBrSubmitWorker(redisUrl, async (job) => {
-    const result = await processBrSubmitJob(job)
+    const result = await processBrSubmitJob(job, sentinelClient)
+    if (result.error === 'REPORT_DELETED') return result
     await sentinelClient.reportBrResult(result).catch((err) => {
       log('error', 'main', `Failed to report BR result: ${err instanceof Error ? err.message : String(err)}`)
     })
@@ -132,7 +137,7 @@ const init = async (): Promise<void> => {
       await sentinelClient.reportBrMonitorResult(result).catch((err) => {
         log('error', 'main', `Failed to report BR monitor result: ${err instanceof Error ? err.message : String(err)}`)
       })
-    })
+    }, sentinelClient.verifyReportExists)
   })
   const brMonitorSchedulerInterval = startBrMonitorScheduler(brMonitorQueue, sentinelClient)
 
@@ -151,11 +156,24 @@ const init = async (): Promise<void> => {
       await sentinelClient.reportBrReplyResult(result).catch((err) => {
         log('error', 'main', `Failed to report BR reply result: ${err instanceof Error ? err.message : String(err)}`)
       })
-    })
+    }, sentinelClient.verifyReportExists)
   })
   const brReplySchedulerInterval = startBrReplyScheduler(brReplyQueue, sentinelClient)
 
   log('info', 'main', 'BR reply queue + worker + scheduler started')
+
+  // PD Follow-up Queue + Worker + Scheduler
+  const pdFollowupQueue = createPdFollowupQueue(redisUrl)
+  const pdFollowupWorker = createPdFollowupWorker(redisUrl, async (job) => {
+    await processPdFollowupJob(job, async (result) => {
+      await sentinelClient.reportFollowupResult(result).catch((err) => {
+        log('error', 'main', `Failed to report PD follow-up result: ${err instanceof Error ? err.message : String(err)}`)
+      })
+    }, sentinelClient.verifyReportExists)
+  })
+  const pdFollowupSchedulerInterval = startPdFollowupScheduler(pdFollowupQueue, sentinelClient)
+
+  log('info', 'main', 'PD follow-up queue + worker + scheduler started')
 
   redisConnected = true
   workerRunning = true
@@ -177,10 +195,32 @@ const init = async (): Promise<void> => {
   }
 
   worker.on('error', workerAlertHandler('Crawl Worker'))
-  scWorker.on('error', workerAlertHandler('SC Submit Worker'))
+  pdWorker.on('error', workerAlertHandler('PD Submit Worker'))
   brWorker.on('error', workerAlertHandler('BR Submit Worker'))
   brMonitorWorker.on('error', workerAlertHandler('BR Monitor Worker'))
   brReplyWorker.on('error', workerAlertHandler('BR Reply Worker'))
+  pdFollowupWorker.on('error', workerAlertHandler('PD Follow-up Worker'))
+
+  // ─── A1 Heartbeat: 30s 간격으로 워커 활동 감지, 3회 연속 미활성 시 알림 ───
+  const WORKER_NAMES = [
+    'Crawl Worker',
+    'PD Submit Worker',
+    'BR Submit Worker',
+    'BR Monitor Worker',
+    'BR Reply Worker',
+    'PD Follow-up Worker',
+  ] as const
+
+  const heartbeat = createHeartbeatMonitor(config.googleChatWebhookUrl, [...WORKER_NAMES])
+
+  worker.on('completed', () => { heartbeat.recordActivity('Crawl Worker') })
+  pdWorker.on('completed', () => { heartbeat.recordActivity('PD Submit Worker') })
+  brWorker.on('completed', () => { heartbeat.recordActivity('BR Submit Worker') })
+  brMonitorWorker.on('completed', () => { heartbeat.recordActivity('BR Monitor Worker') })
+  brReplyWorker.on('completed', () => { heartbeat.recordActivity('BR Reply Worker') })
+  pdFollowupWorker.on('completed', () => { heartbeat.recordActivity('PD Follow-up Worker') })
+
+  log('info', 'main', 'Heartbeat monitor started (30s interval, alert after 3 misses)')
 
   // ─── A2: Daily Report (매일 09:00 KST = 16:00 PST 전날) ───
   const sendDailyReport = async (): Promise<void> => {
@@ -189,10 +229,11 @@ const init = async (): Promise<void> => {
     try {
       const queues = [
         { name: 'Crawl', q: queue },
-        { name: 'SC Submit', q: scQueue },
+        { name: 'PD Submit', q: pdQueue },
         { name: 'BR Submit', q: brQueue },
         { name: 'BR Monitor', q: brMonitorQueue },
         { name: 'BR Reply', q: brReplyQueue },
+        { name: 'PD Follow-up', q: pdFollowupQueue },
       ]
 
       const lines = ['📊 *[Sentinel]* Daily Report']
@@ -231,14 +272,19 @@ const init = async (): Promise<void> => {
       await chatNotifier.notifyMessage('⏹ *[Sentinel Crawler]* 크롤러가 종료됩니다.')
     }
 
+    heartbeat.stop()
     clearInterval(dailyReportInterval)
     clearInterval(schedulerInterval)
-    clearInterval(scSchedulerInterval)
+    clearInterval(pdSchedulerInterval)
     clearInterval(resubmitSchedulerInterval)
     clearInterval(brSchedulerInterval)
     clearInterval(brMonitorSchedulerInterval)
     clearInterval(brReplySchedulerInterval)
+    clearInterval(pdFollowupSchedulerInterval)
     healthServer.close()
+    await closePdFollowupBrowser()
+    await pdFollowupWorker.close()
+    await pdFollowupQueue.close()
     await brReplyWorker.close()
     await brReplyQueue.close()
     await closeMonitorBrowser()
@@ -247,8 +293,8 @@ const init = async (): Promise<void> => {
     await closeBrBrowser()
     await brWorker.close()
     await brQueue.close()
-    await scWorker.close()
-    await scQueue.close()
+    await pdWorker.close()
+    await pdQueue.close()
     await worker.close()
     await queue.close()
     log('info', 'main', 'Shutdown complete')

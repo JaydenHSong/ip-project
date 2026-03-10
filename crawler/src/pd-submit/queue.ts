@@ -1,8 +1,8 @@
 import { Queue, Worker, type Job } from 'bullmq'
-import type { ScSubmitJobData, ScSubmitResult } from './types.js'
+import type { PdSubmitJobData, PdSubmitResult } from './types.js'
 import { log } from '../logger.js'
 
-const QUEUE_NAME = 'sentinel-sc-submit'
+const QUEUE_NAME = 'sentinel-pd-submit'
 
 const JOB_DEFAULT_OPTIONS = {
   attempts: 3,
@@ -14,19 +14,19 @@ const JOB_DEFAULT_OPTIONS = {
   removeOnFail: { count: 50 },
 }
 
-const createScSubmitQueue = (redisUrl: string): Queue => {
+const createPdSubmitQueue = (redisUrl: string): Queue => {
   const queue = new Queue(QUEUE_NAME, {
     connection: { url: redisUrl },
     defaultJobOptions: JOB_DEFAULT_OPTIONS,
   })
 
-  log('info', 'sc-queue', 'SC submit queue created')
+  log('info', 'sc-queue', 'PD submit queue created')
   return queue
 }
 
-const createScSubmitWorker = (
+const createPdSubmitWorker = (
   redisUrl: string,
-  processor: (job: Job<ScSubmitJobData>) => Promise<ScSubmitResult>,
+  processor: (job: Job<PdSubmitJobData>) => Promise<PdSubmitResult>,
 ): Worker => {
   const worker = new Worker(
     QUEUE_NAME,
@@ -43,19 +43,19 @@ const createScSubmitWorker = (
 
   worker.on('completed', (job) => {
     const result = job.returnvalue
-    log('info', 'sc-queue', `SC submit completed: ${job.id} — report: ${result.reportId}, success: ${result.success}`)
+    log('info', 'sc-queue', `PD submit completed: ${job.id} — report: ${result.reportId}, success: ${result.success}`)
   })
 
   worker.on('failed', (job, error) => {
-    log('error', 'sc-queue', `SC submit failed: ${job?.id} — ${error.message}`)
+    log('error', 'sc-queue', `PD submit failed: ${job?.id} — ${error.message}`)
   })
 
   worker.on('error', (error) => {
     log('error', 'sc-queue', `SC worker error: ${error.message}`)
   })
 
-  log('info', 'sc-queue', 'SC submit worker created (concurrency: 1)')
+  log('info', 'sc-queue', 'PD submit worker created (concurrency: 1)')
   return worker
 }
 
-export { createScSubmitQueue, createScSubmitWorker, QUEUE_NAME }
+export { createPdSubmitQueue, createPdSubmitWorker, QUEUE_NAME }

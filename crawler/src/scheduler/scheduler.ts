@@ -49,12 +49,13 @@ const syncCampaigns = async (
       }
     }
 
-    // 비활성화된 캠페인 → 잡 제거
+    // 비활성화/삭제된 캠페인 → 반복 잡 + 즉시/대기 잡 모두 제거
     for (const [campaignId] of registeredCampaigns) {
       if (!activeCampaignIds.has(campaignId)) {
         await removeRepeatableJob(queue, campaignId)
+        await removeQueuedJobs(queue, campaignId)
         registeredCampaigns.delete(campaignId)
-        log('info', 'scheduler', `Removed job for deactivated campaign: ${campaignId}`)
+        log('info', 'scheduler', `Removed all jobs for deactivated campaign: ${campaignId}`)
       }
     }
 
@@ -130,6 +131,24 @@ const removeRepeatableJob = async (
       log('info', 'scheduler', `Removed repeatable job for campaign: ${campaignId}`)
       break
     }
+  }
+}
+
+// 큐에 대기 중인 즉시/지연 잡 제거
+const removeQueuedJobs = async (
+  queue: Queue<CrawlJobData>,
+  campaignId: string,
+): Promise<void> => {
+  const waitingJobs = await queue.getJobs(['waiting', 'delayed'])
+  let removed = 0
+  for (const job of waitingJobs) {
+    if (job.data?.campaignId === campaignId) {
+      await job.remove().catch(() => {})
+      removed++
+    }
+  }
+  if (removed > 0) {
+    log('info', 'scheduler', `Removed ${removed} queued job(s) for campaign: ${campaignId}`)
   }
 }
 

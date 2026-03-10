@@ -10,6 +10,10 @@ const VALID_LOG_TYPES = [
   'captcha',
   'rate_limit',
   'api_error',
+  'pd_followup',
+  'br_monitor',
+  'br_submit',
+  'br_reply',
 ] as const
 
 // POST /api/crawler/logs — 크롤러가 로그 전송 (Service Token 인증)

@@ -16,6 +16,7 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
   const { addToast } = useToast()
   const [intervalDays, setIntervalDays] = useState(7)
   const [maxDays, setMaxDays] = useState(90)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -27,6 +28,7 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
         if (data.monitoring_max_days) setMaxDays(data.monitoring_max_days)
       })
       .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   const handleSave = async () => {
@@ -60,24 +62,31 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
         <h2 className="font-semibold text-th-text">{t('settings.monitoring.title' as Parameters<typeof t>[0])}</h2>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Input
-          label={t('settings.monitoring.intervalDays' as Parameters<typeof t>[0])}
-          type="number"
-          min={1}
-          max={30}
-          value={intervalDays}
-          onChange={(e) => setIntervalDays(Number(e.target.value))}
-          disabled={!isAdmin}
-        />
-        <Input
-          label={t('settings.monitoring.maxDays' as Parameters<typeof t>[0])}
-          type="number"
-          min={7}
-          max={365}
-          value={maxDays}
-          onChange={(e) => setMaxDays(Number(e.target.value))}
-          disabled={!isAdmin}
-        />
+        {loading ? (
+          <div className="space-y-4">
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
+          </div>
+        ) : (
+          <>
+            <Input
+              label={t('settings.monitoring.intervalDays' as Parameters<typeof t>[0])}
+              type="number"
+              min={1}
+              max={30}
+              value={intervalDays}
+              onChange={(e) => setIntervalDays(Number(e.target.value))}
+              disabled={!isAdmin}
+            />
+            <Input
+              label={t('settings.monitoring.maxDays' as Parameters<typeof t>[0])}
+              type="number"
+              min={7}
+              max={365}
+              value={maxDays}
+              onChange={(e) => setMaxDays(Number(e.target.value))}
+              disabled={!isAdmin}
+            />
         {isAdmin && (
           <div className="flex items-center gap-3">
             <Button
@@ -91,6 +100,8 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
               <span className="text-sm text-green-500">{t('settings.monitoring.saved' as Parameters<typeof t>[0])}</span>
             )}
           </div>
+        )}
+          </>
         )}
       </CardContent>
     </Card>

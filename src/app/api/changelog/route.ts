@@ -96,5 +96,16 @@ export const POST = async (req: NextRequest): Promise<NextResponse> => {
     )
   }
 
+  // 감사 로그
+  void supabase
+    .from('audit_logs')
+    .insert({
+      user_id: user.id,
+      action: 'create',
+      resource_type: 'changelog',
+      resource_id: data.id,
+      details: { category: body.category, title: body.title },
+    })
+
   return NextResponse.json({ data }, { status: 201 })
 }

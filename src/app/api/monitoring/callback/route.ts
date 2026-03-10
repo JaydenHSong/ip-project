@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyAdmins } from '@/lib/notifications'
 import type { MonitoringCallbackPayload, SnapshotDiff } from '@/types/monitoring'
 
@@ -106,7 +107,8 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   // 감사 로그
-  void supabase.from('audit_logs').insert({
+  const adminDb = createAdminClient()
+  void adminDb.from('audit_logs').insert({
     user_id: user.id,
     action: 'monitoring_callback',
     resource_type: 'report',

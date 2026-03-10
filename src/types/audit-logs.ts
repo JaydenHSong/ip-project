@@ -2,10 +2,11 @@ export const AUDIT_ACTIONS = [
   'login', 'logout', 'role_changed',
   'report_created', 'report_approved', 'report_rejected',
   'report_cancelled', 'report_submitted', 'report_edited',
-  'sc_credential_accessed', 'sc_credential_updated',
+  'pd_credential_accessed', 'pd_credential_updated',
   'campaign_created', 'campaign_updated', 'campaign_deleted',
   'patent_sync_triggered', 'patent_sync_completed',
   'settings_changed', 'system_error',
+  'bulk_br_resubmit', 'bulk_archive',
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 

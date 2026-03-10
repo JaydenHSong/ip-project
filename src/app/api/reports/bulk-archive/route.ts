@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // POST /api/reports/bulk-archive — 일괄 아카이브
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req, { user }) => {
   const { report_ids, reason } = (await req.json()) as { report_ids: string[]; reason?: string }
 
   if (!report_ids?.length) {
@@ -49,6 +50,15 @@ export const POST = withAuth(async (req) => {
       { status: 500 },
     )
   }
+
+  // audit log
+  const adminDb = createAdminClient()
+  void adminDb.from('audit_logs').insert({
+    user_id: user.id,
+    action: 'bulk_archive',
+    resource_type: 'report',
+    details: { archived: validIds.length, skipped: report_ids.length - validIds.length, report_ids },
+  })
 
   return NextResponse.json({
     archived: validIds.length,

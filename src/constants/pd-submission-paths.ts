@@ -1,6 +1,6 @@
 // Seller Central 신고 경로 매뉴얼
 // Brand Registry > Report a Violation 페이지 기준
-// Extension sc-form-filler.ts / Crawler SC 자동화에서 참조
+// Extension pd-form-filler.ts / Crawler SC 자동화에서 참조
 
 export const SC_REPORT_TYPES = {
   incorrect_variation: 'Incorrect Variation',
@@ -10,7 +10,7 @@ export const SC_REPORT_TYPES = {
 
 export type ScReportType = (typeof SC_REPORT_TYPES)[keyof typeof SC_REPORT_TYPES]
 
-// 위반 유형 → SC 신고 경로 매핑
+// 위반 유형 → PD 신고 경로 매핑
 export const SC_SUBMISSION_PATHS = {
   // ─────────────────────────────────────────────
   // V07: 부정확한 상품 정보
@@ -93,13 +93,13 @@ export const SC_SUBMISSION_PATHS = {
   },
 } as const
 
-// 위반코드 → SC 경로 자동 매핑 (sc-form-filler에서 사용)
+// 위반코드 → PD 경로 자동 매핑 (pd-form-filler에서 사용)
 export const getSubmissionPath = (violationCode: string): typeof SC_SUBMISSION_PATHS[keyof typeof SC_SUBMISSION_PATHS] | null => {
   const code = violationCode as keyof typeof SC_SUBMISSION_PATHS
   return SC_SUBMISSION_PATHS[code] ?? null
 }
 
-// SC 폼 필드 ID 참조 (Brand Registry RAV 페이지)
+// PD 폼 필드 ID 참조 (Brand Registry RAV 페이지)
 export const SC_FORM_FIELDS = {
   reportType: '#report-type-select',        // 신고 유형 드롭다운
   subject: '#subject-input',                // Subject 텍스트 필드

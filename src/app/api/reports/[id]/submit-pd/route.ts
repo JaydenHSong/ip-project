@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { notifySubmittedToSC } from '@/lib/notifications/google-chat'
+import { notifySubmittedToPD } from '@/lib/notifications/google-chat'
 import { SC_VIOLATION_MAP, SC_RAV_URLS } from '@/constants/violations'
 import type { ViolationCode } from '@/constants/violations'
 
-// POST /api/reports/:id/submit-sc — approved → submitted + SC submit 데이터 저장
+// POST /api/reports/:id/submit-pd — approved → submitted + PD submit 데이터 저장
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -39,7 +39,7 @@ export const POST = withAuth(async (req) => {
 
   if (report.status !== 'approved') {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'SC 접수는 승인된 신고만 가능합니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'PD 접수는 승인된 신고만 가능합니다.' } },
       { status: 400 },
     )
   }
@@ -50,15 +50,15 @@ export const POST = withAuth(async (req) => {
   const marketplace = listing.marketplace ?? 'US'
   const scRavUrl = SC_RAV_URLS[marketplace] ?? SC_RAV_URLS.US
 
-  // SC submit 데이터 구성
+  // PD submit 데이터 구성
   const relatedAsins = Array.isArray(report.related_asins)
     ? (report.related_asins as { asin: string; marketplace?: string }[]).map((ra) => ra.asin)
     : []
 
-  const scSubmitData = {
+  const pdSubmitData = {
     asin: listing.asin,
     related_asins: relatedAsins,
-    violation_type_sc: violationTypeSc,
+    violation_type_pd: violationTypeSc,
     description: report.draft_body ?? '',
     evidence_urls: Array.isArray(report.draft_evidence)
       ? (report.draft_evidence as { url: string }[])
@@ -75,12 +75,12 @@ export const POST = withAuth(async (req) => {
     .from('reports')
     .update({
       status: 'submitted',
-      sc_submitted_at: now,
-      sc_submit_data: scSubmitData,
+      pd_submitted_at: now,
+      pd_submit_data: pdSubmitData,
       updated_at: now,
     })
     .eq('id', id)
-    .select('id, status, sc_submitted_at')
+    .select('id, status, pd_submitted_at')
     .single()
 
   if (error) {
@@ -91,11 +91,11 @@ export const POST = withAuth(async (req) => {
   }
 
   // 알림 (fire-and-forget)
-  notifySubmittedToSC(id, listing.asin).catch(() => {})
+  notifySubmittedToPD(id, listing.asin).catch(() => {})
 
   return NextResponse.json({
     ...data,
-    sc_rav_url: scRavUrl,
-    sc_submit_data: scSubmitData,
+    pd_rav_url: scRavUrl,
+    pd_submit_data: pdSubmitData,
   })
 }, ['owner', 'admin', 'editor'])

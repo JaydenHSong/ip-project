@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildScSubmitData } from '@/lib/reports/sc-data'
+import { buildPdSubmitData } from '@/lib/reports/pd-data'
 import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
 
 // POST /api/reports/:id/force-resubmit — 강제 재제출 (SC + BR)
@@ -53,10 +53,10 @@ export const POST = withAuth(async (req) => {
     last_resubmit_at: new Date().toISOString(),
   }
 
-  // SC track
-  if (track === 'sc' || track === 'both') {
-    const scSubmitData = listing
-      ? buildScSubmitData({
+  // PD track
+  if (track === 'pd' || track === 'both') {
+    const pdSubmitData = listing
+      ? buildPdSubmitData({
           report: {
             id,
             user_violation_type: report.user_violation_type,
@@ -67,10 +67,10 @@ export const POST = withAuth(async (req) => {
         })
       : null
 
-    updateData.status = 'sc_submitting'
-    updateData.sc_submit_data = scSubmitData
-    updateData.sc_submit_attempts = 0
-    updateData.sc_submission_error = null
+    updateData.status = 'pd_submitting'
+    updateData.pd_submit_data = pdSubmitData
+    updateData.pd_submit_attempts = 0
+    updateData.pd_submission_error = null
   }
 
   // BR track (BR-only resubmit or both)

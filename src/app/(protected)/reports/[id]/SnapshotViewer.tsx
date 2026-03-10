@@ -125,6 +125,57 @@ export const SnapshotViewer = ({ initialSnapshot, followupSnapshots }: SnapshotV
           </div>
         )}
 
+        {/* Screenshot Comparison */}
+        {(initialSnapshot?.screenshot_url || current?.screenshot_url) && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {initialSnapshot?.screenshot_url && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wider text-th-text-tertiary">Initial Screenshot</p>
+                <img
+                  src={initialSnapshot.screenshot_url}
+                  alt="Initial listing"
+                  className="w-full rounded-lg border border-th-border"
+                />
+              </div>
+            )}
+            {current?.screenshot_url && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wider text-th-text-tertiary">Follow-up #{currentIndex + 1}</p>
+                <img
+                  src={current.screenshot_url}
+                  alt="Follow-up listing"
+                  className="w-full rounded-lg border border-th-border"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Follow-up Timeline Bar */}
+        {totalFollowups > 1 && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wider text-th-text-tertiary">Follow-up History</p>
+            <div className="flex items-center gap-1">
+              {followupSnapshots.map((snap, i) => (
+                <button
+                  key={snap.id}
+                  onClick={() => setCurrentIndex(i)}
+                  className={`flex-1 rounded-md px-1 py-1.5 text-center text-[10px] transition-colors ${
+                    i === currentIndex
+                      ? 'bg-th-accent text-white'
+                      : snap.change_detected
+                        ? 'bg-st-warning-bg text-st-warning-text hover:bg-st-warning-bg/80'
+                        : 'bg-th-bg-tertiary text-th-text-muted hover:bg-th-bg-hover'
+                  }`}
+                  title={`${new Date(snap.crawled_at).toLocaleDateString()} — ${snap.change_type ?? 'no_change'}`}
+                >
+                  {new Date(snap.crawled_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Navigation */}
         {totalFollowups > 1 && (
           <div className="flex items-center justify-between">

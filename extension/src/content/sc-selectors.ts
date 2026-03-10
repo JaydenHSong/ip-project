@@ -1,6 +1,6 @@
 // SC "Report a Violation" 페이지 DOM 셀렉터
-// 셀렉터 분리 — SC 페이지 구조 변경 시 이 파일만 수정
-// 실제 SC 페이지 분석 후 셀렉터 확정 필요
+// 셀렉터 분리 — PD 페이지 구조 변경 시 이 파일만 수정
+// 실제 PD 페이지 분석 후 셀렉터 확정 필요
 
 export const SC_SELECTORS = {
   // RAV 페이지 감지

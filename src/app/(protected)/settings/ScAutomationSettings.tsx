@@ -13,7 +13,6 @@ type ScAutomationSettingsProps = {
 
 type SettingsData = {
   auto_submit_enabled: boolean
-  rate_limit_per_hour: number
   default_countdown_seconds: number
   default_min_delay_sec: number
   default_max_delay_sec: number
@@ -37,7 +36,6 @@ export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => 
   const { addToast } = useToast()
   const [settings, setSettings] = useState<SettingsData>({
     auto_submit_enabled: false,
-    rate_limit_per_hour: 10,
     default_countdown_seconds: 3,
     default_min_delay_sec: 5,
     default_max_delay_sec: 10,
@@ -47,19 +45,21 @@ export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => 
     max_count: 3,
     auto_strengthen: true,
   })
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    fetch('/api/settings/sc-automation')
-      .then((res) => res.json())
-      .then((data: Partial<SettingsData>) => setSettings((prev) => ({ ...prev, ...data })))
+    Promise.all([
+      fetch('/api/settings/pd-automation')
+        .then((res) => res.json())
+        .then((data: Partial<SettingsData>) => setSettings((prev) => ({ ...prev, ...data }))),
+      fetch('/api/settings/resubmit-defaults')
+        .then((res) => res.json())
+        .then((data: Partial<ResubmitSettingsData>) => setResubmitSettings((prev) => ({ ...prev, ...data }))),
+    ])
       .catch(() => {})
-
-    fetch('/api/settings/resubmit-defaults')
-      .then((res) => res.json())
-      .then((data: Partial<ResubmitSettingsData>) => setResubmitSettings((prev) => ({ ...prev, ...data })))
-      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   const handleSave = async () => {
@@ -67,7 +67,7 @@ export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => 
     setSaved(false)
     try {
       const [scRes, resubRes] = await Promise.all([
-        fetch('/api/settings/sc-automation', {
+        fetch('/api/settings/pd-automation', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(settings),
@@ -93,9 +93,35 @@ export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => 
   const selectedDelay = DELAY_OPTIONS.find((o) => o.min === settings.default_min_delay_sec)
     ?? DELAY_OPTIONS[0]
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="h-5 w-48 rounded bg-th-bg-secondary animate-pulse" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="h-5 w-48 rounded bg-th-bg-secondary animate-pulse" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      {/* SC Auto Submit */}
+      {/* PD Auto Submit */}
       <Card>
         <CardHeader>
           <h2 className="font-semibold text-th-text">
@@ -113,22 +139,6 @@ export const ScAutomationSettings = ({ isAdmin }: ScAutomationSettingsProps) => 
             disabled={!isAdmin}
             label={t('settings.scAutomation.enableAutoSubmit' as Parameters<typeof t>[0])}
           />
-
-          {/* Rate Limit */}
-          <div>
-            <label className="block text-sm text-th-text-muted mb-1">
-              {t('settings.scAutomation.rateLimitPerHour' as Parameters<typeof t>[0])}
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={50}
-              value={settings.rate_limit_per_hour}
-              onChange={(e) => setSettings((s) => ({ ...s, rate_limit_per_hour: Number(e.target.value) }))}
-              disabled={!isAdmin}
-              className="w-32 rounded-lg border border-th-border bg-th-bg-secondary px-3 py-2 text-sm text-th-text focus:border-th-accent focus:outline-none"
-            />
-          </div>
 
           {/* Countdown */}
           <div>

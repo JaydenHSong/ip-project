@@ -44,7 +44,7 @@ const registerMessageListener = (): void => {
       return true
     }
 
-    // Front-end auto-report: Service Worker triggers this after SC backend starts
+    // Front-end auto-report: Service Worker triggers this after PD backend starts
     if (message.type === 'EXECUTE_FRONT_REPORT') {
       const msg = message as FrontReportMessage
       executeFrontReport(msg.violationCode, {
@@ -77,11 +77,11 @@ const registerMessageListener = (): void => {
   })
 }
 
-if ((window as Record<string, unknown>)[SENTINEL_INJECTED]) {
+if ((window as unknown as Record<string, unknown>)[SENTINEL_INJECTED]) {
   // 이미 주입됨 — 리스너만 재등록 (extension reload 대비)
   registerMessageListener()
 } else {
-  ;(window as Record<string, unknown>)[SENTINEL_INJECTED] = true
+  ;(window as unknown as Record<string, unknown>)[SENTINEL_INJECTED] = true
 
   const init = (): void => {
     registerMessageListener()

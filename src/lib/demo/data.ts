@@ -217,7 +217,7 @@ export const DEMO_REPORTS = [
     created_at: '2026-02-28T11:00:00.000Z',
     approved_at: null,
     rejected_at: null,
-    sc_case_id: null,
+    pd_case_id: null,
     listings: {
       asin: 'B0D1234567',
       title: 'Premium iPhone 16 Pro Max Case - Spigen Compatible Clear Design Ultra Slim',
@@ -267,7 +267,7 @@ export const DEMO_REPORTS = [
     created_at: '2026-02-28T12:00:00.000Z',
     approved_at: null,
     rejected_at: null,
-    sc_case_id: null,
+    pd_case_id: null,
     listings: {
       asin: 'B0D2345678',
       title: 'Galaxy S25 Ultra Tough Armor Case Military Grade Protection MagSafe',
@@ -316,7 +316,7 @@ export const DEMO_REPORTS = [
     created_at: '2026-02-27T16:00:00.000Z',
     approved_at: '2026-02-28T09:00:00.000Z',
     rejected_at: null,
-    sc_case_id: null,
+    pd_case_id: null,
     listings: {
       asin: 'B0D4567890',
       title: 'Spigen風 iPhone 16 ケース クリア 耐衝撃 MagSafe対応',
@@ -362,7 +362,7 @@ export const DEMO_REPORTS = [
     created_at: '2026-02-25T10:00:00.000Z',
     approved_at: null,
     rejected_at: '2026-02-26T14:00:00.000Z',
-    sc_case_id: null,
+    pd_case_id: null,
     listings: {
       asin: 'B0D1234567',
       title: 'Premium iPhone 16 Pro Max Case - Spigen Compatible Clear Design Ultra Slim',
@@ -410,7 +410,7 @@ export const DEMO_REPORTS = [
     created_at: '2026-01-15T10:00:00.000Z',
     approved_at: '2026-01-16T09:00:00.000Z',
     rejected_at: null,
-    sc_case_id: 'SC-2026-001234',
+    pd_case_id: 'SC-2026-001234',
     archived_at: '2026-02-28T10:00:00.000Z',
     archive_reason: 'Monitoring 60 days - no seller response, low priority',
     pre_archive_status: 'unresolved',

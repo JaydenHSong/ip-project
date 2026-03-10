@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildScSubmitData } from '@/lib/reports/sc-data'
+import { buildPdSubmitData } from '@/lib/reports/pd-data'
 import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
 
 type BulkSubmitRequest = {
@@ -32,7 +32,7 @@ export const POST = withAuth(async (req, { user }) => {
 
   // action에 따라 대상 상태 결정
   const expectedStatus = body.action === 'submit_review' ? 'draft' : 'approved'
-  const targetStatus = body.action === 'submit_review' ? 'pending_review' : 'sc_submitting'
+  const targetStatus = body.action === 'submit_review' ? 'pending_review' : 'pd_submitting'
 
   const { data: reports, error: fetchError } = await supabase
     .from('reports')
@@ -50,7 +50,7 @@ export const POST = withAuth(async (req, { user }) => {
   const validReports = reports ?? []
   const skippedCount = body.report_ids.length - validReports.length
 
-  // SC submit인 경우 listing 정보 필요
+  // PD submit인 경우 listing 정보 필요
   let listingMap = new Map<string, { id: string; asin: string; marketplace: string; title: string; url: string | null }>()
   if (body.action === 'submit_sc') {
     const listingIds = [...new Set(validReports.map((r) => r.listing_id))]
@@ -72,7 +72,7 @@ export const POST = withAuth(async (req, { user }) => {
       updates.approved_by = user.id
       updates.approved_at = now
       if (listing) {
-        updates.sc_submit_data = buildScSubmitData({
+        updates.pd_submit_data = buildPdSubmitData({
           report: {
             id: report.id,
             user_violation_type: report.user_violation_type,

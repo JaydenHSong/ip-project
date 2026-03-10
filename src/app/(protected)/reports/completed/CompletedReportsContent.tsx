@@ -23,7 +23,7 @@ type ReportRow = {
   violation_type: string
   status: string
   created_at: string
-  sc_case_id?: string | null
+  pd_case_id?: string | null
   listings: { asin: string; title: string; marketplace: string; seller_name: string | null } | null
 }
 
@@ -93,7 +93,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
-      [item.listings?.asin, item.listings?.title, item.listings?.seller_name, item.sc_case_id].filter(Boolean).join(' '),
+      [item.listings?.asin, item.listings?.title, item.listings?.seller_name, item.pd_case_id].filter(Boolean).join(' '),
     [],
   )
   const getViolationType = useCallback((item: ReportRow) => item.violation_type, [])
@@ -106,7 +106,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       case 'violation': return item.violation_type
       case 'asin': return item.listings?.asin ?? null
       case 'title': return item.listings?.title ?? null
-      case 'scCase': return item.sc_case_id ?? null
+      case 'scCase': return item.pd_case_id ?? null
       case 'status': return item.status
       case 'date': return new Date(item.created_at).getTime()
       default: return null
@@ -198,7 +198,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                 <p className="mt-2 font-mono text-sm text-th-text">{report.listings?.asin ?? '—'}</p>
                 <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
                 <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
-                  <span>{report.sc_case_id ? `SC: ${report.sc_case_id}` : '—'}</span>
+                  <span>{report.pd_case_id ? `PD: ${report.pd_case_id}` : '—'}</span>
                   <span>{new Date(report.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
@@ -261,7 +261,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                     </Link>
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-th-text-secondary">{report.listings?.title ?? '—'}</td>
-                  <td className="px-4 py-3.5 font-mono text-th-text-muted">{report.sc_case_id ?? '—'}</td>
+                  <td className="px-4 py-3.5 font-mono text-th-text-muted">{report.pd_case_id ?? '—'}</td>
                   <td className="px-4 py-3.5">
                     <StatusBadge status={report.status as ReportStatus} type="report" />
                   </td>

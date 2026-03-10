@@ -32,6 +32,17 @@ const createJobProcessor = (
     const startTime = Date.now()
     const mp = marketplace as Marketplace
 
+    // 삭제된 캠페인 체크 — 존재하지 않으면 즉시 스킵
+    const campaignExists = await sentinelClient.verifyCampaignExists(campaignId)
+    if (!campaignExists) {
+      log('warn', 'jobs', `Campaign ${campaignId} no longer exists, skipping crawl`, { campaignId })
+      return {
+        campaignId, totalFound: 0, totalSent: 0, duplicates: 0, errors: 0,
+        duration: 0, spigenSkipped: 0, pagesCrawled: 0, personaName: 'skipped',
+        preScanTotal: 0, suspectCount: 0, violationCount: 0,
+      }
+    }
+
     // AI 학습 결과에서 성공 범위 로드 → 동적 페르소나 생성
     const successRanges = await loadSuccessRanges(sentinelClient)
     const persona = generatePersona(undefined, successRanges)

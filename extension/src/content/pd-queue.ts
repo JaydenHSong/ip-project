@@ -11,7 +11,7 @@ type QueueState = {
   processing: boolean
 }
 
-const STORAGE_KEY = 'sentinel_sc_queue'
+const STORAGE_KEY = 'sentinel_pd_queue'
 
 export const loadQueue = async (): Promise<QueueState> =>
   new Promise((resolve) => {

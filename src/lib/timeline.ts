@@ -15,8 +15,8 @@ type ReportForTimeline = {
   cancelled_at: string | null
   cancelled_by: string | null
   cancellation_reason: string | null
-  sc_case_id: string | null
-  sc_submitted_at: string | null
+  pd_case_id: string | null
+  pd_submitted_at: string | null
   monitoring_started_at?: string | null
   resolved_at?: string | null
   resolution_type?: string | null
@@ -110,12 +110,12 @@ export const buildTimelineEvents = (
   }
 
   // 8. Submitted to SC
-  if (report.sc_case_id) {
+  if (report.pd_case_id) {
     events.push({
-      type: 'submitted_sc',
-      timestamp: report.sc_submitted_at ?? report.approved_at ?? report.created_at,
+      type: 'submitted_pd',
+      timestamp: report.pd_submitted_at ?? report.approved_at ?? report.created_at,
       actor: null,
-      detail: `Case: ${report.sc_case_id}`,
+      detail: `Case: ${report.pd_case_id}`,
     })
   }
 

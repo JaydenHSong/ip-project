@@ -29,9 +29,9 @@ type ReportData = {
   draft_title: string | null
   draft_body: string | null
   rejection_reason: string | null
-  sc_case_id: string | null
-  sc_submission_error: string | null
-  sc_submit_attempts: number
+  pd_case_id: string | null
+  pd_submission_error: string | null
+  pd_submit_attempts: number
   resubmit_count: number
   resubmit_interval_days: number | null
   next_resubmit_at: string | null
@@ -44,14 +44,14 @@ type ReportData = {
   cancelled_at: string | null
   cancelled_by: string | null
   cancellation_reason: string | null
-  sc_submitted_at: string | null
+  pd_submitted_at: string | null
   rejected_by: string | null
   // Monitoring fields
   monitoring_started_at: string | null
   resolved_at: string | null
   resolution_type: string | null
-  // SC data
-  sc_submit_data: { sc_rav_url?: string; asin?: string; marketplace?: string } | null
+  // PD data
+  pd_submit_data: { pd_rav_url?: string; asin?: string; marketplace?: string } | null
   // BR Case Management
   br_case_id: string | null
   br_case_status: string | null
@@ -134,8 +134,8 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
         cancelled_at: report.cancelled_at,
         cancelled_by: report.cancelled_by,
         cancellation_reason: report.cancellation_reason,
-        sc_case_id: report.sc_case_id,
-        sc_submitted_at: report.sc_submitted_at,
+        pd_case_id: report.pd_case_id,
+        pd_submitted_at: report.pd_submitted_at,
         monitoring_started_at: report.monitoring_started_at,
         resolved_at: report.resolved_at,
         resolution_type: report.resolution_type,

@@ -1,5 +1,5 @@
 // V01~V19 → SC "Report a Violation" 위반 유형 매핑
-// SC 드롭다운의 정확한 value는 실제 SC 페이지에서 확인 후 업데이트
+// SC 드롭다운의 정확한 value는 실제 PD 페이지에서 확인 후 업데이트
 
 import type { ViolationCode } from './constants'
 

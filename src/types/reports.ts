@@ -3,7 +3,7 @@ import type { BrCaseStatus, BrReplyPendingAttachment } from '@/types/br-case'
 
 export const REPORT_STATUSES = [
   'draft', 'pending_review', 'approved', 'rejected', 'cancelled',
-  'sc_submitting', 'br_submitting', 'submitted', 'monitoring', 'resolved', 'unresolved',
+  'pd_submitting', 'br_submitting', 'submitted', 'monitoring', 'resolved', 'unresolved',
   'resubmitted', 'escalated', 'archived',
 ] as const
 export type ReportStatus = (typeof REPORT_STATUSES)[number]
@@ -105,12 +105,13 @@ export type Report = {
   approved_by: string | null
   approved_at: string | null
 
-  // SC 신고
-  sc_case_id: string | null
-  sc_submitted_at: string | null
-  sc_submission_error: string | null
+  // PD 신고
+  pd_case_id: string | null
+  pd_submitted_at: string | null
+  pd_submission_error: string | null
 
   // 팔로업
+  pd_followup_interval_days: number | null
   monitoring_started_at: string | null
   resolved_at: string | null
   resolution_type: ResolutionType | null
@@ -131,10 +132,10 @@ export type Report = {
   next_resubmit_at: string | null
   last_resubmit_at: string | null
 
-  // SC 제출 추적
-  sc_submit_attempts: number
-  sc_last_attempt_at: string | null
-  sc_submit_data: ScSubmitData | null
+  // PD 제출 추적
+  pd_submit_attempts: number
+  pd_last_attempt_at: string | null
+  pd_submit_data: PdSubmitData | null
 
   // BR 제출 추적
   br_submit_data: BrSubmitData | null
@@ -158,13 +159,13 @@ export type Report = {
   updated_at: string
 }
 
-export type ScSubmitData = {
+export type PdSubmitData = {
   asin: string
-  violation_type_sc: string
+  violation_type_pd: string
   description: string
   evidence_urls: string[]
   marketplace: string
-  sc_rav_url: string
+  pd_rav_url: string
   prepared_at: string
 }
 
@@ -207,7 +208,7 @@ export const TIMELINE_EVENT_TYPES = [
   'approved',
   'rejected',
   'cancelled',
-  'submitted_sc',
+  'submitted_pd',
   'rewritten',
   'monitoring_started',
   'snapshot_taken',

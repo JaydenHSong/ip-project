@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
 
 // POST /api/reports/bulk-br-resubmit — BR 일괄 재신고
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req, { user }) => {
   const { report_ids } = (await req.json()) as { report_ids: string[] }
 
   if (!report_ids?.length) {
@@ -75,6 +76,15 @@ export const POST = withAuth(async (req) => {
 
     submitted++
   }
+
+  // audit log
+  const adminDb = createAdminClient()
+  void adminDb.from('audit_logs').insert({
+    user_id: user.id,
+    action: 'bulk_br_resubmit',
+    resource_type: 'report',
+    details: { submitted, skipped, total: report_ids.length, report_ids },
+  })
 
   return NextResponse.json({ submitted, skipped, total: report_ids.length })
 }, ['owner', 'admin'])

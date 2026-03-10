@@ -349,8 +349,18 @@ const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
 const randomDelay = (): Promise<void> => delay(2000 + Math.random() * 1500) // 2~3.5초 랜덤 (봇 감지 회피)
 
 // ─── Main Job Processor ──────────────────────────────────────
-const processBrSubmitJob = async (job: Job<BrSubmitJobData>): Promise<BrSubmitResult> => {
+const processBrSubmitJob = async (job: Job<BrSubmitJobData>, sentinelClient?: { verifyReportExists: (id: string) => Promise<boolean> }): Promise<BrSubmitResult> => {
   const data = job.data
+
+  // 삭제된 리포트 체크
+  if (sentinelClient) {
+    const exists = await sentinelClient.verifyReportExists(data.reportId)
+    if (!exists) {
+      log('warn', 'br-worker', `Report ${data.reportId} no longer exists, skipping BR submit`)
+      return { reportId: data.reportId, success: false, brCaseId: null, error: 'REPORT_DELETED' }
+    }
+  }
+
   log('info', 'br-worker', `Processing BR submit for report ${data.reportId} (type: ${data.formType})`)
 
   try {

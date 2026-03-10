@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // POST /api/reports/:id/start-monitoring
 // submitted → monitoring 전환 + 초기 스냅샷 생성
@@ -58,14 +59,16 @@ export const POST = withAuth(async (req, { user }) => {
     )
   }
 
-  // 2. 초기 스냅샷 생성
+  // 2. 초기 스냅샷 생성 + 감사 로그 (adminClient로 RLS 우회)
   const { data: listing } = await supabase
     .from('listings')
     .select('title, description, price_amount, price_currency, seller_name, rating, review_count')
     .eq('id', report.listing_id)
     .single()
 
-  void supabase
+  const adminDb = createAdminClient()
+
+  void adminDb
     .from('report_snapshots')
     .insert({
       report_id: id,
@@ -75,8 +78,7 @@ export const POST = withAuth(async (req, { user }) => {
       crawled_at: now,
     })
 
-  // 3. 감사 로그
-  void supabase
+  void adminDb
     .from('audit_logs')
     .insert({
       user_id: user.id,

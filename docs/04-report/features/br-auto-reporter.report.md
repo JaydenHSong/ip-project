@@ -17,7 +17,7 @@
 | Item | Content |
 |------|---------|
 | Feature | Brand Registry (BR) Auto-Reporter Engine Integration |
-| Description | 3rd submission track for Amazon IP violation reports, alongside Seller Central (SC) and manual tracks |
+| Description | 3rd submission track for Amazon IP violation reports, alongside Seller Central (PD) and manual tracks |
 | Start Date | 2026-02-15 |
 | End Date | 2026-03-07 |
 | Duration | 3 weeks |
@@ -77,7 +77,7 @@
   - `br_submission_error` (text): Error log on failure
   - `br_submit_attempts` (integer): Retry counter
 - **Status Transitions**: Added `br_submitting` status to report lifecycle
-- **Approval Integration**: `buildBrSubmitData()` called alongside SC data during approval
+- **Approval Integration**: `buildBrSubmitData()` called alongside PD data during approval
 
 ### 2.3 Do Phase Summary
 
@@ -350,7 +350,7 @@
 | Phase | Current Approach | Improvement Suggestion | Expected Benefit |
 |-------|-----------------|------------------------|------------------|
 | Plan | Documented 3-phase structure | Add user story format (as X, I want Y, so Z) | Better acceptance criteria |
-| Design | Sequential pipeline diagram | Add error scenario tree (what if SC fails?) | Comprehensive error handling |
+| Design | Sequential pipeline diagram | Add error scenario tree (what if PD fails?) | Comprehensive error handling |
 | Do | Phased implementation (DB→API→UI→Crawler) | Parallel testing during each phase | Catch integration issues earlier |
 | Check | Manual gap analysis | Automated pattern matching (type coverage, endpoint coverage) | Faster verification |
 
@@ -424,7 +424,7 @@ If issues discovered:
 
 | Feature | Justification | Priority |
 |---------|---------------|----------|
-| Dual submission (SC + BR simultaneously) | Reduce total submission time | Medium |
+| Dual submission (PD + BR simultaneously) | Reduce total submission time | Medium |
 | BR case status webhook | Real-time Amazon case updates | Low |
 | Retry strategy refinement | Currently hardcoded 3 attempts | Low |
 | BR submission A/B testing | Test form field variations | Low |
@@ -483,11 +483,11 @@ If issues discovered:
 - BR submission cancel functionality with data cleanup
 
 **Changed:**
-- Enhanced `approve` and `bulk-approve` endpoints to build BR data alongside SC data
+- Enhanced `approve` and `bulk-approve` endpoints to build BR data alongside PD data
 - Extended `sc-result` endpoint to trigger `br_submitting` transition on SC success
 - Updated `cancel-submit` endpoint to clear all BR-related fields
 - Modified report status badge to include `br_submitting` visualization
-- Expanded ReportsContent to show BR queue alongside SC and draft tabs
+- Expanded ReportsContent to show BR queue alongside PD and draft tabs
 
 **Fixed:**
 - StatusBadge: Added missing `br_submitting` case

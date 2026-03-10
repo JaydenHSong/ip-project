@@ -201,8 +201,18 @@ const closeCaseAction = async (page: Page): Promise<void> => {
 const processBrReplyJob = async (
   job: Job<BrReplyJobData>,
   reportResult: (result: BrReplyResult) => Promise<void>,
+  verifyReportExists?: (id: string) => Promise<boolean>,
 ): Promise<void> => {
   const { reportId, brCaseId, text, attachments } = job.data
+
+  // 삭제된 리포트 체크
+  if (verifyReportExists) {
+    const exists = await verifyReportExists(reportId)
+    if (!exists) {
+      log('warn', 'br-reply', `Report ${reportId} no longer exists, skipping reply for case ${brCaseId}`)
+      return
+    }
+  }
 
   log('info', 'br-reply', `Processing reply for case ${brCaseId} (report: ${reportId})`)
 

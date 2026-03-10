@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo'
-import { notifyApproved, notifySubmittedToSC } from '@/lib/notifications/google-chat'
+import { notifyApproved, notifySubmittedToPD } from '@/lib/notifications/google-chat'
 import { SC_VIOLATION_MAP, SC_RAV_URLS } from '@/constants/violations'
 import type { ViolationCode } from '@/constants/violations'
 
@@ -23,11 +23,11 @@ export const POST = withAuth(async (req) => {
       id,
       status: 'submitted',
       approved_at: new Date().toISOString(),
-      sc_submitted_at: new Date().toISOString(),
-      sc_rav_url: SC_RAV_URLS.US,
-      sc_submit_data: {
+      pd_submitted_at: new Date().toISOString(),
+      pd_rav_url: SC_RAV_URLS.US,
+      pd_submit_data: {
         asin: 'B0D1234567',
-        violation_type_sc: 'counterfeit',
+        violation_type_pd: 'counterfeit',
         description: 'Demo approve & submit',
         evidence_urls: [],
         marketplace: 'US',
@@ -92,9 +92,9 @@ export const POST = withAuth(async (req) => {
   const marketplace = listing.marketplace ?? 'US'
   const scRavUrl = SC_RAV_URLS[marketplace] ?? SC_RAV_URLS.US
 
-  const scSubmitData = {
+  const pdSubmitData = {
     asin: listing.asin,
-    violation_type_sc: violationTypeSc,
+    violation_type_pd: violationTypeSc,
     description: report.draft_body ?? '',
     evidence_urls: Array.isArray(report.draft_evidence)
       ? (report.draft_evidence as { url: string }[]).map((e) => e.url).filter(Boolean)
@@ -107,21 +107,21 @@ export const POST = withAuth(async (req) => {
     .from('reports')
     .update({
       status: 'submitted',
-      sc_submitted_at: now,
-      sc_submit_data: scSubmitData,
+      pd_submitted_at: now,
+      pd_submit_data: pdSubmitData,
       updated_at: now,
     })
     .eq('id', id)
-    .select('id, status, approved_at, sc_submitted_at')
+    .select('id, status, approved_at, pd_submitted_at')
     .single()
 
   if (submitError) {
-    // 승인은 성공했지만 SC 제출이 실패 — approved 상태로 남겨둠
+    // 승인은 성공했지만 PD 제출이 실패 — approved 상태로 남겨둠
     return NextResponse.json(
       {
         error: {
           code: 'SC_SUBMIT_FAILED',
-          message: '승인 완료. SC 제출 실패 — "SC 신고" 버튼으로 재시도하세요.',
+          message: '승인 완료. PD 제출 실패 — "PD 신고" 버튼으로 재시도하세요.',
         },
         partial: { approved: true, submitted: false },
       },
@@ -129,11 +129,11 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  notifySubmittedToSC(id, listing.asin).catch(() => {})
+  notifySubmittedToPD(id, listing.asin).catch(() => {})
 
   return NextResponse.json({
     ...data,
-    sc_rav_url: scRavUrl,
-    sc_submit_data: scSubmitData,
+    pd_rav_url: scRavUrl,
+    pd_submit_data: pdSubmitData,
   })
 }, ['owner', 'admin', 'editor'])

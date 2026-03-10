@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { notifyApproved } from '@/lib/notifications/google-chat'
-import { buildScSubmitData } from '@/lib/reports/sc-data'
+import { buildPdSubmitData } from '@/lib/reports/pd-data'
 import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
 import type { ApproveReportRequest } from '@/types/api'
 
-// POST /api/reports/:id/approve — 승인 → sc_submitting 자동 전환
+// POST /api/reports/:id/approve — 승인 → pd_submitting 자동 전환
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -42,7 +42,7 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  // Listing 조회 (SC 데이터 빌드용)
+  // Listing 조회 (PD 데이터 빌드용)
   const { data: listing } = await supabase
     .from('listings')
     .select('asin, marketplace, title, url')
@@ -52,9 +52,9 @@ export const POST = withAuth(async (req) => {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   const now = new Date().toISOString()
 
-  // SC 데이터 준비
-  const scSubmitData = listing
-    ? buildScSubmitData({
+  // PD 데이터 준비
+  const pdSubmitData = listing
+    ? buildPdSubmitData({
         report: {
           id,
           user_violation_type: report.user_violation_type,
@@ -79,10 +79,10 @@ export const POST = withAuth(async (req) => {
     : null
 
   const updates: Record<string, unknown> = {
-    status: 'sc_submitting',
+    status: 'pd_submitting',
     approved_by: authUser!.id,
     approved_at: now,
-    sc_submit_data: scSubmitData,
+    pd_submit_data: pdSubmitData,
     br_submit_data: brSubmitData,
   }
 

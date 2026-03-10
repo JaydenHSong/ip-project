@@ -47,10 +47,10 @@ type ReportDetailContentProps = {
     draft_title: string | null
     draft_body: string | null
     rejection_reason: string | null
-    sc_case_id: string | null
-    sc_submission_error: string | null
-    sc_submit_attempts: number
-    sc_submit_data: { sc_rav_url?: string; asin?: string; marketplace?: string } | null
+    pd_case_id: string | null
+    pd_submission_error: string | null
+    pd_submit_attempts: number
+    pd_submit_data: { pd_rav_url?: string; asin?: string; marketplace?: string } | null
     resubmit_count: number
     resubmit_interval_days: number | null
     next_resubmit_at: string | null
@@ -69,6 +69,7 @@ type ReportDetailContentProps = {
     br_reply_pending_text?: string | null
     parent_report_id?: string | null
     escalation_level?: number | null
+    pd_followup_interval_days?: number | null
   }
   listing: {
     asin: string
@@ -111,6 +112,10 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
     report.resubmit_interval_days != null ? String(report.resubmit_interval_days) : 'default'
   )
   const [savingInterval, setSavingInterval] = useState(false)
+  const [followupIntervalLocal, setFollowupIntervalLocal] = useState<string>(
+    report.pd_followup_interval_days != null ? String(report.pd_followup_interval_days) : 'default'
+  )
+  const [savingFollowupInterval, setSavingFollowupInterval] = useState(false)
   const [caseThreadTab, setCaseThreadTab] = useState<'thread' | 'activity'>('thread')
   const [relatedData, setRelatedData] = useState<{
     parent_chain: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
@@ -206,6 +211,24 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
     }
   }
 
+  const handleFollowupIntervalChange = async (value: string) => {
+    setFollowupIntervalLocal(value)
+    setSavingFollowupInterval(true)
+    try {
+      const interval = value === 'default' ? null : Number(value)
+      const res = await fetch(`/api/reports/${report.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pd_followup_interval_days: interval }),
+      })
+      if (!res.ok) throw new Error('Failed to update followup interval')
+    } catch {
+      setFollowupIntervalLocal(report.pd_followup_interval_days != null ? String(report.pd_followup_interval_days) : 'default')
+    } finally {
+      setSavingFollowupInterval(false)
+    }
+  }
+
   const hasChanges = editTitle !== (report.draft_title ?? '') || editBody !== (report.draft_body ?? '')
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -258,9 +281,9 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
               userRole={userRole}
               createdBy={report.created_by}
               currentUserId={currentUserId}
-              scCaseId={report.sc_case_id}
-              scSubmissionError={report.sc_submission_error}
-              scSubmitAttempts={report.sc_submit_attempts}
+              pdCaseId={report.pd_case_id}
+              pdSubmissionError={report.pd_submission_error}
+              pdSubmitAttempts={report.pd_submit_attempts}
               resubmitCount={report.resubmit_count}
               nextResubmitAt={report.next_resubmit_at}
             />
@@ -268,7 +291,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       </div>
 
       {/* PD Reporting Banner */}
-      {report.status === 'sc_submitting' && (
+      {report.status === 'pd_submitting' && (
         <div className="overflow-hidden rounded-xl border border-th-accent/30 bg-th-accent-soft">
           <div className="h-1 w-full overflow-hidden bg-th-accent/20">
             <div className="h-full w-1/3 animate-[shimmer_1.5s_ease-in-out_infinite] rounded-full bg-th-accent" />
@@ -290,7 +313,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             </div>
             <div className="flex items-center gap-2">
               <a
-                href={report.sc_submit_data?.sc_rav_url ?? `https://sellercentral.amazon.com/abuse-submission/report-abuse${listing ? `?asin=${listing.asin}` : ''}`}
+                href={report.pd_submit_data?.pd_rav_url ?? `https://sellercentral.amazon.com/abuse-submission/report-abuse${listing ? `?asin=${listing.asin}` : ''}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg bg-th-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-th-accent-hover"
@@ -415,7 +438,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             <p className="text-sm font-semibold text-th-text">PD Report 완료</p>
             <p className="mt-0.5 text-xs text-th-text-secondary">
               Product Detail 페이지에서 성공적으로 신고되었습니다.
-              {report.sc_case_id && <span className="ml-1 font-medium">Case ID: {report.sc_case_id}</span>}
+              {report.pd_case_id && <span className="ml-1 font-medium">Case ID: {report.pd_case_id}</span>}
             </p>
           </div>
         </div>
@@ -693,12 +716,14 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </div>
       )}
 
+      {/* Draft + Templates — Desktop: side-by-side, Mobile: tabs */}
       {(report.draft_title || isDraftEditable) && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
+              {/* Mobile: tab toggle */}
               {isDraftEditable ? (
-                <div className="flex items-center gap-1 rounded-lg bg-th-bg-secondary p-0.5">
+                <div className="flex items-center gap-1 rounded-lg bg-th-bg-secondary p-0.5 md:hidden">
                   <button
                     onClick={() => setDraftTab('edit')}
                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
@@ -720,11 +745,13 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                     Templates
                   </button>
                 </div>
-              ) : (
-                <h2 className="font-semibold text-th-text">{t('reports.detail.reportDraft')}</h2>
-              )}
-              {isDraftEditable && draftTab === 'edit' && (
-                <div className="flex items-center gap-2">
+              ) : null}
+              {/* Desktop: just title */}
+              <h2 className={`font-semibold text-th-text ${isDraftEditable ? 'hidden md:block' : ''}`}>
+                {t('reports.detail.reportDraft')}
+              </h2>
+              {isDraftEditable && (
+                <div className={`flex items-center gap-2 ${draftTab !== 'edit' ? 'hidden md:flex' : ''}`}>
                   <Button
                     variant="outline"
                     size="sm"
@@ -747,45 +774,100 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {isDraftEditable && draftTab === 'templates' ? (
-              <InlineTemplateList
-                listing={listing ?? {}}
-                report={report}
-                currentViolationType={report.user_violation_type}
-                onApply={(body, title) => {
-                  setEditBody(body)
-                  if (title) setEditTitle(title)
-                  setDraftTab('edit')
-                }}
-              />
-            ) : isDraftEditable ? (
+            {isDraftEditable ? (
               <>
-                <Input
-                  label={t('reports.detail.draftTitle')}
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                />
-                <Textarea
-                  label={t('reports.detail.draftBody')}
-                  value={editBody}
-                  onChange={(e) => setEditBody(e.target.value)}
-                  rows={8}
-                />
-                {autoSaveStatus !== 'idle' && (
-                  <div className="flex justify-end">
-                    <span className="inline-flex items-center gap-1 rounded-md border border-th-border bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary">
-                      {autoSaveStatus === 'saving' ? (
-                        <>
-                          <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          Saving...
-                        </>
-                      ) : '✓ Saved'}
-                    </span>
+                {/* Mobile: tab-based view */}
+                <div className="md:hidden">
+                  {draftTab === 'templates' ? (
+                    <InlineTemplateList
+                      listing={listing ?? {}}
+                      report={report}
+                      currentViolationType={report.user_violation_type}
+                      compact
+                      onApply={(body, title) => {
+                        setEditBody(body)
+                        if (title) setEditTitle(title)
+                        setDraftTab('edit')
+                      }}
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      <Input
+                        label={t('reports.detail.draftTitle')}
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                      />
+                      <Textarea
+                        label={t('reports.detail.draftBody')}
+                        value={editBody}
+                        onChange={(e) => setEditBody(e.target.value)}
+                        rows={8}
+                      />
+                      {autoSaveStatus !== 'idle' && (
+                        <div className="flex justify-end">
+                          <span className="inline-flex items-center gap-1 rounded-md border border-th-border bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary">
+                            {autoSaveStatus === 'saving' ? (
+                              <>
+                                <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                Saving...
+                              </>
+                            ) : '✓ Saved'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop: side-by-side */}
+                <div className="hidden gap-5 md:flex">
+                  {/* Left: Draft editor */}
+                  <div className="basis-1/2 space-y-3">
+                    <Input
+                      label={t('reports.detail.draftTitle')}
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
+                    <Textarea
+                      label={t('reports.detail.draftBody')}
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value)}
+                      rows={8}
+                    />
+                    {autoSaveStatus !== 'idle' && (
+                      <div className="flex justify-end">
+                        <span className="inline-flex items-center gap-1 rounded-md border border-th-border bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary">
+                          {autoSaveStatus === 'saving' ? (
+                            <>
+                              <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                              Saving...
+                            </>
+                          ) : '✓ Saved'}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
+                  {/* Right: Compact template list */}
+                  <div className="basis-1/2 rounded-lg border border-th-border bg-th-bg-secondary/50 p-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-th-text-muted">Templates</p>
+                    <InlineTemplateList
+                      listing={listing ?? {}}
+                      report={report}
+                      currentViolationType={report.user_violation_type}
+                      compact
+                      onApply={(body, title) => {
+                        setEditBody(body)
+                        if (title) setEditTitle(title)
+                      }}
+                    />
+                  </div>
+                </div>
               </>
             ) : (
               <>
@@ -828,7 +910,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
               {t('reports.monitoring.snapshotCount' as Parameters<typeof t>[0]).replace('{count}', String(snapshots.length))}
             </span>
           )}
-          {/* Case-specific resubmit interval dropdown */}
+          {/* PD 재신고 간격 */}
           {canEdit && ['monitoring', 'unresolved'].includes(report.status) && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-th-text-tertiary">
@@ -846,6 +928,29 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 ))}
               </select>
               {savingInterval && (
+                <svg className="h-3 w-3 animate-spin text-th-text-muted" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+            </div>
+          )}
+          {/* PD 팔로업 재방문 간격 */}
+          {canEdit && report.status === 'monitoring' && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-th-text-tertiary">Follow-up:</span>
+              <select
+                value={followupIntervalLocal}
+                onChange={(e) => handleFollowupIntervalChange(e.target.value)}
+                disabled={savingFollowupInterval}
+                className="rounded-md border border-th-border bg-th-bg-secondary px-2 py-1 text-xs text-th-text focus:border-th-accent focus:outline-none"
+              >
+                <option value="default">Default (7d)</option>
+                {[3, 5, 7, 14, 30].map((d) => (
+                  <option key={d} value={d}>{d} days</option>
+                ))}
+              </select>
+              {savingFollowupInterval && (
                 <svg className="h-3 w-3 animate-spin text-th-text-muted" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />

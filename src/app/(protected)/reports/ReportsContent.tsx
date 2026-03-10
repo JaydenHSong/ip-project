@@ -210,7 +210,7 @@ export const ReportsContent = ({
   const STATUS_TABS = [
     { value: '', label: t('common.all') },
     { value: 'draft', label: t('reports.tabs.draft') },
-    { value: 'sc_submitting', label: 'PD Reporting' },
+    { value: 'pd_submitting', label: 'PD Reporting' },
     { value: 'br_submitting', label: 'BR Submitting' },
     { value: 'monitoring', label: t('reports.tabs.monitoring') },
   ]

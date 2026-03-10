@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { RESOLUTION_TYPES } from '@/types/reports'
 
 // POST /api/reports/:id/resolve
@@ -69,7 +70,8 @@ export const POST = withAuth(async (req, { user }) => {
     )
   }
 
-  void supabase
+  const adminDb = createAdminClient()
+  void adminDb
     .from('audit_logs')
     .insert({
       user_id: user.id,

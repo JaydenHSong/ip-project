@@ -1,6 +1,6 @@
 // Amazon Product Page "Report an issue" Front-end Dropdown Tree
 // Mapped from actual Amazon US screenshots (2026-03-07)
-// Used by Extension for two-track reporting (front-end auto-click + SC backend)
+// Used by Extension for two-track reporting (front-end auto-click + PD backend)
 
 // ============================================================
 // Level 1: "What is wrong with this page?"
@@ -318,6 +318,6 @@ export const VIOLATION_FRONT_PATHS: Record<string, FrontReportPath> = {
 //
 // Strategy:
 //   1. Extension detects Amazon login status (check #nav-link-accountList)
-//   2. If logged in → front-end auto-report + SC backend (two-track)
-//   3. If not logged in → SC backend only
-//   4. V01-V03 IP types → SC backend only (front redirects to separate form)
+//   2. If logged in → front-end auto-report + PD backend (two-track)
+//   3. If not logged in → PD backend only
+//   4. V01-V03 IP types → PD backend only (front redirects to separate form)

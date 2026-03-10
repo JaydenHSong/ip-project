@@ -57,7 +57,19 @@ export const SlaSettings = ({ isAdmin }: SlaSettingsProps) => {
   const handleChange = (index: number, field: 'expected_response_hours' | 'warning_threshold_hours', value: string) => {
     const num = parseInt(value, 10)
     if (isNaN(num)) return
-    setConfigs((prev) => prev.map((c, i) => (i === index ? { ...c, [field]: num } : c)))
+    setConfigs((prev) => prev.map((c, i) => {
+      if (i !== index) return c
+      const updated = { ...c, [field]: num }
+      // Expected를 줄였을 때 Warning이 넘으면 자동 조정
+      if (field === 'expected_response_hours' && updated.warning_threshold_hours > num) {
+        updated.warning_threshold_hours = Math.max(1, num - 24)
+      }
+      // Warning을 직접 입력했을 때 Expected 초과 방지
+      if (field === 'warning_threshold_hours' && num > updated.expected_response_hours) {
+        updated.warning_threshold_hours = updated.expected_response_hours
+      }
+      return updated
+    }))
   }
 
   const handleSave = async () => {

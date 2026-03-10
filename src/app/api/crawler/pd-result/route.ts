@@ -4,13 +4,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 type ScResultRequest = {
   report_id: string
   success: boolean
-  sc_case_id?: string | null
+  pd_case_id?: string | null
   error?: string | null
 }
 
 const MAX_SC_ATTEMPTS = 3
 
-// POST /api/crawler/sc-result — Crawler가 SC 제출 결과 보고
+// POST /api/crawler/pd-result — Crawler가 PD 제출 결과 보고
 export const POST = async (req: Request) => {
   // Service token 인증
   const authHeader = req.headers.get('authorization')
@@ -39,7 +39,7 @@ export const POST = async (req: Request) => {
   // 현재 리포트 조회 (br_submit_data도 함께 조회하여 BR 전환 판단)
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, sc_submit_attempts, listing_id, br_submit_data')
+    .select('id, status, pd_submit_attempts, listing_id, br_submit_data')
     .eq('id', body.report_id)
     .single()
 
@@ -59,11 +59,11 @@ export const POST = async (req: Request) => {
       .from('reports')
       .update({
         status: nextStatus,
-        sc_case_id: body.sc_case_id ?? null,
-        sc_submitted_at: now,
-        sc_last_attempt_at: now,
-        sc_submission_error: null,
-        sc_submit_data: null,
+        pd_case_id: body.pd_case_id ?? null,
+        pd_submitted_at: now,
+        pd_last_attempt_at: now,
+        pd_submission_error: null,
+        pd_submit_data: null,
         ...(hasBrData ? {} : { monitoring_started_at: now }),
       })
       .eq('id', body.report_id)
@@ -105,23 +105,23 @@ export const POST = async (req: Request) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${serviceToken}`,
         },
-        body: JSON.stringify({ report_id: body.report_id, trigger: 'sc_submitted' }),
+        body: JSON.stringify({ report_id: body.report_id, trigger: 'pd_submitted' }),
       }).catch(() => {})
     }
 
-    return NextResponse.json({ status: nextStatus, sc_case_id: body.sc_case_id })
+    return NextResponse.json({ status: nextStatus, pd_case_id: body.pd_case_id })
   } else {
     // 실패
-    const attempts = (report.sc_submit_attempts ?? 0) + 1
+    const attempts = (report.pd_submit_attempts ?? 0) + 1
     const exceededMax = attempts >= MAX_SC_ATTEMPTS
 
     const { error: updateError } = await supabase
       .from('reports')
       .update({
-        status: exceededMax ? 'approved' : 'sc_submitting',
-        sc_submit_attempts: attempts,
-        sc_last_attempt_at: now,
-        sc_submission_error: body.error ?? 'Unknown error',
+        status: exceededMax ? 'approved' : 'pd_submitting',
+        pd_submit_attempts: attempts,
+        pd_last_attempt_at: now,
+        pd_submission_error: body.error ?? 'Unknown error',
       })
       .eq('id', body.report_id)
 
@@ -134,12 +134,12 @@ export const POST = async (req: Request) => {
 
     // 3회 초과 시 Admin 알림
     if (exceededMax) {
-      const { notifyScFailed } = await import('@/lib/notifications/google-chat')
-      notifyScFailed(body.report_id, body.error ?? 'Max attempts exceeded').catch(() => {})
+      const { notifyPdFailed } = await import('@/lib/notifications/google-chat')
+      notifyPdFailed(body.report_id, body.error ?? 'Max attempts exceeded').catch(() => {})
     }
 
     return NextResponse.json({
-      status: exceededMax ? 'approved' : 'sc_submitting',
+      status: exceededMax ? 'approved' : 'pd_submitting',
       attempts,
       max_exceeded: exceededMax,
     })

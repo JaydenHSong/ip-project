@@ -69,7 +69,7 @@ export const POST = async (req: Request) => {
       )
     }
 
-    // 초기 모니터링 스냅샷 (SC result와 동일 패턴)
+    // 초기 모니터링 스냅샷 (PD result와 동일 패턴)
     const { data: listing } = await supabase
       .from('listings')
       .select('asin, title, seller_name, price_amount, price_currency, images, rating, review_count')
@@ -115,8 +115,8 @@ export const POST = async (req: Request) => {
     }
 
     if (exceededMax) {
-      const { notifyScFailed } = await import('@/lib/notifications/google-chat')
-      notifyScFailed(body.report_id, `[BR] ${body.error ?? 'Max attempts exceeded'}`).catch(() => {})
+      const { notifyPdFailed } = await import('@/lib/notifications/google-chat')
+      notifyPdFailed(body.report_id, `[BR] ${body.error ?? 'Max attempts exceeded'}`).catch(() => {})
     }
 
     return NextResponse.json({

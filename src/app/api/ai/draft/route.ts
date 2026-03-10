@@ -128,6 +128,7 @@ export const POST = withAuth(async (req) => {
     skillContent,
     trademarks: trademarkNames,
     template: templateContext,
+    violationCode: typedReport.user_violation_type,
   })
 
   // DB 업데이트

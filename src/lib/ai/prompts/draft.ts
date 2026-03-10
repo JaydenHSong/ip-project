@@ -3,6 +3,7 @@
 import type { AiAnalyzeResponse } from '@/types/api'
 import type { Listing } from '@/types/listings'
 import { promptManager } from '@/lib/ai/prompt-manager'
+import { fetchBrTemplateExamples } from '@/lib/ai/prompts/br-template-examples'
 
 const DRAFT_PROMPT_TEMPLATE = `Generate a formal violation report draft for Amazon Seller Central based on the analysis below.
 
@@ -54,6 +55,7 @@ const buildDraftPrompt = async (
   analysis: AiAnalyzeResponse,
   listing: Listing,
   template: string | null,
+  brFormContext: string | null = null,
 ): Promise<string> => {
   const analysisStr = JSON.stringify(analysis, null, 2)
 
@@ -61,15 +63,28 @@ const buildDraftPrompt = async (
     ? `## Reference Template\n${template}`
     : ''
 
+  // Fetch matching BR templates as few-shot examples
+  const violationCodes = (analysis.violations ?? []).map((v) => v.type).filter(Boolean)
+  const brExamples = await fetchBrTemplateExamples(violationCodes)
+
   const dbPrompt = await promptManager.getActive('draft')
   const promptTemplate = dbPrompt?.content ?? DRAFT_PROMPT_TEMPLATE
 
-  return promptTemplate
+  let prompt = promptTemplate
     .replace('{{analysisResult}}', analysisStr)
     .replace('{{asin}}', listing.asin)
     .replace('{{title}}', listing.title ?? '(unknown)')
     .replace('{{seller}}', listing.seller_name ?? '(unknown)')
     .replace('{{TEMPLATE_SECTION}}', templateSection)
+
+  // Inject BR template examples before Draft Guidelines
+  const injectBefore = '## Draft Guidelines'
+  const injections = [brExamples, brFormContext].filter(Boolean).join('\n\n')
+  if (injections) {
+    prompt = prompt.replace(injectBefore, `${injections}\n\n${injectBefore}`)
+  }
+
+  return prompt
 }
 
 export { buildDraftPrompt }

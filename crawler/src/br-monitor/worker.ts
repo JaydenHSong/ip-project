@@ -290,6 +290,7 @@ const setMonitorNotifier = (fn: NotifyFn): void => {
 const processBrMonitorJob = async (
   job: Job<BrMonitorJobData>,
   reportResult: (result: BrMonitorResult) => Promise<void>,
+  verifyReportExists?: (id: string) => Promise<boolean>,
 ): Promise<void> => {
   const { reports } = job.data
 
@@ -315,6 +316,16 @@ const processBrMonitorJob = async (
 
   for (const target of reports) {
     try {
+      // 삭제된 리포트 스킵
+      if (verifyReportExists) {
+        const exists = await verifyReportExists(target.reportId)
+        if (!exists) {
+          log('warn', 'br-monitor', `Report ${target.reportId} no longer exists, skipping case ${target.brCaseId}`)
+          skipped++
+          continue
+        }
+      }
+
       await processSingleCase(page, target, reportResult)
       processed++
     } catch (error) {

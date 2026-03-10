@@ -1,7 +1,7 @@
 import type { Page } from 'playwright'
 
 // 용도별 스크린샷 품질 설정
-// - evidence: 서버 저장 + SC 신고 증거용 (적당한 품질)
+// - evidence: 서버 저장 + PD 신고 증거용 (적당한 품질)
 // - scan: AI 분석용 (낮은 품질로 충분, 비용 절약)
 type ScreenshotPurpose = 'evidence' | 'scan'
 

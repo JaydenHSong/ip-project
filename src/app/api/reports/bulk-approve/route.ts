@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildScSubmitData } from '@/lib/reports/sc-data'
+import { buildPdSubmitData } from '@/lib/reports/pd-data'
 import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
 
 type BulkApproveRequest = {
   report_ids: string[]
 }
 
-// POST /api/reports/bulk-approve — 일괄 승인 → sc_submitting
+// POST /api/reports/bulk-approve — 일괄 승인 → pd_submitting
 export const POST = withAuth(async (req) => {
   const body = (await req.json()) as BulkApproveRequest
 
@@ -61,8 +61,8 @@ export const POST = withAuth(async (req) => {
 
   for (const report of validReports) {
     const listing = listingMap.get(report.listing_id)
-    const scSubmitData = listing
-      ? buildScSubmitData({
+    const pdSubmitData = listing
+      ? buildPdSubmitData({
           report: {
             id: report.id,
             user_violation_type: report.user_violation_type,
@@ -88,10 +88,10 @@ export const POST = withAuth(async (req) => {
     const { error } = await supabase
       .from('reports')
       .update({
-        status: 'sc_submitting',
+        status: 'pd_submitting',
         approved_by: authUser!.id,
         approved_at: now,
-        sc_submit_data: scSubmitData,
+        pd_submit_data: pdSubmitData,
         br_submit_data: brSubmitData,
       })
       .eq('id', report.id)

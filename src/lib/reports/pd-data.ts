@@ -3,7 +3,7 @@
 
 import { VIOLATION_TYPES } from '@/constants/violations'
 import type { ViolationCode } from '@/constants/violations'
-import type { ScSubmitData } from '@/types/reports'
+import type { PdSubmitData } from '@/types/reports'
 
 // Violation code → SC RAV category mapping
 const SC_VIOLATION_MAP: Record<string, string> = {
@@ -51,7 +51,7 @@ type BuildScDataInput = {
   }
 }
 
-export const buildScSubmitData = ({ report, listing }: BuildScDataInput): ScSubmitData => {
+export const buildPdSubmitData = ({ report, listing }: BuildScDataInput): PdSubmitData => {
   const violationCode = report.user_violation_type as ViolationCode
   const violationType = VIOLATION_TYPES[violationCode]
   const scViolationType = SC_VIOLATION_MAP[violationCode] ?? 'Other'
@@ -66,11 +66,11 @@ export const buildScSubmitData = ({ report, listing }: BuildScDataInput): ScSubm
 
   return {
     asin: listing.asin,
-    violation_type_sc: scViolationType,
+    violation_type_pd: scViolationType,
     description,
     evidence_urls: evidenceUrls,
     marketplace,
-    sc_rav_url: `${baseUrl}?asin=${listing.asin}`,
+    pd_rav_url: `${baseUrl}?asin=${listing.asin}`,
     prepared_at: new Date().toISOString(),
   }
 }

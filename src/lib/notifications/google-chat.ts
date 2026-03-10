@@ -67,8 +67,8 @@ const notifyRejected = async (
   await sendGoogleChatMessage(text)
 }
 
-// SC 접수 알림 (MS2)
-const notifySubmittedToSC = async (
+// PD 접수 알림 (MS2)
+const notifySubmittedToPD = async (
   reportId: string,
   asin: string,
 ): Promise<void> => {
@@ -81,7 +81,7 @@ const notifySubmittedToSC = async (
 }
 
 // SC 자동 제출 실패 알림
-const notifyScFailed = async (
+const notifyPdFailed = async (
   reportId: string,
   error: string,
 ): Promise<void> => {
@@ -114,7 +114,7 @@ export {
   notifyDraftReady,
   notifyApproved,
   notifyRejected,
-  notifySubmittedToSC,
-  notifyScFailed,
+  notifySubmittedToPD,
+  notifyPdFailed,
   notifyResubmitMaxExceeded,
 }

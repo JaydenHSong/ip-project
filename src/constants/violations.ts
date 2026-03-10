@@ -56,7 +56,7 @@ export const VIOLATION_GROUPS = Object.entries(VIOLATION_TYPES).reduce(
 )
 
 // V01~V19 → SC "Report a Violation" 위반 유형 매핑
-// SC 드롭다운 value는 실제 SC 페이지 확인 후 업데이트
+// SC 드롭다운 value는 실제 PD 페이지 확인 후 업데이트
 export const SC_VIOLATION_MAP: Record<ViolationCode, string> = {
   V01: 'trademark',
   V02: 'copyright',

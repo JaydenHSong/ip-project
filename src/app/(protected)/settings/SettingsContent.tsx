@@ -11,12 +11,12 @@ import { MonitoringSettings } from './MonitoringSettings'
 import { ScAutomationSettings } from './ScAutomationSettings'
 import { AutoApproveSettings } from './AutoApproveSettings'
 import { CrawlerSettings } from './CrawlerSettings'
-import { TemplatesTab } from './TemplatesTab'
 import { ExtensionGuide } from './ExtensionGuide'
 import { UserManagement } from './UserManagement'
 import { AiLearningTab } from './AiLearningTab'
 import { AiPromptsTab } from './AiPromptsTab'
 import { SlaSettings } from './SlaSettings'
+import { BrTemplateSettings } from './BrTemplateSettings'
 
 type SettingsContentProps = {
   isOwner: boolean
@@ -25,7 +25,7 @@ type SettingsContentProps = {
   currentUserId: string
 }
 
-type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'sc-automation' | 'auto-approve' | 'sla' | 'templates' | 'ai-learning' | 'ai-prompts' | 'users'
+type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'pd-automation' | 'auto-approve' | 'sla' | 'br-templates' | 'ai-learning' | 'ai-prompts' | 'users'
 
 type NavItem = {
   key: SettingsTab
@@ -51,14 +51,14 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Automation',
     items: [
       { key: 'crawler', icon: Search, minRole: 'admin' },
-      { key: 'sc-automation', icon: Bot, minRole: 'admin' },
+      { key: 'pd-automation', icon: Bot, minRole: 'admin' },
       { key: 'auto-approve', icon: ShieldCheck, minRole: 'admin' },
     ],
   },
   {
     label: 'AI & Content',
     items: [
-      { key: 'templates', icon: FileText, minRole: 'admin' },
+      { key: 'br-templates', icon: FileText, minRole: 'admin' },
       { key: 'ai-learning', icon: Brain, minRole: 'admin' },
       { key: 'ai-prompts', icon: Sparkles, minRole: 'admin' },
     ],
@@ -104,9 +104,9 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
       case 'sla': return 'SLA'
       case 'extension': return t('settings.extension.title' as Parameters<typeof t>[0])
       case 'crawler': return t('settings.crawler.title' as Parameters<typeof t>[0])
-      case 'sc-automation': return t('settings.scAutomation.title' as Parameters<typeof t>[0])
+      case 'pd-automation': return t('settings.scAutomation.title' as Parameters<typeof t>[0])
       case 'auto-approve': return t('settings.autoApprove.title' as Parameters<typeof t>[0])
-      case 'templates': return 'Templates'
+      case 'br-templates': return 'Templates'
       case 'ai-learning': return t('settings.aiLearning.title' as Parameters<typeof t>[0])
       case 'ai-prompts': return 'AI Prompts'
       case 'users': return t('settings.users.title')
@@ -206,9 +206,9 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
           {activeTab === 'sla' && <SlaSettings isAdmin={isAdmin} />}
           {activeTab === 'extension' && <ExtensionGuide />}
           {activeTab === 'crawler' && <CrawlerSettings isAdmin={isAdmin} />}
-          {activeTab === 'sc-automation' && <ScAutomationSettings isAdmin={isAdmin} />}
+          {activeTab === 'pd-automation' && <ScAutomationSettings isAdmin={isAdmin} />}
           {activeTab === 'auto-approve' && <AutoApproveSettings isAdmin={isAdmin} />}
-          {activeTab === 'templates' && <TemplatesTab />}
+          {activeTab === 'br-templates' && <BrTemplateSettings />}
           {activeTab === 'ai-learning' && <AiLearningTab />}
           {activeTab === 'ai-prompts' && <AiPromptsTab />}
           {activeTab === 'users' && isOwner && <UserManagement currentUserId={currentUserId} />}
@@ -221,9 +221,9 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
         {activeTab === 'sla' && <SlaSettings isAdmin={isAdmin} />}
         {activeTab === 'extension' && <ExtensionGuide />}
         {activeTab === 'crawler' && <CrawlerSettings isAdmin={isAdmin} />}
-        {activeTab === 'sc-automation' && <ScAutomationSettings isAdmin={isAdmin} />}
+        {activeTab === 'pd-automation' && <ScAutomationSettings isAdmin={isAdmin} />}
         {activeTab === 'auto-approve' && <AutoApproveSettings isAdmin={isAdmin} />}
-        {activeTab === 'templates' && <TemplatesTab />}
+        {activeTab === 'br-templates' && <BrTemplateSettings />}
         {activeTab === 'ai-learning' && <AiLearningTab />}
         {activeTab === 'ai-prompts' && <AiPromptsTab />}
         {activeTab === 'users' && isOwner && <UserManagement currentUserId={currentUserId} />}

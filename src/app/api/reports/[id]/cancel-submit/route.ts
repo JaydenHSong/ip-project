@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
-// POST /api/reports/:id/cancel-submit — sc_submitting → draft (제출 취소)
+// POST /api/reports/:id/cancel-submit — pd_submitting → draft (제출 취소)
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -29,9 +29,9 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  if (report.status !== 'sc_submitting' && report.status !== 'br_submitting') {
+  if (report.status !== 'pd_submitting' && report.status !== 'br_submitting') {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'sc_submitting 또는 br_submitting 상태에서만 취소 가능합니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'pd_submitting 또는 br_submitting 상태에서만 취소 가능합니다.' } },
       { status: 400 },
     )
   }
@@ -40,7 +40,7 @@ export const POST = withAuth(async (req) => {
     .from('reports')
     .update({
       status: 'draft',
-      sc_submit_data: null,
+      pd_submit_data: null,
       br_submit_data: null,
       br_submit_attempts: 0,
       updated_at: new Date().toISOString(),

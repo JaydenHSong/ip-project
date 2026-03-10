@@ -1,7 +1,7 @@
 // SC RAV 폼 자동 제출 워커 — Playwright
 import { chromium, type Page } from 'playwright'
 import type { Job } from 'bullmq'
-import type { ScSubmitJobData, ScSubmitResult } from './types.js'
+import type { PdSubmitJobData, PdSubmitResult } from './types.js'
 import { log } from '../logger.js'
 
 const SC_LOGIN_TIMEOUT = 30_000
@@ -48,7 +48,7 @@ const loginToSc = async (page: Page): Promise<void> => {
   log('info', 'sc-worker', 'SC login successful')
 }
 
-const fillRavForm = async (page: Page, data: ScSubmitJobData): Promise<string | null> => {
+const fillRavForm = async (page: Page, data: PdSubmitJobData): Promise<string | null> => {
   // Wait for RAV form to load
   await page.waitForSelector('[data-testid="rav-form"], form[name="reportAbuse"], #reportAbuse', {
     timeout: SC_FORM_TIMEOUT,
@@ -110,9 +110,19 @@ const fillRavForm = async (page: Page, data: ScSubmitJobData): Promise<string | 
   return null
 }
 
-const processScSubmitJob = async (job: Job<ScSubmitJobData>): Promise<ScSubmitResult> => {
+const processPdSubmitJob = async (job: Job<PdSubmitJobData>, sentinelClient?: { verifyReportExists: (id: string) => Promise<boolean> }): Promise<PdSubmitResult> => {
   const data = job.data
-  log('info', 'sc-worker', `Processing SC submit for report ${data.reportId} (ASIN: ${data.asin})`)
+
+  // 삭제된 리포트 체크
+  if (sentinelClient) {
+    const exists = await sentinelClient.verifyReportExists(data.reportId)
+    if (!exists) {
+      log('warn', 'pd-worker', `Report ${data.reportId} no longer exists, skipping PD submit`)
+      return { reportId: data.reportId, success: false, pdCaseId: null, error: 'REPORT_DELETED' }
+    }
+  }
+
+  log('info', 'sc-worker', `Processing PD submit for report ${data.reportId} (ASIN: ${data.asin})`)
 
   const browser = await chromium.launch({
     headless: true,
@@ -138,22 +148,22 @@ const processScSubmitJob = async (job: Job<ScSubmitJobData>): Promise<ScSubmitRe
 
     await context.close()
 
-    log('info', 'sc-worker', `SC submit successful for report ${data.reportId}, case ID: ${caseId}`)
+    log('info', 'sc-worker', `PD submit successful for report ${data.reportId}, case ID: ${caseId}`)
 
     return {
       reportId: data.reportId,
       success: true,
-      scCaseId: caseId,
+      pdCaseId: caseId,
       error: null,
     }
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error)
-    log('error', 'sc-worker', `SC submit failed for report ${data.reportId}: ${errorMsg}`)
+    log('error', 'sc-worker', `PD submit failed for report ${data.reportId}: ${errorMsg}`)
 
     return {
       reportId: data.reportId,
       success: false,
-      scCaseId: null,
+      pdCaseId: null,
       error: errorMsg,
     }
   } finally {
@@ -161,4 +171,4 @@ const processScSubmitJob = async (job: Job<ScSubmitJobData>): Promise<ScSubmitRe
   }
 }
 
-export { processScSubmitJob }
+export { processPdSubmitJob }

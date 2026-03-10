@@ -18,7 +18,7 @@ Sentinel Crawler is the **data collection engine** for the Sentinel brand protec
 - **Automation**: Replaces manual keyword searching — scales from 1 to 1,000+ keywords
 - **24/7 Monitoring**: BullMQ scheduler runs campaigns on configured intervals
 - **Anti-bot Ready**: Stealth settings, fingerprinting, proxy rotation, human-like behavior to evade Amazon bot detection
-- **Foundation**: Essential first step in PDCA pipeline (Data → AI Analysis → Report → SC Auto-submit)
+- **Foundation**: Essential first step in PDCA pipeline (Data → AI Analysis → Report → PD Auto-submit)
 
 ### Project Level
 - **Sentinel Level**: Enterprise (5-tier AI architecture, multi-country support, complex orchestration)

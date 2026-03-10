@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-// GET /api/crawler/sc-pending — Crawler가 폴링: sc_submitting 상태 리포트 반환
+// GET /api/crawler/pd-pending — Crawler가 폴링: pd_submitting 상태 리포트 반환
 export const GET = async (req: Request) => {
   // Service token 인증
   const authHeader = req.headers.get('authorization')
@@ -20,10 +20,10 @@ export const GET = async (req: Request) => {
   const { data: reports, error } = await supabase
     .from('reports')
     .select(`
-      id, status, sc_submit_data, sc_submit_attempts,
+      id, status, pd_submit_data, pd_submit_attempts,
       listings!reports_listing_id_fkey(asin, marketplace, title)
     `)
-    .eq('status', 'sc_submitting')
+    .eq('status', 'pd_submitting')
     .order('approved_at', { ascending: true })
     .limit(10)
 

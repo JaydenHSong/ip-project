@@ -33,6 +33,7 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
     threshold: 90,
     types: {},
   })
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -41,6 +42,7 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
       .then((res) => res.json())
       .then((data: AutoApproveConfig) => setConfig(data))
       .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   const handleSave = async () => {
@@ -86,6 +88,14 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
         </h2>
       </CardHeader>
       <CardContent className="space-y-5">
+        {loading ? (
+          <div className="space-y-4">
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
+            <div className="h-20 rounded-lg bg-th-bg-secondary animate-pulse" />
+          </div>
+        ) : (
+          <>
         <p className="text-sm text-th-text-muted">
           {t('settings.autoApprove.description' as Parameters<typeof t>[0])}
         </p>
@@ -170,6 +180,8 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
               </span>
             )}
           </div>
+        )}
+          </>
         )}
       </CardContent>
     </Card>

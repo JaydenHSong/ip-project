@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { BrSlaConfig } from '@/types/br-case'
 
 // GET /api/settings/sla — SLA 설정 조회
@@ -23,7 +24,7 @@ export const GET = withAuth(async () => {
 }, ['owner', 'admin'])
 
 // PATCH /api/settings/sla — SLA 설정 수정 (admin only)
-export const PATCH = withAuth(async (req) => {
+export const PATCH = withAuth(async (req, { user }) => {
   const body = (await req.json()) as {
     configs: Array<{
       violation_category: string
@@ -61,27 +62,49 @@ export const PATCH = withAuth(async (req) => {
     }
   }
 
-  const supabase = await createClient()
+  // Admin 설정이므로 service_role로 RLS 우회
+  const supabase = createAdminClient()
   const now = new Date().toISOString()
 
-  const upsertRows = body.configs.map((c) => ({
-    violation_category: c.violation_category,
-    expected_response_hours: c.expected_response_hours,
-    warning_threshold_hours: c.warning_threshold_hours,
-    updated_at: now,
-  }))
+  const results: BrSlaConfig[] = []
+  const errors: string[] = []
 
-  const { data: configs, error } = await supabase
-    .from('br_sla_configs')
-    .upsert(upsertRows, { onConflict: 'violation_category' })
-    .select()
+  for (const c of body.configs) {
+    const { data, error } = await supabase
+      .from('br_sla_configs')
+      .update({
+        expected_response_hours: c.expected_response_hours,
+        warning_threshold_hours: c.warning_threshold_hours,
+        updated_at: now,
+      })
+      .eq('violation_category', c.violation_category)
+      .select()
+      .single()
 
-  if (error) {
+    if (error) {
+      errors.push(`${c.violation_category}: ${error.message}`)
+    } else {
+      results.push(data as BrSlaConfig)
+    }
+  }
+
+  if (errors.length > 0 && results.length === 0) {
     return NextResponse.json(
-      { error: { code: 'DB_ERROR', message: error.message } },
+      { error: { code: 'DB_ERROR', message: errors.join('; ') } },
       { status: 500 },
     )
   }
 
-  return NextResponse.json({ configs: configs as BrSlaConfig[] })
+  // 감사 로그
+  void supabase
+    .from('audit_logs')
+    .insert({
+      user_id: user.id,
+      action: 'update',
+      resource_type: 'system_config',
+      resource_id: 'br_sla_configs',
+      details: { updated: body.configs },
+    })
+
+  return NextResponse.json({ configs: results })
 }, ['owner', 'admin'])

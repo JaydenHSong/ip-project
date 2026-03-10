@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { isDemoMode } from '@/lib/demo'
 
 type ScAutomationSettings = {
@@ -17,7 +18,7 @@ const DEFAULTS: ScAutomationSettings = {
   default_max_delay_sec: 60,
 }
 
-// GET /api/settings/sc-automation
+// GET /api/settings/pd-automation
 export const GET = withAuth(async () => {
   if (isDemoMode()) {
     return NextResponse.json(DEFAULTS)
@@ -28,7 +29,7 @@ export const GET = withAuth(async () => {
   const { data: setting } = await supabase
     .from('system_configs')
     .select('value')
-    .eq('key', 'sc_automation_settings')
+    .eq('key', 'pd_automation_settings')
     .single()
 
   const settings: ScAutomationSettings = setting?.value
@@ -38,7 +39,7 @@ export const GET = withAuth(async () => {
   return NextResponse.json(settings)
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
-// PUT /api/settings/sc-automation
+// PUT /api/settings/pd-automation
 export const PUT = withAuth(async (req, { user }) => {
   const body = await req.json().catch(() => ({})) as Partial<ScAutomationSettings>
 
@@ -46,13 +47,13 @@ export const PUT = withAuth(async (req, { user }) => {
     return NextResponse.json({ ...DEFAULTS, ...body })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // 현재 설정 가져오기
   const { data: existing } = await supabase
     .from('system_configs')
     .select('value')
-    .eq('key', 'sc_automation_settings')
+    .eq('key', 'pd_automation_settings')
     .single()
 
   const current: ScAutomationSettings = existing?.value
@@ -86,7 +87,7 @@ export const PUT = withAuth(async (req, { user }) => {
   await supabase
     .from('system_configs')
     .upsert({
-      key: 'sc_automation_settings',
+      key: 'pd_automation_settings',
       value: updated,
       updated_by: user.id,
       updated_at: now,
@@ -99,7 +100,7 @@ export const PUT = withAuth(async (req, { user }) => {
       user_id: user.id,
       action: 'update',
       resource_type: 'system_config',
-      resource_id: 'sc_automation_settings',
+      resource_id: 'pd_automation_settings',
       details: { previous: current, updated },
     })
 

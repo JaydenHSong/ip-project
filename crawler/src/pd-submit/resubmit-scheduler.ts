@@ -1,6 +1,6 @@
 // Resubmit Scheduler — 10분마다 unresolved 리포트 확인 → AI 강화 → SC 큐 추가
 import type { Queue } from 'bullmq'
-import type { ScSubmitJobData } from './types.js'
+import type { PdSubmitJobData } from './types.js'
 import type { SentinelClient } from '../api/sentinel-client.js'
 import { log } from '../logger.js'
 
@@ -21,31 +21,31 @@ type ResubmitPendingReport = {
 }
 
 const startResubmitScheduler = (
-  queue: Queue<ScSubmitJobData>,
+  queue: Queue<PdSubmitJobData>,
   sentinelClient: SentinelClient,
 ): ReturnType<typeof setInterval> => {
   const poll = async (): Promise<void> => {
     try {
-      const result = await sentinelClient.getPendingResubmits()
+      const result = await sentinelClient.getPendingPdResubmits()
       const reports = result.reports as ResubmitPendingReport[]
 
       if (reports.length === 0) return
 
-      log('info', 'resubmit-scheduler', `Found ${reports.length} eligible resubmits`)
+      log('info', 'resubmit-pdheduler', `Found ${reports.length} eligible resubmits`)
 
       for (const report of reports) {
         try {
           // 1. AI 강화
           await sentinelClient.strengthenDraft(report.id)
-          log('info', 'resubmit-scheduler', `Strengthened draft for report ${report.id}`)
+          log('info', 'resubmit-pdheduler', `Strengthened draft for report ${report.id}`)
 
-          // 2. sc_submitting으로 전환은 strengthen API에서 처리하거나 여기서 직접
+          // 2. pd_submitting으로 전환은 strengthen API에서 처리하거나 여기서 직접
           // For now, the SC queue will pick it up after strengthen sets status
 
           // 3. SC 큐에 추가
           if (report.listings) {
             const jobId = `sc-resubmit-${report.id}-${report.resubmit_count + 1}`
-            const jobData: ScSubmitJobData = {
+            const jobData: PdSubmitJobData = {
               reportId: report.id,
               asin: report.listings.asin,
               marketplace: report.listings.marketplace,
@@ -56,14 +56,14 @@ const startResubmitScheduler = (
             }
 
             await queue.add('sc-resubmit', jobData, { jobId })
-            log('info', 'resubmit-scheduler', `Queued resubmit for report ${report.id}`)
+            log('info', 'resubmit-pdheduler', `Queued resubmit for report ${report.id}`)
           }
         } catch (error) {
-          log('error', 'resubmit-scheduler', `Failed to process resubmit for ${report.id}: ${error instanceof Error ? error.message : String(error)}`)
+          log('error', 'resubmit-pdheduler', `Failed to process resubmit for ${report.id}: ${error instanceof Error ? error.message : String(error)}`)
         }
       }
     } catch (error) {
-      log('error', 'resubmit-scheduler', `Poll error: ${error instanceof Error ? error.message : String(error)}`)
+      log('error', 'resubmit-pdheduler', `Poll error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 

@@ -17,6 +17,7 @@ type InlineTemplateListProps = {
   report: { user_violation_type?: string; confirmed_violation_type?: string | null }
   currentViolationType?: string
   onApply: (interpolatedBody: string, templateTitle: string) => void
+  compact?: boolean
 }
 
 export const InlineTemplateList = ({
@@ -24,6 +25,7 @@ export const InlineTemplateList = ({
   report,
   currentViolationType,
   onApply,
+  compact = false,
 }: InlineTemplateListProps) => {
   const { t } = useI18n()
   const [templates, setTemplates] = useState<ReportTemplate[]>([])
@@ -155,6 +157,33 @@ export const InlineTemplateList = ({
           <p className="text-sm text-th-text-muted">
             {search || categoryFilter ? t('common.noData') : 'No templates available.'}
           </p>
+        </div>
+      ) : compact ? (
+        <div className="max-h-[400px] space-y-1 overflow-y-auto">
+          {filtered.map((tmpl) => {
+            const isMatch = currentViolationType && tmpl.violation_types.includes(currentViolationType)
+            return (
+              <button
+                key={tmpl.id}
+                type="button"
+                onClick={() => handleApply(tmpl)}
+                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                  isMatch
+                    ? 'bg-th-accent-soft/20 hover:bg-th-accent-soft/40'
+                    : 'hover:bg-th-bg-hover'
+                }`}
+              >
+                <Star className={`h-3 w-3 shrink-0 ${tmpl.is_default ? 'fill-yellow-400 text-yellow-400' : 'text-th-text-muted/30'}`} />
+                {isMatch && (
+                  <span className="shrink-0 rounded-full bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
+                    Match
+                  </span>
+                )}
+                <span className="min-w-0 flex-1 truncate text-sm text-th-text">{tmpl.title}</span>
+                <span className="shrink-0 text-[10px] text-th-text-muted">{tmpl.usage_count}x</span>
+              </button>
+            )
+          })}
         </div>
       ) : (
         <div className="max-h-[400px] space-y-2 overflow-y-auto">

@@ -20,7 +20,7 @@ export const DEMO_CHANGELOG: ChangelogEntry[] = [
   {
     id: 'cl-003',
     category: 'fix',
-    title: 'Fixed SC Case ID validation on submit',
+    title: 'Fixed PD Case ID validation on submit',
     description: 'Resolved an issue where Seller Central case IDs with leading zeros were incorrectly trimmed.',
     created_by: 'demo-user-001',
     created_at: '2026-03-01T09:15:00.000Z',

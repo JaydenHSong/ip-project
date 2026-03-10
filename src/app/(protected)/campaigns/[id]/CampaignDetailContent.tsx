@@ -53,7 +53,7 @@ type ReportRow = {
   draft_title: string | null
   draft_body: string | null
   rejection_reason: string | null
-  sc_case_id: string | null
+  pd_case_id: string | null
   created_at: string
   approved_at: string | null
   rejected_at: string | null
@@ -617,9 +617,9 @@ export const CampaignDetailContent = ({
                         {report.draft_title}
                       </p>
                     )}
-                    {report.sc_case_id && (
+                    {report.pd_case_id && (
                       <p className="mt-1 text-xs text-th-text-muted">
-                        SC Case: {report.sc_case_id}
+                        PD Case: {report.pd_case_id}
                       </p>
                     )}
                   </Link>

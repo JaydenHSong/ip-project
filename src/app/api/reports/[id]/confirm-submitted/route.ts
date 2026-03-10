@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyAdmins } from '@/lib/notifications'
 
 // POST /api/reports/:id/confirm-submitted
-// Extension이 SC 제출 완료 후 case ID와 함께 확인 콜백
+// Extension이 PD 제출 완료 후 case ID와 함께 확인 콜백
 export const POST = withAuth(async (req, { user }) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -17,7 +18,7 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   const body = await req.json().catch(() => ({})) as {
-    sc_case_id?: string
+    pd_case_id?: string
     auto_submit?: boolean
     auto_submit_success?: boolean
   }
@@ -38,9 +39,9 @@ export const POST = withAuth(async (req, { user }) => {
     )
   }
 
-  if (report.status !== 'sc_submitting') {
+  if (report.status !== 'pd_submitting') {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'sc_submitting 상태의 신고만 확인 가능합니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'pd_submitting 상태의 신고만 확인 가능합니다.' } },
       { status: 400 },
     )
   }
@@ -53,20 +54,20 @@ export const POST = withAuth(async (req, { user }) => {
 
   const updateData: Record<string, unknown> = {
     status: nextStatus,
-    sc_submitted_at: now,
-    sc_submit_data: null,
+    pd_submitted_at: now,
+    pd_submit_data: null,
     updated_at: now,
   }
 
-  if (body.sc_case_id) {
-    updateData.sc_case_id = body.sc_case_id
+  if (body.pd_case_id) {
+    updateData.pd_case_id = body.pd_case_id
   }
 
   const { data, error } = await supabase
     .from('reports')
     .update(updateData)
     .eq('id', id)
-    .select('id, status, sc_case_id')
+    .select('id, status, pd_case_id')
     .single()
 
   if (error) {
@@ -78,10 +79,11 @@ export const POST = withAuth(async (req, { user }) => {
 
   // 감사 로그 (fire-and-forget)
   const auditAction = body.auto_submit
-    ? (body.auto_submit_success ? 'auto_submitted_sc' : 'auto_submit_failed_sc')
-    : 'submitted_sc'
+    ? (body.auto_submit_success ? 'auto_submitted_pd' : 'auto_submit_failed_sc')
+    : 'submitted_pd'
 
-  void supabase
+  const adminDb = createAdminClient()
+  void adminDb
     .from('audit_logs')
     .insert({
       user_id: user.id,
@@ -89,20 +91,20 @@ export const POST = withAuth(async (req, { user }) => {
       resource_type: 'report',
       resource_id: id,
       details: {
-        ...(body.sc_case_id ? { sc_case_id: body.sc_case_id } : {}),
+        ...(body.pd_case_id ? { pd_case_id: body.pd_case_id } : {}),
         ...(body.auto_submit !== undefined ? { auto_submit: body.auto_submit } : {}),
       },
     })
 
-  // SC 제출 결과 알림
+  // PD 제출 결과 알림
   const isSuccess = !body.auto_submit || body.auto_submit_success !== false
   await notifyAdmins({
-    type: isSuccess ? 'sc_submit_success' : 'sc_submit_failed',
-    title: isSuccess ? 'SC Submit Success' : 'SC Submit Failed',
+    type: isSuccess ? 'pd_submit_success' : 'pd_submit_failed',
+    title: isSuccess ? 'PD Submit Success' : 'PD Submit Failed',
     message: isSuccess
-      ? `Report ${id} submitted to Seller Central${body.sc_case_id ? ` (Case: ${body.sc_case_id})` : ''}`
-      : `Report ${id} SC submission failed`,
-    metadata: { report_id: id, sc_case_id: body.sc_case_id ?? null },
+      ? `Report ${id} submitted to Seller Central${body.pd_case_id ? ` (Case: ${body.pd_case_id})` : ''}`
+      : `Report ${id} PD submission failed`,
+    metadata: { report_id: id, pd_case_id: body.pd_case_id ?? null },
   })
 
   return NextResponse.json(data)

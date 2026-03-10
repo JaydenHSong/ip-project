@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { isDemoMode } from '@/lib/demo'
 
 type ResubmitDefaults = {
@@ -42,7 +43,7 @@ export const PUT = withAuth(async (req, { user }) => {
     return NextResponse.json({ ...DEFAULTS, ...body })
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: existing } = await supabase
     .from('system_configs')

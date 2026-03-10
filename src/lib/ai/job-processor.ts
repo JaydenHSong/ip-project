@@ -124,10 +124,12 @@ const processAiAnalysis = async (
   result.violationDetected = true
 
   // [Step 4] 드래프트 생성 (Sonnet)
+  const primaryViolationCode = analysisResult.violations[0]?.type
   const draft = await generateDraft(client, analysisResult, listing, {
     skillContent,
     trademarks: deps.trademarks,
     template: deps.template,
+    violationCode: primaryViolationCode,
   })
 
   // [Step 5] reports INSERT

@@ -144,7 +144,7 @@ const triggerFrontReport = async (
       reportId,
     })
   } catch {
-    // Front-end report is best-effort, never block SC backend flow
+    // Front-end report is best-effort, never block PD backend flow
   }
 }
 
