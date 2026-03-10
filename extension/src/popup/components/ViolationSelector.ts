@@ -1,18 +1,13 @@
-// 위반 유형 2단계 셀렉터 (카테고리 → 유형)
+// 위반 유형 셀렉터 — IP만 2단계, 나머지는 1단계
 
-import { VIOLATION_GROUPS } from '@shared/constants'
+import { CATEGORY_ORDER, IP_TYPES, VIOLATION_TYPES } from '@shared/constants'
 import type { ViolationCategory, ViolationCode } from '@shared/constants'
 import { t, getLocale } from '@shared/i18n'
 
-type OnChangeCallback = (violationType: ViolationCode | null, category: ViolationCategory | null) => void
-
-const CATEGORY_KEYS: ViolationCategory[] = [
-  'intellectual_property',
-  'listing_content',
-  'review_manipulation',
-  'selling_practice',
-  'regulatory_safety',
-]
+type OnChangeCallback = (
+  violationType: ViolationCode | null,
+  category: ViolationCategory | null,
+) => void
 
 export const renderViolationSelector = (
   container: HTMLElement,
@@ -25,11 +20,11 @@ export const renderViolationSelector = (
       <label class="form-label form-label--required">${t('form.violation')}</label>
       <select id="select-category" class="form-select">
         <option value="">${t('form.category.placeholder')}</option>
-        ${CATEGORY_KEYS
+        ${CATEGORY_ORDER
           .map((key) => `<option value="${key}">${t(`cat.${key}` as Parameters<typeof t>[0])}</option>`)
           .join('')}
       </select>
-      <select id="select-violation" class="form-select" disabled>
+      <select id="select-violation" class="form-select hidden">
         <option value="">${t('form.violation.placeholder')}</option>
       </select>
     </div>
@@ -43,24 +38,31 @@ export const renderViolationSelector = (
 
     if (!category) {
       violationSelect.innerHTML = `<option value="">${t('form.violation.placeholder')}</option>`
-      violationSelect.disabled = true
+      violationSelect.classList.add('hidden')
       onChange(null, null)
       return
     }
 
-    const violations = VIOLATION_GROUPS[category] ?? []
-    const name = (v: typeof violations[number]): string =>
-      locale === 'ko' ? v.nameKo : v.nameEn
-
-    violationSelect.innerHTML = `
-      <option value="">${t('form.violation.placeholder')}</option>
-      ${violations
-        .map((v) => `<option value="${v.code}">${v.code} — ${name(v)}</option>`)
-        .join('')}
-    `
-    violationSelect.disabled = false
-    violationSelect.value = ''
-    onChange(null, category)
+    if (category === 'intellectual_property') {
+      // IP: 2단계 — V01~V04 타입 선택 드롭다운 표시
+      const name = (code: ViolationCode): string => {
+        const v = VIOLATION_TYPES[code]
+        return locale === 'ko' ? v.nameKo : v.nameEn
+      }
+      violationSelect.innerHTML = `
+        <option value="">${t('form.violation.placeholder')}</option>
+        ${IP_TYPES
+          .map((code) => `<option value="${code}">${code} — ${name(code)}</option>`)
+          .join('')}
+      `
+      violationSelect.classList.remove('hidden')
+      violationSelect.value = ''
+      onChange(null, category)
+    } else {
+      // 나머지 5개 카테고리: 1단계 — 바로 선택 완료
+      violationSelect.classList.add('hidden')
+      onChange(null, category)
+    }
   })
 
   violationSelect.addEventListener('change', () => {

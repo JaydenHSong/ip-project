@@ -198,10 +198,11 @@ export type SubmitReportRequest = {
   seller_name?: string
   seller_id?: string
   images?: string[]
-  violation_type: ViolationCode
+  violation_type: string // ViolationCode (V01~V04) or category name (variation, main_image, etc.)
   violation_category: string
   note?: string
   screenshot_base64?: string
+  extra_fields?: Record<string, string>
 }
 
 export type SubmitReportResponse = {

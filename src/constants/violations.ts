@@ -7,6 +7,12 @@ export const VIOLATION_CATEGORIES = {
   review_manipulation: 'Review Manipulation',
   selling_practice: 'Selling Practice',
   regulatory_safety: 'Regulatory / Safety',
+  // Extension 신규 카테고리 (v1.7.0+)
+  variation: 'Variation',
+  main_image: 'Main Image',
+  wrong_category: 'Wrong Category',
+  pre_announcement: 'Pre-announcement Listing',
+  review_violation: 'Review Violation',
 } as const
 
 export type ViolationCategory = keyof typeof VIOLATION_CATEGORIES
@@ -15,7 +21,7 @@ export const VIOLATION_TYPES = {
   // Intellectual Property
   V01: { code: 'V01', name: 'Trademark Infringement', category: 'intellectual_property' as const, severity: 'high' as const },
   V02: { code: 'V02', name: 'Copyright Infringement', category: 'intellectual_property' as const, severity: 'high' as const },
-  V03: { code: 'V03', name: 'Patent Infringement', category: 'intellectual_property' as const, severity: 'high' as const },
+  V03: { code: 'V03', name: 'Design Patent Infringement', category: 'intellectual_property' as const, severity: 'high' as const },
   V04: { code: 'V04', name: 'Counterfeit Product', category: 'intellectual_property' as const, severity: 'high' as const },
 
   // Listing Content

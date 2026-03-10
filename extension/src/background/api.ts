@@ -61,6 +61,7 @@ export const submitReport = async (payload: SubmitReportPayload): Promise<Submit
     violation_category: payload.violation_category,
     note: payload.note,
     screenshot_base64: payload.screenshot_base64,
+    extra_fields: payload.extra_fields,
   }
 
   // 1차 시도

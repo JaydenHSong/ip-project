@@ -87,10 +87,11 @@ const en = {
 
   // Violation Categories
   'cat.intellectual_property': 'Intellectual Property',
-  'cat.listing_content': 'Listing Content',
-  'cat.review_manipulation': 'Review Manipulation',
-  'cat.selling_practice': 'Selling Practice',
-  'cat.regulatory_safety': 'Regulatory / Safety',
+  'cat.variation': 'Variation',
+  'cat.main_image': 'Main Image',
+  'cat.wrong_category': 'Wrong Category',
+  'cat.pre_announcement': 'Pre-announcement Listing',
+  'cat.review_violation': 'Review Violation',
 } as const
 
 const ko: Record<keyof typeof en, string> = {
@@ -163,10 +164,11 @@ const ko: Record<keyof typeof en, string> = {
   'bgfetch.banner': '백그라운드 조회',
 
   'cat.intellectual_property': '지식재산권',
-  'cat.listing_content': '리스팅 콘텐츠',
-  'cat.review_manipulation': '리뷰 조작',
-  'cat.selling_practice': '판매 관행',
-  'cat.regulatory_safety': '규제 / 안전',
+  'cat.variation': '베리에이션',
+  'cat.main_image': '메인 이미지',
+  'cat.wrong_category': '잘못된 카테고리',
+  'cat.pre_announcement': '사전 공지 리스팅',
+  'cat.review_violation': '리뷰 위반',
 }
 
 type TranslationKey = keyof typeof en

@@ -20,10 +20,11 @@ export type ParsedPageData = {
 
 export type SubmitReportPayload = {
   page_data: ParsedPageData
-  violation_type: ViolationCode
+  violation_type: ViolationCode | ViolationCategory
   violation_category: ViolationCategory
   note: string
   screenshot_base64: string
+  extra_fields?: Record<string, string>
 }
 
 export type SubmitReportResponse = {

@@ -14,6 +14,12 @@ const CATEGORY_CODES: Record<ViolationCategory, ViolationCode[]> = {
   review_manipulation: ['V11', 'V12'],
   selling_practice: ['V13', 'V14', 'V15'],
   regulatory_safety: ['V16', 'V17', 'V18', 'V19'],
+  // 신규 카테고리 (V코드 없음 — Extension 직접 신고용)
+  variation: [],
+  main_image: [],
+  wrong_category: [],
+  pre_announcement: [],
+  review_violation: [],
 }
 
 // suspect_reasons에서 관련 카테고리 추출

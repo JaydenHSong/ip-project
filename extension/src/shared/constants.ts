@@ -2,10 +2,17 @@
 
 export const VIOLATION_CATEGORIES = {
   intellectual_property: 'Intellectual Property',
+  // 기존 카테고리 (V05~V19 하위 호환)
   listing_content: 'Listing Content',
   review_manipulation: 'Review Manipulation',
   selling_practice: 'Selling Practice',
   regulatory_safety: 'Regulatory / Safety',
+  // 신규 카테고리 (v1.7.0+)
+  variation: 'Variation',
+  main_image: 'Main Image',
+  wrong_category: 'Wrong Category',
+  pre_announcement: 'Pre-announcement Listing',
+  review_violation: 'Review Violation',
 } as const
 
 export type ViolationCategory = keyof typeof VIOLATION_CATEGORIES
@@ -13,7 +20,7 @@ export type ViolationCategory = keyof typeof VIOLATION_CATEGORIES
 export const VIOLATION_TYPES = {
   V01: { code: 'V01' as const, nameEn: 'Trademark Infringement', nameKo: '상표권 침해', category: 'intellectual_property' as const, severity: 'high' as const },
   V02: { code: 'V02' as const, nameEn: 'Copyright Infringement', nameKo: '저작권 침해', category: 'intellectual_property' as const, severity: 'high' as const },
-  V03: { code: 'V03' as const, nameEn: 'Patent Infringement', nameKo: '특허 침해', category: 'intellectual_property' as const, severity: 'high' as const },
+  V03: { code: 'V03' as const, nameEn: 'Design Patent Infringement', nameKo: '디자인 특허 침해', category: 'intellectual_property' as const, severity: 'high' as const },
   V04: { code: 'V04' as const, nameEn: 'Counterfeit Product', nameKo: '위조 상품', category: 'intellectual_property' as const, severity: 'high' as const },
   V05: { code: 'V05' as const, nameEn: 'False Advertising', nameKo: '허위 광고', category: 'listing_content' as const, severity: 'medium' as const },
   V06: { code: 'V06' as const, nameEn: 'Prohibited Keywords', nameKo: '금지 키워드', category: 'listing_content' as const, severity: 'medium' as const },
@@ -43,6 +50,85 @@ export const VIOLATION_GROUPS = Object.entries(VIOLATION_TYPES).reduce(
   },
   {} as Record<ViolationCategory, (typeof VIOLATION_TYPES)[ViolationCode][]>,
 )
+
+// 카테고리 드롭다운 표시 순서
+export const CATEGORY_ORDER: ViolationCategory[] = [
+  'intellectual_property',
+  'variation',
+  'main_image',
+  'wrong_category',
+  'pre_announcement',
+  'review_violation',
+]
+
+// IP 하위 타입 (V01~V04만 2단계 드롭다운으로 표시)
+export const IP_TYPES: ViolationCode[] = ['V01', 'V02', 'V03', 'V04']
+
+// 카테고리/타입별 동적 입력 필드 설정
+export type DynamicFieldConfig = {
+  id: string
+  labelEn: string
+  labelKo: string
+  required: boolean
+  rows: number
+}
+
+export type CategoryFieldsConfig = {
+  fields: DynamicFieldConfig[]
+}
+
+export const CATEGORY_FIELDS: Record<string, CategoryFieldsConfig> = {
+  // Non-IP categories
+  variation: {
+    fields: [
+      { id: 'reason', labelEn: 'Reason for Violation Report', labelKo: '위반 신고 사유', required: true, rows: 4 },
+    ],
+  },
+  main_image: {
+    fields: [
+      { id: 'reason', labelEn: 'Reason for Violation Report', labelKo: '위반 신고 사유', required: true, rows: 4 },
+    ],
+  },
+  wrong_category: {
+    fields: [
+      { id: 'right_category', labelEn: 'Specify the Right Category', labelKo: '올바른 카테고리를 지정하세요', required: true, rows: 4 },
+    ],
+  },
+  pre_announcement: {
+    fields: [
+      { id: 'detail', labelEn: 'Explain in detail', labelKo: '상세하게 설명하세요', required: true, rows: 4 },
+    ],
+  },
+  review_violation: {
+    fields: [
+      { id: 'detail', labelEn: 'Explain in detail', labelKo: '상세하게 설명하세요', required: true, rows: 4 },
+      { id: 'review_urls', labelEn: 'Enter up to 10 review URLs to report, one per line.', labelKo: '신고할 리뷰 URL을 한 줄에 하나씩, 최대 10개 입력하세요.', required: true, rows: 5 },
+    ],
+  },
+  // IP types
+  V01: {
+    fields: [
+      { id: 'reason', labelEn: 'Reason for Violation Report', labelKo: '위반 신고 사유', required: true, rows: 4 },
+    ],
+  },
+  V02: {
+    fields: [
+      { id: 'reason', labelEn: 'Reason for Violation Report', labelKo: '위반 신고 사유', required: true, rows: 4 },
+      { id: 'product_link', labelEn: 'Please refer to the Spigen product link below', labelKo: '아래 Spigen 제품 링크를 참조하세요', required: true, rows: 3 },
+    ],
+  },
+  V03: {
+    fields: [
+      { id: 'reason', labelEn: 'Reason for Violation Report', labelKo: '위반 신고 사유', required: true, rows: 4 },
+      { id: 'product_link', labelEn: 'Please refer to the Spigen product link below', labelKo: '아래 Spigen 제품 링크를 참조하세요', required: true, rows: 3 },
+    ],
+  },
+  V04: {
+    fields: [
+      { id: 'reason', labelEn: 'Reason for Violation Report', labelKo: '위반 신고 사유', required: true, rows: 4 },
+    ],
+  },
+}
 
 export const MARKETPLACE_MAP: Record<string, string> = {
   'www.amazon.com': 'US',

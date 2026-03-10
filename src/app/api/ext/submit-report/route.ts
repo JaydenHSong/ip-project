@@ -6,12 +6,14 @@ import type { SubmitReportRequest, SubmitReportResponse } from '@/types/api'
 
 const VALID_VIOLATION_CODES = new Set(Object.keys(VIOLATION_TYPES))
 const VALID_CATEGORIES = new Set(Object.keys(VIOLATION_CATEGORIES))
+// 신규 카테고리는 violation_type으로도 사용 (category = violation_type)
+const NEW_CATEGORY_TYPES = new Set(['variation', 'main_image', 'wrong_category', 'pre_announcement', 'review_violation'])
 const MAX_SCREENSHOT_BASE64_LENGTH = 3_000_000 // ~2.25MB decoded (구버전 익스텐션 호환)
 
 // POST /api/ext/submit-report — Extension에서 위반 제보 제출
 export const POST = withAuth(async (req, { user }) => {
   const body = (await req.json()) as SubmitReportRequest
-  const { asin, marketplace, title, violation_type, violation_category } = body
+  const { asin, marketplace, title, violation_type, violation_category, extra_fields } = body
 
   // 필수 필드 검증
   if (!asin || !marketplace || !title || !violation_type || !violation_category) {
@@ -21,8 +23,8 @@ export const POST = withAuth(async (req, { user }) => {
     )
   }
 
-  // 위반 유형 유효성 검증
-  if (!VALID_VIOLATION_CODES.has(violation_type)) {
+  // 위반 유형 유효성 검증 — V코드 또는 신규 카테고리명 허용
+  if (!VALID_VIOLATION_CODES.has(violation_type) && !NEW_CATEGORY_TYPES.has(violation_type)) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: `Invalid violation_type: ${violation_type}` } },
       { status: 400 },
@@ -109,7 +111,7 @@ export const POST = withAuth(async (req, { user }) => {
       violation_category,
       status: 'draft',
       created_by: user.id,
-      note: body.note ?? null,
+      note: extra_fields ? JSON.stringify(extra_fields) : (body.note ?? null),
       source: 'extension',
     })
     .select('id')

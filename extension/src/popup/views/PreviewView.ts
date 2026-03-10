@@ -2,17 +2,18 @@
 
 import type { ParsedPageData } from '@shared/types'
 import type { ViolationCode, ViolationCategory } from '@shared/constants'
-import { VIOLATION_TYPES } from '@shared/constants'
+import { VIOLATION_TYPES, VIOLATION_CATEGORIES } from '@shared/constants'
 import { t } from '@shared/i18n'
 import { getLocale } from '@shared/i18n'
 import { escapeHtml } from '../utils'
 
 export type PreviewData = {
   pageData: ParsedPageData
-  violationType: ViolationCode
+  violationType: ViolationCode | ViolationCategory
   violationCategory: ViolationCategory
   note: string
   screenshotBase64: string
+  extraFields?: Record<string, string>
 }
 
 const COUNTDOWN_SEC = 3
@@ -24,9 +25,32 @@ export const renderPreviewView = (
   onConfirm: () => void,
   onCancel: () => void,
 ): void => {
-  const violation = VIOLATION_TYPES[data.violationType]
-  const violationName = getLocale() === 'ko' ? violation.nameKo : violation.nameEn
   const categoryKey = `cat.${data.violationCategory}` as Parameters<typeof t>[0]
+  const isIp = data.violationCategory === 'intellectual_property'
+
+  // IP는 V코드 + 이름, 나머지는 카테고리명
+  let violationDisplay: string
+  if (isIp && data.violationType in VIOLATION_TYPES) {
+    const violation = VIOLATION_TYPES[data.violationType as ViolationCode]
+    const name = getLocale() === 'ko' ? violation.nameKo : violation.nameEn
+    violationDisplay = `${violation.code} &mdash; ${escapeHtml(name)}`
+  } else {
+    violationDisplay = VIOLATION_CATEGORIES[data.violationCategory] ?? data.violationCategory
+  }
+
+  // extra_fields 미리보기
+  const extraFieldsHtml = data.extraFields
+    ? Object.entries(data.extraFields)
+        .filter(([, v]) => v.trim())
+        .map(
+          ([key, val]) => `
+        <div class="preview-card__row">
+          <span class="preview-card__label">${escapeHtml(key)}</span>
+          <span class="preview-card__value preview-card__value--note">${escapeHtml(val)}</span>
+        </div>`,
+        )
+        .join('')
+    : ''
 
   container.innerHTML = `
     <div class="preview-container">
@@ -49,16 +73,13 @@ export const renderPreviewView = (
           <span class="preview-card__label">${t('preview.label.category')}</span>
           <span class="preview-card__value">${t(categoryKey)}</span>
         </div>
+        ${isIp ? `
         <div class="preview-card__row">
           <span class="preview-card__label">${t('preview.label.violation')}</span>
-          <span class="preview-card__value">${escapeHtml(violation.code)} &mdash; ${escapeHtml(violationName)}</span>
-        </div>
-        ${data.note ? `
-        <div class="preview-card__row">
-          <span class="preview-card__label">${t('preview.label.note')}</span>
-          <span class="preview-card__value preview-card__value--note">${escapeHtml(data.note)}</span>
+          <span class="preview-card__value">${violationDisplay}</span>
         </div>
         ` : ''}
+        ${extraFieldsHtml}
         <div class="preview-card__row">
           <span class="preview-card__label">${t('preview.label.screenshot')}</span>
           <span class="preview-card__value preview-card__value--muted">${t('preview.screenshot.auto')}</span>
@@ -96,6 +117,7 @@ export const renderPreviewView = (
       violation_category: data.violationCategory,
       note: data.note,
       screenshot_base64: data.screenshotBase64,
+      extra_fields: data.extraFields,
     },
   })
 
