@@ -6,6 +6,7 @@ import type { Listing } from '@/types/listings'
 import { MODEL_ROLES, type ClaudeClient } from '@/types/ai'
 import { buildSystemPrompt } from './prompts/system'
 import { buildDraftPrompt } from './prompts/draft'
+import type { BrFormType } from '@/types/reports'
 import { getBrFormContext } from '@/lib/reports/br-data'
 
 const parseDraftResponse = (raw: string): AiDraftResponse => {
@@ -46,6 +47,7 @@ const generateDraft = async (
     trademarks: string[]
     template: string | null
     violationCode?: string
+    brFormType?: BrFormType
   },
 ): Promise<AiDraftResponse> => {
   const systemPrompt = await buildSystemPrompt({
@@ -53,9 +55,11 @@ const generateDraft = async (
     skillContent: options.skillContent,
   })
 
-  const brFormContext = options.violationCode
-    ? getBrFormContext(options.violationCode)
-    : null
+  const brFormContext = options.brFormType
+    ? getBrFormContext(null, options.brFormType)
+    : options.violationCode
+      ? getBrFormContext(options.violationCode)
+      : null
 
   const userPrompt = await buildDraftPrompt(analysis, listing, options.template, brFormContext)
 

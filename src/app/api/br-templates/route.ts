@@ -7,13 +7,23 @@ export const GET = withAuth(async (req) => {
   const supabase = await createClient()
   const showAll = req.nextUrl.searchParams.get('all') === 'true'
 
+  const formType = req.nextUrl.searchParams.get('form_type')
+  const category = req.nextUrl.searchParams.get('category')
+
   let query = supabase
     .from('br_templates')
     .select('*')
+    .order('category', { ascending: true })
     .order('code', { ascending: true })
 
   if (!showAll) {
     query = query.eq('active', true)
+  }
+  if (formType) {
+    query = query.eq('br_form_type', formType)
+  }
+  if (category) {
+    query = query.eq('category', category)
   }
 
   const { data, error } = await query

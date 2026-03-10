@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { notifyApproved } from '@/lib/notifications/google-chat'
 import { buildPdSubmitData } from '@/lib/reports/pd-data'
 import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
+import type { BrExtraFields } from '@/lib/reports/br-data'
 import type { ApproveReportRequest } from '@/types/api'
+import type { BrFormType } from '@/types/reports'
 
 // POST /api/reports/:id/approve — 승인 → pd_submitting 자동 전환
 export const POST = withAuth(async (req) => {
@@ -18,7 +20,10 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  const body = (await req.json().catch(() => ({}))) as ApproveReportRequest
+  const body = (await req.json().catch(() => ({}))) as ApproveReportRequest & {
+    br_form_type?: BrFormType
+    br_extra_fields?: BrExtraFields
+  }
   const supabase = await createClient()
 
   // 현재 상태 확인
@@ -45,7 +50,7 @@ export const POST = withAuth(async (req) => {
   // Listing 조회 (PD 데이터 빌드용)
   const { data: listing } = await supabase
     .from('listings')
-    .select('asin, marketplace, title, url')
+    .select('asin, marketplace, title, url, seller_storefront_url')
     .eq('id', report.listing_id)
     .single()
 
@@ -74,7 +79,9 @@ export const POST = withAuth(async (req) => {
           draft_body: body.edited_draft_body ?? report.draft_body,
           draft_title: body.edited_draft_title ?? report.draft_title,
         },
-        listing: { asin: listing.asin, url: listing.url ?? null, marketplace: listing.marketplace },
+        listing: { asin: listing.asin, url: listing.url ?? null, marketplace: listing.marketplace, seller_storefront_url: listing.seller_storefront_url },
+        formTypeOverride: body.br_form_type,
+        extraFields: body.br_extra_fields,
       })
     : null
 
