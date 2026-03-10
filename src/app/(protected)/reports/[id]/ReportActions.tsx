@@ -176,10 +176,11 @@ export const ReportActions = ({
     }
   }
 
-  const handleForceResubmit = async () => {
-    setLoading('forceResubmit')
+  const handleForceResubmit = async (track: 'both' | 'br' = 'both') => {
+    const key = track === 'br' ? 'brResubmit' : 'forceResubmit'
+    setLoading(key)
     try {
-      const res = await fetch(`/api/reports/${reportId}/force-resubmit`, {
+      const res = await fetch(`/api/reports/${reportId}/force-resubmit?track=${track}`, {
         method: 'POST',
       })
       if (!res.ok) {
@@ -291,10 +292,18 @@ export const ReportActions = ({
           </div>
         )}
 
-        {/* Monitoring: Read-only status */}
+        {/* Monitoring: Status + BR 재신고 */}
         {status === 'monitoring' && (
-          <div className="text-sm text-th-text-muted">
-            모니터링 중...
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-th-text-muted">모니터링 중...</span>
+            <Button
+              variant="outline"
+              size="sm"
+              loading={loading === 'brResubmit'}
+              onClick={() => handleForceResubmit('br')}
+            >
+              BR 재신고
+            </Button>
           </div>
         )}
 
@@ -310,17 +319,25 @@ export const ReportActions = ({
               variant="outline"
               size="sm"
               loading={loading === 'forceResubmit'}
-              onClick={handleForceResubmit}
+              onClick={() => handleForceResubmit('both')}
             >
               강제 재제출
             </Button>
           </div>
         )}
 
-        {/* Resolved: Done */}
+        {/* Resolved: Done + BR 재신고 */}
         {status === 'resolved' && (
-          <div className="text-sm text-st-success-text">
-            해결 완료
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-st-success-text">해결 완료</span>
+            <Button
+              variant="outline"
+              size="sm"
+              loading={loading === 'brResubmit'}
+              onClick={() => handleForceResubmit('br')}
+            >
+              BR 재신고
+            </Button>
           </div>
         )}
 

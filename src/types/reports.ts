@@ -176,7 +176,6 @@ export type BrFormType =
 
 export type BrSubmitData = {
   form_type: BrFormType
-  subject: string
   description: string
   product_urls: string[]
   seller_storefront_url?: string

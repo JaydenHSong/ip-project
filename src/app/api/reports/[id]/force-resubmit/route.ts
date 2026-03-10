@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { buildScSubmitData } from '@/lib/reports/sc-data'
+import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
 
-// POST /api/reports/:id/force-resubmit — 강제 재제출
+// POST /api/reports/:id/force-resubmit — 강제 재제출 (SC + BR)
+// query param: ?track=sc|br|both (default: both)
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
+  const track = req.nextUrl.searchParams.get('track') ?? 'both'
 
   if (!id) {
     return NextResponse.json(
@@ -19,7 +22,7 @@ export const POST = withAuth(async (req) => {
 
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, draft_body, draft_evidence, listing_id, resubmit_count')
+    .select('id, status, user_violation_type, draft_body, draft_title, draft_evidence, listing_id, resubmit_count')
     .eq('id', id)
     .single()
 
@@ -30,41 +33,78 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  if (report.status !== 'unresolved') {
+  // unresolved 외에 monitoring, done 상태에서도 BR 재신고 허용
+  const allowedStatuses = ['unresolved', 'monitoring', 'done']
+  if (!allowedStatuses.includes(report.status)) {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'Only unresolved reports can be force-resubmitted' } },
+      { error: { code: 'VALIDATION_ERROR', message: `Cannot resubmit from status: ${report.status}` } },
       { status: 400 },
     )
   }
 
   const { data: listing } = await supabase
     .from('listings')
-    .select('asin, marketplace, title')
+    .select('asin, marketplace, title, url, seller_storefront_url')
     .eq('id', report.listing_id)
     .single()
 
-  const scSubmitData = listing
-    ? buildScSubmitData({
-        report: {
-          id,
-          user_violation_type: report.user_violation_type,
-          draft_body: report.draft_body,
-          draft_evidence: report.draft_evidence as { type: string; url: string; description: string }[] | undefined,
-        },
-        listing,
-      })
-    : null
+  const updateData: Record<string, unknown> = {
+    resubmit_count: (report.resubmit_count ?? 0) + 1,
+    last_resubmit_at: new Date().toISOString(),
+  }
+
+  // SC track
+  if (track === 'sc' || track === 'both') {
+    const scSubmitData = listing
+      ? buildScSubmitData({
+          report: {
+            id,
+            user_violation_type: report.user_violation_type,
+            draft_body: report.draft_body,
+            draft_evidence: report.draft_evidence as { type: string; url: string; description: string }[] | undefined,
+          },
+          listing,
+        })
+      : null
+
+    updateData.status = 'sc_submitting'
+    updateData.sc_submit_data = scSubmitData
+    updateData.sc_submit_attempts = 0
+    updateData.sc_submission_error = null
+  }
+
+  // BR track (BR-only resubmit or both)
+  if ((track === 'br' || track === 'both') && isBrReportable(report.user_violation_type)) {
+    const brSubmitData = listing
+      ? buildBrSubmitData({
+          report: {
+            id,
+            user_violation_type: report.user_violation_type,
+            draft_body: report.draft_body,
+            draft_title: report.draft_title,
+          },
+          listing: {
+            asin: listing.asin,
+            url: listing.url,
+            marketplace: listing.marketplace,
+            seller_storefront_url: listing.seller_storefront_url,
+          },
+        })
+      : null
+
+    updateData.br_submit_data = brSubmitData
+    updateData.br_submit_attempts = 0
+    updateData.br_submission_error = null
+
+    // BR-only resubmit: 바로 br_submitting으로
+    if (track === 'br') {
+      updateData.status = 'br_submitting'
+    }
+  }
 
   const { error } = await supabase
     .from('reports')
-    .update({
-      status: 'sc_submitting',
-      sc_submit_data: scSubmitData,
-      sc_submit_attempts: 0,
-      sc_submission_error: null,
-      resubmit_count: (report.resubmit_count ?? 0) + 1,
-      last_resubmit_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq('id', id)
 
   if (error) {
@@ -74,5 +114,5 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  return NextResponse.json({ status: 'sc_submitting' })
+  return NextResponse.json({ status: updateData.status, track })
 }, ['owner', 'admin'])

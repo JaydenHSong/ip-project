@@ -39,6 +39,7 @@ type BuildBrDataInput = {
     asin: string
     url: string | null
     marketplace?: string
+    seller_storefront_url?: string | null
   }
 }
 
@@ -59,11 +60,21 @@ export const buildBrSubmitData = ({ report, listing }: BuildBrDataInput): BrSubm
     productUrls.push(`https://www.amazon.com/dp/${listing.asin}`)
   }
 
-  return {
+  const data: BrSubmitData = {
     form_type: formType,
-    subject: `Policy Violation Report - ${listing.asin}`,
     description: report.draft_body ?? '',
     product_urls: productUrls,
     prepared_at: new Date().toISOString(),
   }
+
+  // 폼 타입별 추가 필드
+  if (listing.seller_storefront_url) {
+    data.seller_storefront_url = listing.seller_storefront_url
+  }
+
+  if (listing.asin) {
+    data.asins = [listing.asin]
+  }
+
+  return data
 }
