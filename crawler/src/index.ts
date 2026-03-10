@@ -88,6 +88,7 @@ const init = async (): Promise<void> => {
 
   worker.on('error', () => { workerRunning = false })
   worker.on('ready', () => { workerRunning = true; redisConnected = true })
+  // 추가 에러 알림은 아래 workerAlertHandler에서 처리
 
   const schedulerInterval = await startScheduler(queue, sentinelClient)
 
@@ -165,6 +166,63 @@ const init = async (): Promise<void> => {
     await chatNotifier.notifyMessage('🚀 *[Sentinel Crawler]* 크롤러가 시작되었습니다.')
   }
 
+  // ─── A1: Worker Down Alert (모든 워커 에러 → Google Chat 즉시 알림) ───
+  const workerAlertHandler = (workerName: string) => (error: Error) => {
+    log('error', 'main', `${workerName} error: ${error.message}`)
+    if (config.googleChatWebhookUrl) {
+      chatNotifier.notifyMessage(
+        `🚨 *[Sentinel]* ${workerName} 에러 발생\n원인: ${error.message}\n시각: ${new Date().toLocaleString('ko-KR', { timeZone: 'America/Los_Angeles' })}`
+      ).catch(() => {})
+    }
+  }
+
+  worker.on('error', workerAlertHandler('Crawl Worker'))
+  scWorker.on('error', workerAlertHandler('SC Submit Worker'))
+  brWorker.on('error', workerAlertHandler('BR Submit Worker'))
+  brMonitorWorker.on('error', workerAlertHandler('BR Monitor Worker'))
+  brReplyWorker.on('error', workerAlertHandler('BR Reply Worker'))
+
+  // ─── A2: Daily Report (매일 09:00 KST = 16:00 PST 전날) ───
+  const sendDailyReport = async (): Promise<void> => {
+    if (!config.googleChatWebhookUrl) return
+
+    try {
+      const queues = [
+        { name: 'Crawl', q: queue },
+        { name: 'SC Submit', q: scQueue },
+        { name: 'BR Submit', q: brQueue },
+        { name: 'BR Monitor', q: brMonitorQueue },
+        { name: 'BR Reply', q: brReplyQueue },
+      ]
+
+      const lines = ['📊 *[Sentinel]* Daily Report']
+      const now = new Date()
+      lines.push(`${now.toLocaleDateString('ko-KR', { timeZone: 'America/Los_Angeles' })} (PST)`)
+      lines.push('')
+
+      for (const { name, q } of queues) {
+        const counts = await q.getJobCounts('completed', 'failed', 'waiting', 'active', 'delayed')
+        lines.push(`*${name}*: ✅${counts.completed ?? 0} ❌${counts.failed ?? 0} ⏳${counts.waiting ?? 0} 🔄${counts.active ?? 0} ⏱${counts.delayed ?? 0}`)
+      }
+
+      lines.push('')
+      lines.push(`Uptime: ${Math.floor((Date.now() - startTime) / 3600000)}h`)
+
+      await chatNotifier.notifyMessage(lines.join('\n'))
+      log('info', 'main', 'Daily report sent to Google Chat')
+    } catch (err) {
+      log('error', 'main', `Daily report failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+
+  // 매 1시간마다 체크, 16:00 PST (= 09:00 KST) 이면 발송
+  const dailyReportInterval = setInterval(async () => {
+    const pstHour = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', hour12: false })
+    if (Number(pstHour) === 16) {
+      await sendDailyReport()
+    }
+  }, 3600_000)
+
   // Graceful Shutdown
   const shutdown = async (signal: string): Promise<void> => {
     log('info', 'main', `Received ${signal}, shutting down gracefully...`)
@@ -173,6 +231,7 @@ const init = async (): Promise<void> => {
       await chatNotifier.notifyMessage('⏹ *[Sentinel Crawler]* 크롤러가 종료됩니다.')
     }
 
+    clearInterval(dailyReportInterval)
     clearInterval(schedulerInterval)
     clearInterval(scSchedulerInterval)
     clearInterval(resubmitSchedulerInterval)
@@ -206,5 +265,14 @@ init().catch((error) => {
   log('error', 'main', `Init failed (health server still running): ${msg}`, {
     error: error instanceof Error ? error.stack : String(error),
   })
+  // Init 실패 시 Google Chat 알림 (환경변수 직접 참조)
+  const webhookUrl = process.env['GOOGLE_CHAT_WEBHOOK_URL']
+  if (webhookUrl) {
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify({ text: `🔥 *[Sentinel]* 크롤러 초기화 실패!\n원인: ${msg}` }),
+    }).catch(() => {})
+  }
   // 프로세스 종료 안 함 — 헬스체크 서버는 계속 응답
 })

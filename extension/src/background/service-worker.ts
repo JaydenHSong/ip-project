@@ -1,9 +1,8 @@
 // Service Worker 엔트리 — 메시지 핸들러
 
-import type { PopupMessage, BackgroundResponse, AuthStatusResponse, PageDataResponse, ScreenshotResponse, SubmitResponse, FrontReportResultMessage, BrReportResultMessage } from '@shared/messages'
+import type { PopupMessage, BackgroundResponse, AuthStatusResponse, PageDataResponse, ScreenshotResponse, SubmitResponse, FrontReportResultMessage } from '@shared/messages'
 import type { ParsedPageData, SubmitReportPayload } from '@shared/types'
 import { isFrontReportable } from '@shared/front-report-config'
-import { isBrReportable, getBrFormType } from '@shared/br-report-config'
 import { signInWithGoogle, getSession, signOut } from './auth'
 import { submitReport, checkAuthStatus } from './api'
 import { captureScreenshot } from './screenshot'
@@ -104,9 +103,8 @@ const handleSubmitReport = async (message: PopupMessage & { type: 'SUBMIT_REPORT
   try {
     const result = await submitReport(message.payload)
 
-    // Three-track: trigger front-end + BR auto-report in parallel (fire-and-forget)
+    // Two-track: front-end auto-report (BR is handled by Crawler worker)
     triggerFrontReport(message.payload, result.report_id)
-    triggerBrReport(message.payload, result.report_id)
 
     return { success: true, data: result }
   } catch (err) {
@@ -148,110 +146,6 @@ const triggerFrontReport = async (
   } catch {
     // Front-end report is best-effort, never block SC backend flow
   }
-}
-
-// Three-track BR reporting — runs on Brand Registry contact-us page
-const triggerBrReport = async (
-  payload: SubmitReportPayload,
-  reportId: string,
-): Promise<void> => {
-  try {
-    const violationCode = payload.violation_type
-    if (!isBrReportable(violationCode)) return
-
-    const brFormType = getBrFormType(violationCode)
-    if (!brFormType) return
-
-    // Find or open BR contact-us tab
-    const brUrl = 'https://brandregistry.amazon.com/cu/contact-us'
-    const tabs = await chrome.tabs.query({ url: `${brUrl}*` })
-    let tabId: number | undefined
-
-    if (tabs.length > 0 && tabs[0].id) {
-      tabId = tabs[0].id
-    } else {
-      // Open new tab
-      const newTab = await chrome.tabs.create({ url: brUrl, active: false })
-      tabId = newTab.id
-      // Wait for page load
-      if (tabId) {
-        await new Promise<void>((resolve) => {
-          const listener = (
-            updatedTabId: number,
-            changeInfo: chrome.tabs.TabChangeInfo,
-          ): void => {
-            if (updatedTabId === tabId && changeInfo.status === 'complete') {
-              chrome.tabs.onUpdated.removeListener(listener)
-              resolve()
-            }
-          }
-          chrome.tabs.onUpdated.addListener(listener)
-          // Timeout after 30s
-          setTimeout(() => {
-            chrome.tabs.onUpdated.removeListener(listener)
-            resolve()
-          }, 30_000)
-        })
-        // Extra wait for content script to initialize
-        await new Promise((r) => setTimeout(r, 2000))
-      }
-    }
-
-    if (!tabId) return
-
-    // Build product URLs from page data
-    const productUrls: string[] = []
-    const pageUrl = payload.page_data.url
-    if (pageUrl) productUrls.push(pageUrl)
-
-    // Send BR report command
-    chrome.tabs.sendMessage(tabId, {
-      type: 'EXECUTE_BR_REPORT',
-      reportId,
-      violationType: brFormType,
-      description: payload.note || `Violation detected: ${violationCode}`,
-      productUrls,
-      sellerStorefrontUrl: undefined,
-      asins: payload.page_data.asin ? [payload.page_data.asin] : undefined,
-    }).catch(() => {
-      // Content script not ready yet — try dynamic injection
-      if (tabId) {
-        chrome.scripting.executeScript({
-          target: { tabId, allFrames: true },
-          files: ['br-content.js'],
-        }).then(() => {
-          setTimeout(() => {
-            chrome.tabs.sendMessage(tabId!, {
-              type: 'EXECUTE_BR_REPORT',
-              reportId,
-              violationType: brFormType,
-              description: payload.note || `Violation detected: ${violationCode}`,
-              productUrls,
-              sellerStorefrontUrl: undefined,
-              asins: payload.page_data.asin ? [payload.page_data.asin] : undefined,
-            }).catch(() => {})
-          }, 1000)
-        }).catch(() => {})
-      }
-    })
-  } catch {
-    // BR report is best-effort, never block other tracks
-  }
-}
-
-// Handle BR report result from content script
-const handleBrReportResult = (msg: BrReportResultMessage): void => {
-  if (msg.success) {
-    showBadge('3x', '#22C55E', 3000)  // "3x" = three-track success
-  }
-  chrome.storage.session.set({
-    [`br_report_${msg.reportId}`]: {
-      success: msg.success,
-      durationMs: msg.durationMs,
-      error: msg.error,
-      timestamp: Date.now(),
-    },
-  }).catch(() => {})
 }
 
 // Handle front-report result from content script (logging only)
@@ -350,7 +244,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 // 단일 메시지 라우터
 chrome.runtime.onMessage.addListener(
-  (message: PopupMessage | { type: 'OPEN_POPUP' | 'PASSIVE_PAGE_DATA' | 'PASSIVE_SEARCH_DATA' | 'FRONT_REPORT_RESULT' | 'BR_REPORT_RESULT'; data?: unknown; [key: string]: unknown }, _sender: chrome.runtime.MessageSender, sendResponse: (response?: unknown) => void) => {
+  (message: PopupMessage | { type: 'OPEN_POPUP' | 'PASSIVE_PAGE_DATA' | 'PASSIVE_SEARCH_DATA' | 'FRONT_REPORT_RESULT'; data?: unknown; [key: string]: unknown }, _sender: chrome.runtime.MessageSender, sendResponse: (response?: unknown) => void) => {
     // OPEN_POPUP는 동기 처리, 응답 불필요
     if (message.type === 'OPEN_POPUP') {
       handleOpenPopup()
@@ -370,12 +264,6 @@ chrome.runtime.onMessage.addListener(
     // Front-end report result: fire-and-forget
     if (message.type === 'FRONT_REPORT_RESULT') {
       handleFrontReportResult(message as FrontReportResultMessage)
-      return false
-    }
-
-    // BR report result: fire-and-forget
-    if (message.type === 'BR_REPORT_RESULT') {
-      handleBrReportResult(message as BrReportResultMessage)
       return false
     }
 
