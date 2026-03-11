@@ -21,6 +21,7 @@ import type { TableFilters as TableFiltersType } from '@/types/table'
 type ReportRow = {
   id: string
   violation_type: string
+  violation_category: string | null
   status: string
   created_at: string
   archived_at: string | null
@@ -113,7 +114,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
               onClick={() => setPreviewId(report.id)}
             >
               <div className="flex items-start justify-between">
-                <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
+                <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} />
                 <StatusBadge status={report.status as ReportStatus} type="report" />
               </div>
               <Link href={`/reports/${report.id}`}>
@@ -188,7 +189,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
               sortedData.map((report) => (
                 <tr key={report.id} className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover" onClick={() => setPreviewId(report.id)}>
                   <td className="px-4 py-3.5">
-                    <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
+                    <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} />
                   </td>
                   <td className="px-4 py-3.5">
                     <Link href={`/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text">
@@ -238,7 +239,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                 <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.violationInfo')}</h3>
               </CardHeader>
               <CardContent>
-                <ViolationBadge code={previewReport.violation_type as ViolationCode} />
+                <ViolationBadge code={(previewReport.violation_category ?? previewReport.violation_type) as ViolationCode} />
               </CardContent>
             </Card>
 

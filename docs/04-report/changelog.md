@@ -4,6 +4,101 @@
 
 ---
 
+## [2026-03-10] - Extension Violation Form Refactor: 6개 카테고리 구조 개편 완료
+
+### 요약
+Extension 팝업 위반신고 폼을 리팩토링. IP 카테고리는 2단계(V01-V04), 신규 5개 카테고리는 1단계 드롭다운으로 변경. 카테고리별 동적 입력 필드 추가. 설계-구현 일치율 100% (54/54 checks), 첫 번도 완료. 빌드 + 릴리스(v1.7.0) 대기 중.
+
+### Added
+- **5개 신규 카테고리**: Variation, Main Image, Wrong Category, Pre-announcement Listing, Review Violation
+- **카테고리별 동적 필드**:
+  - Variation: "Reason for Violation Report*" textarea (1 필드)
+  - Main Image: "Reason for Violation Report*" textarea (1 필드)
+  - Wrong Category: "Specify the Right Category*" textarea (1 필드)
+  - Pre-announcement: "Explain in detail*" textarea (1 필드)
+  - Review Violation: "Explain in detail*" + "review URLs*" textareas (2 필드)
+
+- **IP 타입별 동적 필드**:
+  - V01 Trademark: "Reason..." (1 필드)
+  - V02 Copyright: "Reason..." + "Spigen product link*" (2 필드)
+  - V03 Design Patent: "Reason..." + "Spigen product link*" (2 필드)
+  - V04 Counterfeit: "Reason..." (1 필드)
+
+- **필드 검증**: Required 필드 미입력 시 Submit 버튼 자동 비활성화
+- **데이터 매핑**: IP는 V-코드 사용, 신규 카테고리는 카테고리명 사용, extra_fields JSON 저장
+
+### Changed
+- V03 이름: "Patent Infringement" → "Design Patent Infringement" (EN + KO)
+- Extension + Web 카테고리 드롭다운: IP만 2단계, 나머지 1단계
+- Note textarea → DynamicFields 컴포넌트 (카테고리별 필드 렌더링)
+- 16 파일 수정 (extension 10 + web 6)
+
+### Files Modified
+**Extension (10)**:
+- `extension/src/shared/constants.ts` — CATEGORY_ORDER, CATEGORY_FIELDS
+- `extension/src/shared/types.ts` — SubmitReportPayload.extra_fields
+- `extension/src/popup/components/ViolationSelector.ts` — 2단계 조건부 렌더링
+- `extension/src/popup/components/DynamicFields.ts` — 필드 동적 렌더링
+- `extension/src/popup/views/ReportFormView.ts` — state 확장, validation
+- 기타 5 파일
+
+**Web (6)**:
+- `src/constants/violations.ts` — 신규 카테고리, V03 rename
+- `src/app/api/ext/submit-report/route.ts` — extra_fields 저장 (JSON)
+- `src/components/ui/ViolationBadge.tsx` — 신규 카테고리 뱃지 색상
+- 기타 3 파일
+
+### Removed
+- 구 카테고리 4개 (Listing Content, Review Manipulation, Selling Practice, Regulatory/Safety) from dropdown
+- 레거시 데이터는 constants에 유지 (하위 호환성)
+
+### Version
+- Extension: 1.6.5 → 1.7.0 (Minor: 카테고리/폼 구조 변경)
+- Build + Release 대기 중: `pnpm ext:release "6-category restructure | IP 2-step + 5 new 1-step | V03 renamed"`
+
+---
+
+## [2026-03-10] - Detail Page Update: BR 카테고리 싱크 + 템플릿 전환 완료
+
+### 요약
+Report Detail + Draft 페이지에 BR form type 사용자 선택 기능 추가. 6개 설계 항목 완벽 구현, 설계-구현 일치율 100% (39/39 checks), 첫 번도 완료.
+
+### Added
+- **BR Templates API Filtering**
+  - `src/app/api/br-templates/route.ts`: `?form_type=X&category=Y` 쿼리 파라미터 필터링
+
+- **BrTemplateList Component**
+  - `src/app/(protected)/reports/[id]/BrTemplateList.tsx` (신규, 229줄): br_templates 기반 새 템플릿 목록
+  - Category-grouped accordion view (Pre-announcement, Variation, Main image 등)
+  - 5개 플레이스홀더 자동 치환: [ASIN], [product name], [brand name], [seller name], [marketplace]
+  - 제목/코드 기반 검색 필터, 3줄 preview + Use 버튼
+
+- **Form Type Dropdown + Guide Banner**
+  - ReportDetailContent에 BR 카테고리 드롭다운 (4개 옵션)
+  - 기본값: `getBrFormType(violation_code)` 자동 매핑
+  - Help banner: 각 form_type별 필드 요구사항 표시
+
+- **AI Draft form_type Passthrough**
+  - `src/app/api/ai/draft/route.ts`: `br_form_type` 파라미터 수신
+  - `src/lib/ai/draft.ts`: 3-way override 로직 (user selection > auto-map > null)
+  - 선택된 form_type에 맞춘 AI 드래프트 생성, form_type별 템플릿 few-shot 조회
+
+- **Approve Route form_type Override**
+  - `src/app/api/reports/[id]/approve/route.ts`: `br_form_type` 수신
+  - `src/lib/reports/br-data.ts`: `buildBrSubmitData`에 formTypeOverride 옵션
+  - 승인 시 사용자 선택 form_type → `br_submit_data.form_type` 반영
+
+### Changed
+- ReportDetailContent: `InlineTemplateList` → `BrTemplateList` 교체
+- Template auto-suggestion: `/api/templates` → `/api/br-templates?form_type=...`
+- AI draft: 사용자 선택 form_type 우선 적용
+
+### Removed
+- `/api/templates` 호출 (Detail 페이지 한정)
+- `InlineTemplateList` 임포트 및 사용 (파일 자체는 보존)
+
+---
+
 ## [2026-03-09] - BR Phase 2: Case Management + Worker Stability + PD Follow-up 완료
 
 ### 요약

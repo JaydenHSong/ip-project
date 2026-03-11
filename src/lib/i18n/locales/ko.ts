@@ -177,6 +177,8 @@ export const ko = {
       aiViolationType: 'AI 위반 유형',
       disagreementWarning: 'AI와 사용자 의견이 불일치합니다. Editor/Admin이 최종 판정을 확정해 주세요.',
       confirmedViolationType: '확정된 위반 유형',
+      violationCategory: '카테고리',
+      reportDetails: '제보 상세',
       listing: '리스팅',
       marketplace: '마켓플레이스',
       reportDraft: '신고서 초안',
@@ -249,6 +251,8 @@ export const ko = {
       archiveReasonPlaceholder: '예: 모니터링 60일 경과, 변화 없음',
       unarchiveConfirm: '이 신고를 이전 상태로 복원할까요?',
       archivedAt: 'Archive 일시',
+      deleted: '신고 삭제됨',
+      deletedDesc: '신고가 삭제되었습니다.',
     },
     monitoring: {
       title: '모니터링 스냅샷',

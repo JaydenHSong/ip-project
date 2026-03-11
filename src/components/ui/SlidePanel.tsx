@@ -4,13 +4,14 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
-type SlidePanelSize = 'sm' | 'md' | 'lg' | 'xl'
+type SlidePanelSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl'
 
 const SIZE_CLASSES: Record<SlidePanelSize, string> = {
   sm: 'max-w-md',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-[58vw]',
+  '2xl': 'max-w-[65vw]',
 }
 
 type SlidePanelProps = {

@@ -177,6 +177,8 @@ export const en = {
       aiViolationType: 'AI Violation Type',
       disagreementWarning: 'AI and user opinions disagree. Editor/Admin should confirm the final determination.',
       confirmedViolationType: 'Confirmed Violation Type',
+      violationCategory: 'Category',
+      reportDetails: 'Report Details',
       listing: 'Listing',
       marketplace: 'Marketplace',
       reportDraft: 'Report Draft',
@@ -249,6 +251,8 @@ export const en = {
       archiveReasonPlaceholder: 'e.g., No change after 60 days monitoring',
       unarchiveConfirm: 'Restore this report to its previous status?',
       archivedAt: 'Archived At',
+      deleted: 'Report Deleted',
+      deletedDesc: 'The report has been permanently deleted.',
     },
     monitoring: {
       title: 'Monitoring Snapshots',

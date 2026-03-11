@@ -121,6 +121,7 @@ export type CreateReportRequest = {
 export type ApproveReportRequest = {
   edited_draft_body?: string
   edited_draft_title?: string
+  edited_draft_subject?: string
 }
 
 export type RejectReportRequest = {

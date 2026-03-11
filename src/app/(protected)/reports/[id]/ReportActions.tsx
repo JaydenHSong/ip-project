@@ -203,11 +203,12 @@ export const ReportActions = ({
         const err = await res.json()
         throw new Error(err.error?.message ?? 'Delete failed')
       }
-      router.push('/reports')
-      router.refresh()
+      addToast({ type: 'success', title: t('reports.detail.deleted'), message: t('reports.detail.deletedDesc') })
+      setShowDeleteConfirm(false)
+      setLoading(null)
+      router.replace('/reports')
     } catch (e) {
       addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
-    } finally {
       setLoading(null)
       setShowDeleteConfirm(false)
     }

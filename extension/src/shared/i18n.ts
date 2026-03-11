@@ -34,6 +34,7 @@ const en = {
   'form.submit.loading': 'Submitting...',
   'form.screenshot.hint': 'Screenshot will be captured automatically.',
   'form.error.submit': 'Submission failed. Please try again.',
+  'form.error.duplicate': 'This listing already has an active report. Check the dashboard to manage existing reports.',
 
   // Preview
   'preview.title': 'Report Preview',
@@ -69,6 +70,9 @@ const en = {
   'settings.bgfetch.hint1': 'Sentinel automatically looks up ASINs in the background when requested from the web dashboard. A new tab opens briefly (~3s), collects product info, and closes automatically.',
   'settings.bgfetch.hint2': 'Your existing Amazon session is used. No additional login required.',
   'settings.bgfetch.hint3': 'Background Fetch is enabled by default.',
+  'settings.screenshot.title': 'Screenshot',
+  'settings.screenshot.toggle': 'Capture screenshot on report',
+  'settings.screenshot.hint': 'Automatically captures the current page when submitting a report.',
 
   // Errors
   'error.not_amazon.title': 'Not an Amazon Page',
@@ -118,6 +122,7 @@ const ko: Record<keyof typeof en, string> = {
   'form.submit.loading': '제출 중...',
   'form.screenshot.hint': '스크린샷이 자동으로 캡처됩니다.',
   'form.error.submit': '제출에 실패했습니다. 다시 시도해 주세요.',
+  'form.error.duplicate': '이 리스팅에 이미 활성 신고가 있습니다. 대시보드에서 기존 신고를 확인해 주세요.',
 
   'preview.title': '신고 미리보기',
   'preview.label.asin': 'ASIN',
@@ -149,6 +154,9 @@ const ko: Record<keyof typeof en, string> = {
   'settings.bgfetch.hint1': 'Sentinel이 웹 대시보드에서 요청 시 백그라운드에서 자동으로 ASIN을 조회합니다. 새 탭이 잠시(~3초) 열리고 상품 정보를 수집한 후 자동으로 닫힙니다.',
   'settings.bgfetch.hint2': '기존 Amazon 세션이 사용됩니다. 추가 로그인이 필요하지 않습니다.',
   'settings.bgfetch.hint3': '백그라운드 조회는 기본적으로 활성화되어 있습니다.',
+  'settings.screenshot.title': '스크린샷',
+  'settings.screenshot.toggle': '신고 시 스크린샷 캡처',
+  'settings.screenshot.hint': '신고 제출 시 현재 페이지를 자동으로 캡처합니다.',
 
   'error.not_amazon.title': '아마존 페이지가 아닙니다',
   'error.not_amazon.desc': '위반을 신고하려면 아마존 상품 페이지를 열어주세요.',

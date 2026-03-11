@@ -11,6 +11,7 @@ type BrTemplate = {
   code: string
   category: string
   title: string
+  subject: string | null
   body: string
   br_form_type: string
   placeholders: string[]
@@ -25,7 +26,7 @@ type BrTemplateListProps = {
     seller_name?: string | null
     marketplace?: string
   }
-  onApply: (body: string, title: string) => void
+  onApply: (body: string, title: string, subject: string | null) => void
   compact?: boolean
 }
 
@@ -86,7 +87,7 @@ export const BrTemplateList = ({
 
   const handleApply = (tmpl: BrTemplate) => {
     const interpolated = interpolateBrTemplate(tmpl.body, listing)
-    onApply(interpolated, tmpl.title)
+    onApply(interpolated, tmpl.title, tmpl.subject)
   }
 
   if (loading) {

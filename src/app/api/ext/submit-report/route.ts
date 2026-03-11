@@ -8,6 +8,14 @@ const VALID_VIOLATION_CODES = new Set(Object.keys(VIOLATION_TYPES))
 const VALID_CATEGORIES = new Set(Object.keys(VIOLATION_CATEGORIES))
 // 신규 카테고리는 violation_type으로도 사용 (category = violation_type)
 const NEW_CATEGORY_TYPES = new Set(['variation', 'main_image', 'wrong_category', 'pre_announcement', 'review_violation'])
+// 신규 카테고리 → V코드 매핑 (DB CHECK constraint: '^V[0-9]{2}$')
+const CATEGORY_TO_VCODE: Record<string, string> = {
+  variation: 'V10',
+  main_image: 'V08',
+  wrong_category: 'V07',
+  pre_announcement: 'V07',
+  review_violation: 'V11',
+}
 const MAX_SCREENSHOT_BASE64_LENGTH = 3_000_000 // ~2.25MB decoded (구버전 익스텐션 호환)
 
 // POST /api/ext/submit-report — Extension에서 위반 제보 제출
@@ -102,12 +110,14 @@ export const POST = withAuth(async (req, { user }) => {
 
   const isDuplicate = (duplicates?.length ?? 0) > 0
 
-  // 3. Report 생성
+  // 3. Report 생성 — 신규 카테고리는 V코드로 변환 (DB CHECK constraint)
+  const dbViolationType = CATEGORY_TO_VCODE[violation_type] ?? violation_type
+
   const { data: report, error: reportError } = await supabase
     .from('reports')
     .insert({
       listing_id: listingId,
-      user_violation_type: violation_type,
+      user_violation_type: dbViolationType,
       violation_category,
       status: 'draft',
       created_by: user.id,
@@ -118,14 +128,31 @@ export const POST = withAuth(async (req, { user }) => {
     .single()
 
   if (reportError || !report) {
+    // unique constraint 위반 → 이미 활성 리포트가 있음
+    const isDuplicateConstraint = reportError?.message?.includes('idx_reports_unique_active')
+      || reportError?.code === '23505'
+    if (isDuplicateConstraint) {
+      return NextResponse.json(
+        { error: { code: 'DUPLICATE_REPORT', message: 'An active report already exists for this listing.' } },
+        { status: 409 },
+      )
+    }
     return NextResponse.json(
       { error: { code: 'DB_ERROR', message: reportError?.message ?? 'Failed to create report' } },
       { status: 500 },
     )
   }
 
-  // 4. 스크린샷 업로드 (있으면)
+  // 4. 스크린샷 업로드 (있으면) — 디버그 정보 수집
+  let screenshotReceived = false
+  let screenshotSize = 0
+  let screenshotUploaded = false
+  let screenshotError: string | null = null
+
   if (body.screenshot_base64) {
+    screenshotReceived = true
+    screenshotSize = body.screenshot_base64.length
+
     const base64Data = body.screenshot_base64.replace(/^data:image\/\w+;base64,/, '')
     const buffer = Buffer.from(base64Data, 'base64')
 
@@ -144,8 +171,10 @@ export const POST = withAuth(async (req, { user }) => {
       })
 
     if (uploadError) {
+      screenshotError = uploadError.message
       console.error(`[submit-report] Screenshot upload failed for report ${report.id}:`, uploadError.message)
     } else {
+      screenshotUploaded = true
       const { data: publicUrl } = supabase.storage
         .from('screenshots')
         .getPublicUrl(filePath)
@@ -176,14 +205,19 @@ export const POST = withAuth(async (req, { user }) => {
     }).catch(() => {})
   }
 
-  const response: SubmitReportResponse & { screenshot_uploaded?: boolean } = {
+  const response: SubmitReportResponse & {
+    screenshot_received?: boolean
+    screenshot_size?: number
+    screenshot_uploaded?: boolean
+    screenshot_error?: string | null
+  } = {
     report_id: report.id,
     listing_id: listingId,
     is_duplicate: isDuplicate,
-  }
-
-  if (body.screenshot_base64) {
-    response.screenshot_uploaded = true
+    screenshot_received: screenshotReceived,
+    screenshot_size: screenshotSize,
+    screenshot_uploaded: screenshotUploaded,
+    screenshot_error: screenshotError,
   }
 
   return NextResponse.json(response, { status: 201 })

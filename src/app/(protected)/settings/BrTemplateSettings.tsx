@@ -7,13 +7,14 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/hooks/useToast'
 import { BR_FORM_OPTIONS } from '@/lib/reports/br-data'
-import { Upload, Trash2, RefreshCw, FileSpreadsheet, Plus, Pencil } from 'lucide-react'
+import { Upload, Trash2, RefreshCw, FileSpreadsheet, Plus, Pencil, Download } from 'lucide-react'
 
 type BrTemplate = {
   id: string
   code: string
   category: string
   title: string
+  subject: string | null
   body: string
   br_form_type: string
   violation_codes: string[]
@@ -26,6 +27,7 @@ const EMPTY_FORM = {
   code: '',
   category: '',
   title: '',
+  subject: '',
   body: '',
   br_form_type: 'other_policy',
   violation_codes: '',
@@ -97,6 +99,7 @@ export const BrTemplateSettings = () => {
       code: tmpl.code,
       category: tmpl.category,
       title: tmpl.title,
+      subject: tmpl.subject ?? '',
       body: tmpl.body,
       br_form_type: tmpl.br_form_type,
       violation_codes: tmpl.violation_codes.join(', '),
@@ -117,6 +120,7 @@ export const BrTemplateSettings = () => {
         code: form.code,
         category: form.category,
         title: form.title,
+        subject: form.subject || null,
         body: form.body,
         br_form_type: form.br_form_type,
         violation_codes: form.violation_codes.split(/[,;]/).map((v) => v.trim()).filter(Boolean),
@@ -199,6 +203,52 @@ export const BrTemplateSettings = () => {
     }
   }
 
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+
+  const handleBulkDeleteFiltered = async () => {
+    if (filtered.length === 0) return
+    const confirmed = window.confirm(`Delete ${filtered.length} filtered templates? This cannot be undone.`)
+    if (!confirmed) return
+
+    setBulkDeleting(true)
+    try {
+      let deleted = 0
+      for (const tmpl of filtered) {
+        const res = await fetch(`/api/br-templates/${tmpl.id}`, { method: 'DELETE' })
+        if (res.ok) deleted++
+      }
+      addToast({ type: 'success', title: `Deleted ${deleted} template${deleted !== 1 ? 's' : ''}` })
+      fetchTemplates()
+    } catch {
+      addToast({ type: 'error', title: 'Bulk delete failed' })
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  const downloadSampleCsv = () => {
+    const headers = ['code', 'category', 'title', 'subject', 'body', 'br_form_type', 'violation_codes', 'instruction']
+    const sample1 = [
+      'MI-01', 'Main image', 'Overlay text on main image', 'Main Image Policy Violation - Overlay Text',
+      'The listing for [ASIN] has overlay text on the main image which violates Amazon image policy.',
+      'other_policy', 'V04;V05', '',
+    ]
+    const sample2 = [
+      'VA-01', 'Variation', 'Incorrect variation grouping', 'Incorrect Variation - Mismatched Products',
+      'The listing [ASIN] has products in the variation family that do not match the parent product.',
+      'incorrect_variation', 'V10', 'Check if variations share the same brand',
+    ]
+    const escape = (v: string): string => v.includes(',') || v.includes('"') || v.includes('\n') ? `"${v.replace(/"/g, '""')}"` : v
+    const rows = [headers, sample1, sample2].map((row) => row.map(escape).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + rows], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'br-templates-sample.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const lastImport = templates.length > 0
     ? new Date(
         Math.max(...templates.map((t) => new Date(t.created_at).getTime()))
@@ -224,6 +274,14 @@ export const BrTemplateSettings = () => {
             icon={<RefreshCw className="h-4 w-4" />}
           >
             Refresh
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={downloadSampleCsv}
+            icon={<Download className="h-4 w-4" />}
+          >
+            Sample CSV
           </Button>
           <Button
             variant="outline"
@@ -298,12 +356,23 @@ export const BrTemplateSettings = () => {
           ))}
         </select>
         {(filterCategory || filterFormType) && (
-          <button
-            onClick={() => { setFilterCategory(''); setFilterFormType('') }}
-            className="text-xs text-th-accent-text hover:underline"
-          >
-            Clear filters
-          </button>
+          <>
+            <button
+              onClick={() => { setFilterCategory(''); setFilterFormType('') }}
+              className="text-xs text-th-accent-text hover:underline"
+            >
+              Clear filters
+            </button>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={bulkDeleting}
+              onClick={handleBulkDeleteFiltered}
+              icon={<Trash2 className="h-3.5 w-3.5" />}
+            >
+              Delete filtered ({filtered.length})
+            </Button>
+          </>
         )}
       </div>
 
@@ -338,28 +407,24 @@ export const BrTemplateSettings = () => {
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-th-border">
-          {/* Sticky thead */}
-          <table className="w-full shrink-0 text-sm">
-            <thead>
-              <tr className="border-b border-th-border bg-th-bg-tertiary text-left">
-                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">Code</th>
-                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">Title / Preview</th>
-                <th className="hidden px-4 py-3 text-xs font-semibold text-th-text-tertiary sm:table-cell">Category</th>
-                <th className="hidden px-4 py-3 text-xs font-semibold text-th-text-tertiary md:table-cell">Form Type</th>
-                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-th-text-tertiary">Actions</th>
-              </tr>
-            </thead>
-          </table>
-          {/* Scrollable rows with pocket shadow */}
-          <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-th-border bg-th-bg-tertiary text-left">
+                  <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">Code</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">Title / Preview</th>
+                  <th className="hidden px-4 py-3 text-xs font-semibold text-th-text-tertiary sm:table-cell">Category</th>
+                  <th className="hidden px-4 py-3 text-xs font-semibold text-th-text-tertiary md:table-cell">Form Type</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-th-text-tertiary">Actions</th>
+                </tr>
+              </thead>
               <tbody className="divide-y divide-th-border">
                 {filtered.map((tmpl) => (
                   <tr
                     key={tmpl.id}
                     onClick={() => openEditModal(tmpl)}
-                    className="group cursor-pointer transition-colors hover:bg-th-bg-hover"
+                    className="group cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
                   >
                     <td className="px-4 py-3">
                       <span className="rounded bg-th-bg-tertiary px-1.5 py-0.5 font-mono text-xs text-th-text">
@@ -368,6 +433,9 @@ export const BrTemplateSettings = () => {
                     </td>
                     <td className="max-w-xs px-4 py-3">
                       <p className="font-medium text-th-text">{tmpl.title}</p>
+                      {tmpl.subject && (
+                        <p className="mt-0.5 text-xs text-th-accent-text">Subject: {tmpl.subject}</p>
+                      )}
                       <p className="mt-0.5 truncate text-xs text-th-text-muted">
                         {tmpl.body?.substring(0, 80)}{tmpl.body?.length > 80 ? '...' : ''}
                       </p>
@@ -456,13 +524,21 @@ export const BrTemplateSettings = () => {
             </div>
           </div>
 
-          {/* Row 2: Title (full width) */}
-          <Input
-            label="Title"
-            placeholder="Image overlay text violation"
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          />
+          {/* Row 2: Title (internal) + Subject (BR mapping) */}
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Title (내부 관리용)"
+              placeholder="Image overlay text violation"
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            />
+            <Input
+              label="Subject (BR 제목)"
+              placeholder="BR 케이스에 사용될 실제 제목"
+              value={form.subject}
+              onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+            />
+          </div>
 
           {/* Row 3: Body — primary area, tall textarea */}
           <Textarea

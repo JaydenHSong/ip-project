@@ -45,6 +45,7 @@ export const POST = withAuth(async (req) => {
     code: string
     category: string
     title: string
+    subject?: string
     body: string
     br_form_type: string
     instruction?: string
@@ -65,6 +66,7 @@ export const POST = withAuth(async (req) => {
       code: body.code,
       category: body.category,
       title: body.title,
+      subject: body.subject ?? null,
       body: body.body,
       br_form_type: body.br_form_type,
       instruction: body.instruction ?? null,

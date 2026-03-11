@@ -7,21 +7,15 @@ export const captureScreenshot = async (targetWindowId?: number): Promise<string
   let windowId = targetWindowId
 
   if (!windowId) {
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
-    if (!tab?.id || !tab.windowId) {
-      throw new Error('No active tab to capture')
-    }
+    // Amazon 탭을 직접 찾기 (popup 윈도우가 아닌 일반 윈도우의 Amazon 탭)
+    const amazonTabs = await chrome.tabs.query({ url: '*://*.amazon.*/*' })
+    const activeAmazon = amazonTabs.find((t) => t.active) ?? amazonTabs[0]
 
-    if (tab.url && (
-      tab.url.startsWith('chrome://') ||
-      tab.url.startsWith('chrome-extension://') ||
-      tab.url.startsWith('edge://') ||
-      tab.url.startsWith('about:')
-    )) {
-      throw new Error('Cannot capture internal browser pages')
+    if (activeAmazon?.windowId) {
+      windowId = activeAmazon.windowId
+    } else {
+      throw new Error('No Amazon tab found to capture')
     }
-
-    windowId = tab.windowId
   }
 
   let quality = INITIAL_QUALITY
@@ -30,7 +24,7 @@ export const captureScreenshot = async (targetWindowId?: number): Promise<string
     try {
       const dataUrl = await chrome.tabs.captureVisibleTab(
         windowId,
-        { format: 'webp', quality },
+        { format: 'jpeg', quality },
       )
 
       const base64Part = dataUrl.split(',')[1] ?? ''
@@ -46,5 +40,5 @@ export const captureScreenshot = async (targetWindowId?: number): Promise<string
     }
   }
 
-  return await chrome.tabs.captureVisibleTab(windowId, { format: 'webp', quality: 10 })
+  return await chrome.tabs.captureVisibleTab(windowId, { format: 'jpeg', quality: 10 })
 }

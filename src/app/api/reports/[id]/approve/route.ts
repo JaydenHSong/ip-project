@@ -29,7 +29,7 @@ export const POST = withAuth(async (req) => {
   // 현재 상태 확인
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('status, draft_body, draft_title, draft_evidence, original_draft_body, listing_id, user_violation_type')
+    .select('status, draft_body, draft_title, draft_subject, draft_evidence, original_draft_body, listing_id, user_violation_type')
     .eq('id', id)
     .single()
 
@@ -94,13 +94,14 @@ export const POST = withAuth(async (req) => {
   }
 
   // 직접 수정 후 승인한 경우
-  const wasEdited = !!body.edited_draft_body || !!body.edited_draft_title
+  const wasEdited = !!body.edited_draft_body || !!body.edited_draft_title || !!body.edited_draft_subject
   if (wasEdited) {
     updates.original_draft_body = report.draft_body
     updates.edited_by = authUser!.id
     updates.edited_at = now
     if (body.edited_draft_body) updates.draft_body = body.edited_draft_body
     if (body.edited_draft_title) updates.draft_title = body.edited_draft_title
+    if (body.edited_draft_subject !== undefined) updates.draft_subject = body.edited_draft_subject
   }
 
   const { data, error } = await supabase

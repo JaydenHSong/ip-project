@@ -2,18 +2,13 @@
 
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Script from 'next/script'
 import { createClient } from '@/lib/supabase/client'
 import { useI18n } from '@/lib/i18n/context'
 import { I18nProvider } from '@/lib/i18n/context'
 import { SpigenLogo } from '@/components/ui/SpigenLogo'
-import { Shield, Search, FileWarning, BarChart3 } from 'lucide-react'
 
-const FEATURE_ITEMS = [
-  { icon: Search, labelKey: 'login.features.monitor' },
-  { icon: FileWarning, labelKey: 'login.features.detect' },
-  { icon: Shield, labelKey: 'login.features.protect' },
-  { icon: BarChart3, labelKey: 'login.features.analyze' },
-] as const
+const SPLINE_URL = 'https://prod.spline.design/NUEUll98ColmQjOL/scene.splinecode'
 
 const LoginContent = () => {
   const { t } = useI18n()
@@ -35,65 +30,55 @@ const LoginContent = () => {
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left Panel — Brand Visual */}
-      <div className="relative hidden w-1/2 overflow-hidden lg:flex lg:flex-col lg:justify-between">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#FF6D1F] via-[#FF8844] to-[#FFB066]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_60%)]" />
-        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent" />
+    <div className="relative flex min-h-screen">
+      {/* Spline Viewer Script */}
+      <Script
+        src="https://unpkg.com/@splinetool/viewer@1.12.68/build/spline-viewer.js"
+        type="module"
+        strategy="afterInteractive"
+      />
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-1 flex-col justify-center px-12 xl:px-16">
-          <div className="flex items-center gap-3">
-            <SpigenLogo className="h-10 w-9 text-white" />
-            <span className="text-2xl font-bold text-white">Spigen Sentinel</span>
-          </div>
-          <h2 className="mt-8 text-4xl font-bold leading-tight text-white xl:text-5xl">
-            {t('login.hero.title' as Parameters<typeof t>[0])}
-          </h2>
-          <p className="mt-4 max-w-md text-lg text-white/80">
-            {t('login.hero.subtitle' as Parameters<typeof t>[0])}
-          </p>
-
-          {/* Feature List */}
-          <div className="mt-10 space-y-4">
-            {FEATURE_ITEMS.map(({ icon: Icon, labelKey }) => (
-              <div key={labelKey} className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
-                  <Icon className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-sm font-medium text-white/90">
-                  {t(labelKey as Parameters<typeof t>[0])}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Bottom text */}
-        <div className="relative z-10 px-12 py-8 xl:px-16">
-          <p className="text-sm text-white/60">Spigen Brand Protection Platform</p>
+      {/* Left Panel — Spline 3D Scene (flipped so character faces right) */}
+      <div className="hidden flex-1 lg:block">
+        <div className="relative h-full w-full overflow-hidden">
+          <spline-viewer
+            url={SPLINE_URL}
+            style={{
+              width: '100%',
+              height: '100%',
+              display: 'block',
+              transform: 'scaleX(-1)',
+            }}
+          />
         </div>
       </div>
 
+      {/* Gradient Fade — right edge of 3D into login */}
+      <div className="pointer-events-none absolute right-[480px] top-0 z-[5] hidden h-full w-32 bg-gradient-to-l from-th-bg to-transparent lg:block" />
+
       {/* Right Panel — Login Form */}
-      <div className="flex w-full flex-col items-center justify-center bg-th-bg px-6 lg:w-1/2">
-        <div className="w-full max-w-sm animate-fade-in space-y-8">
-          {/* Mobile Logo */}
-          <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <div className="flex items-center gap-2 lg:hidden">
-              <SpigenLogo className="h-10 w-9 text-th-accent" />
-            </div>
-            <h1 className="mt-4 text-3xl font-bold text-th-text lg:mt-0">{t('login.title')}</h1>
-            <p className="mt-2 text-base text-th-text-secondary">
-              {t('login.subtitle')}
-            </p>
+      <div className="relative z-10 flex w-full flex-col items-center justify-center px-8 lg:w-[480px] lg:min-w-[480px]">
+        <div className="absolute inset-0 bg-th-bg" />
+
+        <div className="relative z-10 w-full max-w-sm animate-fade-in">
+          {/* Sentinel Branding */}
+          <div className="flex items-center gap-2.5">
+            <SpigenLogo className="h-8 w-7 text-th-accent" />
+            <span className="text-xl font-bold text-th-text">Sentinel</span>
           </div>
+          <p className="mt-2 text-sm text-th-text-secondary">
+            {t('login.hero.subtitle' as Parameters<typeof t>[0])}
+          </p>
+
+          {/* Sign In */}
+          <h1 className="mt-10 text-2xl font-bold text-th-text">{t('login.title')}</h1>
+          <p className="mt-1 text-sm text-th-text-secondary">
+            {t('login.subtitle')}
+          </p>
 
           {/* Error Message */}
           {error === 'account_deactivated' && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               <p className="font-medium">{t('login.deactivatedTitle' as Parameters<typeof t>[0])}</p>
               <p className="mt-1 text-xs text-red-400/80">
                 {t('login.deactivatedMessage' as Parameters<typeof t>[0])}
@@ -104,7 +89,7 @@ const LoginContent = () => {
           {/* Google Sign In */}
           <button
             onClick={handleGoogleLogin}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-th-border bg-surface-card px-4 py-3.5 text-sm font-medium text-th-text shadow-sm transition-all duration-200 hover:shadow-md hover:border-th-border-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-th-accent focus-visible:ring-offset-2 active:scale-[0.98]"
+            className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl border border-th-border bg-surface-card px-4 py-3.5 text-sm font-medium text-th-text shadow-sm transition-all duration-200 hover:shadow-md hover:border-th-border-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-th-accent focus-visible:ring-offset-2 active:scale-[0.98]"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -127,7 +112,7 @@ const LoginContent = () => {
             {t('login.signIn')}
           </button>
 
-          <p className="text-center text-xs text-th-text-muted lg:text-left">
+          <p className="mt-4 text-xs text-th-text-secondary">
             {t('login.restriction')}
           </p>
         </div>

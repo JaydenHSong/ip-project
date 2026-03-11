@@ -2,7 +2,6 @@
 
 import type { ParsedPageData } from '@shared/types'
 import type { ViolationCategory, ViolationCode } from '@shared/constants'
-import type { BackgroundResponse } from '@shared/messages'
 import type { PreviewData } from './PreviewView'
 import { t } from '@shared/i18n'
 import { renderViolationSelector } from '../components/ViolationSelector'
@@ -20,6 +19,7 @@ type FormState = {
 export const renderReportFormView = (
   container: HTMLElement,
   pageData: ParsedPageData,
+  cachedScreenshot: string,
   onPreview: (data: PreviewData) => void,
 ): void => {
   const state: FormState = {
@@ -93,12 +93,8 @@ export const renderReportFormView = (
     setSubmitLoading(true)
     errorEl.classList.add('hidden')
 
-    // 스크린샷 캡처
-    const screenshotResponse = await new Promise<BackgroundResponse<string>>((resolve) => {
-      chrome.runtime.sendMessage({ type: 'CAPTURE_SCREENSHOT' }, resolve)
-    })
-
-    const screenshot = screenshotResponse.success ? screenshotResponse.data : ''
+    // 스크린샷은 init() 시점에 미리 캡처된 값 사용
+    const screenshot = cachedScreenshot
     setSubmitLoading(false)
 
     // violation_type 결정: IP는 V코드, 나머지는 카테고리명

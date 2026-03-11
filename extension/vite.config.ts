@@ -1,7 +1,40 @@
 import { defineConfig, build as viteBuild } from 'vite'
 import { resolve } from 'path'
-import { readFileSync, writeFileSync, readdirSync } from 'fs'
+import { readFileSync, writeFileSync, readdirSync, copyFileSync, mkdirSync, existsSync } from 'fs'
 import type { Plugin } from 'vite'
+
+// manifest.json + assets/icons를 dist/에 복사하는 플러그인
+function copyExtensionFilesPlugin(): Plugin {
+  return {
+    name: 'copy-extension-files',
+    closeBundle() {
+      const distDir = resolve(__dirname, 'dist')
+      // manifest.json
+      copyFileSync(resolve(__dirname, 'manifest.json'), resolve(distDir, 'manifest.json'))
+      // assets/icons
+      const iconsOut = resolve(distDir, 'assets', 'icons')
+      if (!existsSync(iconsOut)) mkdirSync(iconsOut, { recursive: true })
+      for (const icon of readdirSync(resolve(__dirname, 'assets', 'icons'))) {
+        copyFileSync(resolve(__dirname, 'assets', 'icons', icon), resolve(iconsOut, icon))
+      }
+      // bot-status.html + CSS를 dist 루트에 복사 (chrome.runtime.getURL 접근용)
+      const botHtml = resolve(distDir, 'src', 'pages', 'bot-status.html')
+      if (existsSync(botHtml)) {
+        let html = readFileSync(botHtml, 'utf-8')
+        // 상대 경로 수정: src/pages/ 기준 → 루트 기준
+        html = html.replace(/\.\.\/\.\.\/assets\//g, 'assets/')
+        html = html.replace(/\.\/bot-status\.js/, 'bot-status.js')
+        writeFileSync(resolve(distDir, 'bot-status.html'), html)
+      }
+      const botCss = resolve(__dirname, 'assets', 'styles', 'bot-status.css')
+      const stylesOut = resolve(distDir, 'assets', 'styles')
+      if (!existsSync(stylesOut)) mkdirSync(stylesOut, { recursive: true })
+      if (existsSync(botCss)) {
+        copyFileSync(botCss, resolve(stylesOut, 'bot-status.css'))
+      }
+    },
+  }
+}
 
 // Chrome Extension에서는 crossorigin 속성이 CSP 위반으로 스크립트 로딩을 차단함
 // Vite가 자동 삽입하는 crossorigin + modulepreload를 제거하는 플러그인
@@ -79,7 +112,7 @@ function buildContentScriptsPlugin(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [stripCrossoriginPlugin(), buildContentScriptsPlugin()],
+  plugins: [copyExtensionFilesPlugin(), stripCrossoriginPlugin(), buildContentScriptsPlugin()],
   build: {
     outDir: 'dist',
     rollupOptions: {

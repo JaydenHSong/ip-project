@@ -56,7 +56,7 @@ export const PATCH = withAuth(async (req) => {
 
   // 수정 가능한 필드만 허용
   const allowedFields = [
-    'draft_title', 'draft_body', 'user_violation_type',
+    'draft_title', 'draft_subject', 'draft_body', 'user_violation_type',
     'violation_category', 'confirmed_violation_type',
     'resubmit_interval_days',
     'pd_followup_interval_days',

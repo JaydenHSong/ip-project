@@ -17,10 +17,22 @@ import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Button } from '@/components/ui/Button'
 import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
+import { ReportPreviewPanel } from '@/components/features/ReportPreviewPanel'
+import { MARKETPLACES } from '@/constants/marketplaces'
+
+const DOMAIN_TO_CODE: Record<string, string> = Object.fromEntries(
+  Object.values(MARKETPLACES).map((m) => [m.domain, m.code])
+)
+
+const getChannelCode = (marketplace: string | undefined): string => {
+  if (!marketplace) return '—'
+  return DOMAIN_TO_CODE[marketplace] ?? marketplace.replace('amazon.', '').toUpperCase().slice(0, 2)
+}
 
 type ReportRow = {
   id: string
   violation_type: string
+  violation_category: string | null
   status: string
   created_at: string
   pd_case_id?: string | null
@@ -40,6 +52,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState<string | null>(null)
+  const [previewReportId, setPreviewReportId] = useState<string | null>(null)
 
   const canBulk = userRole === 'owner' || userRole === 'admin'
 
@@ -102,13 +115,17 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   const filteredData = useFilterableTable(reports ?? [], filters, getSearchableText, getViolationType, getMarketplace)
 
   const getSortValue = useCallback((item: ReportRow, field: string): string | number | null => {
+    const row = item as ReportRow & Record<string, unknown>
     switch (field) {
+      case 'status': return item.status
+      case 'channel': return item.listings?.marketplace ?? null
       case 'violation': return item.violation_type
       case 'asin': return item.listings?.asin ?? null
-      case 'title': return item.listings?.title ?? null
-      case 'scCase': return item.pd_case_id ?? null
-      case 'status': return item.status
+      case 'seller': return item.listings?.seller_name ?? null
+      case 'requester': return row.users ? (row.users as { name: string })?.name : null
       case 'date': return new Date(item.created_at).getTime()
+      case 'updated': return row.updated_at ? new Date(row.updated_at as string).getTime() : null
+      case 'resolved': return row.resolved_at ? new Date(row.resolved_at as string).getTime() : null
       default: return null
     }
   }, [])
@@ -192,7 +209,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             <Link key={report.id} href={`/reports/${report.id}`}>
               <div className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
-                  <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
+                  <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} />
                   <StatusBadge status={report.status as ReportStatus} type="report" />
                 </div>
                 <p className="mt-2 font-mono text-sm text-th-text">{report.listings?.asin ?? '—'}</p>
@@ -207,10 +224,11 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         )}
       </div>
 
-      {/* Desktop: table — pocket scroll */}
+      {/* Desktop: table — single table with sticky header */}
       <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <table className="w-full shrink-0 text-left text-sm">
-          <thead>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <table className="w-full text-left text-sm">
+          <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               {canBulk && (
                 <th className="w-10 px-3 py-3">
@@ -222,31 +240,38 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                   />
                 </th>
               )}
+              <th className="w-12 px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.</th>
+              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label="Channel" field="channel" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.title')} field="title" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.scCase')} field="scCase" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label="Last Updated" field="updated" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort} />
             </tr>
           </thead>
-        </table>
-        <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
-          <table className="w-full text-left text-sm">
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={canBulk ? 7 : 6} className="px-4 py-10 text-center text-sm text-th-text-muted">
+                <td colSpan={canBulk ? 12 : 11} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noCompleted')}
                 </td>
               </tr>
             ) : (
-              sortedData.map((report) => (
-                <tr key={report.id} className="bg-surface-card transition-colors hover:bg-th-bg-hover">
+              sortedData.map((report, idx) => {
+                const row = report as ReportRow & Record<string, unknown>
+                return (
+                <tr
+                  key={report.id}
+                  className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
+                  onClick={() => setPreviewReportId(report.id)}
+                >
                   {canBulk && (
-                    <td className="w-10 px-3 py-3.5">
+                    <td className="w-10 px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         className="rounded"
@@ -255,29 +280,34 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                       />
                     </td>
                   )}
-                  <td className="px-4 py-3.5">
-                    <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <Link href={`/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text">
-                      {report.listings?.asin ?? '—'}
-                    </Link>
-                  </td>
-                  <td className="max-w-xs truncate px-4 py-3 text-th-text-secondary">{report.listings?.title ?? '—'}</td>
-                  <td className="px-4 py-3.5 font-mono text-th-text-muted">{report.pd_case_id ?? '—'}</td>
+                  <td className="px-4 py-3.5 text-xs text-th-text-muted">{idx + 1}</td>
                   <td className="px-4 py-3.5">
                     <StatusBadge status={report.status as ReportStatus} type="report" />
                   </td>
-                  <td className="px-4 py-3.5 text-th-text-muted">
-                    {new Date(report.created_at).toLocaleDateString()}
+                  <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
+                  <td className="px-4 py-3.5">
+                    <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} />
                   </td>
+                  <td className="px-4 py-3.5">
+                    <span className="font-mono text-th-text">
+                      {report.listings?.asin ?? '—'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5 text-th-text-secondary">{report.listings?.seller_name ?? '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-secondary">{row.users ? (row.users as { name: string }).name : '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{row.updated_at ? new Date(row.updated_at as string).toLocaleDateString() : '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{row.resolved_at ? new Date(row.resolved_at as string).toLocaleDateString() : '—'}</td>
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
           </table>
         </div>
       </div>
+
+      <ReportPreviewPanel reportId={previewReportId} onClose={() => setPreviewReportId(null)} userRole={userRole} />
     </div>
   )
 }

@@ -42,6 +42,28 @@ const handleSignOut = async (): Promise<BackgroundResponse<null>> => {
 const AMAZON_PRODUCT_RE = /amazon\.[a-z.]+\/(dp\/|.*\/dp\/|gp\/product\/|gp\/aw\/d\/)/
 const AMAZON_HOST_RE = /amazon\.[a-z.]+/
 
+// Amazon 탭의 windowId + tabId 캐시 — popup에서 CAPTURE_SCREENSHOT 시 사용
+// session storage에도 저장하여 SW 재시작 시에도 유지
+let cachedAmazonWindowId: number | undefined
+let cachedAmazonTabId: number | undefined
+
+const persistAmazonTab = (windowId: number, tabId: number): void => {
+  cachedAmazonWindowId = windowId
+  cachedAmazonTabId = tabId
+  chrome.storage.session.set({ 'screenshot.windowId': windowId, 'screenshot.tabId': tabId }).catch(() => {})
+}
+
+const restoreAmazonTab = async (): Promise<void> => {
+  if (cachedAmazonWindowId) return
+  try {
+    const result = await chrome.storage.session.get(['screenshot.windowId', 'screenshot.tabId'])
+    if (result['screenshot.windowId']) {
+      cachedAmazonWindowId = result['screenshot.windowId'] as number
+      cachedAmazonTabId = result['screenshot.tabId'] as number
+    }
+  } catch { /* ignore */ }
+}
+
 const handleGetPageData = async (): Promise<BackgroundResponse<PageDataResponse>> => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
@@ -49,6 +71,9 @@ const handleGetPageData = async (): Promise<BackgroundResponse<PageDataResponse>
 
     if (!AMAZON_HOST_RE.test(tab.url)) return { success: false, error: 'NOT_AMAZON' }
     if (!AMAZON_PRODUCT_RE.test(tab.url)) return { success: false, error: 'NOT_PRODUCT_PAGE' }
+
+    // 스크린샷 캡처용 windowId + tabId 캐시 (session storage에도 저장)
+    if (tab.windowId && tab.id) persistAmazonTab(tab.windowId, tab.id)
 
     // 1차: 기존 content script에 메시지
     let firstAttemptError = ''
@@ -92,7 +117,26 @@ const handleGetPageData = async (): Promise<BackgroundResponse<PageDataResponse>
 
 const handleCaptureScreenshot = async (): Promise<BackgroundResponse<ScreenshotResponse>> => {
   try {
-    const screenshot = await captureScreenshot()
+    // SW 재시작 시 session storage에서 복원
+    await restoreAmazonTab()
+
+    // cachedAmazonTabId로 현재 windowId 재검증 (탭이 이동했을 수 있음)
+    if (cachedAmazonTabId) {
+      try {
+        const tab = await chrome.tabs.get(cachedAmazonTabId)
+        if (tab.windowId) cachedAmazonWindowId = tab.windowId
+      } catch {
+        // 탭이 닫혔으면 캐시 무효화
+        cachedAmazonWindowId = undefined
+        cachedAmazonTabId = undefined
+      }
+    }
+
+    if (!cachedAmazonWindowId) {
+      return { success: false, error: 'No Amazon tab window ID cached' }
+    }
+
+    const screenshot = await captureScreenshot(cachedAmazonWindowId)
     return { success: true, data: screenshot }
   } catch (err) {
     return { success: false, error: (err as Error).message }

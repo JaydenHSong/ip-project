@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Sentinel - Spigen Brand Protection",
-  "version": "1.7.0",
+  "version": "1.7.2",
   "description": "Report policy violations on Amazon listings",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqzAUeTineuKfLU6/VL4aQpAPSiDdGJyhacwlK0AZ67xXh7P1ZXiGPU09UpOwukyRpk1mhHN0Z61yKqyCmWaaNc0gIIZllpjX5NpWydY7xyROwF6NChf4yBIMgdqGrBfcB3TmK2F6a5ZQqP9FhyqxfORvV/7LiqWla7w2+yl7fJWtJ7fUKgdga74E/7JsPgDC1wXE30Gjpv7+Ev2JHAu4Uov48erqfhf89Rs0Hn7vSxjAfd5/Rd2CetFX2KEl7OWrSvuO1SdqOe0xqa5j+W2C4iX9xIG6/FiXgVmdjvK+mF+s6HajV+Tb5bRJqsQBgIm5LGqy/Kt6en7BrK9WyWoTjwIDAQAB",
   "permissions": [
@@ -10,19 +10,11 @@
     "storage",
     "identity",
     "alarms",
-    "scripting"
+    "scripting",
+    "debugger"
   ],
   "host_permissions": [
-    "https://www.amazon.com/*",
-    "https://www.amazon.co.uk/*",
-    "https://www.amazon.co.jp/*",
-    "https://www.amazon.de/*",
-    "https://www.amazon.fr/*",
-    "https://www.amazon.it/*",
-    "https://www.amazon.es/*",
-    "https://www.amazon.ca/*",
-    "https://sellercentral.amazon.com/*",
-    "https://brandregistry.amazon.com/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js",
@@ -90,7 +82,7 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "assets/icons/icon-16.png",
       "48": "assets/icons/icon-48.png",

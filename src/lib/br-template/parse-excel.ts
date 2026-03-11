@@ -10,6 +10,7 @@ type ParsedBrTemplate = {
   code: string
   category: string
   title: string
+  subject: string | null
   body: string
   br_form_type: string
   instruction: string | null
@@ -102,6 +103,7 @@ const parseSpigenFormat = (workbook: XLSX.WorkBook): ParseResult => {
         code,
         category,
         title,
+        subject: null,
         body,
         br_form_type: extractBrFormType(instruction),
         instruction,
@@ -169,6 +171,7 @@ const parseGenericFormat = (workbook: XLSX.WorkBook): ParseResult => {
       code: row.code,
       category: row.category,
       title: row.title,
+      subject: row.subject || null,
       body: row.body,
       br_form_type: row.br_form_type,
       instruction: row.instruction || null,

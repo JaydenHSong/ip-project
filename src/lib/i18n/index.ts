@@ -16,9 +16,7 @@ const messages: Record<Locale, Messages> = { en, ko }
 export const getStoredLocale = (): Locale => {
   if (typeof window === 'undefined') return 'en'
   const stored = localStorage.getItem(STORAGE_KEY) as Locale | null
-  if (stored) return stored
-  const browserLang = navigator.language.toLowerCase()
-  return browserLang.startsWith('ko') ? 'ko' : 'en'
+  return stored ?? 'en'
 }
 
 export const setLocale = (locale: Locale): void => {

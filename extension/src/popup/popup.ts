@@ -115,6 +115,7 @@ const sendToServiceWorker = (data: PreviewData): void => {
           violation_category: data.violationCategory,
           note: data.note,
           screenshot_base64: data.screenshotBase64,
+          extra_fields: data.extraFields,
         },
       },
       (response: BackgroundResponse<SubmitReportResponse>) => {
@@ -127,6 +128,19 @@ const sendToServiceWorker = (data: PreviewData): void => {
         }
 
         if (response?.success) {
+          const rd = response.data as SubmitReportResponse & {
+            screenshot_received?: boolean
+            screenshot_size?: number
+            screenshot_uploaded?: boolean
+            screenshot_error?: string | null
+          }
+          console.log('[Sentinel] Submit result:', JSON.stringify({
+            screenshot_received: rd.screenshot_received,
+            screenshot_uploaded: rd.screenshot_uploaded,
+            screenshot_size: rd.screenshot_size,
+            screenshot_error: rd.screenshot_error,
+          }))
+
           showView('success')
           renderSuccessView(views.success!, response.data.report_id, response.data.is_duplicate)
 
@@ -143,10 +157,18 @@ const sendToServiceWorker = (data: PreviewData): void => {
             return
           }
 
+          // 중복 리포트 → 가이드 메시지
+          const isDuplicate = response?.error?.toLowerCase().includes('already exists')
+            || response?.error?.toLowerCase().includes('duplicate')
+            || response?.error?.toLowerCase().includes('unique_active')
+          const errorMessage = isDuplicate
+            ? t('form.error.duplicate')
+            : (response?.error ?? t('form.error.submit'))
+
           showView('form')
           const errorEl = views.form!.querySelector('#form-error')
           if (errorEl) {
-            errorEl.textContent = response?.error ?? t('form.error.submit')
+            errorEl.textContent = errorMessage
             errorEl.classList.remove('hidden')
           }
         }
@@ -186,9 +208,32 @@ const init = async (): Promise<void> => {
       return
     }
 
-    // 4. 폼
+    // 4. 스크린샷 미리 캡처 (popup 열리자마자 — 탭이 아직 보이는 시점)
+    let cachedScreenshot = ''
+    const ssSettings = await new Promise<Record<string, unknown>>((resolve) => {
+      chrome.storage.local.get('screenshot.enabled', resolve)
+    })
+    const ssEnabled = (ssSettings['screenshot.enabled'] as boolean) ?? true
+    if (ssEnabled) {
+      // 1차 시도
+      let ssResponse = await sendMessage<string>({ type: 'CAPTURE_SCREENSHOT' })
+      // 실패 시 500ms 후 1회 재시도 (SW 웜업 대기)
+      if (!ssResponse.success) {
+        console.warn('[Sentinel] Screenshot 1st attempt failed:', ssResponse.error)
+        await new Promise((r) => setTimeout(r, 500))
+        ssResponse = await sendMessage<string>({ type: 'CAPTURE_SCREENSHOT' })
+      }
+      if (ssResponse.success) {
+        cachedScreenshot = ssResponse.data
+        console.log('[Sentinel] Screenshot captured:', Math.round(ssResponse.data.length / 1024), 'KB')
+      } else {
+        console.warn('[Sentinel] Screenshot capture failed after retry:', ssResponse.error)
+      }
+    }
+
+    // 5. 폼
     showView('form')
-    renderReportFormView(views.form!, pageResponse.data, (previewData) => {
+    renderReportFormView(views.form!, pageResponse.data, cachedScreenshot, (previewData) => {
       // 5. 프리뷰 + 카운트다운
       showView('preview')
       renderPreviewView(

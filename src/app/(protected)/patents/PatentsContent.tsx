@@ -481,10 +481,11 @@ export const PatentsContent = ({
         )}
       </div>
 
-      {/* Desktop: table */}
+      {/* Desktop: table — single table with sticky header */}
       <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <table className="w-full shrink-0 text-left text-sm">
-          <thead>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <table className="w-full text-left text-sm">
+          <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.ipType')}</th>
               <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.managementNumber')}</th>
@@ -496,9 +497,6 @@ export const PatentsContent = ({
               <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.assignee')}</th>
             </tr>
           </thead>
-        </table>
-        <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
-          <table className="w-full text-left text-sm">
           <tbody className="divide-y divide-th-border">
             {(!assets || assets.length === 0) ? (
               <tr>
@@ -571,145 +569,145 @@ export const PatentsContent = ({
         }
       >
         {selectedAsset && (
-          <div className="space-y-6 p-6">
-            {/* 관리번호 */}
-            <div>
-              <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.managementNumber')}</p>
-              <p className="mt-1 font-mono text-sm text-th-text">{selectedAsset.management_number}</p>
-            </div>
-
-            {/* 설명 */}
-            {selectedAsset.description && (
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.description')}</p>
-                <p className="mt-1 text-sm leading-relaxed text-th-text-secondary">{selectedAsset.description}</p>
-              </div>
-            )}
-
-            {/* 출원/등록 정보 그리드 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.country')}</p>
-                <p className="mt-1 text-sm text-th-text">
-                  {COUNTRY_OPTIONS.find((c) => c.code === selectedAsset.country)?.name ?? selectedAsset.country}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.expiryDate')}</p>
-                <p className="mt-1 text-sm text-th-text">
-                  {selectedAsset.expiry_date ? new Date(selectedAsset.expiry_date).toLocaleDateString() : t('patents.noExpiry')}
-                </p>
-              </div>
-              {selectedAsset.application_number && (
-                <div>
-                  <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.applicationNumber')}</p>
-                  <p className="mt-1 font-mono text-sm text-th-text">{selectedAsset.application_number}</p>
-                </div>
-              )}
-              {selectedAsset.application_date && (
-                <div>
-                  <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.applicationDate')}</p>
-                  <p className="mt-1 text-sm text-th-text">{new Date(selectedAsset.application_date).toLocaleDateString()}</p>
-                </div>
-              )}
-              {selectedAsset.registration_number && (
-                <div>
-                  <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.registrationNumber')}</p>
-                  <p className="mt-1 font-mono text-sm text-th-text">{selectedAsset.registration_number}</p>
-                </div>
-              )}
-              {selectedAsset.registration_date && (
-                <div>
-                  <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.registrationDate')}</p>
-                  <p className="mt-1 text-sm text-th-text">{new Date(selectedAsset.registration_date).toLocaleDateString()}</p>
-                </div>
+          <div className="p-6">
+            {/* Hero — Management Number */}
+            <div className="rounded-xl bg-th-bg-secondary p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-th-text-muted">{t('patents.managementNumber')}</p>
+              <p className="mt-1 font-mono text-lg font-bold text-th-text">{selectedAsset.management_number}</p>
+              {selectedAsset.description && (
+                <p className="mt-2 text-sm leading-relaxed text-th-text-secondary">{selectedAsset.description}</p>
               )}
             </div>
 
-            {/* 이미지 */}
-            {selectedAsset.image_urls.length > 0 && (
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.imageUrls')}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
+            {/* Section: Overview */}
+            <div className="mt-6">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-th-text-muted">Overview</h3>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <p className="text-xs text-th-text-muted">{t('patents.country')}</p>
+                  <p className="mt-0.5 text-sm font-medium text-th-text">
+                    {COUNTRY_OPTIONS.find((c) => c.code === selectedAsset.country)?.name ?? selectedAsset.country}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-th-text-muted">{t('patents.assignee')}</p>
+                  <p className="mt-0.5 text-sm font-medium text-th-text">{selectedAsset.assignee || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-th-text-muted">{t('patents.expiryDate')}</p>
+                  <p className="mt-0.5 text-sm font-medium text-th-text">
+                    {selectedAsset.expiry_date ? new Date(selectedAsset.expiry_date).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+                {selectedAsset.report_url && (
+                  <div>
+                    <p className="text-xs text-th-text-muted">{t('patents.reportUrl')}</p>
+                    <a
+                      href={selectedAsset.report_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-th-accent-text hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View Report
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Section: Legal */}
+            <div className="mt-6 border-t border-th-border pt-5">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-th-text-muted">Legal Information</h3>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <p className="text-xs text-th-text-muted">{t('patents.applicationNumber')}</p>
+                  <p className="mt-0.5 font-mono text-sm font-medium text-th-text">{selectedAsset.application_number || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-th-text-muted">{t('patents.applicationDate')}</p>
+                  <p className="mt-0.5 text-sm font-medium text-th-text">
+                    {selectedAsset.application_date ? new Date(selectedAsset.application_date).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-th-text-muted">{t('patents.registrationNumber')}</p>
+                  <p className="mt-0.5 font-mono text-sm font-medium text-th-text">{selectedAsset.registration_number || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-th-text-muted">{t('patents.registrationDate')}</p>
+                  <p className="mt-0.5 text-sm font-medium text-th-text">
+                    {selectedAsset.registration_date ? new Date(selectedAsset.registration_date).toLocaleDateString() : '—'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Images */}
+            <div className="mt-6 border-t border-th-border pt-5">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-th-text-muted">{t('patents.imageUrls')}</h3>
+              {selectedAsset.image_urls.length > 0 ? (
+                <div className="flex flex-wrap gap-3">
                   {selectedAsset.image_urls.map((url, i) => (
-                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="group relative block h-16 w-16 overflow-hidden rounded-md border border-th-border">
-                      <img src={url} alt={`Image ${i + 1}`} className="h-full w-full object-cover transition-opacity group-hover:opacity-80" />
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="group relative block h-24 w-24 overflow-hidden rounded-lg border border-th-border transition-shadow hover:shadow-md">
+                      <img src={url} alt={`Image ${i + 1}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                     </a>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-th-text-muted">—</p>
+              )}
+            </div>
 
-            {/* 관련 제품 */}
-            {selectedAsset.related_products.length > 0 && (
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.relatedProducts')}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
+            {/* Section: Tags */}
+            <div className="mt-6 border-t border-th-border pt-5">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-th-text-muted">{t('patents.relatedProducts')}</h3>
+              {selectedAsset.related_products.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
                   {selectedAsset.related_products.map((p) => (
-                    <span key={p} className="rounded-md bg-th-bg-tertiary px-2 py-1 text-sm text-th-text-secondary">{p}</span>
+                    <span key={p} className="rounded-full bg-th-accent/10 px-2.5 py-1 text-xs font-medium text-th-accent-text">{p}</span>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-th-text-muted">—</p>
+              )}
 
-            {/* 키워드 */}
-            {selectedAsset.keywords.length > 0 && (
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.keywords')}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
+              <h3 className="mb-3 mt-5 text-xs font-semibold uppercase tracking-wider text-th-text-muted">{t('patents.keywords')}</h3>
+              {selectedAsset.keywords.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
                   {selectedAsset.keywords.map((kw) => (
-                    <span key={kw} className="rounded-md bg-th-bg-tertiary px-2 py-1 text-sm text-th-text-secondary">{kw}</span>
+                    <span key={kw} className="rounded-full bg-th-bg-tertiary px-2.5 py-1 text-xs font-medium text-th-text-secondary">{kw}</span>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-th-text-muted">—</p>
+              )}
+            </div>
 
-            {/* 담당자 / 비고 */}
-            {selectedAsset.assignee && (
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.assignee')}</p>
-                <p className="mt-1 text-sm text-th-text-secondary">{selectedAsset.assignee}</p>
-              </div>
-            )}
+            {/* Section: Notes */}
             {selectedAsset.notes && (
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.notes')}</p>
-                <p className="mt-1 text-sm leading-relaxed text-th-text-secondary">{selectedAsset.notes}</p>
+              <div className="mt-6 border-t border-th-border pt-5">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-th-text-muted">{t('patents.notes')}</h3>
+                <p className="text-sm leading-relaxed text-th-text-secondary">{selectedAsset.notes}</p>
               </div>
             )}
 
-            {/* Monday.com info */}
+            {/* Section: Sync */}
             {selectedAsset.monday_item_id && (
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.mondayItemId')}</p>
-                <p className="mt-1 text-sm text-th-text-secondary">{selectedAsset.monday_item_id}</p>
+              <div className="mt-6 border-t border-th-border pt-5">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-th-text-muted">Monday.com</h3>
+                <p className="font-mono text-sm text-th-text-secondary">{selectedAsset.monday_item_id}</p>
                 {selectedAsset.synced_at && (
-                  <p className="text-xs text-th-text-muted">
+                  <p className="mt-1 text-xs text-th-text-muted">
                     {t('patents.syncLastAt')}: {new Date(selectedAsset.synced_at).toLocaleString()}
                   </p>
                 )}
               </div>
             )}
 
-            {/* 보고서 링크 */}
-            {selectedAsset.report_url && (
-              <div>
-                <p className="text-xs font-medium uppercase text-th-text-tertiary">{t('patents.reportUrl')}</p>
-                <a
-                  href={selectedAsset.report_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 inline-flex items-center gap-1 text-sm text-th-accent hover:underline"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  {t('patents.reportUrl')}
-                </a>
-              </div>
-            )}
-
-            {/* Admin 버튼 */}
+            {/* Admin Actions */}
             {isAdmin && (
-              <div className="flex gap-2 border-t border-th-border pt-4">
+              <div className="mt-6 flex gap-2 border-t border-th-border pt-5">
                 <Button
                   variant="outline"
                   size="sm"

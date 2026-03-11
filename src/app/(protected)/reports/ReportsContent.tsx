@@ -19,7 +19,8 @@ import { BrCaseQueueBar } from '@/components/features/BrCaseQueueBar'
 import { SlaBadge } from '@/components/ui/SlaBadge'
 import { useSortableTable } from '@/hooks/useSortableTable'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
-import { VIOLATION_CATEGORIES } from '@/constants/violations'
+import { VIOLATION_CATEGORIES, VIOLATION_TYPES } from '@/constants/violations'
+import { MARKETPLACES } from '@/constants/marketplaces'
 import type { ViolationCategory } from '@/constants/violations'
 import type { ReportStatus } from '@/types/reports'
 import type { ViolationCode } from '@/constants/violations'
@@ -27,10 +28,21 @@ import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 import { useToast } from '@/hooks/useToast'
+import { ReportPreviewPanel } from '@/components/features/ReportPreviewPanel'
+
+const DOMAIN_TO_CODE: Record<string, string> = Object.fromEntries(
+  Object.values(MARKETPLACES).map((m) => [m.domain, m.code])
+)
+
+const getChannelCode = (marketplace: string | undefined): string => {
+  if (!marketplace) return '—'
+  return DOMAIN_TO_CODE[marketplace] ?? marketplace.replace('amazon.', '').toUpperCase().slice(0, 2)
+}
 
 type ReportRow = {
   id: string
   violation_type: string
+  violation_category: string | null
   status: string
   ai_confidence_score: number | null
   disagreement_flag: boolean
@@ -72,6 +84,7 @@ export const ReportsContent = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState<string | null>(null)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+  const [previewReportId, setPreviewReportId] = useState<string | null>(null)
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
@@ -85,14 +98,15 @@ export const ReportsContent = ({
 
   const getSortValue = useCallback((item: ReportRow, field: string): string | number | null => {
     switch (field) {
+      case 'status': return item.status
+      case 'channel': return item.listings?.marketplace ?? null
       case 'violation': return item.violation_type
       case 'asin': return item.listings?.asin ?? null
-      case 'title': return item.listings?.title ?? null
       case 'seller': return item.listings?.seller_name ?? null
-      case 'ai': return item.ai_confidence_score
-      case 'status': return item.status
-      case 'sla': return item.br_sla_deadline_at ? new Date(item.br_sla_deadline_at).getTime() : null
+      case 'requester': return (item as Record<string, unknown>).users ? ((item as Record<string, unknown>).users as { name: string })?.name : null
       case 'date': return new Date(item.created_at).getTime()
+      case 'updated': return (item as Record<string, unknown>).updated_at ? new Date((item as Record<string, unknown>).updated_at as string).getTime() : null
+      case 'resolved': return (item as Record<string, unknown>).resolved_at ? new Date((item as Record<string, unknown>).resolved_at as string).getTime() : null
       default: return null
     }
   }, [])
@@ -350,7 +364,7 @@ export const ReportsContent = ({
               <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} size="md" />
+                    <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} size="md" />
                     {report.disagreement_flag && <Badge variant="warning" size="md">!</Badge>}
                   </div>
                   <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
@@ -386,12 +400,26 @@ export const ReportsContent = ({
         )}
       </div>
 
-      {/* Desktop: table — pocket scroll: thead fixed, tbody scrolls */}
+      {/* Desktop: table — single table with sticky header */}
       <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <table className="w-full shrink-0 text-left text-sm">
-          <thead>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <table className="w-full table-fixed text-left text-sm">
+          <colgroup>
+            <col className="w-10" />
+            <col className="w-12" />
+            <col className="w-[100px]" />
+            <col className="w-[60px]" />
+            <col className="w-[130px]" />
+            <col className="w-[140px]" />
+            <col style={{ width: 'auto' }} />
+            <col className="w-[100px]" />
+            <col className="w-[90px]" />
+            <col className="w-[90px]" />
+            <col className="w-[90px]" />
+          </colgroup>
+          <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
-              <th className="w-10 px-3 py-3">
+              <th className="px-3 py-3">
                 <input
                   type="checkbox"
                   className="accent-th-accent"
@@ -399,36 +427,35 @@ export const ReportsContent = ({
                   onChange={handleToggleSelectAll}
                 />
               </th>
+              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.</th>
+              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label="CH" field="channel" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.title')} field="title" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.ai')} field="ai" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort} />
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">BR Case</th>
-              <SortableHeader label="SLA" field="sla" currentSort={sort} onSort={toggleSort} />
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('reports.createdBy')}</th>
+              <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort} />
               <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label="Updated" field="updated" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort} />
             </tr>
           </thead>
-        </table>
-        <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
-          <table className="w-full text-left text-sm">
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-4 py-10 text-center text-sm text-th-text-muted">
+                <td colSpan={12} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noReports')}
                 </td>
               </tr>
             ) : (
-              sortedData.map((report) => (
+              sortedData.map((report, idx) => {
+                const row = report as ReportRow & Record<string, unknown>
+                return (
                 <tr
                   key={report.id}
                   className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
-                  onClick={() => router.push(`/reports/${report.id}`)}
+                  onClick={() => setPreviewReportId(report.id)}
                 >
                   <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <input
@@ -438,9 +465,14 @@ export const ReportsContent = ({
                       onChange={() => handleToggleSelect(report.id)}
                     />
                   </td>
+                  <td className="px-4 py-3.5 text-xs text-th-text-muted">{(page - 1) * 20 + idx + 1}</td>
+                  <td className="px-4 py-3.5">
+                    <StatusBadge status={report.status as ReportStatus} type="report" />
+                  </td>
+                  <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
-                      <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
+                      <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} />
                       {report.disagreement_flag && <Badge variant="warning">!</Badge>}
                     </div>
                   </td>
@@ -454,37 +486,14 @@ export const ReportsContent = ({
                       )}
                     </span>
                   </td>
-                  <td className="max-w-xs truncate px-4 py-3 text-th-text-secondary">{report.listings?.title ?? '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-secondary">{report.listings?.seller_name ?? '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">
-                    {report.ai_confidence_score !== null ? `${report.ai_confidence_score}%` : '—'}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <StatusBadge status={report.status as ReportStatus} type="report" />
-                  </td>
-                  <td className="px-4 py-3.5">
-                    {report.br_case_status ? (
-                      <StatusBadge status={report.br_case_status as Parameters<typeof StatusBadge>[0]['status']} type="br_case" />
-                    ) : report.br_case_id ? (
-                      <span className="text-xs text-th-text-muted">{report.br_case_id}</span>
-                    ) : (
-                      <span className="text-xs text-th-text-muted">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    {report.br_sla_deadline_at ? (
-                      <SlaBadge
-                        deadline={report.br_sla_deadline_at}
-                        paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
-                      />
-                    ) : (
-                      <span className="text-xs text-th-text-muted">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5 text-th-text-secondary">{report.users?.name ?? '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.listings?.seller_name ?? '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.users?.name ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{row.updated_at ? new Date(row.updated_at as string).toLocaleDateString() : '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{row.resolved_at ? new Date(row.resolved_at as string).toLocaleDateString() : '—'}</td>
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
           </table>
@@ -541,6 +550,13 @@ export const ReportsContent = ({
           </Button>
         </div>
       </Modal>
+
+      {/* Report Preview Panel */}
+      <ReportPreviewPanel
+        reportId={previewReportId}
+        onClose={() => setPreviewReportId(null)}
+        userRole={userRole}
+      />
     </div>
   )
 }

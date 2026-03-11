@@ -40,7 +40,7 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
   // Queue item 확인
   const { data: queueItem } = await supabase
     .from('extension_fetch_queue')
-    .select('id, asin, marketplace, status')
+    .select('id, asin, marketplace, status, metadata')
     .eq('id', queue_id)
     .single()
 
@@ -78,15 +78,75 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
           upsert: false,
         })
 
-      if (!uploadError) {
+      if (uploadError) {
+        console.error(`[fetch-result] Screenshot upload error:`, uploadError.message)
+      } else {
         const { data: urlData } = supabase.storage
           .from('screenshots')
           .getPublicUrl(fileName)
         screenshotUrl = urlData.publicUrl
       }
-    } catch {
-      // Screenshot upload failure is non-fatal
+    } catch (err) {
+      console.error(`[fetch-result] Screenshot upload exception:`, (err as Error).message)
     }
+  }
+
+  // Screenshot-for-report: metadata에 report_id가 있으면 해당 report에 스크린샷 저장
+  const metadata = queueItem.metadata as { report_id?: string; purpose?: string } | null
+  if (metadata?.report_id && screenshotUrl) {
+    try {
+      // screenshots 배열에 추가
+      const { data: existingReport } = await supabase
+        .from('reports')
+        .select('screenshots')
+        .eq('id', metadata.report_id)
+        .single()
+
+      const existingScreenshots = (existingReport?.screenshots ?? []) as { url: string; captured_at: string; source: string }[]
+      const newEntry = {
+        url: screenshotUrl,
+        captured_at: new Date().toISOString(),
+        source: 'bgfetch',
+      }
+
+      await supabase
+        .from('reports')
+        .update({
+          screenshot_url: screenshotUrl,
+          screenshots: [...existingScreenshots, newEntry],
+        })
+        .eq('id', metadata.report_id)
+    } catch {
+      // Report screenshot update failure is non-fatal
+    }
+  }
+
+  // screenshot-only 요청이면 listing 생성 없이 완료 처리
+  if (metadata?.purpose === 'screenshot') {
+    const hasScreenshot = !!screenshotUrl
+    await supabase
+      .from('extension_fetch_queue')
+      .update({
+        status: hasScreenshot ? 'completed' : 'failed',
+        result: {
+          screenshot_url: screenshotUrl,
+          report_id: metadata.report_id,
+          debug: {
+            screenshot_received: !!screenshot_base64,
+            screenshot_len: screenshot_base64?.length ?? 0,
+          },
+        },
+        error: hasScreenshot ? null : `Screenshot not captured (received=${!!screenshot_base64}, len=${screenshot_base64?.length ?? 0})`,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', queue_id)
+
+    return NextResponse.json({
+      screenshot_url: screenshotUrl,
+      report_id: metadata.report_id,
+      screenshot_received: !!screenshot_base64,
+      screenshot_len: screenshot_base64?.length ?? 0,
+    }, { status: hasScreenshot ? 201 : 200 })
   }
 
   // Create listing

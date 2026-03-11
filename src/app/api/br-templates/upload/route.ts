@@ -69,6 +69,7 @@ export const POST = withAuth(async (req) => {
         code: t.code,
         category: t.category,
         title: t.title,
+        subject: t.subject ?? null,
         body: t.body,
         br_form_type: t.br_form_type,
         instruction: t.instruction,

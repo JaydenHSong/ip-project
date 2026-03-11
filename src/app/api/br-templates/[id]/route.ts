@@ -10,7 +10,7 @@ export const PATCH = withAuth(async (req) => {
   const supabase = createAdminClient()
   const body = await req.json() as Record<string, unknown>
 
-  const allowed = ['code', 'category', 'title', 'body', 'br_form_type', 'instruction', 'violation_codes', 'placeholders', 'active']
+  const allowed = ['code', 'category', 'title', 'subject', 'body', 'br_form_type', 'instruction', 'violation_codes', 'placeholders', 'active']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]

@@ -12,8 +12,9 @@ export const renderSettingsView = (
   onBack: () => void,
   onLocaleChange?: () => void,
 ): void => {
-  chrome.storage.local.get(['bgfetch.settings'], (result) => {
+  chrome.storage.local.get(['bgfetch.settings', 'screenshot.enabled'], (result) => {
     const bgSettings: BgFetchSettings = (result['bgfetch.settings'] as BgFetchSettings) ?? { enabled: true }
+    const screenshotEnabled = (result['screenshot.enabled'] as boolean) ?? true
     const locale = getLocale()
     const theme = getTheme()
 
@@ -59,6 +60,22 @@ export const renderSettingsView = (
           <p class="settings-hint" style="margin-top:4px">${t('settings.bgfetch.hint2')}</p>
           <p class="settings-hint settings-hint--info" style="margin-top:4px">${t('settings.bgfetch.hint3')}</p>
         </div>
+
+        <div class="settings-divider"></div>
+
+        <div class="settings-section">
+          <h3 class="settings-section__title">${t('settings.screenshot.title')}</h3>
+
+          <label class="settings-toggle-row">
+            <span class="toggle-switch">
+              <input type="checkbox" id="screenshot-toggle" ${screenshotEnabled ? 'checked' : ''} />
+              <span class="toggle-switch__slider"></span>
+            </span>
+            <span class="settings-toggle-row__label">${t('settings.screenshot.toggle')}</span>
+          </label>
+
+          <p class="settings-hint">${t('settings.screenshot.hint')}</p>
+        </div>
       </div>
     `
 
@@ -95,5 +112,10 @@ export const renderSettingsView = (
     }
 
     container.querySelector('#bgfetch-toggle')?.addEventListener('change', saveBgFetchSettings)
+
+    container.querySelector('#screenshot-toggle')?.addEventListener('change', () => {
+      const toggle = container.querySelector<HTMLInputElement>('#screenshot-toggle')
+      chrome.storage.local.set({ 'screenshot.enabled': toggle?.checked ?? true })
+    })
   })
 }

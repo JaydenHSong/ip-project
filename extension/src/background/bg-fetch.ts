@@ -55,17 +55,22 @@ const getBotWindow = async (): Promise<number | null> => {
   }
 }
 
+const BOT_WINDOW_WIDTH = 1440
+const BOT_WINDOW_HEIGHT = 1280
+
 const ensureBotWindow = async (): Promise<{ windowId: number; isNew: boolean }> => {
   const existing = await getBotWindow()
   if (existing !== null) {
+    // 항상 최신 사이즈로 맞추기
+    await chrome.windows.update(existing, { width: BOT_WINDOW_WIDTH, height: BOT_WINDOW_HEIGHT })
     return { windowId: existing, isNew: false }
   }
 
   const win = await chrome.windows.create({
     url: chrome.runtime.getURL('bot-status.html'),
     type: 'normal',
-    width: 500,
-    height: 400,
+    width: BOT_WINDOW_WIDTH,
+    height: BOT_WINDOW_HEIGHT,
     focused: true,
   })
 
@@ -75,33 +80,69 @@ const ensureBotWindow = async (): Promise<{ windowId: number; isNew: boolean }> 
 }
 
 // ── 봇 윈도우 전용 스크린샷 ──
+// ⚠️ DO NOT MODIFY — 아래 캡처 설정값은 수차례 테스트를 거쳐 확정됨.
+// 윈도우 크기(BOT_WINDOW_*), 캡처 크기(CAPTURE_*), 용량 제한(MAX_CAPTURE_BYTES)을
+// 변경하면 스크린샷이 짤리거나 화질이 깨집니다.
+// 변경이 필요하면 반드시 사용자 확인 후 진행할 것.
+
+const MIN_SCREENSHOT_BYTES = 10 * 1024 // 10KB 미만이면 빈/에러 이미지로 간주
+
+const CAPTURE_WIDTH = 1440
+const CAPTURE_HEIGHT = 1280
+const MAX_CAPTURE_BYTES = 500 * 1024 // 500KB
 
 const captureInBotWindow = async (tabId: number, windowId: number): Promise<string> => {
-  // 최소화 해제
-  await chrome.windows.update(windowId, { state: 'normal' })
-  // 탭 활성화
+  // 최소화 해제 + 포커스
+  await chrome.windows.update(windowId, { state: 'normal', focused: true })
   await chrome.tabs.update(tabId, { active: true })
-  // 렌더링 대기
-  await new Promise((r) => setTimeout(r, 300))
+  await new Promise((r) => setTimeout(r, 2000))
 
-  let quality = 50
-  let dataUrl = ''
+  // CDP로 1280x1000 고정 뷰포트 캡처
+  try {
+    await chrome.debugger.attach({ tabId }, '1.3')
 
-  while (quality >= 15) {
-    dataUrl = await chrome.tabs.captureVisibleTab(windowId, {
-      format: 'webp',
-      quality,
+    // 뷰포트를 1280x1000으로 고정
+    await chrome.debugger.sendCommand({ tabId }, 'Emulation.setDeviceMetricsOverride', {
+      width: CAPTURE_WIDTH,
+      height: CAPTURE_HEIGHT,
+      deviceScaleFactor: 1,
+      mobile: false,
     })
 
-    const base64Part = dataUrl.split(',')[1] ?? ''
-    const estimatedBytes = Math.ceil(base64Part.length * 0.75)
-    if (estimatedBytes <= 500 * 1024) break // 500KB
-    quality -= 10
-  }
+    await new Promise((r) => setTimeout(r, 500))
 
-  // 다시 최소화
-  await chrome.windows.update(windowId, { state: 'minimized' })
-  return dataUrl
+    // quality 조절하며 캡처
+    let dataUrl = ''
+    let quality = 40
+    while (quality >= 10) {
+      const result = await chrome.debugger.sendCommand(
+        { tabId }, 'Page.captureScreenshot', {
+          format: 'jpeg',
+          quality,
+          clip: { x: 0, y: 0, width: CAPTURE_WIDTH, height: CAPTURE_HEIGHT, scale: 1 },
+        },
+      ) as { data: string }
+
+      const estimatedBytes = Math.ceil(result.data.length * 0.75)
+      dataUrl = `data:image/jpeg;base64,${result.data}`
+      if (estimatedBytes <= MAX_CAPTURE_BYTES) break
+      quality -= 5
+    }
+
+    // 뷰포트 복원 + detach
+    await chrome.debugger.sendCommand({ tabId }, 'Emulation.clearDeviceMetricsOverride')
+    await chrome.debugger.detach({ tabId })
+
+    // 최소화
+    await chrome.windows.update(windowId, { state: 'minimized' })
+    return dataUrl
+  } catch (err) {
+    try { await chrome.debugger.detach({ tabId }) } catch { /* ignore */ }
+
+    const dataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: 'jpeg', quality: 35 })
+    await chrome.windows.update(windowId, { state: 'minimized' })
+    return dataUrl
+  }
 }
 
 // ── 상태 메시지 전송 ──
@@ -243,7 +284,7 @@ const executeFetch = async (
   item: { id: string; asin: string; marketplace: string },
   botWindowId: number,
   statusTabId: number,
-): Promise<{ pageData: Record<string, unknown>; screenshotBase64?: string }> => {
+): Promise<{ pageData: Record<string, unknown>; screenshotBase64?: string; screenshotError?: string }> => {
   const domain = MARKETPLACE_DOMAINS[item.marketplace] ?? 'www.amazon.com'
   const persona = generateBgPersona()
 
@@ -282,33 +323,53 @@ const executeFetch = async (
     throw new Error('Failed to parse page')
   }
 
-  // Step 4: 스크린샷
+  // Step 4: 스크린샷 (3단계 fallback)
   let screenshotBase64: string | undefined
+  let screenshotError: string | undefined
+  sendStatus(statusTabId, 'capturing', item)
+
+  // Method 1: captureInBotWindow (윈도우 포커스 + 탭 활성화)
   try {
-    sendStatus(statusTabId, 'capturing', item)
     screenshotBase64 = await captureInBotWindow(tabId, botWindowId)
-  } catch {
-    // Screenshot 실패는 non-fatal
+  } catch (err) {
+    // Fallback: captureVisibleTab
+    try {
+      await chrome.windows.update(botWindowId, { state: 'normal', focused: true })
+      await chrome.tabs.update(tabId, { active: true })
+      await new Promise((r) => setTimeout(r, 1500))
+      screenshotBase64 = await chrome.tabs.captureVisibleTab({ format: 'jpeg', quality: 40 })
+    } catch (err2) {
+      screenshotError = `All capture methods failed: M1=${(err as Error).message}, M2=${(err2 as Error).message}`
+    }
   }
 
   // Step 5: 작업 탭만 닫기 (윈도우+안내탭 유지)
   await chrome.tabs.remove(tabId)
   sendStatus(statusTabId, 'done', item)
 
-  return { pageData, screenshotBase64 }
+  return { pageData, screenshotBase64, screenshotError }
 }
 
 // ── pollFetchQueue ──
 
+// 마지막 active 시작 시간 추적 (서비스워커 메모리)
+let lastActiveStartMs = 0
+const STALE_LOCK_MS = 2 * 60 * 1000 // 2분 초과하면 stale lock으로 간주
+
 export const pollFetchQueue = async (): Promise<void> => {
   // 1. 설정 확인
   const settings = await storage.get('bgfetch.settings')
-  // 기본값: enabled (설정 안 건드린 경우 자동으로 켜짐)
   if (settings?.enabled === false) return
 
-  // 2. 이미 진행 중이면 skip
+  // 2. 이미 진행 중이면 skip (stale lock 감지 포함)
   const status = await storage.get('bgfetch.status')
-  if (status?.active) return
+  if (status?.active) {
+    if (lastActiveStartMs === 0 || Date.now() - lastActiveStartMs > STALE_LOCK_MS) {
+      await resetStatus()
+    } else {
+      return
+    }
+  }
 
   // 3. 인증 확인 (access_token 존재 여부)
   const token = await storage.get('auth.access_token')
@@ -320,12 +381,13 @@ export const pollFetchQueue = async (): Promise<void> => {
     const response = await fetchPendingQueue()
     queueItem = response.item
   } catch {
-    return // 인증 만료 등
+    return
   }
 
   if (!queueItem) return
 
   // 5. 상태 업데이트 + badge
+  lastActiveStartMs = Date.now()
   setBadge('\u21BB', '#3B82F6') // ↻ 파란색
   await storage.set('bgfetch.status', {
     active: true,
@@ -350,7 +412,7 @@ export const pollFetchQueue = async (): Promise<void> => {
     if (!statusTabId) throw new Error('Bot window has no tabs')
 
     // 7. Background tab fetch
-    const { pageData, screenshotBase64 } = await executeFetch(queueItem, windowId, statusTabId)
+    const { pageData, screenshotBase64, screenshotError } = await executeFetch(queueItem, windowId, statusTabId)
 
     // 8. 결과 전송
     await submitFetchResult(queueItem.id, pageData, screenshotBase64)
@@ -358,7 +420,8 @@ export const pollFetchQueue = async (): Promise<void> => {
     // 9. 성공 badge
     setBadge('\u2713', '#22C55E') // ✓ 초록
     setTimeout(clearBadge, 5000)
-  } catch {
+  } catch (err) {
+    console.error('[bg-fetch] Fatal error:', (err as Error).message)
     // 실패 badge
     setBadge('!', '#EF4444')
     setTimeout(clearBadge, 5000)

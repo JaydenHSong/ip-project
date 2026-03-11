@@ -179,16 +179,18 @@ export const submitFetchResult = async (
   queueId: string,
   pageData: Record<string, unknown>,
   screenshotBase64?: string,
-): Promise<{ listing?: Record<string, unknown> }> => {
+): Promise<Record<string, unknown>> => {
   const headers = await getHeaders()
+  const bodyObj = {
+    queue_id: queueId,
+    page_data: pageData,
+    screenshot_base64: screenshotBase64,
+  }
+  const bodyStr = JSON.stringify(bodyObj)
   const response = await safeFetch(`${API_BASE}/ext/fetch-result`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({
-      queue_id: queueId,
-      page_data: pageData,
-      screenshot_base64: screenshotBase64,
-    }),
+    body: bodyStr,
   })
 
   if (!response.ok) {

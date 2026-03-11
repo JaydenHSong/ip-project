@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Sentinel (센티널)
 
 아마존 마켓플레이스에서 경쟁사 리스팅의 폴리시 위반을 자동 탐지하고, AI로 신고서를 작성하여 PD(Product Detail) 페이지 신고 + BR(Brand Registry) 케이스 관리를 자동화하는 Spigen 브랜드 보호 플랫폼
@@ -50,13 +54,86 @@
 - **Report Lifecycle**: Draft → Review → Approve/Re-write → Submitted → Pending (AI 모니터링) → Done/Re-submitted
 - **Patent Registry**: Monday.com에서 동기화하는 Spigen 특허 데이터
 
+## Architecture Patterns
+
+### Supabase Client Types (`src/lib/supabase/`)
+
+4가지 클라이언트 팩토리 — 컨텍스트에 맞는 클라이언트 사용 필수:
+
+| Factory | File | 용도 |
+|---------|------|------|
+| `createClient()` | `client.ts` | Client Components (브라우저, public key) |
+| `createClient()` | `server.ts` | Server Components & API routes (async, cookie 기반) |
+| `createAdminClient()` | `admin.ts` | API routes 전용, RLS 우회 (service role key) |
+| `createClientFromToken(token)` | `server-token.ts` | Extension API routes (`/api/ext/*`), Bearer token |
+
+- 브라우저/서버 `createClient`는 이름이 같지만 import 경로가 다름
+- Admin 클라이언트는 RLS를 우회하므로 API route에서만 사용
+
+### Auth Middleware (`src/lib/auth/`)
+
+- `withAuth(handler, allowedRoles)` — API route 래퍼, cookie + Bearer token 인증 모두 처리
+- `withServiceAuth(handler)` — Crawler/Cron routes, 환경변수 토큰 체크
+- `getCurrentUser()` — Server Components에서 세션 확인
+- `hasRole(user, minimumRole)` — 역할 계층 비교
+- 역할 계층: owner(5) > admin(4) > editor(3) > viewer_plus(2) > viewer(1)
+
+### API Route Conventions
+
+모든 API route는 `withAuth()` 또는 `withServiceAuth()`로 래핑:
+
+```typescript
+export const GET = withAuth(async (req, { user }) => {
+  // user는 DB에서 조회된 사용자 객체
+}, ['admin', 'editor'])
+```
+
+- **에러 응답**: `{ error: { code: string, message: string, details?: unknown } }`
+- **단건 응답**: `{ data: T }` 또는 `{ template: T }`
+- **목록 응답**: `{ data: T[], pagination: { page, limit, total, totalPages } }`
+- Extension routes (`/api/ext/*`)는 `src/middleware.ts`에서 CORS 처리
+
+### i18n (`src/lib/i18n/`)
+
+- 외부 라이브러리 없는 자체 구현, localStorage 기반 locale (en/ko)
+- `createT(locale)` → 타입 안전한 번역 함수 (파라미터 보간 지원)
+- 번역 파일: `src/lib/i18n/locales/`
+
+### Violation System
+
+- `src/constants/violations.ts`: V01–V19, 5카테고리 (IP, Listing Content, Review, Selling, Regulatory)
+- `SC_VIOLATION_MAP`: V-code → Amazon PD form 값 매핑
+- `src/constants/front-report-paths.ts`: V-code → Amazon "Report an issue" 모달 경로 매핑 (16/19 자동화 가능)
+- BR Form Types: `other_policy`, `incorrect_variation`, `product_review`, `product_not_as_described`
+
+### Extension Build (`extension/`)
+
+- Vite 빌드 + 커스텀 플러그인:
+  - `stripCrossoriginPlugin`: Vite가 추가하는 crossorigin 속성 제거 (Chrome CSP 위반 방지)
+  - `buildContentScriptsPlugin`: 4개 content script를 IIFE로 빌드 (`content.ts`, `search-content.ts`, `pd-form-filler.ts`, `br-form-filler.ts`)
+- Extension → Web 통신: Bearer token 인증 (`/api/ext/*` 엔드포인트)
+
 ## Development Workflow
 
-1. 변경 사항 작성
-2. 타입체크: `pnpm typecheck`
-3. 린트: `pnpm lint`
-4. 테스트: `pnpm test`
-5. 빌드: `pnpm build`
+### Web (Next.js)
+
+```bash
+pnpm dev              # 로컬 개발 서버
+pnpm typecheck        # TypeScript 타입 체크
+pnpm lint             # ESLint
+pnpm build            # Production 빌드
+pnpm test:e2e         # Playwright E2E 테스트
+pnpm test:e2e:ui      # Playwright UI 모드
+```
+
+### Extension
+
+```bash
+cd extension
+pnpm dev              # Vite watch 모드 (개발)
+pnpm build            # Production 빌드
+pnpm ext:release "변경1|변경2|변경3"  # 릴리스 (빌드→zip→Supabase 업로드→DB 등록)
+```
 
 ## Deployment (프로덕션 라이브 — 반드시 준수)
 
@@ -92,48 +169,6 @@
 | Crawler | Railway | lovely-magic 프로젝트 |
 | DB | Supabase | njbhqrrdnmiarjjpgqwd.supabase.co |
 
-## Project Structure
-
-```
-src/
-  app/                    # Next.js App Router
-    (auth)/               # 인증 관련 라우트 그룹
-    api/                  # API Routes
-      campaigns/          # 캠페인 CRUD
-      reports/            # 신고 관리
-      listings/           # 리스팅 데이터
-      patents/            # 특허 레지스트리
-      ai/                 # Claude API 분석 호출
-    dashboard/            # 대시보드
-    campaigns/            # 캠페인 관리 페이지
-    reports/              # 신고 관리 페이지
-    settings/             # 설정 (사용자, 권한, 위반유형)
-  components/
-    ui/                   # 기본 UI (Button, Input, Modal, Badge)
-    features/             # 비즈니스 컴포넌트 (ReportCard, CampaignForm 등)
-    layout/               # Header, Sidebar, Navigation
-  lib/                    # 유틸리티, 헬퍼
-    supabase/             # Supabase 클라이언트 설정
-    ai/                   # Claude API 호출 로직
-  hooks/                  # Custom React Hooks
-  types/                  # TypeScript 타입 (violations, reports, campaigns 등)
-  services/               # 외부 API 클라이언트
-  constants/              # 위반 유형 목록, 금지 키워드 등 상수
-
-crawler/                  # Sentinel Crawler (별도 패키지)
-  src/
-    scraper/              # 아마존 페이지 스크래핑 로직
-    anti-bot/             # 프록시, Fingerprint, 행동 모방
-    scheduler/            # BullMQ 스케줄러
-    follow-up/            # 팔로업 재방문 로직
-
-extension/                # Sentinel Extension (Chrome Extension)
-  src/
-    content/              # Content Script (DOM 파싱)
-    popup/                # 위반 신고 UI
-    background/           # Service Worker
-```
-
 ## Coding Conventions
 
 ### TypeScript
@@ -163,7 +198,7 @@ extension/                # Sentinel Extension (Chrome Extension)
 | Component | Current Version | Location |
 |-----------|:--------------:|----------|
 | Web (Next.js) | 0.9.0-beta | `package.json` |
-| Extension | 1.5.0 | `extension/manifest.json`, `extension/package.json` |
+| Extension | 1.7.2 | `extension/manifest.json`, `extension/package.json` |
 | Crawler | - | `crawler/package.json` |
 
 ### Extension 버전 규칙 (Semantic Versioning)
@@ -189,6 +224,7 @@ extension/                # Sentinel Extension (Chrome Extension)
 - default export 지양 → named export 사용 (page.tsx 제외)
 - 하드코딩된 위반 유형 금지 → `constants/violations.ts`에서 관리
 - API 키/시크릿 코드에 직접 작성 금지 → 환경변수 사용
+- **스크린샷 캡처 설정 변경 금지** → `extension/src/background/bg-fetch.ts`의 `BOT_WINDOW_*`, `CAPTURE_*`, `MAX_CAPTURE_BYTES` 값은 확정됨. 변경 시 반드시 사용자 확인 필요
 
 ## Notification (Stop Moments)
 

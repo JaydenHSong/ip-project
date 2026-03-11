@@ -124,7 +124,7 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
     <aside
       className={cn(
         'flex h-full flex-col border-r border-th-sidebar-border bg-th-sidebar-bg transition-all duration-500 ease-in-out',
-        collapsed ? 'w-16' : 'w-[312px]',
+        collapsed ? 'w-16' : 'w-56',
       )}
     >
       {/* Logo */}

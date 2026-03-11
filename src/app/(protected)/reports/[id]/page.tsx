@@ -27,6 +27,7 @@ type ReportData = {
   confirmed_violation_type: string | null
   disagreement_flag: boolean
   draft_title: string | null
+  draft_subject: string | null
   draft_body: string | null
   rejection_reason: string | null
   pd_case_id: string | null
@@ -36,6 +37,7 @@ type ReportData = {
   resubmit_interval_days: number | null
   next_resubmit_at: string | null
   screenshot_url: string | null
+  screenshots: { url: string; captured_at: string; source?: string }[]
   created_at: string
   approved_at: string | null
   rejected_at: string | null
@@ -52,6 +54,9 @@ type ReportData = {
   resolution_type: string | null
   // PD data
   pd_submit_data: { pd_rav_url?: string; asin?: string; marketplace?: string } | null
+  // Extension form data
+  violation_category: string | null
+  note: string | null
   // BR Case Management
   br_case_id: string | null
   br_case_status: string | null

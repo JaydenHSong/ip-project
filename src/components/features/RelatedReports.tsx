@@ -20,6 +20,7 @@ type RelatedReport = {
 type RelatedReportsProps = {
   reports: RelatedReport[]
   currentReportId?: string
+  onNavigate?: (reportId: string) => void
 }
 
 const BR_CASE_STATUS_LABEL: Record<string, { label: string; color: string }> = {
@@ -40,7 +41,7 @@ const formatRelativeDate = (dateStr: string): string => {
   return new Date(dateStr).toLocaleDateString()
 }
 
-export const RelatedReports = ({ reports, currentReportId }: RelatedReportsProps) => {
+export const RelatedReports = ({ reports, currentReportId, onNavigate }: RelatedReportsProps) => {
   const router = useRouter()
 
   if (reports.length === 0) return null
@@ -70,7 +71,7 @@ export const RelatedReports = ({ reports, currentReportId }: RelatedReportsProps
             <button
               key={r.id}
               type="button"
-              onClick={() => !isCurrent && router.push(`/reports/${r.id}`)}
+              onClick={() => !isCurrent && (onNavigate ? onNavigate(r.id) : router.push(`/reports/${r.id}`))}
               disabled={isCurrent}
               className={`relative flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                 isCurrent

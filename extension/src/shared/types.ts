@@ -125,6 +125,7 @@ export type ExtensionStorage = {
   'bgfetch.settings': BackgroundFetchSettings
   'bgfetch.status': BackgroundFetchStatus
   'bgfetch.windowId': number
+  'screenshot.enabled': boolean
   'ext.locale': string
   'ext.theme': string
 }

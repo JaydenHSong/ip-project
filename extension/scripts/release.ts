@@ -137,13 +137,16 @@ const main = async (): Promise<void> => {
   const chunksDir = join(DIST, 'chunks')
   if (existsSync(chunksDir)) cpSync(chunksDir, join(extDir, 'chunks'), { recursive: true })
 
-  // HTML — vite는 HTML 엔트리를 src/ 하위에 출력
+  // HTML — vite는 HTML 엔트리를 src/ 하위에 출력, manifest 경로와 일치하도록 복사
   const htmlMap: Record<string, string> = {
-    [join(DIST, 'src', 'popup', 'popup.html')]: join(extDir, 'popup.html'),
+    [join(DIST, 'src', 'popup', 'popup.html')]: join(extDir, 'src', 'popup', 'popup.html'),
     [join(DIST, 'src', 'pages', 'bot-status.html')]: join(extDir, 'bot-status.html'),
   }
   for (const [src, dest] of Object.entries(htmlMap)) {
-    if (existsSync(src)) cpSync(src, dest)
+    if (existsSync(src)) {
+      mkdirSync(join(dest, '..'), { recursive: true })
+      cpSync(src, dest)
+    }
   }
 
   // assets/ 전체 복사 (CSS 등)

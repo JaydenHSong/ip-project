@@ -206,10 +206,11 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
         </div>
       )}
 
-      {/* Desktop: table — pocket scroll */}
+      {/* Desktop: table — single table with sticky header */}
       <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <table className="w-full shrink-0 text-left text-sm">
-          <thead>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <table className="w-full text-left text-sm">
+          <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               {canDelete && (
                 <th className="w-10 px-3 py-3">
@@ -231,9 +232,6 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
               <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.created')}</th>
             </tr>
           </thead>
-        </table>
-        <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
-          <table className="w-full text-left text-sm">
           <tbody className="divide-y divide-th-border">
             {(!campaigns || campaigns.length === 0) ? (
               <tr>
