@@ -12,7 +12,6 @@ type MobileTabBarProps = {
   userRole: Role
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
   const pathname = usePathname()
   const { t } = useI18n()

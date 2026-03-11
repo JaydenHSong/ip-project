@@ -14,7 +14,7 @@ export const renderSettingsView = (
 ): void => {
   chrome.storage.local.get(['bgfetch.settings', 'screenshot.enabled'], (result) => {
     const bgSettings: BgFetchSettings = (result['bgfetch.settings'] as BgFetchSettings) ?? { enabled: true }
-    const screenshotEnabled = (result['screenshot.enabled'] as boolean) ?? true
+    const screenshotEnabled = (result['screenshot.enabled'] as boolean) ?? false
     const locale = getLocale()
     const theme = getTheme()
 

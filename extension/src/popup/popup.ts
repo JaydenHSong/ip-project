@@ -213,7 +213,7 @@ const init = async (): Promise<void> => {
     const ssSettings = await new Promise<Record<string, unknown>>((resolve) => {
       chrome.storage.local.get('screenshot.enabled', resolve)
     })
-    const ssEnabled = (ssSettings['screenshot.enabled'] as boolean) ?? true
+    const ssEnabled = (ssSettings['screenshot.enabled'] as boolean) ?? false
     if (ssEnabled) {
       // 1차 시도
       let ssResponse = await sendMessage<string>({ type: 'CAPTURE_SCREENSHOT' })
