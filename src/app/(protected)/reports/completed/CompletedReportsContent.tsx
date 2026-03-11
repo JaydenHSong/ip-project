@@ -112,7 +112,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
-      [item.listings?.asin, item.listings?.title, item.listings?.seller_name, item.pd_case_id].filter(Boolean).join(' '),
+      [item.report_number != null ? String(item.report_number).padStart(5, '0') : null, item.listings?.asin, item.listings?.title, item.listings?.seller_name, item.pd_case_id].filter(Boolean).join(' '),
     [],
   )
   const getViolationType = useCallback((item: ReportRow) => item.violation_type, [])

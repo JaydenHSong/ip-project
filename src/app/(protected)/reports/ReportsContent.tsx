@@ -92,7 +92,7 @@ export const ReportsContent = ({
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
-      [item.listings?.asin, item.listings?.title, item.listings?.seller_name].filter(Boolean).join(' '),
+      [item.report_number != null ? String(item.report_number).padStart(5, '0') : null, item.listings?.asin, item.listings?.title, item.listings?.seller_name].filter(Boolean).join(' '),
     [],
   )
   const getViolationType = useCallback((item: ReportRow) => item.violation_type, [])
