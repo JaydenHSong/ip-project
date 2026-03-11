@@ -307,6 +307,9 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSavedRef = useRef({ title: report.draft_title ?? '', subject: report.draft_subject ?? '', body: report.draft_body ?? '' })
 
+  const addToastRef = useRef(addToast)
+  addToastRef.current = addToast
+
   const autoSave = useCallback(async (title: string, subject: string, body: string) => {
     if (title === lastSavedRef.current.title && subject === lastSavedRef.current.subject && body === lastSavedRef.current.body) return
     setAutoSaveStatus('saving')
@@ -322,9 +325,11 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         setTimeout(() => setAutoSaveStatus('idle'), 2000)
       } else {
         setAutoSaveStatus('idle')
+        addToastRef.current({ type: 'error', title: 'Save failed', message: 'Draft could not be saved.' })
       }
     } catch {
       setAutoSaveStatus('idle')
+      addToastRef.current({ type: 'error', title: 'Save failed', message: 'Network error while saving draft.' })
     }
   }, [report.id])
 
@@ -336,6 +341,34 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
     saveTimerRef.current = setTimeout(() => autoSave(editTitle, editSubject, editBody), 1500)
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current) }
   }, [editTitle, editSubject, editBody, isDraftEditable, autoSave])
+
+  // 미저장 변경사항 추적 + 페이지 이탈 시 자동 저장
+  const hasUnsavedRef = useRef(false)
+  const editRef = useRef({ title: '', subject: '', body: '' })
+  useEffect(() => {
+    editRef.current = { title: editTitle, subject: editSubject, body: editBody }
+    if (!isDraftEditable) return
+    hasUnsavedRef.current = editTitle !== lastSavedRef.current.title
+      || editSubject !== lastSavedRef.current.subject
+      || editBody !== lastSavedRef.current.body
+  }, [editTitle, editSubject, editBody, isDraftEditable])
+
+  useEffect(() => {
+    if (!isDraftEditable) return
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasUnsavedRef.current) return
+      // sendBeacon으로 즉시 저장 (페이지 이탈 시에도 전송 보장)
+      const payload = JSON.stringify({
+        draft_title: editRef.current.title,
+        draft_subject: editRef.current.subject,
+        draft_body: editRef.current.body,
+      })
+      navigator.sendBeacon(`/api/reports/${report.id}/save-draft`, new Blob([payload], { type: 'application/json' }))
+      e.preventDefault()
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isDraftEditable, report.id])
 
   // Screenshot capture via extension bgfetch
   const [capturing, setCapturing] = useState(false)

@@ -93,15 +93,19 @@ export const POST = withAuth(async (req) => {
     br_submit_data: brSubmitData,
   }
 
-  // 직접 수정 후 승인한 경우
-  const wasEdited = !!body.edited_draft_body || !!body.edited_draft_title || !!body.edited_draft_subject
+  // 프론트에서 보낸 draft 필드 항상 반영 (autoSave 누락 방지)
+  if (body.edited_draft_body !== undefined) updates.draft_body = body.edited_draft_body
+  if (body.edited_draft_title !== undefined) updates.draft_title = body.edited_draft_title
+  if (body.edited_draft_subject !== undefined) updates.draft_subject = body.edited_draft_subject
+
+  // 직접 수정 후 승인한 경우 — 원본 보존 + 수정 이력
+  const wasEdited = (body.edited_draft_body && body.edited_draft_body !== report.draft_body)
+    || (body.edited_draft_title && body.edited_draft_title !== report.draft_title)
+    || (body.edited_draft_subject !== undefined && body.edited_draft_subject !== report.draft_subject)
   if (wasEdited) {
-    updates.original_draft_body = report.draft_body
+    updates.original_draft_body = report.original_draft_body ?? report.draft_body
     updates.edited_by = authUser!.id
     updates.edited_at = now
-    if (body.edited_draft_body) updates.draft_body = body.edited_draft_body
-    if (body.edited_draft_title) updates.draft_title = body.edited_draft_title
-    if (body.edited_draft_subject !== undefined) updates.draft_subject = body.edited_draft_subject
   }
 
   const { data, error } = await supabase
