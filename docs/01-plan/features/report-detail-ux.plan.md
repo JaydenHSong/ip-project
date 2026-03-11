@@ -46,6 +46,10 @@
 - [x] report_number DB 시퀀스 + 전체 백필
 - [x] 모든 테이블 드래그 리사이즈 컬럼 (useResizableColumns 훅)
 
+- [x] Admin 메모 기능 (DB admin_memo 컬럼 + API + Auto-save UI)
+- [x] Report Detail 카드 통합 (4개 → 2개: Case Management + Report Details)
+- [x] Extension v1.7.3 submit 버그 수정 (pending_report 미정리 → 중복 제출)
+
 ### 2.2 Out of Scope
 
 - 리오픈 기능 (closed → open 상태 전환)
@@ -73,6 +77,9 @@
 | FR-11 | report_number: PostgreSQL 시퀀스 기반 고유 번호 부여 | High | Done |
 | FR-12 | 모든 테이블 컬럼 드래그 리사이즈 + localStorage 저장 | Medium | Done |
 | FR-13 | 테이블 첫 로드 시 컨테이너 100% auto-fit | Medium | Done |
+| FR-14 | Admin 메모 — DB `admin_memo` 컬럼 + PATCH API + 1.5s debounce auto-save | High | Done |
+| FR-15 | Report Detail 카드 통합 — Case Management (BR+Related+Memo) / Report Details (Listing+Violation) | Medium | Done |
+| FR-16 | Extension pending_report 미정리 버그 수정 (QUEUE_REPORT 후 storage cleanup 추가, v1.7.3) | High | Done |
 
 ---
 
@@ -157,3 +164,4 @@ useResizableColumns 훅:
 |---------|------|---------|--------|
 | 1.0 | 2026-03-11 | Initial — Clone, 레이아웃, autosave 버그 | Claude |
 | 2.0 | 2026-03-11 | 페이지네이션, report_number, 리사이즈 컬럼 추가 | Claude |
+| 3.0 | 2026-03-11 | Admin 메모, 카드 통합 (4→2개), Extension v1.7.3 submit 버그 수정 | Claude |

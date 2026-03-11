@@ -3,8 +3,8 @@
 > **목적**: 이 문서는 Sentinel 플랫폼의 전체 기획, 아키텍처, 기술 스택, 파이프라인, 기능을 한 눈에 파악하기 위한 **교육/온보딩용 종합 문서**입니다.
 > 새로운 개발자, 팀원, 또는 협업자가 이 문서를 읽으면 시스템 전체를 이해할 수 있습니다.
 >
-> **최종 업데이트**: 2026-03-08
-> **버전**: 0.9.0-beta (Web) / 1.5.0 (Extension)
+> **최종 업데이트**: 2026-03-11
+> **버전**: 0.9.0-beta (Web) / 1.7.3 (Extension)
 
 ---
 
@@ -201,7 +201,7 @@ Draft → Review → Approve (또는 Re-write)
 - **목적**: 신고 "결과" 추적 — 위반 리스팅이 실제로 변했는지
 - **코드**: `/api/monitoring/*`, `crawler/src/follow-up/`
 
-### Track 2: BR 케이스 모니터링 (신규 — 개발 예정)
+### Track 2: BR 케이스 모니터링 (구현 완료)
 
 - **대상**: Amazon Brand Registry Case Dashboard
 - **방식**: 케이스 페이지 Playwright 스크래핑 → 상태/답장 추출
@@ -305,7 +305,7 @@ Amazon은 `kat-*` Shadow DOM 웹 컴포넌트를 사용:
 | `patents` | Monday.com에서 동기화한 특허 데이터 |
 | `listing_snapshot` | 리스팅 스냅샷 이력 (모니터링 diff용) |
 
-### BR 케이스 관리 테이블 (개발 예정)
+### BR 케이스 관리 테이블 (구현 완료)
 
 | 테이블 | 용도 |
 |--------|------|
@@ -323,9 +323,11 @@ Amazon은 `kat-*` Shadow DOM 웹 컴포넌트를 사용:
 | `sc_submit_data` | SC 자동 신고용 데이터 (JSONB) |
 | `br_submit_data` | BR 자동 신고용 데이터 (JSONB) |
 | `br_case_id` | BR 케이스 번호 (신고 후 연결) |
-| `br_case_status` | BR 케이스 상태 (개발 예정) |
+| `br_case_status` | BR 케이스 상태 |
 | `parent_report_id` | 케이스 연결 (재신고/에스컬레이션) |
 | `resubmit_count` | 재신고 횟수 |
+| `report_number` | 고유 리포트 번호 (RPT-00001 형식, DB 시퀀스) |
+| `admin_memo` | 관리자 메모 (Auto-save, 자유 텍스트) |
 
 ---
 
@@ -349,7 +351,7 @@ Amazon은 `kat-*` Shadow DOM 웹 컴포넌트를 사용:
 | 기능 | 상태 |
 |------|------|
 | 키워드 캠페인 기반 크롤링 | 완료 |
-| Extension 원클릭 제보 | 완료 (v1.5.0) |
+| Extension 원클릭 제보 | 완료 (v1.7.3) |
 | Claude AI 위반 분석 (이미지+텍스트+특허) | 완료 |
 | 신고서 AI 드래프트 자동 생성 | 완료 |
 | Editor/Admin 승인 워크플로우 | 완료 |
@@ -360,8 +362,15 @@ Amazon은 `kat-*` Shadow DOM 웹 컴포넌트를 사용:
 | 대시보드 (Masonry 위젯) | 완료 |
 | 특허 레지스트리 (Monday.com Sync) | 완료 |
 | 모바일 반응형 UI | 완료 |
+| BR 케이스 관리 (케이스 제출/모니터링/답장/SLA) | 완료 |
+| Report Detail 카드 통합 (Case Management + Report Details) | 완료 |
+| Admin 메모 (Auto-save) | 완료 |
+| Clone as New Case | 완료 |
+| report_number 시퀀스 번호 | 완료 |
+| 테이블 컬럼 드래그 리사이즈 | 완료 |
+| 완료 리포트 서버사이드 페이지네이션 | 완료 |
 
-### 개발 예정 (BR 케이스 관리)
+### 개발 예정 (BR 케이스 관리 — 남은 항목)
 
 | # | 기능 | 중요도 | Phase |
 |---|------|:------:|:-----:|
@@ -399,7 +408,9 @@ extension/
 - 아마존 상품 페이지에서 자동 DOM 파싱 (제목, 이미지, 셀러 정보)
 - 원클릭 위반 제보 → Sentinel Web API로 전송
 - Auto-Report: 제보 → AI 분석 → 드래프트 → 승인까지 자동 진행
-- 스크린샷 캡처 (WebP, q40/300KB)
+- CDP 풀페이지 스크린샷 캡처 (JPEG, q40/500KB, 1440x1280)
+- 6카테고리 위반 유형 폼 (IP 2단계 + 5개 1단계)
+- Two-track 자동 신고 (PD 즉시 + BR 웹 승인 후)
 - .crx 사내 배포 (Chrome Web Store 비공개)
 
 ---
@@ -517,3 +528,4 @@ docs/                     # 문서
 | 2026-03-08 | 문서 초판 작성, BR 케이스 관리 시스템 계획 포함 |
 | 2026-03-08 | 두 트랙 모니터링 체계, 아마존 거부 대응 전략 추가 |
 | 2026-03-09 | BR 폼 자동 채우기: Extension 불가 사유 + Crawler 전용 DOM 구조 기술 명시 |
+| 2026-03-11 | Extension v1.7.3 (submit 버그 수정), admin_memo, report_number, 카드 통합, 페이지네이션, 리사이즈 컬럼 반영 |

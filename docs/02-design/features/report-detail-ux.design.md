@@ -234,6 +234,49 @@ useResizableColumns({
 
 ---
 
+### D11: Admin 메모 (admin_memo)
+
+**DB 스키마**:
+```sql
+ALTER TABLE reports ADD COLUMN admin_memo text DEFAULT null;
+```
+
+**API**: 기존 `PATCH /api/reports/:id`에 `admin_memo` 필드 추가 (allowedFields)
+
+**UI**: Report Detail Case Management 카드 내 textarea
+- 1.5s debounce auto-save (PATCH API 호출)
+- Saving.../Saved 상태 표시
+- Editor/Admin만 편집 가능 (canEdit 조건)
+
+### D12: Report Detail 카드 통합 (4개 → 2개)
+
+**Before** (4개 카드):
+```
+[BR Case Card] [Listing Info Card]
+[Related Reports Card] [Violation Info Card]
+```
+
+**After** (2개 카드, `grid md:grid-cols-2`):
+```
+[Case Management]           [Report Details]
+├── BR Case Info            ├── Listing Info (ASIN, title, seller, brand, price)
+├── Case Chain (연관 케이스) ├── Related ASINs
+├── Related Reports         ├── Violation Info (category, types, disagreement)
+└── Admin Memo (textarea)   └── Extra Fields / Note
+```
+
+- 각 섹션은 `border-t`로 구분
+- 50:50 비율, 모바일에서는 single column
+
+### D13: Extension v1.7.3 Submit 버그 수정
+
+**문제**: `handleQueueReport`에서 `pending_report` 미삭제 → SW 재시작 시 `recoverPendingReport()`가 stale 데이터 재전송 → 중복 제출
+
+**수정** (`extension/src/background/service-worker.ts`):
+- `handleQueueReport` success/catch 양쪽에 `chrome.storage.session.remove('pending_report')` 추가
+
+---
+
 ## 3. 수정 파일 목록
 
 ```
@@ -252,6 +295,9 @@ src/app/(protected)/patents/PatentsContent.tsx      — 리사이즈 컬럼
 src/app/(protected)/notices/NoticesContent.tsx       — 리사이즈 컬럼
 src/components/ui/Card.tsx                     — forwardRef 지원
 src/components/ui/SortableHeader.tsx            — children prop + relative
+src/app/api/reports/[id]/route.ts              — admin_memo PATCH 허용
+src/components/features/ReportPreviewPanel.tsx  — admin_memo 전달
+extension/src/background/service-worker.ts      — pending_report cleanup 추가
 ```
 
 ---
@@ -262,3 +308,4 @@ src/components/ui/SortableHeader.tsx            — children prop + relative
 |---------|------|---------|--------|
 | 1.0 | 2026-03-11 | Initial — Clone, 레이아웃, autosave 버그, PD 태그 | Claude |
 | 2.0 | 2026-03-11 | 페이지네이션, report_number, 리사이즈 컬럼 추가 | Claude |
+| 3.0 | 2026-03-11 | Admin 메모, 카드 통합 (4→2), Extension v1.7.3 submit 버그 수정 | Claude |
