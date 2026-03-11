@@ -100,19 +100,40 @@ export const POST = withAuth(async (req, { user }) => {
     listingId = newListing.id
   }
 
-  // 2. 중복 신고 확인
+  // 2. 중복 신고 확인 — 21일 이내 활성 리포트만 중복으로 간주
+  const cutoffDate = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString()
   const { data: duplicates } = await supabase
     .from('reports')
     .select('id')
     .eq('listing_id', listingId)
     .not('status', 'in', '("cancelled","resolved")')
+    .gte('created_at', cutoffDate)
     .limit(1)
 
   const isDuplicate = (duplicates?.length ?? 0) > 0
 
-  // 3. Report 생성 — 신규 카테고리는 V코드로 변환 (DB CHECK constraint)
+  // 3. 21일 이내 동일 listing+violation 활성 리포트 → 차단
   const dbViolationType = CATEGORY_TO_VCODE[violation_type] ?? violation_type
 
+  if (isDuplicate) {
+    const { data: recentActive } = await supabase
+      .from('reports')
+      .select('id')
+      .eq('listing_id', listingId)
+      .eq('user_violation_type', dbViolationType)
+      .not('status', 'in', '("cancelled","resolved")')
+      .gte('created_at', cutoffDate)
+      .limit(1)
+
+    if ((recentActive?.length ?? 0) > 0) {
+      return NextResponse.json(
+        { error: { code: 'DUPLICATE_REPORT', message: 'An active report already exists for this listing (within 21 days).' } },
+        { status: 409 },
+      )
+    }
+  }
+
+  // 4. Report 생성 — 신규 카테고리는 V코드로 변환 (DB CHECK constraint)
   const { data: report, error: reportError } = await supabase
     .from('reports')
     .insert({
@@ -128,22 +149,13 @@ export const POST = withAuth(async (req, { user }) => {
     .single()
 
   if (reportError || !report) {
-    // unique constraint 위반 → 이미 활성 리포트가 있음
-    const isDuplicateConstraint = reportError?.message?.includes('idx_reports_unique_active')
-      || reportError?.code === '23505'
-    if (isDuplicateConstraint) {
-      return NextResponse.json(
-        { error: { code: 'DUPLICATE_REPORT', message: 'An active report already exists for this listing.' } },
-        { status: 409 },
-      )
-    }
     return NextResponse.json(
       { error: { code: 'DB_ERROR', message: reportError?.message ?? 'Failed to create report' } },
       { status: 500 },
     )
   }
 
-  // 4. 스크린샷 업로드 (있으면) — 디버그 정보 수집
+  // 5. 스크린샷 업로드 (있으면) — 디버그 정보 수집
   let screenshotReceived = false
   let screenshotSize = 0
   let screenshotUploaded = false
@@ -186,7 +198,7 @@ export const POST = withAuth(async (req, { user }) => {
     }
   }
 
-  // 5. AI 분석 자동 트리거 (FR-02: fire-and-forget)
+  // 6. AI 분석 자동 트리거 (FR-02: fire-and-forget)
   if (!isDuplicate) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin
     fetch(`${baseUrl}/api/ai/analyze`, {
