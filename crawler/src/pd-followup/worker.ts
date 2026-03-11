@@ -4,7 +4,6 @@ import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
 import type { PdFollowupJobData, PdFollowupTarget, PdFollowupResultData } from './types.js'
 import type { Marketplace } from '../types/index.js'
-import { MARKETPLACE_DOMAINS } from '../types/index.js'
 import { scrapeDetailPage, buildDetailUrl } from '../scraper/detail-page.js'
 import { captureScreenshot } from '../scraper/screenshot.js'
 import { humanBehavior } from '../anti-bot/human-behavior.js'
@@ -34,7 +33,7 @@ const visitTarget = async (
   target: PdFollowupTarget,
 ): Promise<PdFollowupResultData> => {
   const url = buildUrl(target)
-  log('info', 'pd-followup-worker', `Visiting ${target.asin} (${target.marketplace})`, { url })
+  log('info', 'pd-followup-worker', `Visiting ${target.asin} (${target.marketplace}) ${url}`)
 
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 })
