@@ -659,46 +659,44 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           <CardContent className="space-y-0">
             {/* BR Case Info */}
             {report.br_case_status ? (
-              <dl className="grid grid-cols-2 gap-3">
-                <div>
-                  <dt className="text-xs text-th-text-tertiary">Case ID</dt>
-                  <dd className="mt-1 font-mono text-sm font-medium text-th-text">
-                    {report.br_case_id && report.br_case_id !== 'submitted' ? (
-                      <a
-                        href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-th-accent hover:underline"
-                      >
-                        {report.br_case_id}
-                      </a>
-                    ) : (
-                      <span className="text-th-text-muted">Pending</span>
-                    )}
-                  </dd>
-                </div>
+              <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-2.5">
+                <dt className="text-xs text-th-text-tertiary self-center">Case ID</dt>
+                <dd className="font-mono text-sm font-medium text-th-text">
+                  {report.br_case_id && report.br_case_id !== 'submitted' ? (
+                    <a
+                      href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-th-accent hover:underline"
+                    >
+                      {report.br_case_id}
+                    </a>
+                  ) : (
+                    <span className="text-th-text-muted">Pending</span>
+                  )}
+                </dd>
                 {report.br_sla_deadline_at && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">SLA</dt>
-                    <dd className="mt-1">
+                  <>
+                    <dt className="text-xs text-th-text-tertiary self-center">SLA</dt>
+                    <dd>
                       <SlaBadge
                         deadline={report.br_sla_deadline_at}
                         paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
                       />
                     </dd>
-                  </div>
+                  </>
                 )}
                 {report.br_submitted_at && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">Submitted</dt>
-                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
-                  </div>
+                  <>
+                    <dt className="text-xs text-th-text-tertiary self-center">Submitted</dt>
+                    <dd className="text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
+                  </>
                 )}
                 {report.br_last_amazon_reply_at && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">Last Amazon Reply</dt>
-                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
-                  </div>
+                  <>
+                    <dt className="text-xs text-th-text-tertiary self-center">Last Reply</dt>
+                    <dd className="text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
+                  </>
                 )}
               </dl>
             ) : (
@@ -725,6 +723,85 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
               </div>
             )}
 
+            {/* Violation Info + Report Detail (side by side) */}
+            <div className="mt-4 border-t border-th-border pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Left: Violation Info */}
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.violationInfo')}</h3>
+                  <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-2.5">
+                    {report.violation_category && (
+                      <>
+                        <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.violationCategory')}</dt>
+                        <dd>
+                          <ViolationBadge code={report.violation_category as ViolationCode} size="md" />
+                        </dd>
+                      </>
+                    )}
+                    {report.ai_violation_type && (
+                      <>
+                        <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.aiViolationType')}</dt>
+                        <dd className="flex items-center gap-2">
+                          <ViolationBadge code={report.ai_violation_type as ViolationCode} size="md" />
+                          {report.ai_confidence_score !== null && (
+                            <span className="text-xs text-th-text-muted">{report.ai_confidence_score}%</span>
+                          )}
+                        </dd>
+                      </>
+                    )}
+                    {report.confirmed_violation_type && (
+                      <>
+                        <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.confirmedViolationType')}</dt>
+                        <dd>
+                          <ViolationBadge code={report.confirmed_violation_type as ViolationCode} size="md" />
+                        </dd>
+                      </>
+                    )}
+                  </dl>
+                </div>
+
+                {/* Right: Report Detail (note/extra fields) */}
+                {report.note && (() => {
+                  try {
+                    const parsed = JSON.parse(report.note) as Record<string, string>
+                    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                      const entries = Object.entries(parsed).filter(([, v]) => v && String(v).trim())
+                      if (entries.length > 0) {
+                        return (
+                          <div>
+                            <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.reportDetails')}</h3>
+                            <dl className="space-y-2">
+                              {entries.map(([key, value]) => (
+                                <div key={key} className="rounded bg-th-bg-subtle px-3 py-2">
+                                  <dt className="text-[11px] font-medium uppercase tracking-wide text-th-text-muted">{key.replace(/_/g, ' ')}</dt>
+                                  <dd className="mt-0.5 text-sm text-th-text whitespace-pre-wrap">{String(value)}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </div>
+                        )
+                      }
+                    }
+                  } catch {
+                    // not JSON
+                  }
+                  return (
+                    <div>
+                      <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.reportDetails')}</h3>
+                      <p className="text-sm text-th-text whitespace-pre-wrap">{report.note}</p>
+                    </div>
+                  )
+                })()}
+              </div>
+              {report.disagreement_flag && (
+                <div className="mt-3 rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-2">
+                  <p className="text-xs font-medium text-st-warning-text">
+                    {t('reports.detail.disagreementWarning')}
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Admin Memo */}
             {canEdit && (
               <div className="mt-4 border-t border-th-border pt-4">
@@ -746,62 +823,72 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           </CardContent>
         </Card>
 
-        {/* Right: Report Details (Listing + Violation Info) */}
+        {/* Right: Listing Information */}
         <Card>
           <CardHeader>
-            <h2 className="font-semibold text-th-text">Report Details</h2>
+            <h2 className="font-semibold text-th-text">Listing Information</h2>
           </CardHeader>
           <CardContent className="space-y-0">
-            {/* Listing Info */}
             {listing && (
               <>
-                <div className="flex items-center gap-3">
-                  <a
-                    href={getAmazonUrl(listing.asin, listing.marketplace)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-th-bg-subtle px-3 py-1.5 font-mono text-sm font-semibold text-th-accent-text transition-colors hover:bg-th-accent-soft"
-                  >
-                    {listing.asin}
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                  </a>
-                  <span className="rounded bg-th-bg-tertiary px-2 py-1 text-xs font-medium text-th-text-secondary">
-                    {listing.marketplace.replace('www.amazon.', '').toUpperCase()}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-th-text line-clamp-2">{listing.title}</p>
-                <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+                <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-2.5">
+                  <dt className="text-xs text-th-text-tertiary self-center">ASIN</dt>
+                  <dd>
+                    <a
+                      href={getAmazonUrl(listing.asin, listing.marketplace)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-md bg-th-bg-subtle px-2.5 py-1 font-mono text-sm font-semibold text-th-accent-text transition-colors hover:bg-th-accent-soft"
+                    >
+                      {listing.asin}
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                    </a>
+                  </dd>
+
+                  <dt className="text-xs text-th-text-tertiary self-center">Channel</dt>
+                  <dd>
+                    <span className="rounded bg-th-bg-tertiary px-2 py-1 text-xs font-medium text-th-text-secondary">
+                      {listing.marketplace.replace('www.amazon.', '').toUpperCase()}
+                    </span>
+                  </dd>
+
+                  <dt className="text-xs text-th-text-tertiary">Title</dt>
+                  <dd className="text-sm text-th-text line-clamp-2">{listing.title}</dd>
+
                   {listing.seller_name && (
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">{t('reports.seller')}</dt>
-                      <dd className="mt-0.5 text-sm text-th-text">{listing.seller_name}</dd>
-                    </div>
+                    <>
+                      <dt className="text-xs text-th-text-tertiary self-center">{t('reports.seller')}</dt>
+                      <dd className="text-sm text-th-text">{listing.seller_name}</dd>
+                    </>
                   )}
+
                   {listing.brand && (
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">{t('reports.detail.brand')}</dt>
-                      <dd className="mt-0.5 text-sm text-th-text">{listing.brand}</dd>
-                    </div>
+                    <>
+                      <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.brand')}</dt>
+                      <dd className="text-sm text-th-text">{listing.brand}</dd>
+                    </>
                   )}
+
+                  {listing.price_amount != null && (
+                    <>
+                      <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.price')}</dt>
+                      <dd className="text-sm font-medium text-th-text">
+                        {listing.price_currency === 'JPY' ? '¥' : '$'}{listing.price_amount.toLocaleString()}
+                      </dd>
+                    </>
+                  )}
+
                   {listing.rating != null && (
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">{t('reports.detail.rating')}</dt>
-                      <dd className="mt-0.5 flex items-center gap-1 text-sm text-th-text">
+                    <>
+                      <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.rating')}</dt>
+                      <dd className="flex items-center gap-1 text-sm text-th-text">
                         <svg className="h-3.5 w-3.5 fill-yellow-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                         {listing.rating.toFixed(1)}
                         {listing.review_count != null && (
                           <span className="text-xs text-th-text-muted">({listing.review_count.toLocaleString()})</span>
                         )}
                       </dd>
-                    </div>
-                  )}
-                  {listing.price_amount != null && (
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">{t('reports.detail.price')}</dt>
-                      <dd className="mt-0.5 text-sm font-medium text-th-text">
-                        {listing.price_currency === 'JPY' ? '¥' : '$'}{listing.price_amount.toLocaleString()}
-                      </dd>
-                    </div>
+                    </>
                   )}
                 </dl>
                 {report.related_asins && report.related_asins.length > 0 && (
@@ -822,86 +909,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 )}
               </>
             )}
-
-            {/* Violation Info */}
-            <div className={listing ? 'mt-4 border-t border-th-border pt-4' : ''}>
-              <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.violationInfo')}</h3>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-                {report.violation_category && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('reports.detail.violationCategory')}</dt>
-                    <dd className="mt-1">
-                      <ViolationBadge code={report.violation_category as ViolationCode} size="md" />
-                    </dd>
-                  </div>
-                )}
-                <div>
-                  <dt className="text-xs text-th-text-tertiary">{t('reports.detail.userViolationType')}</dt>
-                  <dd className="mt-1">
-                    <ViolationBadge code={report.user_violation_type as ViolationCode} size="md" />
-                  </dd>
-                </div>
-                {report.ai_violation_type && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('reports.detail.aiViolationType')}</dt>
-                    <dd className="mt-1 flex items-center gap-2">
-                      <ViolationBadge code={report.ai_violation_type as ViolationCode} size="md" />
-                      {report.ai_confidence_score !== null && (
-                        <span className="text-xs text-th-text-muted">{report.ai_confidence_score}%</span>
-                      )}
-                    </dd>
-                  </div>
-                )}
-                {report.confirmed_violation_type && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('reports.detail.confirmedViolationType')}</dt>
-                    <dd className="mt-1">
-                      <ViolationBadge code={report.confirmed_violation_type as ViolationCode} size="md" />
-                    </dd>
-                  </div>
-                )}
-              </dl>
-              {report.disagreement_flag && (
-                <div className="mt-3 rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-2">
-                  <p className="text-xs font-medium text-st-warning-text">
-                    {t('reports.detail.disagreementWarning')}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Extra fields / note */}
-            {report.note && (() => {
-              try {
-                const parsed = JSON.parse(report.note) as Record<string, string>
-                if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-                  const entries = Object.entries(parsed).filter(([, v]) => v && String(v).trim())
-                  if (entries.length > 0) {
-                    return (
-                      <div className="mt-4 border-t border-th-border pt-4">
-                        <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.reportDetails')}</h3>
-                        <dl className="space-y-2">
-                          {entries.map(([key, value]) => (
-                            <div key={key} className="rounded bg-th-bg-subtle px-3 py-2">
-                              <dt className="text-[11px] font-medium uppercase tracking-wide text-th-text-muted">{key.replace(/_/g, ' ')}</dt>
-                              <dd className="mt-0.5 text-sm text-th-text whitespace-pre-wrap">{String(value)}</dd>
-                            </div>
-                          ))}
-                        </dl>
-                      </div>
-                    )
-                  }
-                }
-              } catch {
-                // not JSON
-              }
-              return (
-                <div className="mt-4 border-t border-th-border pt-4">
-                  <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.reportDetails')}</h3>
-                  <p className="text-sm text-th-text whitespace-pre-wrap">{report.note}</p>
-                </div>
-              )
-            })()}
           </CardContent>
         </Card>
       </div>
