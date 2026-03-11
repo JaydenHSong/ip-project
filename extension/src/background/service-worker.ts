@@ -217,9 +217,11 @@ const showBadge = (text: string, color: string, durationMs: number = 5000): void
 const handleQueueReport = async (payload: SubmitReportPayload): Promise<BackgroundResponse<SubmitResponse>> => {
   try {
     const result = await submitReport(payload)
+    await chrome.storage.session.remove('pending_report')
     showBadge('\u2713', '#22C55E')
     return { success: true, data: result }
   } catch (err) {
+    await chrome.storage.session.remove('pending_report')
     showBadge('!', '#EF4444')
     return { success: false, error: (err as Error).message }
   }
