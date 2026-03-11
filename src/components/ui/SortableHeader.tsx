@@ -8,13 +8,14 @@ type SortableHeaderProps = {
   currentSort: SortState
   onSort: (field: string) => void
   className?: string
+  children?: React.ReactNode
 }
 
-export const SortableHeader = ({ label, field, currentSort, onSort, className }: SortableHeaderProps) => {
+export const SortableHeader = ({ label, field, currentSort, onSort, className, children }: SortableHeaderProps) => {
   const isActive = currentSort.field === field
 
   return (
-    <th className={cn('px-4 py-3', className)}>
+    <th className={cn('relative px-4 py-3', className)}>
       <button
         type="button"
         onClick={() => onSort(field)}
@@ -31,6 +32,7 @@ export const SortableHeader = ({ label, field, currentSort, onSort, className }:
           <ChevronsUpDown className="h-3.5 w-3.5 opacity-30" />
         )}
       </button>
+      {children}
     </th>
   )
 }

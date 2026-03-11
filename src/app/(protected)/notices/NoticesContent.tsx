@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Pin, MoreHorizontal, Pencil, Trash2, Plus, Search, ArrowUpDown, Calendar } from 'lucide-react'
@@ -12,6 +12,7 @@ import { NoticeForm } from './NoticeForm'
 import { NoticeDetail } from './NoticeDetail'
 import type { Notice, NoticeCategory } from '@/types/notices'
 import type { Role } from '@/types/users'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 
 const CATEGORY_VARIANTS: Record<NoticeCategory, 'success' | 'info' | 'warning' | 'default'> = {
   update: 'success',
@@ -67,6 +68,13 @@ export const NoticesContent = ({
 
   const canCreate = userRole === 'owner' || userRole === 'admin' || userRole === 'editor'
   const canManage = userRole === 'owner' || userRole === 'admin' || userRole === 'editor'
+
+  // pin/unread(48) + title(auto=300) + category(100) + author(120) + date(80) + actions(48)
+  const defaultNoticeColWidths = useMemo(() => [48, 600, 130, 150, 100, 48], [])
+  const { containerRef: noticeContainerRef, tableStyle: noticeTableStyle, getColStyle: getNoticeColStyle, getResizeHandleProps: getNoticeResizeProps } = useResizableColumns({
+    storageKey: 'notices',
+    defaultWidths: defaultNoticeColWidths,
+  })
 
   const [now] = useState(() => Date.now())
   const tNotices = (key: string): string => t(`notices.${key}` as Parameters<typeof t>[0])
@@ -287,24 +295,21 @@ export const NoticesContent = ({
       </div>
 
       {/* Desktop: Table — pocket scroll */}
-      <Card className="hidden min-h-0 flex-1 flex-col overflow-hidden md:flex">
-        <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-          <table className="w-full shrink-0 table-fixed text-left text-sm">
+      <Card className="hidden min-h-0 flex-1 flex-col overflow-x-auto overflow-y-hidden md:flex">
+        <CardContent ref={noticeContainerRef} className="flex min-h-0 flex-1 flex-col p-0">
+          <table className="shrink-0 table-fixed text-left text-sm" style={noticeTableStyle}>
             <colgroup>
-              <col className="w-[48px]" />
-              <col />
-              <col className="w-[100px]" />
-              <col className="w-[120px]" />
-              <col className="w-[80px]" />
-              {canManage && <col className="w-[48px]" />}
+              {(canManage ? defaultNoticeColWidths : defaultNoticeColWidths.slice(0, -1)).map((_, i) => (
+                <col key={i} style={getNoticeColStyle(i)} />
+              ))}
             </colgroup>
             <thead>
               <tr className="border-b border-th-border bg-th-bg-tertiary">
                 <th className="px-4 py-3" />
-                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('reports.title')}</th>
-                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{tNotices('category')}</th>
-                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{tNotices('createdBy')}</th>
-                <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.date')}</th>
+                <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('reports.title')}<div {...getNoticeResizeProps(1)} /></th>
+                <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{tNotices('category')}<div {...getNoticeResizeProps(2)} /></th>
+                <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{tNotices('createdBy')}<div {...getNoticeResizeProps(3)} /></th>
+                <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.date')}<div {...getNoticeResizeProps(4)} /></th>
                 {canManage && (
                   <th className="px-4 py-3" />
                 )}
@@ -312,14 +317,11 @@ export const NoticesContent = ({
             </thead>
           </table>
           <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
-            <table className="w-full table-fixed text-left text-sm">
+            <table className="table-fixed text-left text-sm" style={noticeTableStyle}>
             <colgroup>
-              <col className="w-[48px]" />
-              <col />
-              <col className="w-[100px]" />
-              <col className="w-[120px]" />
-              <col className="w-[80px]" />
-              {canManage && <col className="w-[48px]" />}
+              {(canManage ? defaultNoticeColWidths : defaultNoticeColWidths.slice(0, -1)).map((_, i) => (
+                <col key={i} style={getNoticeColStyle(i)} />
+              ))}
             </colgroup>
             <tbody className="divide-y divide-th-border">
               {notices.length === 0 ? (

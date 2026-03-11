@@ -1,3 +1,4 @@
+import { forwardRef } from 'react'
 import { cn } from '@/lib/utils/cn'
 
 type CardProps = {
@@ -6,9 +7,9 @@ type CardProps = {
   hover?: boolean
 }
 
-export const Card = ({ children, className, hover = false }: CardProps) => {
+export const Card = forwardRef<HTMLDivElement, CardProps>(({ children, className, hover = false }, ref) => {
   return (
-    <div className={cn(
+    <div ref={ref} className={cn(
       'rounded-xl border border-th-border bg-surface-card shadow-sm',
       hover && 'hover-lift cursor-pointer',
       className,
@@ -16,7 +17,8 @@ export const Card = ({ children, className, hover = false }: CardProps) => {
       {children}
     </div>
   )
-}
+})
+Card.displayName = 'Card'
 
 type CardHeaderProps = {
   children: React.ReactNode
@@ -36,6 +38,7 @@ type CardContentProps = {
   className?: string
 }
 
-export const CardContent = ({ children, className }: CardContentProps) => {
-  return <div className={cn('px-6 py-5', className)}>{children}</div>
-}
+export const CardContent = forwardRef<HTMLDivElement, CardContentProps>(({ children, className }, ref) => {
+  return <div ref={ref} className={cn('px-6 py-5', className)}>{children}</div>
+})
+CardContent.displayName = 'CardContent'

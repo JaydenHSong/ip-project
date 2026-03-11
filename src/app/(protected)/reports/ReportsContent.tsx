@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
@@ -18,6 +18,7 @@ import { NewReportForm } from './new/NewReportForm'
 import { BrCaseQueueBar } from '@/components/features/BrCaseQueueBar'
 import { SlaBadge } from '@/components/ui/SlaBadge'
 import { useSortableTable } from '@/hooks/useSortableTable'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import { VIOLATION_CATEGORIES, VIOLATION_TYPES } from '@/constants/violations'
 import { MARKETPLACES } from '@/constants/marketplaces'
@@ -53,6 +54,7 @@ type ReportRow = {
   br_case_status?: string | null
   br_case_id?: string | null
   br_sla_deadline_at?: string | null
+  report_number: number
 }
 
 type ReportsContentProps = {
@@ -114,6 +116,12 @@ export const ReportsContent = ({
   }, [])
 
   const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'date', direction: 'desc' }, getSortValue)
+
+  const defaultColWidths = useMemo(() => [40, 56, 110, 65, 140, 150, 220, 110, 95, 95, 115], [])
+  const { containerRef, tableStyle, getColStyle, getResizeHandleProps } = useResizableColumns({
+    storageKey: 'reports-queue-v3',
+    defaultWidths: defaultColWidths,
+  })
 
   const handleNewReportSuccess = useCallback(() => {
     setShowNewReport(false)
@@ -415,20 +423,12 @@ export const ReportsContent = ({
 
       {/* Desktop: table — single table with sticky header */}
       <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <table className="w-full table-fixed text-left text-sm">
+        <div ref={containerRef} className="min-h-0 flex-1 overflow-auto">
+          <table className="table-fixed text-left text-sm" style={tableStyle}>
           <colgroup>
-            <col className="w-10" />
-            <col className="w-12" />
-            <col className="w-[100px]" />
-            <col className="w-[60px]" />
-            <col className="w-[130px]" />
-            <col className="w-[140px]" />
-            <col style={{ width: 'auto' }} />
-            <col className="w-[100px]" />
-            <col className="w-[90px]" />
-            <col className="w-[90px]" />
-            <col className="w-[90px]" />
+            {defaultColWidths.map((_, i) => (
+              <col key={i} style={getColStyle(i)} />
+            ))}
           </colgroup>
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
@@ -440,16 +440,16 @@ export const ReportsContent = ({
                   onChange={handleToggleSelectAll}
                 />
               </th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.</th>
-              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label="CH" field="channel" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label="Updated" field="updated" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort} />
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(1)} /></th>
+              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(2)} /></SortableHeader>
+              <SortableHeader label="CH" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(3)} /></SortableHeader>
+              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(4)} /></SortableHeader>
+              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(5)} /></SortableHeader>
+              <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(6)} /></SortableHeader>
+              <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(7)} /></SortableHeader>
+              <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(8)} /></SortableHeader>
+              <SortableHeader label="Updated" field="updated" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(9)} /></SortableHeader>
+              <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(10)} /></SortableHeader>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
@@ -478,7 +478,7 @@ export const ReportsContent = ({
                       onChange={() => handleToggleSelect(report.id)}
                     />
                   </td>
-                  <td className="px-4 py-3.5 text-xs text-th-text-muted">{totalCount - ((page - 1) * 20 + idx)}</td>
+                  <td className="px-4 py-3.5 text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</td>
                   <td className="px-4 py-3.5">
                     <div className="flex flex-col gap-1">
                       <StatusBadge status={report.status as ReportStatus} type="report" />

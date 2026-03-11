@@ -146,6 +146,7 @@ export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId 
             parent_report_id: data.parent_report_id as string | null,
             escalation_level: data.escalation_level as number | null,
             pd_followup_interval_days: data.pd_followup_interval_days as number | null,
+            admin_memo: data.admin_memo as string | null,
           }}
           listing={listing}
           creatorName={(data.users as { name: string } | null)?.name ?? null}

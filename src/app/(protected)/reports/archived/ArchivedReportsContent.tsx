@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
@@ -12,6 +12,7 @@ import { TableFilters } from '@/components/ui/TableFilters'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { useSortableTable } from '@/hooks/useSortableTable'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import { useToast } from '@/hooks/useToast'
 import type { ReportStatus } from '@/types/reports'
@@ -71,6 +72,13 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
   }, [])
 
   const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'archived_at', direction: 'desc' }, getSortValue)
+
+  // violation(130) + asin(140) + title(200) + reason(150) + archivedAt(120) + action(80)
+  const defaultArchiveColWidths = useMemo(() => [160, 160, 350, 180, 140, 90], [])
+  const { containerRef: archiveContainerRef, tableStyle: archiveTableStyle, getColStyle: getArchiveColStyle, getResizeHandleProps: getArchiveResizeProps } = useResizableColumns({
+    storageKey: 'reports-archived',
+    defaultWidths: defaultArchiveColWidths,
+  })
 
   const handleUnarchive = async (reportId: string) => {
     setUnarchiving(reportId)
@@ -147,25 +155,30 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
       </div>
 
       {/* Desktop: table — pocket scroll */}
-      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <table className="w-full shrink-0 text-left text-sm">
+      <div ref={archiveContainerRef} className="hidden min-h-0 flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border border-th-border md:flex">
+        <table className="shrink-0 table-fixed text-left text-sm" style={archiveTableStyle}>
+          <colgroup>
+            {(canAct ? defaultArchiveColWidths : defaultArchiveColWidths.slice(0, -1)).map((_, i) => (
+              <col key={i} style={getArchiveColStyle(i)} />
+            ))}
+          </colgroup>
           <thead>
             <tr className="border-b border-th-border bg-th-bg-tertiary">
-              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.title')} field="title" currentSort={sort} onSort={toggleSort} />
+              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getArchiveResizeProps(0)} /></SortableHeader>
+              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getArchiveResizeProps(1)} /></SortableHeader>
+              <SortableHeader label={t('reports.title')} field="title" currentSort={sort} onSort={toggleSort}><div {...getArchiveResizeProps(2)} /></SortableHeader>
               <SortableHeader
                 label={t('reports.detail.archiveReason' as Parameters<typeof t>[0])}
                 field="reason"
                 currentSort={sort}
                 onSort={toggleSort}
-              />
+              ><div {...getArchiveResizeProps(3)} /></SortableHeader>
               <SortableHeader
                 label={t('reports.detail.archivedAt' as Parameters<typeof t>[0])}
                 field="archived_at"
                 currentSort={sort}
                 onSort={toggleSort}
-              />
+              ><div {...getArchiveResizeProps(4)} /></SortableHeader>
               {canAct && (
                 <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">
                   {t('common.action')}
@@ -175,7 +188,12 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
           </thead>
         </table>
         <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
-          <table className="w-full text-left text-sm">
+          <table className="table-fixed text-left text-sm" style={archiveTableStyle}>
+          <colgroup>
+            {(canAct ? defaultArchiveColWidths : defaultArchiveColWidths.slice(0, -1)).map((_, i) => (
+              <col key={i} style={getArchiveColStyle(i)} />
+            ))}
+          </colgroup>
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>

@@ -66,6 +66,8 @@ type ReportData = {
   br_sla_deadline_at: string | null
   parent_report_id: string | null
   escalation_level: number | null
+  // Admin memo
+  admin_memo: string | null
   // Ownership
   created_by: string
   // Multi-ASIN

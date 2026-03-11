@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { RefreshCw, Search, X, Pencil, Trash2, Shield, PenTool, Tag, Copyright, ExternalLink } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { Button } from '@/components/ui/Button'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { SlidePanel } from '@/components/ui/SlidePanel'
@@ -134,6 +135,13 @@ export const PatentsContent = ({
   const [syncing, setSyncing] = useState(false)
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const { addToast } = useToast()
+
+  // ipType(100) + mgmtNo(150) + name(200) + country(80) + status(100) + regNo(150) + expiry(100) + assignee(120)
+  const defaultPatentColWidths = useMemo(() => [110, 170, 280, 90, 110, 170, 110, 140], [])
+  const { containerRef: patentContainerRef, tableStyle: patentTableStyle, getColStyle: getPatentColStyle, getResizeHandleProps: getPatentResizeProps } = useResizableColumns({
+    storageKey: 'patents',
+    defaultWidths: defaultPatentColWidths,
+  })
 
   useEffect(() => {
     const stored = localStorage.getItem('patent_new_ids')
@@ -483,18 +491,23 @@ export const PatentsContent = ({
 
       {/* Desktop: table — single table with sticky header */}
       <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <table className="w-full text-left text-sm">
+        <div ref={patentContainerRef} className="min-h-0 flex-1 overflow-auto">
+          <table className="table-fixed text-left text-sm" style={patentTableStyle}>
+          <colgroup>
+            {defaultPatentColWidths.map((_, i) => (
+              <col key={i} style={getPatentColStyle(i)} />
+            ))}
+          </colgroup>
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.ipType')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.managementNumber')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.name')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.country')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.registrationNumber')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.expiryDate')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.assignee')}</th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.ipType')}<div {...getPatentResizeProps(0)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.managementNumber')}<div {...getPatentResizeProps(1)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.name')}<div {...getPatentResizeProps(2)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.country')}<div {...getPatentResizeProps(3)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.status')}<div {...getPatentResizeProps(4)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.registrationNumber')}<div {...getPatentResizeProps(5)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.expiryDate')}<div {...getPatentResizeProps(6)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.assignee')}<div {...getPatentResizeProps(7)} /></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">

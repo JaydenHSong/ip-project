@@ -77,6 +77,7 @@ type ReportDetailContentProps = {
     parent_report_id?: string | null
     escalation_level?: number | null
     pd_followup_interval_days?: number | null
+    admin_memo?: string | null
   }
   listing: {
     asin: string
@@ -140,6 +141,10 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   )
   const [savingFollowupInterval, setSavingFollowupInterval] = useState(false)
   const [caseThreadTab, setCaseThreadTab] = useState<'thread' | 'activity'>('thread')
+  const [adminMemo, setAdminMemo] = useState(report.admin_memo ?? '')
+  const [memoSaving, setMemoSaving] = useState(false)
+  const [memoSaved, setMemoSaved] = useState(false)
+  const memoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [relatedData, setRelatedData] = useState<{
     parent_chain: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
     children: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
@@ -173,14 +178,38 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       .catch(() => {})
   }, [report.status, report.draft_body, brFormType, templateDismissed])
 
+  // Admin memo auto-save (debounce 1.5s)
+  const saveMemo = useCallback(async (text: string) => {
+    setMemoSaving(true)
+    try {
+      await fetch(`/api/reports/${report.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_memo: text || null }),
+      })
+      setMemoSaved(true)
+      setTimeout(() => setMemoSaved(false), 2000)
+    } catch { /* silent */ }
+    finally { setMemoSaving(false) }
+  }, [report.id])
+
+  const handleMemoChange = useCallback((value: string) => {
+    setAdminMemo(value)
+    if (memoTimerRef.current) clearTimeout(memoTimerRef.current)
+    memoTimerRef.current = setTimeout(() => saveMemo(value), 1500)
+  }, [saveMemo])
+
   const handleSubmit = async () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     setApproving(true)
     try {
       const res = await fetch(`/api/reports/${report.id}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(hasChanges ? { edited_draft_title: editTitle, edited_draft_subject: editSubject, edited_draft_body: editBody } : {}),
+          edited_draft_title: editTitle,
+          edited_draft_subject: editSubject,
+          edited_draft_body: editBody,
           ...(showBrFormType ? { br_form_type: brFormType } : {}),
           ...(showBrFormType ? {
             br_extra_fields: {
@@ -274,7 +303,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
     }
   }
 
-  const hasChanges = editTitle !== (report.draft_title ?? '') || editSubject !== (report.draft_subject ?? '') || editBody !== (report.draft_body ?? '')
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSavedRef = useRef({ title: report.draft_title ?? '', subject: report.draft_subject ?? '', body: report.draft_body ?? '' })
@@ -292,6 +320,8 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         lastSavedRef.current = { title, subject, body }
         setAutoSaveStatus('saved')
         setTimeout(() => setAutoSaveStatus('idle'), 2000)
+      } else {
+        setAutoSaveStatus('idle')
       }
     } catch {
       setAutoSaveStatus('idle')
@@ -412,6 +442,14 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           <BackButton href="/reports" />
           <h1 className="text-2xl font-bold text-th-text">{t('reports.detail.title')}</h1>
           <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
+          {report.status === 'submitted' && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-st-success-bg px-2.5 py-0.5 text-xs font-medium text-st-success-text">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              PD Reported
+            </span>
+          )}
           {isDraftEditable && (
             <span className="rounded-full bg-th-accent-soft px-2 py-0.5 text-xs font-medium text-th-accent-text">
               {t('reports.detail.editing')}
@@ -436,6 +474,14 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       {embedded && (
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
+          {report.status === 'submitted' && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-st-success-bg px-2.5 py-0.5 text-xs font-medium text-st-success-text">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              PD Reported
+            </span>
+          )}
           {isDraftEditable && (
             <span className="rounded-full bg-th-accent-soft px-2 py-0.5 text-xs font-medium text-th-accent-text">
               {t('reports.detail.editing')}
@@ -594,167 +640,235 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </div>
       )}
 
-      {/* Submitted Success Banner */}
-      {report.status === 'submitted' && (
-        <div className="flex items-center gap-4 rounded-xl border border-st-success-text/30 bg-st-success-bg px-5 py-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-st-success-text/20">
-            <svg className="h-5 w-5 text-st-success-text" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-th-text">PD Report 완료</p>
-            <p className="mt-0.5 text-xs text-th-text-secondary">
-              Product Detail 페이지에서 성공적으로 신고되었습니다.
-              {report.pd_case_id && <span className="ml-1 font-medium">Case ID: {report.pd_case_id}</span>}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Submitted Success — removed full banner, now inline tag in header */}
 
-      {/* BR Case + Related Reports — side-by-side on desktop */}
-        <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <h2 className="font-semibold text-th-text">BR Case</h2>
-                  {report.br_case_status ? (
-                    <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
-                  ) : (
-                    <span className="rounded-full bg-th-bg-secondary px-2.5 py-1 text-xs font-medium text-th-text-muted">Not submitted</span>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {report.br_case_status ? (
-                <dl className="grid grid-cols-2 gap-4">
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">Case ID</dt>
-                    <dd className="mt-1 font-mono text-sm font-medium text-th-text">
-                      {report.br_case_id && report.br_case_id !== 'submitted' ? (
-                        <a
-                          href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-th-accent hover:underline"
-                        >
-                          {report.br_case_id}
-                        </a>
-                      ) : (
-                        <span className="text-th-text-muted">Pending</span>
-                      )}
-                    </dd>
-                  </div>
-                  {report.br_sla_deadline_at && (
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">SLA</dt>
-                      <dd className="mt-1">
-                        <SlaBadge
-                          deadline={report.br_sla_deadline_at}
-                          paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
-                        />
-                      </dd>
-                    </div>
-                  )}
-                  {report.br_submitted_at && (
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">Submitted</dt>
-                      <dd className="mt-1 text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
-                    </div>
-                  )}
-                  {report.br_last_amazon_reply_at && (
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">Last Amazon Reply</dt>
-                      <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
-                    </div>
-                  )}
-                  {report.br_last_our_reply_at && (
-                    <div>
-                      <dt className="text-xs text-th-text-tertiary">Last Our Reply</dt>
-                      <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_our_reply_at).toLocaleString()}</dd>
-                    </div>
-                  )}
-                </dl>
-                ) : (
-                  <p className="text-sm text-th-text-muted">BR case has not been submitted yet. Approve the report to submit.</p>
-                )}
-                {relatedData && (relatedData.parent_chain.length > 0 || relatedData.children.length > 0) && (
-                  <div className="mt-4 border-t border-th-border pt-4">
-                    <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">Case Chain</h3>
-                    <CaseChain
-                      currentId={report.id}
-                      parentChain={relatedData.parent_chain}
-                      children={relatedData.children}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-          {relatedData && relatedData.same_listing.length > 0 && (
-            <Card>
-              <CardHeader>
-                <h2 className="font-semibold text-th-text">Related Reports</h2>
-              </CardHeader>
-              <CardContent>
-                <RelatedReports reports={relatedData.same_listing} currentReportId={report.id} onNavigate={onNavigate} />
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-      {/* Violation Info + Listing — side-by-side on desktop */}
+      {/* Case Management + Report Details — side-by-side on desktop */}
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Left: Case Management (BR Case + Related Reports) */}
         <Card>
           <CardHeader>
-            <h2 className="font-semibold text-th-text">{t('reports.detail.violationInfo')}</h2>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {/* Category + Violation Type row */}
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-              {report.violation_category && (
-                <div>
-                  <dt className="text-xs text-th-text-tertiary">{t('reports.detail.violationCategory')}</dt>
-                  <dd className="mt-1">
-                    <ViolationBadge code={report.violation_category as ViolationCode} size="md" />
-                  </dd>
-                </div>
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-th-text">Case Management</h2>
+              {report.br_case_status ? (
+                <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
+              ) : (
+                <span className="rounded-full bg-th-bg-secondary px-2.5 py-1 text-xs font-medium text-th-text-muted">Not submitted</span>
               )}
-              <div>
-                <dt className="text-xs text-th-text-tertiary">{t('reports.detail.userViolationType')}</dt>
-                <dd className="mt-1">
-                  <ViolationBadge code={report.user_violation_type as ViolationCode} size="md" />
-                </dd>
-              </div>
-              {report.ai_violation_type && (
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-0">
+            {/* BR Case Info */}
+            {report.br_case_status ? (
+              <dl className="grid grid-cols-2 gap-3">
                 <div>
-                  <dt className="text-xs text-th-text-tertiary">{t('reports.detail.aiViolationType')}</dt>
-                  <dd className="mt-1 flex items-center gap-2">
-                    <ViolationBadge code={report.ai_violation_type as ViolationCode} size="md" />
-                    {report.ai_confidence_score !== null && (
-                      <span className="text-xs text-th-text-muted">{report.ai_confidence_score}%</span>
+                  <dt className="text-xs text-th-text-tertiary">Case ID</dt>
+                  <dd className="mt-1 font-mono text-sm font-medium text-th-text">
+                    {report.br_case_id && report.br_case_id !== 'submitted' ? (
+                      <a
+                        href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-th-accent hover:underline"
+                      >
+                        {report.br_case_id}
+                      </a>
+                    ) : (
+                      <span className="text-th-text-muted">Pending</span>
                     )}
                   </dd>
                 </div>
-              )}
-              {report.confirmed_violation_type && (
-                <div>
-                  <dt className="text-xs text-th-text-tertiary">{t('reports.detail.confirmedViolationType')}</dt>
-                  <dd className="mt-1">
-                    <ViolationBadge code={report.confirmed_violation_type as ViolationCode} size="md" />
-                  </dd>
-                </div>
-              )}
-            </dl>
+                {report.br_sla_deadline_at && (
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">SLA</dt>
+                    <dd className="mt-1">
+                      <SlaBadge
+                        deadline={report.br_sla_deadline_at}
+                        paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
+                      />
+                    </dd>
+                  </div>
+                )}
+                {report.br_submitted_at && (
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">Submitted</dt>
+                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
+                  </div>
+                )}
+                {report.br_last_amazon_reply_at && (
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">Last Amazon Reply</dt>
+                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
+                  </div>
+                )}
+              </dl>
+            ) : (
+              <p className="text-sm text-th-text-muted">BR case has not been submitted yet.</p>
+            )}
 
-            {/* Disagreement warning */}
-            {report.disagreement_flag && (
-              <div className="rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-2">
-                <p className="text-xs font-medium text-st-warning-text">
-                  {t('reports.detail.disagreementWarning')}
-                </p>
+            {/* Case Chain */}
+            {relatedData && (relatedData.parent_chain.length > 0 || relatedData.children.length > 0) && (
+              <div className="mt-4 border-t border-th-border pt-4">
+                <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">Case Chain</h3>
+                <CaseChain
+                  currentId={report.id}
+                  parentChain={relatedData.parent_chain}
+                  children={relatedData.children}
+                />
               </div>
             )}
+
+            {/* Related Reports */}
+            {relatedData && relatedData.same_listing.length > 0 && (
+              <div className="mt-4 border-t border-th-border pt-4">
+                <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">Related Reports</h3>
+                <RelatedReports reports={relatedData.same_listing} currentReportId={report.id} onNavigate={onNavigate} />
+              </div>
+            )}
+
+            {/* Admin Memo */}
+            {canEdit && (
+              <div className="mt-4 border-t border-th-border pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-semibold text-th-text-tertiary">Memo</h3>
+                  <span className="text-[11px] text-th-text-muted">
+                    {memoSaving ? 'Saving...' : memoSaved ? 'Saved' : ''}
+                  </span>
+                </div>
+                <Textarea
+                  value={adminMemo}
+                  onChange={(e) => handleMemoChange(e.target.value)}
+                  placeholder="Internal notes..."
+                  rows={2}
+                  className="resize-y text-sm"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Right: Report Details (Listing + Violation Info) */}
+        <Card>
+          <CardHeader>
+            <h2 className="font-semibold text-th-text">Report Details</h2>
+          </CardHeader>
+          <CardContent className="space-y-0">
+            {/* Listing Info */}
+            {listing && (
+              <>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={getAmazonUrl(listing.asin, listing.marketplace)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-th-bg-subtle px-3 py-1.5 font-mono text-sm font-semibold text-th-accent-text transition-colors hover:bg-th-accent-soft"
+                  >
+                    {listing.asin}
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  </a>
+                  <span className="rounded bg-th-bg-tertiary px-2 py-1 text-xs font-medium text-th-text-secondary">
+                    {listing.marketplace.replace('www.amazon.', '').toUpperCase()}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-th-text line-clamp-2">{listing.title}</p>
+                <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2">
+                  {listing.seller_name && (
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.seller')}</dt>
+                      <dd className="mt-0.5 text-sm text-th-text">{listing.seller_name}</dd>
+                    </div>
+                  )}
+                  {listing.brand && (
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.detail.brand')}</dt>
+                      <dd className="mt-0.5 text-sm text-th-text">{listing.brand}</dd>
+                    </div>
+                  )}
+                  {listing.rating != null && (
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.detail.rating')}</dt>
+                      <dd className="mt-0.5 flex items-center gap-1 text-sm text-th-text">
+                        <svg className="h-3.5 w-3.5 fill-yellow-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                        {listing.rating.toFixed(1)}
+                        {listing.review_count != null && (
+                          <span className="text-xs text-th-text-muted">({listing.review_count.toLocaleString()})</span>
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                  {listing.price_amount != null && (
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">{t('reports.detail.price')}</dt>
+                      <dd className="mt-0.5 text-sm font-medium text-th-text">
+                        {listing.price_currency === 'JPY' ? '¥' : '$'}{listing.price_amount.toLocaleString()}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+                {report.related_asins && report.related_asins.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {report.related_asins.map((ra, idx) => (
+                      <a
+                        key={idx}
+                        href={getAmazonUrl(ra.asin, ra.marketplace ?? listing.marketplace)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded bg-th-bg-subtle px-2 py-1 font-mono text-xs text-th-accent-text transition-colors hover:bg-th-accent-soft"
+                      >
+                        {ra.asin}
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Violation Info */}
+            <div className={listing ? 'mt-4 border-t border-th-border pt-4' : ''}>
+              <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.violationInfo')}</h3>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                {report.violation_category && (
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">{t('reports.detail.violationCategory')}</dt>
+                    <dd className="mt-1">
+                      <ViolationBadge code={report.violation_category as ViolationCode} size="md" />
+                    </dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-xs text-th-text-tertiary">{t('reports.detail.userViolationType')}</dt>
+                  <dd className="mt-1">
+                    <ViolationBadge code={report.user_violation_type as ViolationCode} size="md" />
+                  </dd>
+                </div>
+                {report.ai_violation_type && (
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">{t('reports.detail.aiViolationType')}</dt>
+                    <dd className="mt-1 flex items-center gap-2">
+                      <ViolationBadge code={report.ai_violation_type as ViolationCode} size="md" />
+                      {report.ai_confidence_score !== null && (
+                        <span className="text-xs text-th-text-muted">{report.ai_confidence_score}%</span>
+                      )}
+                    </dd>
+                  </div>
+                )}
+                {report.confirmed_violation_type && (
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">{t('reports.detail.confirmedViolationType')}</dt>
+                    <dd className="mt-1">
+                      <ViolationBadge code={report.confirmed_violation_type as ViolationCode} size="md" />
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              {report.disagreement_flag && (
+                <div className="mt-3 rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-2">
+                  <p className="text-xs font-medium text-st-warning-text">
+                    {t('reports.detail.disagreementWarning')}
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Extra fields / note */}
             {report.note && (() => {
@@ -764,8 +878,8 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                   const entries = Object.entries(parsed).filter(([, v]) => v && String(v).trim())
                   if (entries.length > 0) {
                     return (
-                      <div className="border-t border-th-border pt-3">
-                        <p className="mb-2 text-xs font-medium text-th-text-tertiary">{t('reports.detail.reportDetails')}</p>
+                      <div className="mt-4 border-t border-th-border pt-4">
+                        <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.reportDetails')}</h3>
                         <dl className="space-y-2">
                           {entries.map(([key, value]) => (
                             <div key={key} className="rounded bg-th-bg-subtle px-3 py-2">
@@ -782,101 +896,14 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 // not JSON
               }
               return (
-                <div className="border-t border-th-border pt-3">
-                  <p className="mb-1 text-xs font-medium text-th-text-tertiary">{t('reports.detail.reportDetails')}</p>
+                <div className="mt-4 border-t border-th-border pt-4">
+                  <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.reportDetails')}</h3>
                   <p className="text-sm text-th-text whitespace-pre-wrap">{report.note}</p>
                 </div>
               )
             })()}
           </CardContent>
         </Card>
-
-        {listing && (
-          <Card>
-            <CardHeader>
-              <h2 className="font-semibold text-th-text">{t('reports.detail.listing')}</h2>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* ASIN + Marketplace inline */}
-              <div className="flex items-center gap-3">
-                <a
-                  href={getAmazonUrl(listing.asin, listing.marketplace)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-th-bg-subtle px-3 py-1.5 font-mono text-sm font-semibold text-th-accent-text transition-colors hover:bg-th-accent-soft"
-                >
-                  {listing.asin}
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                </a>
-                <span className="rounded bg-th-bg-tertiary px-2 py-1 text-xs font-medium text-th-text-secondary">
-                  {listing.marketplace.replace('www.amazon.', '').toUpperCase()}
-                </span>
-              </div>
-
-              {/* Title */}
-              <p className="text-sm text-th-text line-clamp-2">{listing.title}</p>
-
-              {/* Meta row: seller, brand, rating, price */}
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-                {listing.seller_name && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('reports.seller')}</dt>
-                    <dd className="mt-0.5 text-sm text-th-text">{listing.seller_name}</dd>
-                  </div>
-                )}
-                {listing.brand && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('reports.detail.brand')}</dt>
-                    <dd className="mt-0.5 text-sm text-th-text">{listing.brand}</dd>
-                  </div>
-                )}
-                {listing.rating != null && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('reports.detail.rating')}</dt>
-                    <dd className="mt-0.5 flex items-center gap-1 text-sm text-th-text">
-                      <svg className="h-3.5 w-3.5 fill-yellow-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                      {listing.rating.toFixed(1)}
-                      {listing.review_count != null && (
-                        <span className="text-xs text-th-text-muted">({listing.review_count.toLocaleString()})</span>
-                      )}
-                    </dd>
-                  </div>
-                )}
-                {listing.price_amount != null && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">{t('reports.detail.price')}</dt>
-                    <dd className="mt-0.5 text-sm font-medium text-th-text">
-                      {listing.price_currency === 'JPY' ? '¥' : '$'}{listing.price_amount.toLocaleString()}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-
-              {/* Related ASINs */}
-              {report.related_asins && report.related_asins.length > 0 && (
-                <div className="border-t border-th-border pt-3">
-                  <p className="mb-2 text-xs font-medium text-th-text-tertiary">
-                    Related ASINs ({report.related_asins.length})
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {report.related_asins.map((ra, idx) => (
-                      <a
-                        key={idx}
-                        href={getAmazonUrl(ra.asin, ra.marketplace ?? listing.marketplace)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded bg-th-bg-subtle px-2 py-1 font-mono text-xs text-th-accent-text transition-colors hover:bg-th-accent-soft"
-                      >
-                        {ra.asin}
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
       </div>
 
       {/* Screenshot Card */}
@@ -1004,32 +1031,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </Card>
       )}
 
-      {/* Template auto-suggestion banner */}
-      {suggestedTemplate && !templateDismissed && isDraftEditable && !editBody && (
-        <div className="flex items-center gap-3 rounded-lg border border-th-accent/30 bg-th-accent/5 px-4 py-3">
-          <span className="flex-1 text-sm text-th-text">
-            {t('reports.detail.templateSuggestion' as Parameters<typeof t>[0]).replace('{name}', suggestedTemplate.title)}
-          </span>
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditBody(suggestedTemplate.body)
-              setEditTitle(suggestedTemplate.title)
-              setSuggestedTemplate(null)
-            }}
-          >
-            {t('reports.detail.templateApply' as Parameters<typeof t>[0])}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTemplateDismissed(true)}
-          >
-            {t('reports.detail.templateDismiss' as Parameters<typeof t>[0])}
-          </Button>
-        </div>
-      )}
-
       {/* Draft + Templates — Desktop: side-by-side, Mobile: tabs */}
       {(report.draft_title || isDraftEditable) && (
         <Card>
@@ -1128,20 +1129,51 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
 
             {isDraftEditable ? (
               <>
+                {/* Title — always standalone */}
+                <Input
+                  label={t('reports.detail.draftTitle')}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+
                 {/* Mobile: tab-based view */}
                 <div className="md:hidden">
                   {draftTab === 'templates' ? (
-                    <BrTemplateList
-                      formType={brFormType}
-                      listing={listing ?? {}}
-                      compact
-                      onApply={(body, title, subject) => {
-                        setEditBody(body)
-                        if (title) setEditTitle(title)
-                        if (subject) setEditSubject(subject)
-                        setDraftTab('edit')
-                      }}
-                    />
+                    <div className="space-y-3">
+                      {/* Recommended template inside template tab */}
+                      {suggestedTemplate && !templateDismissed && !editBody && (
+                        <div className="flex items-center gap-3 rounded-lg border border-th-accent/30 bg-th-accent/5 px-3 py-2.5">
+                          <span className="flex-1 text-sm text-th-text">
+                            {t('reports.detail.templateSuggestion' as Parameters<typeof t>[0]).replace('{name}', suggestedTemplate.title)}
+                          </span>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setEditBody(suggestedTemplate.body)
+                              setEditTitle(suggestedTemplate.title)
+                              setSuggestedTemplate(null)
+                              setDraftTab('edit')
+                            }}
+                          >
+                            {t('reports.detail.templateApply' as Parameters<typeof t>[0])}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setTemplateDismissed(true)}>
+                            {t('reports.detail.templateDismiss' as Parameters<typeof t>[0])}
+                          </Button>
+                        </div>
+                      )}
+                      <BrTemplateList
+                        formType={brFormType}
+                        listing={listing ?? {}}
+                        compact
+                        onApply={(body, title, subject) => {
+                          setEditBody(body)
+                          if (title) setEditTitle(title)
+                          if (subject) setEditSubject(subject)
+                          setDraftTab('edit')
+                        }}
+                      />
+                    </div>
                   ) : (
                     <div className="space-y-3">
                       {/* Mobile: AI Preview banner */}
@@ -1159,13 +1191,116 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                           </div>
                         </div>
                       )}
+                      {/* BR Form Fields section — subject, body, URLs */}
+                      <div className="rounded-lg border border-th-border p-3 space-y-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-th-text-muted">BR Form Fields</p>
+                        <Input
+                          label="Subject"
+                          value={editSubject}
+                          onChange={(e) => setEditSubject(e.target.value)}
+                          placeholder="BR case subject line"
+                        />
+                        <Textarea
+                          label={t('reports.detail.draftBody')}
+                          value={editBody}
+                          onChange={(e) => setEditBody(e.target.value)}
+                          rows={8}
+                        />
+                        {/* Extra fields */}
+                        {showBrFormType && (
+                          <>
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                Product URLs <span className="text-th-text-muted">(one per line, max 10)</span>
+                              </label>
+                              <textarea
+                                placeholder={'https://www.amazon.com/dp/B0...\nhttps://www.amazon.com/dp/B0...'}
+                                value={brFields.product_urls}
+                                onChange={(e) => setBrFields((f) => ({ ...f, product_urls: e.target.value }))}
+                                rows={2}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
+                            {brFormType === 'other_policy' && (
+                              <>
+                                <div>
+                                  <label className="mb-1 block text-xs font-medium text-th-text-secondary">Seller Storefront URL</label>
+                                  <input
+                                    type="url"
+                                    placeholder="https://www.amazon.com/stores/..."
+                                    value={brFields.seller_storefront_url}
+                                    onChange={(e) => setBrFields((f) => ({ ...f, seller_storefront_url: e.target.value }))}
+                                    className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs font-medium text-th-text-secondary">Amazon Policy URL</label>
+                                  <input
+                                    type="url"
+                                    placeholder="https://sellercentral.amazon.com/..."
+                                    value={brFields.policy_url}
+                                    onChange={(e) => setBrFields((f) => ({ ...f, policy_url: e.target.value }))}
+                                    className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                  />
+                                </div>
+                              </>
+                            )}
+                            {brFormType === 'product_review' && (
+                              <>
+                                <div>
+                                  <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                    ASINs <span className="text-th-text-muted">(comma separated)</span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="B09F2J4SX1, B09F2J4SX2"
+                                    value={brFields.asins}
+                                    onChange={(e) => setBrFields((f) => ({ ...f, asins: e.target.value }))}
+                                    className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="mb-1 block text-xs font-medium text-th-text-secondary">Order ID</label>
+                                  <input
+                                    type="text"
+                                    placeholder="111-1234567-1234567"
+                                    value={brFields.order_id}
+                                    onChange={(e) => setBrFields((f) => ({ ...f, order_id: e.target.value }))}
+                                    className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                  />
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )}
+                        {autoSaveStatus !== 'idle' && (
+                          <div className="flex justify-end">
+                            <span className="inline-flex items-center gap-1 rounded-md border border-th-border bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary">
+                              {autoSaveStatus === 'saving' ? (
+                                <>
+                                  <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                  Saving...
+                                </>
+                              ) : '✓ Saved'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop: side-by-side — BR Form Fields + Templates */}
+                <div className="hidden gap-5 md:flex">
+                  {/* Left: BR Form Fields (subject + body + URLs) */}
+                  <div className="basis-1/2 space-y-3">
+                    <div className="rounded-lg border border-th-border p-4 space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-th-text-muted">BR Form Fields</p>
                       <Input
-                        label={t('reports.detail.draftTitle')}
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                      />
-                      <Input
-                        label="Subject (BR Case)"
+                        label="Subject"
                         value={editSubject}
                         onChange={(e) => setEditSubject(e.target.value)}
                         placeholder="BR case subject line"
@@ -1174,143 +1309,11 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                         label={t('reports.detail.draftBody')}
                         value={editBody}
                         onChange={(e) => setEditBody(e.target.value)}
-                        rows={8}
+                        rows={10}
                       />
-                      {autoSaveStatus !== 'idle' && (
-                        <div className="flex justify-end">
-                          <span className="inline-flex items-center gap-1 rounded-md border border-th-border bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary">
-                            {autoSaveStatus === 'saving' ? (
-                              <>
-                                <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                                </svg>
-                                Saving...
-                              </>
-                            ) : '✓ Saved'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {/* Mobile: BR Form Fields below editor */}
-                  {showBrFormType && (
-                    <div className="mt-3 rounded-lg border border-th-border bg-th-bg-secondary/30 p-3">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-th-text-muted">
-                        BR Form Fields
-                      </p>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-th-text-secondary">
-                            Product URLs <span className="text-th-text-muted">(one per line, max 10)</span>
-                          </label>
-                          <textarea
-                            placeholder={'https://www.amazon.com/dp/B0...\nhttps://www.amazon.com/dp/B0...'}
-                            value={brFields.product_urls}
-                            onChange={(e) => setBrFields((f) => ({ ...f, product_urls: e.target.value }))}
-                            rows={2}
-                            className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                          />
-                        </div>
-                        {brFormType === 'other_policy' && (
-                          <>
-                            <div>
-                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">Seller Storefront URL</label>
-                              <input
-                                type="url"
-                                placeholder="https://www.amazon.com/stores/..."
-                                value={brFields.seller_storefront_url}
-                                onChange={(e) => setBrFields((f) => ({ ...f, seller_storefront_url: e.target.value }))}
-                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">Amazon Policy URL</label>
-                              <input
-                                type="url"
-                                placeholder="https://sellercentral.amazon.com/..."
-                                value={brFields.policy_url}
-                                onChange={(e) => setBrFields((f) => ({ ...f, policy_url: e.target.value }))}
-                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                              />
-                            </div>
-                          </>
-                        )}
-                        {brFormType === 'product_review' && (
-                          <>
-                            <div>
-                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">
-                                ASINs <span className="text-th-text-muted">(comma separated)</span>
-                              </label>
-                              <input
-                                type="text"
-                                placeholder="B09F2J4SX1, B09F2J4SX2"
-                                value={brFields.asins}
-                                onChange={(e) => setBrFields((f) => ({ ...f, asins: e.target.value }))}
-                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">Order ID</label>
-                              <input
-                                type="text"
-                                placeholder="111-1234567-1234567"
-                                value={brFields.order_id}
-                                onChange={(e) => setBrFields((f) => ({ ...f, order_id: e.target.value }))}
-                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Desktop: side-by-side — Draft editor + Additional Fields or Templates */}
-                <div className="hidden gap-5 md:flex">
-                  {/* Left: Draft editor */}
-                  <div className="basis-1/2 space-y-3">
-                    <Input
-                      label={t('reports.detail.draftTitle')}
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                    />
-                    <Input
-                      label="Subject (BR Case)"
-                      value={editSubject}
-                      onChange={(e) => setEditSubject(e.target.value)}
-                      placeholder="BR case subject line"
-                    />
-                    <Textarea
-                      label={t('reports.detail.draftBody')}
-                      value={editBody}
-                      onChange={(e) => setEditBody(e.target.value)}
-                      rows={8}
-                    />
-                    {autoSaveStatus !== 'idle' && (
-                      <div className="flex justify-end">
-                        <span className="inline-flex items-center gap-1 rounded-md border border-th-border bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary">
-                          {autoSaveStatus === 'saving' ? (
-                            <>
-                              <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                              </svg>
-                              Saving...
-                            </>
-                          ) : '✓ Saved'}
-                        </span>
-                      </div>
-                    )}
-                    {/* Additional Fields — below body editor */}
-                    {showBrFormType && (
-                      <div className="rounded-lg border border-th-border bg-th-bg-secondary/30 p-3">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-th-text-muted">
-                          BR Form Fields
-                        </p>
-                        <div className="space-y-3">
-                          {/* Product URLs — all form types */}
+                      {/* Extra fields */}
+                      {showBrFormType && (
+                        <>
                           <div>
                             <label className="mb-1 block text-xs font-medium text-th-text-secondary">
                               Product URLs <span className="text-th-text-muted">(one per line, max 10)</span>
@@ -1323,7 +1326,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                               className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
                             />
                           </div>
-                          {/* other_policy: Seller Storefront URL + Policy URL */}
                           {brFormType === 'other_policy' && (
                             <>
                               <div>
@@ -1348,7 +1350,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                               </div>
                             </>
                           )}
-                          {/* product_review: ASINs + Order ID */}
                           {brFormType === 'product_review' && (
                             <>
                               <div>
@@ -1375,9 +1376,24 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                               </div>
                             </>
                           )}
+                        </>
+                      )}
+                      {autoSaveStatus !== 'idle' && (
+                        <div className="flex justify-end">
+                          <span className="inline-flex items-center gap-1 rounded-md border border-th-border bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary">
+                            {autoSaveStatus === 'saving' ? (
+                              <>
+                                <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                Saving...
+                              </>
+                            ) : '✓ Saved'}
+                          </span>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                   {/* Right: AI Preview or Templates */}
                   <div className="basis-1/2 rounded-lg border border-th-border bg-th-bg-secondary/50 p-3">
@@ -1428,6 +1444,29 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                     ) : (
                       <>
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-th-text-muted">Templates</p>
+                        {/* Recommended template inside template section */}
+                        {suggestedTemplate && !templateDismissed && !editBody && (
+                          <div className="mb-3 flex flex-col gap-2 rounded-lg border border-th-accent/30 bg-th-accent/5 p-3">
+                            <span className="text-sm text-th-text">
+                              {t('reports.detail.templateSuggestion' as Parameters<typeof t>[0]).replace('{name}', suggestedTemplate.title)}
+                            </span>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setEditBody(suggestedTemplate.body)
+                                  setEditTitle(suggestedTemplate.title)
+                                  setSuggestedTemplate(null)
+                                }}
+                              >
+                                {t('reports.detail.templateApply' as Parameters<typeof t>[0])}
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setTemplateDismissed(true)}>
+                                {t('reports.detail.templateDismiss' as Parameters<typeof t>[0])}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                         <BrTemplateList
                           formType={brFormType}
                           listing={listing ?? {}}
@@ -1451,7 +1490,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 </div>
                 {report.draft_subject && (
                   <div>
-                    <p className="text-sm text-th-text-tertiary">Subject (BR Case)</p>
+                    <p className="text-sm text-th-text-tertiary">Subject</p>
                     <p className="mt-1 text-sm font-medium text-th-text">{report.draft_subject}</p>
                   </div>
                 )}

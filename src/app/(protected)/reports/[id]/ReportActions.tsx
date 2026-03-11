@@ -195,6 +195,24 @@ export const ReportActions = ({
     }
   }
 
+  const handleClone = async () => {
+    setLoading('clone')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/clone`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Clone failed')
+      }
+      const { data } = await res.json()
+      addToast({ type: 'success', title: 'Cloned', message: 'New draft created from this case.' })
+      router.push(`/reports/${data.id}`)
+    } catch (e) {
+      addToast({ type: 'error', title: 'Clone failed', message: e instanceof Error ? e.message : 'Unknown error' })
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const handleDelete = async () => {
     setLoading('delete')
     try {
@@ -340,6 +358,18 @@ export const ReportActions = ({
               BR 재신고
             </Button>
           </div>
+        )}
+
+        {/* Clone as New — for submitted/monitoring/resolved/unresolved/archived */}
+        {['submitted', 'monitoring', 'resolved', 'unresolved', 'archived'].includes(status) && (
+          <Button
+            variant="outline"
+            size="sm"
+            loading={loading === 'clone'}
+            onClick={handleClone}
+          >
+            Clone as New
+          </Button>
         )}
 
         {/* Delete */}

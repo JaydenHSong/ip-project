@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
@@ -13,6 +13,7 @@ import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import { MARKETPLACES, type MarketplaceCode } from '@/constants/marketplaces'
 import type { Role } from '@/types/users'
 import { useToast } from '@/hooks/useToast'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { Modal } from '@/components/ui/Modal'
 
 const FREQ_LABEL: Record<string, string> = {
@@ -56,6 +57,13 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
   const [deleting, setDeleting] = useState(false)
 
   const canDelete = userRole === 'owner' || userRole === 'admin'
+
+  // checkbox(40) + keyword(200) + marketplace(100) + frequency(100) + pages(70) + collected(90) + status(100) + createdBy(120) + date(100)
+  const defaultCampaignColWidths = useMemo(() => [40, 280, 130, 110, 80, 100, 110, 140, 110], [])
+  const { containerRef: campaignContainerRef, tableStyle: campaignTableStyle, getColStyle: getCampaignColStyle, getResizeHandleProps: getCampaignResizeProps } = useResizableColumns({
+    storageKey: 'campaigns',
+    defaultWidths: defaultCampaignColWidths,
+  })
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -208,8 +216,14 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
 
       {/* Desktop: table — single table with sticky header */}
       <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <table className="w-full text-left text-sm">
+        <div ref={campaignContainerRef} className="min-h-0 flex-1 overflow-auto">
+          <table className="table-fixed text-left text-sm" style={campaignTableStyle}>
+          <colgroup>
+            {canDelete && <col style={{ width: 40, minWidth: 40 }} />}
+            {defaultCampaignColWidths.slice(canDelete ? 0 : 1).map((_, i) => (
+              <col key={i} style={getCampaignColStyle(canDelete ? i : i + 1)} />
+            ))}
+          </colgroup>
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               {canDelete && (
@@ -222,14 +236,14 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                   />
                 </th>
               )}
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.keyword')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.marketplace')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.frequency')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.pages')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.collected')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.status')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.createdBy')}</th>
-              <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.created')}</th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.keyword')}<div {...getCampaignResizeProps(1)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.marketplace')}<div {...getCampaignResizeProps(2)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.frequency')}<div {...getCampaignResizeProps(3)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.pages')}<div {...getCampaignResizeProps(4)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.collected')}<div {...getCampaignResizeProps(5)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.status')}<div {...getCampaignResizeProps(6)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.createdBy')}<div {...getCampaignResizeProps(7)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('campaigns.created')}<div {...getCampaignResizeProps(8)} /></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">

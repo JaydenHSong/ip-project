@@ -9,6 +9,7 @@ import { ViolationBadge } from '@/components/ui/ViolationBadge'
 import { SortableHeader } from '@/components/ui/SortableHeader'
 import { TableFilters } from '@/components/ui/TableFilters'
 import { useSortableTable } from '@/hooks/useSortableTable'
+import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import type { ReportStatus } from '@/types/reports'
 import type { ViolationCode } from '@/constants/violations'
@@ -31,6 +32,7 @@ const getChannelCode = (marketplace: string | undefined): string => {
 
 type ReportRow = {
   id: string
+  report_number: number
   violation_type: string
   violation_category: string | null
   status: string
@@ -44,9 +46,13 @@ type CompletedReportsContentProps = {
   statusFilter: string
   userRole: Role
   ownerFilter: 'my' | 'all'
+  page: number
+  totalPages: number
+  totalCount: number
+  pageSize: number
 }
 
-export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter }: CompletedReportsContentProps) => {
+export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, page, totalPages, totalCount, pageSize }: CompletedReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
   const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
@@ -132,6 +138,15 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
 
   const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'date', direction: 'desc' }, getSortValue)
 
+  const defaultColWidths = useMemo(
+    () => canBulk ? [40, 56, 110, 65, 140, 150, 220, 110, 95, 95, 115] : [56, 110, 65, 140, 150, 220, 110, 95, 95, 115],
+    [canBulk],
+  )
+  const { containerRef, tableStyle, getColStyle, getResizeHandleProps } = useResizableColumns({
+    storageKey: canBulk ? 'reports-completed-v3' : 'reports-completed-v3-v',
+    defaultWidths: defaultColWidths,
+  })
+
   const STATUS_TABS = [
     { value: '', label: t('common.all') },
     { value: 'resolved', label: t('reports.tabs.resolved') },
@@ -142,7 +157,12 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
     <div className="flex flex-col gap-4 md:h-full md:gap-6">
       <div className="shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('reports.completedTitle')}</h1>
+          <h1 className="text-xl font-bold text-th-text md:text-2xl">
+            {t('reports.completedTitle')}
+            {totalCount > 0 && (
+              <span className="ml-2 text-base font-normal text-th-text-muted">({totalCount.toLocaleString()})</span>
+            )}
+          </h1>
           <OwnerToggle
             value={ownerFilter}
             onChange={(v) => {
@@ -226,8 +246,13 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
 
       {/* Desktop: table — single table with sticky header */}
       <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <table className="w-full text-left text-sm">
+        <div ref={containerRef} className="min-h-0 flex-1 overflow-auto">
+          <table className="table-fixed text-left text-sm" style={tableStyle}>
+          <colgroup>
+            {defaultColWidths.map((_, i) => (
+              <col key={i} style={getColStyle(i)} />
+            ))}
+          </colgroup>
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
               {canBulk && (
@@ -240,16 +265,18 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                   />
                 </th>
               )}
-              <th className="w-12 px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.</th>
-              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label="Channel" field="channel" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label="Last Updated" field="updated" currentSort={sort} onSort={toggleSort} />
-              <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort} />
+              {(() => { const o = canBulk ? 1 : 0; return (<>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(o)} /></th>
+              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 1)} /></SortableHeader>
+              <SortableHeader label="Channel" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 2)} /></SortableHeader>
+              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 3)} /></SortableHeader>
+              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 4)} /></SortableHeader>
+              <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 5)} /></SortableHeader>
+              <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 6)} /></SortableHeader>
+              <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 7)} /></SortableHeader>
+              <SortableHeader label="Last Updated" field="updated" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 8)} /></SortableHeader>
+              <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 9)} /></SortableHeader>
+              </>)})()}
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
@@ -280,7 +307,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                       />
                     </td>
                   )}
-                  <td className="px-4 py-3.5 text-xs text-th-text-muted">{idx + 1}</td>
+                  <td className="px-4 py-3.5 text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</td>
                   <td className="px-4 py-3.5">
                     <StatusBadge status={report.status as ReportStatus} type="report" />
                   </td>
@@ -307,7 +334,93 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         </div>
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <PaginationLink
+            page={page - 1}
+            disabled={page <= 1}
+            statusFilter={statusFilter}
+            ownerFilter={ownerFilter}
+            label="<"
+          />
+          {getPaginationRange(page, totalPages).map((p, i) =>
+            p === '...' ? (
+              <span key={`dot-${i}`} className="px-1 text-sm text-th-text-muted">...</span>
+            ) : (
+              <PaginationLink
+                key={p}
+                page={p as number}
+                statusFilter={statusFilter}
+                ownerFilter={ownerFilter}
+                label={String(p)}
+                active={p === page}
+              />
+            ),
+          )}
+          <PaginationLink
+            page={page + 1}
+            disabled={page >= totalPages}
+            statusFilter={statusFilter}
+            ownerFilter={ownerFilter}
+            label=">"
+          />
+        </div>
+      )}
+
       <ReportPreviewPanel reportId={previewReportId} onClose={() => setPreviewReportId(null)} userRole={userRole} />
     </div>
   )
+}
+
+const PaginationLink = ({ page, disabled, statusFilter, ownerFilter, label, active }: {
+  page: number
+  disabled?: boolean
+  statusFilter: string
+  ownerFilter: string
+  label: string
+  active?: boolean
+}) => {
+  const params = new URLSearchParams()
+  if (page > 1) params.set('page', String(page))
+  if (statusFilter) params.set('status', statusFilter)
+  if (ownerFilter) params.set('owner', ownerFilter)
+  const qs = params.toString()
+  const href = `/reports/completed${qs ? `?${qs}` : ''}`
+
+  if (disabled) {
+    return (
+      <span className="rounded-md px-3 py-1.5 text-sm text-th-text-muted/40">{label}</span>
+    )
+  }
+
+  return (
+    <Link
+      href={href}
+      className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+        active
+          ? 'bg-th-accent text-white'
+          : 'text-th-text-secondary hover:bg-th-bg-hover'
+      }`}
+    >
+      {label}
+    </Link>
+  )
+}
+
+const getPaginationRange = (current: number, total: number): (number | '...')[] => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+
+  const pages: (number | '...')[] = [1]
+
+  if (current > 3) pages.push('...')
+
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+
+  if (current < total - 2) pages.push('...')
+
+  pages.push(total)
+  return pages
 }

@@ -60,6 +60,7 @@ export const PATCH = withAuth(async (req) => {
     'violation_category', 'confirmed_violation_type',
     'resubmit_interval_days',
     'pd_followup_interval_days',
+    'admin_memo',
   ]
 
   const updates: Record<string, unknown> = {}
