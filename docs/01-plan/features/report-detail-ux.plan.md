@@ -1,6 +1,6 @@
 # Report Detail UX Improvements Planning Document
 
-> **Summary**: 리포트 디테일 페이지 UX 개선 — Clone 기능, BR Form Fields 레이아웃, Body 세이브 버그 수정
+> **Summary**: 리포트 UX 개선 — Clone, 레이아웃, Autosave 버그, 페이지네이션, report_number, 리사이즈 컬럼
 >
 > **Project**: Sentinel
 > **Author**: Claude
@@ -13,11 +13,14 @@
 
 ### 1.1 Purpose
 
-리포트 디테일 페이지에서 실운영에 필요한 기능 추가 및 UX 버그 수정:
+리포트 페이지 전반 UX 개선:
 - 완료된 케이스를 복사하여 새 케이스로 재신고하는 Clone 기능
 - BR Form Fields 레이아웃 재구성 (subject, body, URLs를 하나의 섹션으로)
 - 템플릿 로드 후 바디 세이브가 안 되는 버그 수정
 - UI 라벨 정리 (BR Case → BR Case ID)
+- 완료 리포트 서버사이드 페이지네이션 (26,000+ 건 대응)
+- report_number: DB 시퀀스 기반 고유 매칭 코드 (RPT-00001 형식, 프론트에서는 넘버만 표시)
+- 모든 테이블 컬럼 드래그 리사이즈 기능 (localStorage 저장, 컨테이너 auto-fit)
 
 ### 1.2 Background
 
@@ -39,6 +42,9 @@
 - [x] Approve 시 항상 현재 에디터 값 전송 (hasChanges 조건 제거)
 - [x] BR Case → BR Case ID 라벨 변경
 - [x] PD Report 완료 풀 배너 → 인라인 태그로 축소
+- [x] 완료 리포트 서버사이드 페이지네이션 (100건/페이지)
+- [x] report_number DB 시퀀스 + 전체 백필
+- [x] 모든 테이블 드래그 리사이즈 컬럼 (useResizableColumns 훅)
 
 ### 2.2 Out of Scope
 
@@ -63,6 +69,10 @@
 | FR-07 | Approve 시 항상 현재 에디터 값 전송 | High | Done |
 | FR-08 | BR Case 카드 제목을 BR Case ID로 변경 | Low | Done |
 | FR-09 | PD Report 완료 풀 배너를 인라인 태그로 변경 | Medium | Done |
+| FR-10 | 완료 리포트 서버사이드 페이지네이션 (count + range) | High | Done |
+| FR-11 | report_number: PostgreSQL 시퀀스 기반 고유 번호 부여 | High | Done |
+| FR-12 | 모든 테이블 컬럼 드래그 리사이즈 + localStorage 저장 | Medium | Done |
+| FR-13 | 테이블 첫 로드 시 컨테이너 100% auto-fit | Medium | Done |
 
 ---
 
@@ -87,6 +97,45 @@ POST /api/reports/:id/clone
 - Approve 직전 pending timer 취소 (`clearTimeout`)
 - `edited_draft_body`를 `hasChanges` 조건 없이 항상 전송
 
+### 4.4 Completed Reports 페이지네이션
+
+```
+Server Component에서 searchParams.page 파싱
+→ count query: supabase.from('reports').select('id', { count: 'exact', head: true })
+→ data query: .range(from, to) (PAGE_SIZE=100)
+→ CompletedReportsContent에 page, totalPages, totalCount, pageSize 전달
+→ PaginationLink 컴포넌트로 페이지 네비게이션
+```
+
+### 4.5 report_number
+
+```sql
+ALTER TABLE reports ADD COLUMN report_number INTEGER;
+CREATE SEQUENCE reports_report_number_seq;
+-- 기존 26,984건 백필 (created_at 순)
+ALTER TABLE reports ALTER COLUMN report_number SET DEFAULT nextval('reports_report_number_seq');
+CREATE UNIQUE INDEX idx_reports_report_number ON reports(report_number);
+```
+
+- 백엔드: `RPT-00001` 형식 (DB 식별용)
+- 프론트: `00001` 넘버만 표시, 헤더 `No.`
+
+### 4.6 리사이즈 테이블 컬럼
+
+```
+useResizableColumns 훅:
+  - containerRef: 컨테이너 너비 측정
+  - 첫 로드: defaultWidths를 컨테이너 비율로 스케일 → 100% 채움
+  - 드래그: 해당 컬럼만 px 단위 조정
+  - 저장: localStorage('col-widths:{key}')
+  - 더블클릭: 해당 컬럼 기본값 복원
+  - tableStyle: width = sum(widths) → 정확한 픽셀로 잡아서 반대쪽 안 움직임
+```
+
+적용 테이블 6개:
+- Reports Queue, Completed Reports, Archived Reports
+- Campaigns, Patents (IP Registry), Notices
+
 ---
 
 ## 5. Success Criteria
@@ -95,6 +144,10 @@ POST /api/reports/:id/clone
 - [x] BR Form Fields 섹션에 Subject, Body, URLs 한곳에 표시
 - [x] 템플릿 로드 → 바디 autosave 정상 동작
 - [x] `pnpm typecheck && pnpm build` 통과
+- [x] 완료 리포트 페이지네이션 동작 (26,000+ 건)
+- [x] report_number 프론트에서 넘버 표시
+- [x] 모든 테이블 드래그 리사이즈 정상 동작
+- [x] 첫 로드 시 테이블 컬럼 100% 채움
 
 ---
 
@@ -102,4 +155,5 @@ POST /api/reports/:id/clone
 
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
-| 1.0 | 2026-03-11 | Initial — 전체 구현 완료 | Claude |
+| 1.0 | 2026-03-11 | Initial — Clone, 레이아웃, autosave 버그 | Claude |
+| 2.0 | 2026-03-11 | 페이지네이션, report_number, 리사이즈 컬럼 추가 | Claude |

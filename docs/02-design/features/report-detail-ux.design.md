@@ -1,6 +1,6 @@
 # Report Detail UX Improvements — Design
 
-> **Feature**: Clone 기능, BR Form Fields 레이아웃, Body 세이브 버그, PD Reported 태그
+> **Feature**: Clone, 레이아웃, Autosave 버그, 페이지네이션, report_number, 리사이즈 컬럼
 > **Plan**: [report-detail-ux.plan.md](../../01-plan/features/report-detail-ux.plan.md)
 > **Created**: 2026-03-11
 > **Status**: Completed
@@ -18,6 +18,9 @@
 | D5 | Autosave 버그 수정 | `ReportDetailContent.tsx` | 에러 복구 + approve 시 항상 body 전송 |
 | D6 | BR Case ID 라벨 | `ReportDetailContent.tsx` | BR Case → BR Case ID |
 | D7 | PD Reported 태그 | `ReportDetailContent.tsx` | 풀 배너 → 인라인 태그 (status badge 옆) |
+| D8 | 페이지네이션 | `completed/page.tsx`, `CompletedReportsContent.tsx` | 서버사이드 count+range, PaginationLink |
+| D9 | report_number | DB migration, `ReportsContent.tsx`, `CompletedReportsContent.tsx` | 시퀀스 기반 고유 번호 |
+| D10 | 리사이즈 컬럼 | `useResizableColumns.ts`, 6개 테이블 | 드래그 리사이즈 + localStorage + auto-fit |
 
 ---
 
@@ -146,15 +149,109 @@ After:  <h2>BR Case ID</h2>
 - 체크 아이콘 + "PD Reported" 텍스트
 - regular/embedded 헤더 모두 적용
 
+### D8: 완료 리포트 페이지네이션
+
+**Server Component** (`completed/page.tsx`):
+```typescript
+const PAGE_SIZE = 100
+
+// Count query (별도)
+let countQuery = supabase
+  .from('reports')
+  .select('id', { count: 'exact', head: true })
+  .in('status', statusFilter)
+
+// Data query with range
+.range(from, to)
+```
+
+**Client Component** (`CompletedReportsContent.tsx`):
+- Props: `page`, `totalPages`, `totalCount`, `pageSize`
+- 타이틀에 총 건수 표시: `Completed Reports (26,035)`
+- `PaginationLink` 컴포넌트: 이전/다음 + 페이지 번호 (최대 7개 표시)
+- `getPaginationRange` 헬퍼: 현재 페이지 중심으로 범위 계산
+
+### D9: report_number
+
+**DB 스키마**:
+```sql
+ALTER TABLE reports ADD COLUMN report_number INTEGER;
+CREATE SEQUENCE reports_report_number_seq;
+-- 기존 26,984건 백필 (created_at ASC 순서)
+WITH numbered AS (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY created_at ASC) AS rn FROM reports
+)
+UPDATE reports SET report_number = numbered.rn FROM numbered WHERE reports.id = numbered.id;
+ALTER TABLE reports ALTER COLUMN report_number SET DEFAULT nextval('reports_report_number_seq');
+ALTER TABLE reports ALTER COLUMN report_number SET NOT NULL;
+CREATE UNIQUE INDEX idx_reports_report_number ON reports(report_number);
+```
+
+**프론트 표시**:
+- 헤더: `No.` (Code 아님)
+- 값: `{String(report.report_number).padStart(5, '0')}` — 예: `00001`
+- `RPT-` 프리픽스는 백엔드 전용
+
+### D10: 리사이즈 테이블 컬럼
+
+**훅** (`src/hooks/useResizableColumns.ts`):
+```typescript
+useResizableColumns({
+  storageKey: string,        // localStorage 키
+  defaultWidths: number[],   // 기본 컬럼 너비 배열 (px)
+  minWidth?: number,         // 최소 너비 (기본 40px)
+})
+→ { containerRef, tableStyle, getColStyle, getResizeHandleProps, resetWidths }
+```
+
+**핵심 동작**:
+- `containerRef`: 스크롤 컨테이너 div에 부착 → 첫 로드 시 너비 측정
+- 첫 로드 (저장값 없음): `scaleToFit()` → 기본 비율 유지하며 컨테이너 100% 채움
+- 드래그: `handleMouseDown` → `mousemove` → `widths[index]` 업데이트
+- `tableStyle`: `width: sum(widths)` — 정확한 픽셀로 잡아 반대쪽 안 움직임
+- 저장: `localStorage.setItem('col-widths:{key}', JSON.stringify(widths))`
+- 더블클릭: 해당 컬럼을 현재 컨테이너 기준 기본 비율로 복원
+
+**리사이즈 핸들**:
+- 위치: `right: -3px` (컬럼 경계 중앙), `height: 200vh` (테이블 전체 높이)
+- 호버: `bg-th-accent/30` — 컬럼 전체 경계선이 빛남
+- 드래그 중: `cursor: col-resize`, `user-select: none`
+
+**SortableHeader 수정**:
+- `children` prop 추가 → 리사이즈 핸들을 children으로 전달
+- `className`에 `relative` 추가
+
+**적용 테이블 6개**:
+
+| 페이지 | storageKey | 파일 |
+|--------|-----------|------|
+| Reports Queue | `reports-queue-v3` | `ReportsContent.tsx` |
+| Completed Reports | `reports-completed-v3` | `CompletedReportsContent.tsx` |
+| Archived Reports | `reports-archived` | `ArchivedReportsContent.tsx` |
+| Campaigns | `campaigns` | `CampaignsContent.tsx` |
+| IP Registry | `patents` | `PatentsContent.tsx` |
+| Notices | `notices` | `NoticesContent.tsx` |
+
 ---
 
 ## 3. 수정 파일 목록
 
 ```
-src/app/api/reports/[id]/clone/route.ts     — NEW: Clone API
+src/hooks/useResizableColumns.ts              — NEW: 리사이즈 컬럼 훅
+src/app/api/reports/[id]/clone/route.ts        — NEW: Clone API
 src/app/(protected)/reports/[id]/
-  ReportActions.tsx                          — Clone 버튼 + handleClone
-  ReportDetailContent.tsx                    — 레이아웃 재구성, autosave 수정, BR Case ID
+  ReportActions.tsx                            — Clone 버튼 + handleClone
+  ReportDetailContent.tsx                      — 레이아웃 재구성, autosave 수정, BR Case ID
+src/app/(protected)/reports/
+  ReportsContent.tsx                           — report_number, 리사이즈 컬럼
+  completed/page.tsx                           — 서버사이드 페이지네이션
+  completed/CompletedReportsContent.tsx         — 페이지네이션 UI, report_number, 리사이즈
+  archived/ArchivedReportsContent.tsx           — 리사이즈 컬럼
+src/app/(protected)/campaigns/CampaignsContent.tsx  — 리사이즈 컬럼
+src/app/(protected)/patents/PatentsContent.tsx      — 리사이즈 컬럼
+src/app/(protected)/notices/NoticesContent.tsx       — 리사이즈 컬럼
+src/components/ui/Card.tsx                     — forwardRef 지원
+src/components/ui/SortableHeader.tsx            — children prop + relative
 ```
 
 ---
@@ -163,4 +260,5 @@ src/app/(protected)/reports/[id]/
 
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
-| 1.0 | 2026-03-11 | Initial — 전체 구현 완료 | Claude |
+| 1.0 | 2026-03-11 | Initial — Clone, 레이아웃, autosave 버그, PD 태그 | Claude |
+| 2.0 | 2026-03-11 | 페이지네이션, report_number, 리사이즈 컬럼 추가 | Claude |
