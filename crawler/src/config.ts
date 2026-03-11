@@ -15,6 +15,8 @@ type CrawlerConfig = {
   maxRetries: number
   screenshotWidth: number
   screenshotHeight: number
+  gotoTimeout: number
+  cdpConnectTimeout: number
   googleChatWebhookUrl: string | null
 }
 
@@ -46,6 +48,8 @@ const loadConfig = (): CrawlerConfig => {
     maxRetries: Number(optionalEnv('CRAWLER_MAX_RETRIES', '3')),
     screenshotWidth: 1280,
     screenshotHeight: 800,
+    gotoTimeout: Number(optionalEnv('CRAWLER_GOTO_TIMEOUT', '90000')),
+    cdpConnectTimeout: Number(optionalEnv('CRAWLER_CDP_CONNECT_TIMEOUT', '30000')),
     googleChatWebhookUrl: process.env['GOOGLE_CHAT_WEBHOOK_URL'] || null,
   }
 

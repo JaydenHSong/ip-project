@@ -63,25 +63,30 @@ const createJobProcessor = (
     let violationCount = 0
 
     try {
-      browser = await chromium.connectOverCDP(config.browserWs)
+      try {
+        browser = await chromium.connectOverCDP(config.browserWs, { timeout: config.cdpConnectTimeout })
+      } catch (cdpError) {
+        log('warn', 'jobs', `CDP connection failed, using local headless: ${cdpError instanceof Error ? cdpError.message : String(cdpError)}`, { campaignId })
+        browser = await chromium.launch({ headless: true })
+      }
 
       let context = await browser.newContext()
       let page = await context.newPage()
 
       // ─── 1: Home ───
-      const homeStatus = await navigateToHome(page, mp, persona, vision)
+      const homeStatus = await navigateToHome(page, mp, persona, vision, config.gotoTimeout)
       if (homeStatus === 'blocked') {
         await page.close()
         page = await context.newPage()
 
-        const retryHome = await navigateToHome(page, mp, persona, vision)
+        const retryHome = await navigateToHome(page, mp, persona, vision, config.gotoTimeout)
         if (retryHome === 'blocked') {
           throw new Error('CAPTCHA_DETECTED')
         }
       }
 
       // ─── 2: Search ───
-      await performSearch(page, keyword, persona, vision)
+      await performSearch(page, keyword, persona, vision, config.gotoTimeout)
 
       // ─── 3: Page loop (V2) ───
       for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
@@ -141,7 +146,7 @@ const createJobProcessor = (
                 const domain = MARKETPLACE_DOMAINS[mp]
                 await page.goto(`https://${domain}/dp/${result.asin}`, {
                   waitUntil: 'domcontentloaded',
-                  timeout: 60_000,
+                  timeout: config.gotoTimeout,
                 })
               }
 
@@ -242,8 +247,8 @@ const createJobProcessor = (
                 await page.close()
                 page = await context.newPage()
 
-                await navigateToHome(page, mp, persona, vision)
-                await performSearch(page, keyword, persona, vision)
+                await navigateToHome(page, mp, persona, vision, config.gotoTimeout)
+                await performSearch(page, keyword, persona, vision, config.gotoTimeout)
 
                 log('warn', 'jobs', `CAPTCHA detected, retrying with fresh page (retry ${retryCount})`, {
                   campaignId,
@@ -261,8 +266,8 @@ const createJobProcessor = (
               try {
                 await page.goBack({ waitUntil: 'domcontentloaded', timeout: 10_000 })
               } catch {
-                await navigateToHome(page, mp, persona, vision)
-                await performSearch(page, keyword, persona, vision)
+                await navigateToHome(page, mp, persona, vision, config.gotoTimeout)
+                await performSearch(page, keyword, persona, vision, config.gotoTimeout)
               }
             }
           }
@@ -291,7 +296,7 @@ const createJobProcessor = (
 
           // Next page
           if (pageNum < maxPages) {
-            const hasNext = await goToNextPage(page, persona, vision)
+            const hasNext = await goToNextPage(page, persona, vision, config.gotoTimeout)
             if (!hasNext) {
               log('info', 'jobs', `No more pages after page ${pageNum}`, { campaignId })
               break

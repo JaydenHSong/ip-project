@@ -14,16 +14,19 @@ const SEARCH_BUTTON_SELECTOR = '#nav-search-submit-button'
 
 // ─── 홈페이지 접속 + AI 상태 확인 ───
 
+const DEFAULT_GOTO_TIMEOUT = 90_000
+
 const navigateToHome = async (
   page: Page,
   marketplace: Marketplace,
   persona: CrawlPersona,
   vision: VisionAnalyzer | null,
+  gotoTimeout = DEFAULT_GOTO_TIMEOUT,
 ): Promise<'ok' | 'blocked'> => {
   const domain = MARKETPLACE_DOMAINS[marketplace]
   log('info', 'search-page', `Navigating to Amazon homepage: ${domain}`)
 
-  await page.goto(`https://${domain}`, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+  await page.goto(`https://${domain}`, { waitUntil: 'domcontentloaded', timeout: gotoTimeout })
 
   // 쿠키 배너 처리 (있으면 수락)
   try {
@@ -64,6 +67,7 @@ const performSearch = async (
   keyword: string,
   persona: CrawlPersona,
   vision: VisionAnalyzer | null,
+  gotoTimeout = DEFAULT_GOTO_TIMEOUT,
 ): Promise<void> => {
   // 1차: CSS 셀렉터로 검색창 찾기
   let searchBar = await page.$(SEARCH_BAR_SELECTOR)
@@ -86,7 +90,7 @@ const performSearch = async (
         // 클릭 후 직접 타이핑
         await humanBehavior.typeWithPersona(page, ':focus', keyword, persona.typing)
         await page.keyboard.press('Enter')
-        await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
+        await page.waitForLoadState('domcontentloaded', { timeout: gotoTimeout })
         return
       }
     }
@@ -94,7 +98,7 @@ const performSearch = async (
     // AI로도 못 찾으면 URL 이동 (최후 수단)
     log('warn', 'search-page', 'AI could not find search bar, falling back to URL navigation')
     const url = buildSearchUrl(page.url().includes('amazon') ? page.url().split('/')[2]! : 'www.amazon.com', keyword, 1)
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: gotoTimeout })
     return
   }
 
@@ -103,7 +107,7 @@ const performSearch = async (
     log('warn', 'search-page', 'Search bar not found, falling back to URL navigation')
     const domain = new URL(page.url()).hostname
     const url = buildSearchUrl(domain, keyword, 1)
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 })
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: gotoTimeout })
     return
   }
 
@@ -133,7 +137,7 @@ const performSearch = async (
     }
   }
 
-  await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
+  await page.waitForLoadState('domcontentloaded', { timeout: gotoTimeout })
 }
 
 // ─── 검색 URL 생성 (fallback용) ───
@@ -320,6 +324,7 @@ const goToNextPage = async (
   page: Page,
   persona: CrawlPersona,
   vision: VisionAnalyzer | null,
+  gotoTimeout = DEFAULT_GOTO_TIMEOUT,
 ): Promise<boolean> => {
   // 1차: CSS 셀렉터로 Next 버튼 찾기
   const nextButton = await page.$(SEARCH_SELECTORS.nextPage)
@@ -339,7 +344,7 @@ const goToNextPage = async (
     await humanBehavior.moveMouse(page, SEARCH_SELECTORS.nextPage)
     await humanBehavior.delay(200, 500)
     await nextButton.click()
-    await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
+    await page.waitForLoadState('domcontentloaded', { timeout: gotoTimeout })
     return true
   }
 
@@ -357,7 +362,7 @@ const goToNextPage = async (
         await humanBehavior.moveMouseToCoords(page, x, y)
         await humanBehavior.delay(200, 500)
         await page.mouse.click(x, y)
-        await page.waitForLoadState('domcontentloaded', { timeout: 60_000 })
+        await page.waitForLoadState('domcontentloaded', { timeout: gotoTimeout })
         return true
       }
     }

@@ -59,6 +59,19 @@ const syncCampaigns = async (
       }
     }
 
+    // Redis orphan repeatable job 정리 — 크롤러 재시작 시 in-memory Map이 초기화되어
+    // registeredCampaigns에 없는 잡이 Redis에 남아 영원히 실행되는 문제 방지
+    const repeatableJobs = await queue.getRepeatableJobs()
+    for (const job of repeatableJobs) {
+      const match = job.id?.match(/^campaign-(.+)$/)
+      if (!match) continue
+      const campaignId = match[1]!
+      if (!activeCampaignIds.has(campaignId)) {
+        await queue.removeRepeatableByKey(job.key)
+        log('warn', 'scheduler', `Removed orphan repeatable job: ${job.id} (campaign not in active list)`)
+      }
+    }
+
     log('info', 'scheduler', `Synced ${campaigns.length} active campaigns (${registeredCampaigns.size} jobs registered)`)
   } catch (error) {
     log('error', 'scheduler', `Failed to sync campaigns: ${error instanceof Error ? error.message : String(error)}`)
