@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { X, Pin } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { Badge } from '@/components/ui/Badge'
@@ -15,12 +16,17 @@ const CATEGORY_VARIANTS: Record<NoticeCategory, 'success' | 'info' | 'warning' |
 type NoticeDetailProps = {
   notice: Notice
   onClose: () => void
+  onRead?: (noticeId: string) => void
 }
 
-export const NoticeDetail = ({ notice, onClose }: NoticeDetailProps) => {
+export const NoticeDetail = ({ notice, onClose, onRead }: NoticeDetailProps) => {
   const { t } = useI18n()
 
   const tNotices = (key: string): string => t(`notices.${key}` as Parameters<typeof t>[0])
+
+  useEffect(() => {
+    onRead?.(notice.id)
+  }, [notice.id, onRead])
 
   return (
     <>

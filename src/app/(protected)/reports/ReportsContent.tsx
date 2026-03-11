@@ -58,6 +58,7 @@ type ReportRow = {
 type ReportsContentProps = {
   reports: ReportRow[] | null
   totalPages: number
+  totalCount: number
   page: number
   statusFilter: string
   categoryFilter: ViolationCategory | ''
@@ -69,6 +70,7 @@ type ReportsContentProps = {
 export const ReportsContent = ({
   reports,
   totalPages,
+  totalCount,
   page,
   statusFilter,
   categoryFilter,
@@ -387,6 +389,17 @@ export const ReportsContent = ({
                         paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
                       />
                     )}
+                    {report.br_case_id && report.br_case_id !== 'submitted' && (
+                      <a
+                        href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-[10px] text-th-accent"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        BR#{report.br_case_id}
+                      </a>
+                    )}
                     {report.br_case_status && (
                       <StatusBadge status={report.br_case_status as Parameters<typeof StatusBadge>[0]['status']} type="br_case" size="sm" />
                     )}
@@ -465,9 +478,22 @@ export const ReportsContent = ({
                       onChange={() => handleToggleSelect(report.id)}
                     />
                   </td>
-                  <td className="px-4 py-3.5 text-xs text-th-text-muted">{(page - 1) * 20 + idx + 1}</td>
+                  <td className="px-4 py-3.5 text-xs text-th-text-muted">{totalCount - ((page - 1) * 20 + idx)}</td>
                   <td className="px-4 py-3.5">
-                    <StatusBadge status={report.status as ReportStatus} type="report" />
+                    <div className="flex flex-col gap-1">
+                      <StatusBadge status={report.status as ReportStatus} type="report" />
+                      {report.br_case_id && report.br_case_id !== 'submitted' && (
+                        <a
+                          href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-[10px] text-th-accent hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          BR#{report.br_case_id}
+                        </a>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">

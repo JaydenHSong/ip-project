@@ -18,10 +18,21 @@ export const NoticeDropdown = () => {
   const [open, setOpen] = useState(false)
   const [notices, setNotices] = useState<Notice[]>([])
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
 
   const [now] = useState(() => Date.now())
   const tNotices = (key: string): string => t(`notices.${key}` as Parameters<typeof t>[0])
+
+  // Fetch unread count on mount
+  useEffect(() => {
+    fetch('/api/notices/unread')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.count) setUnreadCount(data.count)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -56,9 +67,19 @@ export const NoticeDropdown = () => {
     return `${weeks}w`
   }
 
+  const markAsRead = useCallback(async (noticeId: string) => {
+    try {
+      await fetch(`/api/notices/${noticeId}/read`, { method: 'POST' })
+      setUnreadCount((prev) => Math.max(0, prev - 1))
+    } catch {
+      // silent
+    }
+  }, [])
+
   const handleNoticeClick = (notice: Notice) => {
     setOpen(false)
     setSelectedNotice(notice)
+    markAsRead(notice.id)
   }
 
   return (
@@ -67,11 +88,16 @@ export const NoticeDropdown = () => {
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
-          className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
+          className="relative flex h-9 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-th-text-tertiary hover:bg-th-bg-hover hover:text-th-text-secondary"
           title={tNotices('title')}
         >
           <Megaphone className="h-4 w-4" />
           <span className="hidden text-xs font-medium sm:block">{t('nav.notices')}</span>
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
 
         {open && (
@@ -101,7 +127,7 @@ export const NoticeDropdown = () => {
             {hasPrev && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setSelectedNotice(notices[currentIdx - 1]) }}
+                onClick={(e) => { e.stopPropagation(); const prev = notices[currentIdx - 1]; setSelectedNotice(prev); markAsRead(prev.id) }}
                 className="absolute left-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-th-border bg-surface-card/90 text-th-text-muted shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-surface-card hover:text-th-text md:left-8"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -156,7 +182,7 @@ export const NoticeDropdown = () => {
                       <button
                         key={notices[i].id}
                         type="button"
-                        onClick={() => setSelectedNotice(notices[i])}
+                        onClick={() => { setSelectedNotice(notices[i]); markAsRead(notices[i].id) }}
                         className={`h-1.5 rounded-full transition-all ${i === currentIdx ? `w-4 ${style.dot}` : 'w-1.5 bg-th-text-muted/30 hover:bg-th-text-muted/50'}`}
                       />
                     ))}
@@ -169,7 +195,7 @@ export const NoticeDropdown = () => {
             {hasNext && (
               <button
                 type="button"
-                onClick={(e) => { e.stopPropagation(); setSelectedNotice(notices[currentIdx + 1]) }}
+                onClick={(e) => { e.stopPropagation(); const next = notices[currentIdx + 1]; setSelectedNotice(next); markAsRead(next.id) }}
                 className="absolute right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-th-border bg-surface-card/90 text-th-text-muted shadow-xl backdrop-blur-md transition-all hover:scale-110 hover:bg-surface-card hover:text-th-text md:right-8"
               >
                 <ChevronRight className="h-5 w-5" />

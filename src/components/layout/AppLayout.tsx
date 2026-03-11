@@ -7,6 +7,7 @@ import { MobileTabBar } from './MobileTabBar'
 import { initTheme } from '@/lib/theme'
 import { I18nProvider } from '@/lib/i18n/context'
 import { ToastProvider } from '@/components/providers/ToastProvider'
+import { UnreadNoticePopup } from '@/components/features/UnreadNoticePopup'
 import type { User } from '@/types/users'
 
 type AppLayoutProps = {
@@ -50,6 +51,7 @@ export const AppLayout = ({ user, children }: AppLayoutProps) => {
         </div>
         {/* Mobile tab bar */}
         <MobileTabBar userRole={user.role} />
+        <UnreadNoticePopup />
       </div>
     </ToastProvider>
     </I18nProvider>

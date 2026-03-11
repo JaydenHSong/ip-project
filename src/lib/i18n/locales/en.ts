@@ -350,6 +350,23 @@ export const en = {
       notice: 'Notice',
       system: 'System',
     },
+    unreadPopup: {
+      title: 'Unread Notices',
+      confirm: 'Confirm',
+      later: 'Later',
+      counter: '{current} / {total}',
+    },
+    search: 'Search notices...',
+    sortNewest: 'Newest first',
+    sortOldest: 'Oldest first',
+    dateFilter: 'Date range',
+    datePresets: {
+      all: 'All time',
+      today: 'Today',
+      week: 'This week',
+      month: 'This month',
+    },
+    unread: 'Unread',
   },
   settings: {
     monitoring: {

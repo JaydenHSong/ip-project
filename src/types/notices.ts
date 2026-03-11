@@ -19,3 +19,10 @@ export type CreateNoticePayload = {
   content: string
   is_pinned?: boolean
 }
+
+export type NoticeRead = {
+  id: string
+  user_id: string
+  notice_id: string
+  read_at: string
+}

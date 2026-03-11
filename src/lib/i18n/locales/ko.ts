@@ -350,6 +350,23 @@ export const ko = {
       notice: '일반',
       system: '시스템',
     },
+    unreadPopup: {
+      title: '미확인 공지',
+      confirm: '확인',
+      later: '나중에',
+      counter: '{current} / {total}',
+    },
+    search: '공지 검색...',
+    sortNewest: '최신순',
+    sortOldest: '오래된순',
+    dateFilter: '기간',
+    datePresets: {
+      all: '전체',
+      today: '오늘',
+      week: '이번주',
+      month: '이번달',
+    },
+    unread: '미확인',
   },
   settings: {
     monitoring: {

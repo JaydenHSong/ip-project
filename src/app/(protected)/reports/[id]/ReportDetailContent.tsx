@@ -612,85 +612,96 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </div>
       )}
 
-      {/* BR Case + Case Chain — side-by-side on desktop */}
-      {report.br_case_id && (
+      {/* BR Case + Related Reports — side-by-side on desktop */}
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-th-text">BR Case</h2>
-                {report.br_case_status && (
-                  <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-2 gap-4">
-                <div>
-                  <dt className="text-xs text-th-text-tertiary">Case ID</dt>
-                  <dd className="mt-1 font-mono text-sm font-medium text-th-text">{report.br_case_id}</dd>
-                </div>
-                {report.br_sla_deadline_at && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">SLA</dt>
-                    <dd className="mt-1">
-                      <SlaBadge
-                        deadline={report.br_sla_deadline_at}
-                        paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
-                      />
-                    </dd>
-                  </div>
-                )}
-                {report.br_submitted_at && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">Submitted</dt>
-                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
-                  </div>
-                )}
-                {report.br_last_amazon_reply_at && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">Last Amazon Reply</dt>
-                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
-                  </div>
-                )}
-                {report.br_last_our_reply_at && (
-                  <div>
-                    <dt className="text-xs text-th-text-tertiary">Last Our Reply</dt>
-                    <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_our_reply_at).toLocaleString()}</dd>
-                  </div>
-                )}
-              </dl>
-            </CardContent>
-          </Card>
-
-          {relatedData && (relatedData.parent_chain.length > 0 || relatedData.children.length > 0) && (
             <Card>
               <CardHeader>
-                <h2 className="font-semibold text-th-text">Case Chain</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-semibold text-th-text">BR Case</h2>
+                  {report.br_case_status ? (
+                    <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
+                  ) : (
+                    <span className="rounded-full bg-th-bg-secondary px-2.5 py-1 text-xs font-medium text-th-text-muted">Not submitted</span>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <CaseChain
-                  currentId={report.id}
-                  parentChain={relatedData.parent_chain}
-                  children={relatedData.children}
-                />
+                {report.br_case_status ? (
+                <dl className="grid grid-cols-2 gap-4">
+                  <div>
+                    <dt className="text-xs text-th-text-tertiary">Case ID</dt>
+                    <dd className="mt-1 font-mono text-sm font-medium text-th-text">
+                      {report.br_case_id && report.br_case_id !== 'submitted' ? (
+                        <a
+                          href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-th-accent hover:underline"
+                        >
+                          {report.br_case_id}
+                        </a>
+                      ) : (
+                        <span className="text-th-text-muted">Pending</span>
+                      )}
+                    </dd>
+                  </div>
+                  {report.br_sla_deadline_at && (
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">SLA</dt>
+                      <dd className="mt-1">
+                        <SlaBadge
+                          deadline={report.br_sla_deadline_at}
+                          paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
+                        />
+                      </dd>
+                    </div>
+                  )}
+                  {report.br_submitted_at && (
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">Submitted</dt>
+                      <dd className="mt-1 text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {report.br_last_amazon_reply_at && (
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">Last Amazon Reply</dt>
+                      <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {report.br_last_our_reply_at && (
+                    <div>
+                      <dt className="text-xs text-th-text-tertiary">Last Our Reply</dt>
+                      <dd className="mt-1 text-sm text-th-text">{new Date(report.br_last_our_reply_at).toLocaleString()}</dd>
+                    </div>
+                  )}
+                </dl>
+                ) : (
+                  <p className="text-sm text-th-text-muted">BR case has not been submitted yet. Approve the report to submit.</p>
+                )}
+                {relatedData && (relatedData.parent_chain.length > 0 || relatedData.children.length > 0) && (
+                  <div className="mt-4 border-t border-th-border pt-4">
+                    <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">Case Chain</h3>
+                    <CaseChain
+                      currentId={report.id}
+                      parentChain={relatedData.parent_chain}
+                      children={relatedData.children}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+          {relatedData && relatedData.same_listing.length > 0 && (
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-th-text">Related Reports</h2>
+              </CardHeader>
+              <CardContent>
+                <RelatedReports reports={relatedData.same_listing} currentReportId={report.id} onNavigate={onNavigate} />
               </CardContent>
             </Card>
           )}
         </div>
-      )}
-
-      {/* Related Reports (R07) */}
-      {relatedData && relatedData.same_listing.length > 0 && (
-        <Card>
-          <CardHeader>
-            <h2 className="font-semibold text-th-text">Related Reports</h2>
-          </CardHeader>
-          <CardContent>
-            <RelatedReports reports={relatedData.same_listing} currentReportId={report.id} onNavigate={onNavigate} />
-          </CardContent>
-        </Card>
-      )}
 
       {/* Violation Info + Listing — side-by-side on desktop */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -1535,7 +1546,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       )}
 
       {/* Case Thread (R03) + Activity Log (R05) */}
-      {report.br_case_id && (
+      {report.br_case_status && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-1 rounded-lg bg-th-bg-secondary p-0.5">

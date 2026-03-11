@@ -39,6 +39,7 @@ const ReportsPage = async ({
 
   let reports: typeof DEMO_REPORTS | null = null
   let totalPages = 1
+  let totalCount = 0
 
   if (isDemoMode()) {
     let filtered = [...DEMO_REPORTS]
@@ -48,6 +49,7 @@ const ReportsPage = async ({
     if (params.disagreement === 'true') filtered = filtered.filter((r) => r.disagreement_flag)
     reports = filtered
     totalPages = 1
+    totalCount = filtered.length
   } else {
     const offset = (page - 1) * limit
     const supabase = await createClient()
@@ -104,6 +106,7 @@ const ReportsPage = async ({
       return r
     }) as typeof DEMO_REPORTS | null
     totalPages = Math.ceil((count ?? 0) / limit)
+    totalCount = count ?? 0
   }
 
   const effectiveOwner = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
@@ -112,6 +115,7 @@ const ReportsPage = async ({
     <ReportsContent
       reports={reports as Parameters<typeof ReportsContent>[0]['reports']}
       totalPages={totalPages}
+      totalCount={totalCount}
       page={page}
       statusFilter={params.status ?? ''}
       categoryFilter={(params.category ?? '') as ViolationCategory | ''}

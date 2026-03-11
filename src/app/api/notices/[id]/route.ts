@@ -89,7 +89,7 @@ export const PUT = withAuth(async (req) => {
   }
 
   return NextResponse.json(data)
-}, ['owner', 'admin'])
+}, ['owner', 'admin', 'editor'])
 
 export const DELETE = withAuth(async (req) => {
   const id = req.nextUrl.pathname.split('/').pop()
@@ -114,4 +114,4 @@ export const DELETE = withAuth(async (req) => {
   }
 
   return new NextResponse(null, { status: 204 })
-}, ['owner', 'admin'])
+}, ['owner', 'admin', 'editor'])

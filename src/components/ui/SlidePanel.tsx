@@ -10,8 +10,8 @@ const SIZE_CLASSES: Record<SlidePanelSize, string> = {
   sm: 'max-w-md',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
-  xl: 'max-w-[58vw]',
-  '2xl': 'max-w-[65vw]',
+  xl: 'max-w-[52vw]',
+  '2xl': 'max-w-[59vw]',
 }
 
 type SlidePanelProps = {

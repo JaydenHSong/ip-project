@@ -337,7 +337,7 @@ const submitBrForm = async (frame: Frame): Promise<string | null> => {
     const body = document.body?.textContent || ''
     const match = body.match(/case\s*(?:id|#|number)[:\s]*(\d{5,})/i)
     if (match) return match[1]
-    if (body.includes('Thank you') || body.includes('submitted')) return 'submitted'
+    if (body.includes('Thank you') || body.includes('submitted')) return null
     return null
   }).catch(() => null)
 

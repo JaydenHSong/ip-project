@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Pin, MoreHorizontal, Pencil, Trash2, Plus } from 'lucide-react'
+import { Pin, MoreHorizontal, Pencil, Trash2, Plus, Search, ArrowUpDown, Calendar } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { Badge } from '@/components/ui/Badge'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -26,9 +26,34 @@ type NoticesContentProps = {
   page: number
   categoryFilter: string
   userRole: Role
+  readNoticeIds: string[]
+  searchQuery: string
+  sortOrder: string
+  dateFrom: string
+  dateTo: string
 }
 
-export const NoticesContent = ({ notices, totalPages, page, categoryFilter, userRole }: NoticesContentProps) => {
+const buildUrl = (params: Record<string, string>): string => {
+  const sp = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v) sp.set(k, v)
+  }
+  const qs = sp.toString()
+  return `/notices${qs ? `?${qs}` : ''}`
+}
+
+export const NoticesContent = ({
+  notices,
+  totalPages,
+  page,
+  categoryFilter,
+  userRole,
+  readNoticeIds,
+  searchQuery,
+  sortOrder,
+  dateFrom,
+  dateTo,
+}: NoticesContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
   const [showForm, setShowForm] = useState(false)
@@ -36,12 +61,64 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
   const [detailNotice, setDetailNotice] = useState<Notice | null>(null)
   const [actionMenuId, setActionMenuId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [localReadIds, setLocalReadIds] = useState<Set<string>>(new Set(readNoticeIds))
+  const [searchInput, setSearchInput] = useState(searchQuery)
+  const [showDateFilter, setShowDateFilter] = useState(false)
 
   const canCreate = userRole === 'owner' || userRole === 'admin' || userRole === 'editor'
-  const canManage = userRole === 'owner' || userRole === 'admin'
+  const canManage = userRole === 'owner' || userRole === 'admin' || userRole === 'editor'
 
   const [now] = useState(() => Date.now())
   const tNotices = (key: string): string => t(`notices.${key}` as Parameters<typeof t>[0])
+
+  const isRead = (id: string): boolean => localReadIds.has(id)
+
+  const baseParams = (): Record<string, string> => {
+    const p: Record<string, string> = {}
+    if (categoryFilter) p.category = categoryFilter
+    if (searchQuery) p.search = searchQuery
+    if (sortOrder && sortOrder !== 'desc') p.sort = sortOrder
+    if (dateFrom) p.from = dateFrom
+    if (dateTo) p.to = dateTo
+    return p
+  }
+
+  const handleSearch = () => {
+    const p = baseParams()
+    if (searchInput.trim()) p.search = searchInput.trim()
+    else delete p.search
+    delete p.page
+    router.push(buildUrl(p))
+  }
+
+  const handleSort = () => {
+    const p = baseParams()
+    p.sort = sortOrder === 'asc' ? 'desc' : 'asc'
+    delete p.page
+    router.push(buildUrl(p))
+  }
+
+  const handleDatePreset = (preset: string) => {
+    const p = baseParams()
+    delete p.from
+    delete p.to
+    const today = new Date()
+    if (preset === 'today') {
+      p.from = today.toISOString().split('T')[0]
+      p.to = p.from
+    } else if (preset === 'week') {
+      const weekAgo = new Date(today)
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      p.from = weekAgo.toISOString().split('T')[0]
+    } else if (preset === 'month') {
+      const monthAgo = new Date(today)
+      monthAgo.setMonth(monthAgo.getMonth() - 1)
+      p.from = monthAgo.toISOString().split('T')[0]
+    }
+    delete p.page
+    setShowDateFilter(false)
+    router.push(buildUrl(p))
+  }
 
   const handleDelete = async (id: string) => {
     try {
@@ -60,6 +137,16 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
     setEditNotice(null)
     router.refresh()
   }
+
+  const handleRead = useCallback(async (noticeId: string) => {
+    if (localReadIds.has(noticeId)) return
+    setLocalReadIds((prev) => new Set(prev).add(noticeId))
+    try {
+      await fetch(`/api/notices/${noticeId}/read`, { method: 'POST' })
+    } catch {
+      // silent
+    }
+  }, [localReadIds])
 
   const formatTimeAgo = (dateStr: string): string => {
     const diff = now - new Date(dateStr).getTime()
@@ -93,7 +180,7 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
       {/* Category Tabs */}
       <ScrollTabs>
         <Link
-          href="/notices"
+          href={buildUrl({ ...baseParams(), category: '' })}
           className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${!categoryFilter ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
         >
           {t('common.all')}
@@ -101,13 +188,67 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
         {(['update', 'policy', 'notice', 'system'] as const).map((cat) => (
           <Link
             key={cat}
-            href={`/notices?category=${cat}`}
+            href={buildUrl({ ...baseParams(), category: cat })}
             className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${categoryFilter === cat ? 'bg-surface-card text-th-text shadow-sm' : 'text-th-text-muted hover:text-th-text-secondary'}`}
           >
             {tNotices(`categories.${cat}`)}
           </Link>
         ))}
       </ScrollTabs>
+
+      {/* Filter Bar */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-th-text-muted" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder={tNotices('search')}
+            className="w-full rounded-lg border border-th-border bg-surface-card py-2 pl-9 pr-3 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+          />
+        </div>
+
+        <div className="flex gap-2">
+          {/* Sort */}
+          <button
+            type="button"
+            onClick={handleSort}
+            className="flex items-center gap-1.5 rounded-lg border border-th-border bg-surface-card px-3 py-2 text-xs font-medium text-th-text-secondary hover:bg-th-bg-hover transition-colors"
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{sortOrder === 'asc' ? tNotices('sortOldest') : tNotices('sortNewest')}</span>
+          </button>
+
+          {/* Date filter */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowDateFilter((p) => !p)}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${dateFrom || dateTo ? 'border-th-accent bg-th-accent/5 text-th-accent' : 'border-th-border bg-surface-card text-th-text-secondary hover:bg-th-bg-hover'}`}
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{tNotices('dateFilter')}</span>
+            </button>
+            {showDateFilter && (
+              <div className="absolute right-0 top-10 z-20 w-36 rounded-lg border border-th-border bg-surface-card py-1 shadow-lg">
+                {(['all', 'today', 'week', 'month'] as const).map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => handleDatePreset(preset)}
+                    className="block w-full px-3 py-2 text-left text-xs text-th-text-secondary hover:bg-th-bg-hover"
+                  >
+                    {tNotices(`datePresets.${preset}`)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Mobile: Card List */}
       <div className="space-y-3 md:hidden">
@@ -120,10 +261,13 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
             <div
               key={notice.id}
               className="cursor-pointer rounded-xl border border-th-border bg-surface-card p-4 transition-colors hover:bg-th-bg-hover"
-              onClick={() => setDetailNotice(notice)}
+              onClick={() => { setDetailNotice(notice); handleRead(notice.id) }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
+                  {!isRead(notice.id) && (
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                  )}
                   {notice.is_pinned && <Pin className="h-3.5 w-3.5 text-th-accent" />}
                   <Badge variant={CATEGORY_VARIANTS[notice.category]}>
                     {tNotices(`categories.${notice.category}`)}
@@ -131,7 +275,9 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
                 </div>
                 <span className="text-xs text-th-text-muted">{formatTimeAgo(notice.created_at)}</span>
               </div>
-              <p className="mt-2 text-sm font-medium text-th-text">{notice.title}</p>
+              <p className={`mt-2 text-sm text-th-text ${!isRead(notice.id) ? 'font-bold' : 'font-medium'}`}>
+                {notice.title}
+              </p>
               <p className="mt-1 text-xs text-th-text-secondary">
                 {notice.users?.name ?? tNotices('categories.system')}
               </p>
@@ -143,22 +289,38 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
       {/* Desktop: Table — pocket scroll */}
       <Card className="hidden min-h-0 flex-1 flex-col overflow-hidden md:flex">
         <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-          <table className="w-full shrink-0 text-left text-sm">
+          <table className="w-full shrink-0 table-fixed text-left text-sm">
+            <colgroup>
+              <col className="w-[48px]" />
+              <col />
+              <col className="w-[100px]" />
+              <col className="w-[120px]" />
+              <col className="w-[80px]" />
+              {canManage && <col className="w-[48px]" />}
+            </colgroup>
             <thead>
               <tr className="border-b border-th-border bg-th-bg-tertiary">
-                <th className="w-8 px-4 py-3" />
+                <th className="px-4 py-3" />
                 <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('reports.title')}</th>
                 <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{tNotices('category')}</th>
                 <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{tNotices('createdBy')}</th>
                 <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.date')}</th>
                 {canManage && (
-                  <th className="w-12 px-4 py-3" />
+                  <th className="px-4 py-3" />
                 )}
               </tr>
             </thead>
           </table>
           <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
-            <table className="w-full text-left text-sm">
+            <table className="w-full table-fixed text-left text-sm">
+            <colgroup>
+              <col className="w-[48px]" />
+              <col />
+              <col className="w-[100px]" />
+              <col className="w-[120px]" />
+              <col className="w-[80px]" />
+              {canManage && <col className="w-[48px]" />}
+            </colgroup>
             <tbody className="divide-y divide-th-border">
               {notices.length === 0 ? (
                 <tr>
@@ -171,12 +333,17 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
                   <tr
                     key={notice.id}
                     className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
-                    onClick={() => setDetailNotice(notice)}
+                    onClick={() => { setDetailNotice(notice); handleRead(notice.id) }}
                   >
                     <td className="px-4 py-3.5 text-center">
-                      {notice.is_pinned && <Pin className="inline-block h-3.5 w-3.5 text-th-accent" />}
+                      <div className="flex items-center justify-center gap-1">
+                        {!isRead(notice.id) && (
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                        )}
+                        {notice.is_pinned && <Pin className="inline-block h-3.5 w-3.5 text-th-accent" />}
+                      </div>
                     </td>
-                    <td className="max-w-xs truncate px-4 py-3 font-medium text-th-text">
+                    <td className={`max-w-xs truncate px-4 py-3 text-th-text ${!isRead(notice.id) ? 'font-bold' : 'font-medium'}`}>
                       {notice.title}
                     </td>
                     <td className="px-4 py-3.5">
@@ -250,7 +417,7 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
           {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
             <Link
               key={p}
-              href={`/notices?page=${p}${categoryFilter ? `&category=${categoryFilter}` : ''}`}
+              href={buildUrl({ ...baseParams(), page: String(p) })}
               className={`rounded-md px-3 py-1.5 text-sm ${p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'}`}
             >
               {p}
@@ -273,6 +440,7 @@ export const NoticesContent = ({ notices, totalPages, page, categoryFilter, user
         <NoticeDetail
           notice={detailNotice}
           onClose={() => setDetailNotice(null)}
+          onRead={handleRead}
         />
       )}
 
