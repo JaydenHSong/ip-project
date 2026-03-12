@@ -1056,7 +1056,15 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                   </label>
                   <select
                     value={brFormType}
-                    onChange={(e) => setBrFormType(e.target.value as BrFormTypeCode)}
+                    onChange={(e) => {
+                      const val = e.target.value as BrFormTypeCode
+                      setBrFormType(val)
+                      fetch(`/api/reports/${report.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ br_form_type: val }),
+                      })
+                    }}
                     className="flex-1 rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text"
                   >
                     {BR_FORM_TYPE_OPTIONS.map((opt) => (
