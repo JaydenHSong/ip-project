@@ -38,13 +38,15 @@ const startBrScheduler = (
 
         const jobId = `br-${report.id}`
 
-        // Prevent duplicate jobs
+        // Prevent duplicate jobs — remove stale completed/failed jobs first
         const existing = await queue.getJob(jobId)
         if (existing) {
           const state = await existing.getState()
           if (state === 'active' || state === 'waiting' || state === 'delayed') {
             continue
           }
+          // Remove completed/failed job so a new one can be queued
+          await existing.remove().catch(() => {})
         }
 
         const jobData: BrSubmitJobData = {
