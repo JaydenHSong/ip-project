@@ -7,6 +7,7 @@ import { CompletedReportsContent } from './CompletedReportsContent'
 
 const COMPLETED_STATUSES = ['submitted', 'monitoring', 'resolved', 'unresolved', 'resubmitted', 'escalated']
 const PAGE_SIZE = 100
+const ARCHIVED_SELECT = '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)'
 
 const CompletedReportsPage = async ({
   searchParams,
@@ -32,7 +33,8 @@ const CompletedReportsPage = async ({
 
     const ownerFilter = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
     const searchTerm = params.search?.trim()
-    const statusFilter = params.status ? [params.status] : COMPLETED_STATUSES
+    const isArchived = params.status === 'archived'
+    const statusFilter = isArchived ? ['archived'] : params.status ? [params.status] : COMPLETED_STATUSES
 
     // Count query
     let countQuery = supabase
@@ -62,10 +64,8 @@ const CompletedReportsPage = async ({
 
     let query = supabase
       .from('reports')
-      .select(
-        '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
-      )
-      .order('created_at', { ascending: false })
+      .select(ARCHIVED_SELECT)
+      .order(isArchived ? 'archived_at' : 'created_at', { ascending: false, nullsFirst: false })
       .range(from, to)
 
     if (searchTerm) {

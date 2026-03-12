@@ -19,6 +19,7 @@ import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 import { ReportPreviewPanel } from '@/components/features/ReportPreviewPanel'
 import { MARKETPLACES } from '@/constants/marketplaces'
+import { useToast } from '@/hooks/useToast'
 
 const DOMAIN_TO_CODE: Record<string, string> = Object.fromEntries(
   Object.values(MARKETPLACES).map((m) => [m.domain, m.code])
@@ -38,6 +39,8 @@ type ReportRow = {
   status: string
   created_at: string
   pd_case_id?: string | null
+  archived_at?: string | null
+  archive_reason?: string | null
   listings: { asin: string; title: string; marketplace: string; seller_name: string | null } | null
 }
 
@@ -56,9 +59,12 @@ type CompletedReportsContentProps = {
 export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, page, totalPages, totalCount, pageSize, searchQuery }: CompletedReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
+  const { addToast } = useToast()
   const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '', dateFrom: '', dateTo: '' })
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isSearching = searchQuery.length > 0
+  const isArchived = statusFilter === 'archived'
+  const [unarchiving, setUnarchiving] = useState<string | null>(null)
 
   const handleFiltersChange = useCallback((newFilters: TableFiltersType) => {
     setFilters(newFilters)
@@ -135,6 +141,22 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
     }
   }, [selectedIds, router])
 
+  const handleUnarchive = useCallback(async (reportId: string) => {
+    setUnarchiving(reportId)
+    try {
+      const res = await fetch(`/api/reports/${reportId}/unarchive`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Unarchive failed')
+      }
+      router.refresh()
+    } catch (e) {
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
+    } finally {
+      setUnarchiving(null)
+    }
+  }, [router, addToast])
+
   const getSearchableText = useCallback(
     (item: ReportRow) =>
       [item.report_number != null ? String(item.report_number).padStart(5, '0') : null, item.listings?.asin, item.listings?.title, item.listings?.seller_name, item.pd_case_id].filter(Boolean).join(' '),
@@ -157,18 +179,26 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       case 'date': return new Date(item.created_at).getTime()
       case 'updated': return row.updated_at ? new Date(row.updated_at as string).getTime() : null
       case 'resolved': return row.resolved_at ? new Date(row.resolved_at as string).getTime() : null
+      case 'reason': return item.archive_reason ?? null
+      case 'archived_at': return item.archived_at ? new Date(item.archived_at).getTime() : null
       default: return null
     }
   }, [])
 
   const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'date', direction: 'desc' }, getSortValue)
 
+  const canAct = userRole === 'owner' || userRole === 'admin' || userRole === 'editor'
+
   const defaultColWidths = useMemo(
-    () => canBulk ? [40, 56, 110, 65, 140, 150, 220, 110, 95, 95, 115] : [56, 110, 65, 140, 150, 220, 110, 95, 95, 115],
-    [canBulk],
+    () => isArchived
+      ? (canAct ? [160, 160, 350, 180, 140, 90] : [160, 160, 350, 180, 140])
+      : (canBulk ? [40, 56, 110, 65, 140, 150, 220, 110, 95, 95, 115] : [56, 110, 65, 140, 150, 220, 110, 95, 95, 115]),
+    [canBulk, isArchived, canAct],
   )
   const { containerRef, tableStyle, getColStyle, getResizeHandleProps } = useResizableColumns({
-    storageKey: canBulk ? 'reports-completed-v3' : 'reports-completed-v3-v',
+    storageKey: isArchived
+      ? 'reports-archived-v2'
+      : (canBulk ? 'reports-completed-v3' : 'reports-completed-v3-v'),
     defaultWidths: defaultColWidths,
   })
 
@@ -176,13 +206,14 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
     { value: '', label: t('common.all') },
     { value: 'resolved', label: t('reports.tabs.resolved') },
     { value: 'unresolved', label: t('reports.tabs.unresolved') },
+    { value: 'archived', label: t('reports.archivedTitle' as Parameters<typeof t>[0]) },
   ]
 
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       <div className="shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-th-text md:text-2xl">
+          <h1 className="text-2xl font-bold text-th-text md:text-3xl">
             {t('reports.completedTitle')}
             {totalCount > 0 && (
               <span className="ml-2 text-base font-normal text-th-text-muted">({totalCount.toLocaleString()})</span>
@@ -218,7 +249,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       <TableFilters filters={filters} onFiltersChange={handleFiltersChange} />
 
       {/* Bulk Actions Bar */}
-      {canBulk && selectedIds.size > 0 && (
+      {!isArchived && canBulk && selectedIds.size > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-th-border bg-surface-card px-4 py-2">
           <span className="text-sm font-medium text-th-text">{selectedIds.size}건 선택</span>
           <Button
@@ -247,8 +278,45 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
           <div className="rounded-xl border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
             {filters.search || filters.violationType || filters.marketplace
               ? t('table.noResults' as Parameters<typeof t>[0])
-              : t('reports.noCompleted')}
+              : isArchived
+                ? t('reports.noArchived' as Parameters<typeof t>[0])
+                : t('reports.noCompleted')}
           </div>
+        ) : isArchived ? (
+          sortedData.map((report) => (
+            <div
+              key={report.id}
+              className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover"
+              onClick={() => setPreviewReportId(report.id)}
+            >
+              <div className="flex items-start justify-between">
+                <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
+                <StatusBadge status={report.status as ReportStatus} type="report" />
+              </div>
+              <Link href={`/reports/${report.id}`}>
+                <p className="mt-2 font-mono text-sm text-th-text hover:text-th-accent-text">{report.listings?.asin ?? '—'}</p>
+              </Link>
+              <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
+              {report.archive_reason && (
+                <p className="mt-1 truncate text-xs text-th-text-muted">{report.archive_reason}</p>
+              )}
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-xs text-th-text-muted">
+                  {report.archived_at ? new Date(report.archived_at).toLocaleDateString('en-CA') : '—'}
+                </span>
+                {canAct && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    loading={unarchiving === report.id}
+                    onClick={(e) => { e.stopPropagation(); handleUnarchive(report.id) }}
+                  >
+                    {t('reports.detail.unarchive' as Parameters<typeof t>[0])}
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))
         ) : (
           sortedData.map((report) => (
             <Link key={report.id} href={`/reports/${report.id}`}>
@@ -280,41 +348,84 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
           </colgroup>
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
-              {canBulk && (
-                <th className="w-10 px-3 py-3">
-                  <input
-                    type="checkbox"
-                    className="rounded"
-                    checked={sortedData.length > 0 && sortedData.every((r) => selectedIds.has(r.id))}
-                    onChange={() => toggleAll(sortedData.map((r) => r.id))}
-                  />
-                </th>
-              )}
-              {(() => { const o = canBulk ? 1 : 0; return (<>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(o)} /></th>
-              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 1)} /></SortableHeader>
-              <SortableHeader label="Channel" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 2)} /></SortableHeader>
-              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 3)} /></SortableHeader>
-              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 4)} /></SortableHeader>
-              <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 5)} /></SortableHeader>
-              <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 6)} /></SortableHeader>
-              <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 7)} /></SortableHeader>
-              <SortableHeader label="Last Updated" field="updated" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 8)} /></SortableHeader>
-              <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 9)} /></SortableHeader>
-              </>)})()}
+              {isArchived ? (<>
+                <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(0)} /></SortableHeader>
+                <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(1)} /></SortableHeader>
+                <SortableHeader label={t('reports.title')} field="title" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(2)} /></SortableHeader>
+                <SortableHeader label={t('reports.detail.archiveReason' as Parameters<typeof t>[0])} field="reason" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(3)} /></SortableHeader>
+                <SortableHeader label={t('reports.detail.archivedAt' as Parameters<typeof t>[0])} field="archived_at" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(4)} /></SortableHeader>
+                {canAct && (
+                  <th className="px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.action')}</th>
+                )}
+              </>) : (<>
+                {canBulk && (
+                  <th className="w-10 px-3 py-3">
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={sortedData.length > 0 && sortedData.every((r) => selectedIds.has(r.id))}
+                      onChange={() => toggleAll(sortedData.map((r) => r.id))}
+                    />
+                  </th>
+                )}
+                {(() => { const o = canBulk ? 1 : 0; return (<>
+                <th className="relative px-4 py-3 text-sm font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(o)} /></th>
+                <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 1)} /></SortableHeader>
+                <SortableHeader label="Channel" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 2)} /></SortableHeader>
+                <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 3)} /></SortableHeader>
+                <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 4)} /></SortableHeader>
+                <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 5)} /></SortableHeader>
+                <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 6)} /></SortableHeader>
+                <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 7)} /></SortableHeader>
+                <SortableHeader label="Last Updated" field="updated" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 8)} /></SortableHeader>
+                <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 9)} /></SortableHeader>
+                </>)})()}
+              </>)}
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={canBulk ? 12 : 11} className="px-4 py-10 text-center text-sm text-th-text-muted">
+                <td colSpan={isArchived ? (canAct ? 6 : 5) : (canBulk ? 12 : 11)} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
-                    : t('reports.noCompleted')}
+                    : isArchived
+                      ? t('reports.noArchived' as Parameters<typeof t>[0])
+                      : t('reports.noCompleted')}
                 </td>
               </tr>
+            ) : isArchived ? (
+              sortedData.map((report) => (
+                <tr key={report.id} className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover" onClick={() => setPreviewReportId(report.id)}>
+                  <td className="px-4 py-3.5">
+                    <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <Link href={`/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text" onClick={(e) => e.stopPropagation()}>
+                      {report.listings?.asin ?? '—'}
+                    </Link>
+                  </td>
+                  <td className="max-w-xs truncate px-4 py-3 text-th-text-secondary">{report.listings?.title ?? '—'}</td>
+                  <td className="max-w-xs truncate px-4 py-3 text-th-text-muted">{report.archive_reason ?? '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">
+                    {report.archived_at ? new Date(report.archived_at).toLocaleDateString('en-CA') : '—'}
+                  </td>
+                  {canAct && (
+                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        loading={unarchiving === report.id}
+                        onClick={() => handleUnarchive(report.id)}
+                      >
+                        {t('reports.detail.unarchive' as Parameters<typeof t>[0])}
+                      </Button>
+                    </td>
+                  )}
+                </tr>
+              ))
             ) : (
-              sortedData.map((report, idx) => {
+              sortedData.map((report) => {
                 const row = report as ReportRow & Record<string, unknown>
                 return (
                 <tr

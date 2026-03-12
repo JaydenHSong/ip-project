@@ -288,7 +288,7 @@ export const ReportsContent = ({
       <div className="shrink-0 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('reports.queueTitle')}</h1>
+            <h1 className="truncate text-2xl font-bold text-th-text md:text-3xl">{t('reports.queueTitle')}</h1>
             <OwnerToggle
               value={ownerFilter}
               onChange={(v) => {
@@ -474,7 +474,7 @@ export const ReportsContent = ({
                   onChange={handleToggleSelectAll}
                 />
               </th>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(1)} /></th>
+              <th className="relative px-4 py-3 text-sm font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(1)} /></th>
               <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(2)} /></SortableHeader>
               <SortableHeader label="CH" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(3)} /></SortableHeader>
               <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(4)} /></SortableHeader>

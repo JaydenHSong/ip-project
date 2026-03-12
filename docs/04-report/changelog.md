@@ -4,6 +4,33 @@
 
 ---
 
+## [2026-03-12] - New Report Flow Redesign: ASIN 팝업 모달 도입
+
+### 요약
+New Report 플로우를 완전히 재설계. 전체 페이지 폼(`/reports/new`)을 가볍고 빠른 ASIN 팝업 모달로 대체. Extension이 ASIN으로 listing 정보를 자동 수집하고, 시간초과 시 수동 생성 폴백 제공. 설계-구현 일치율 96% (35/38 checks, 3 intentional variations), 첫 번도 완료.
+
+### Added
+- **NewReportModal 컴포넌트**: 3단계 (input → loading → timeout)
+- **POST /api/reports/create-from-asin**: Extension 큐 삽입 + 중복 체크
+- **GET /api/ext/fetch-status**: 1초 간격 폴링 (최대 10초)
+- **Modal URL 파라미터**: `/reports?new=1&asin=BXXXXXXXXX&marketplace=US`
+- **Campaign 링크 통합**: Campaign 상세 페이지에서 모달 자동 오픈
+
+### Changed
+- **/api/reports/manual**: `user_violation_type`, `violation_category` 선택 필드로 변경
+- **ReportsContent**: SlidePanel → NewReportModal로 전환
+- **fetch-status API**: 경로 파라미터 → 쿼리 파라미터 (`?id=xxx`)
+
+### Removed
+- **`/reports/new/` 전체 디렉토리**: NewReportForm 컴포넌트 삭제
+- **수동 입력 폼**: 모든 데이터는 detail 페이지에서 편집
+
+### Fixed
+- Extension 타임아웃 시 우아한 폴백 (수동 생성 버튼)
+- Campaign 링크 중단 (이제 모달 링크로 수정)
+
+---
+
 ## [2026-03-10] - Extension Violation Form Refactor: 6개 카테고리 구조 개편 완료
 
 ### 요약

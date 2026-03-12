@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-03-12T03:03:19.020Z",
+  "lastUpdated": "2026-03-12T17:59:53.120Z",
   "activeFeatures": [
     "ai-learning",
     "notifications",
@@ -171,7 +171,10 @@
     "read",
     "UnreadNoticePopup.tsx",
     "clone",
-    "save-draft"
+    "save-draft",
+    "create-from-asin",
+    "fetch-status",
+    "NewReportModal.tsx"
   ],
   "primaryFeature": "br-phase2",
   "features": {
@@ -403,10 +406,10 @@
       },
       "timestamps": {
         "started": "2026-03-02T06:25:27.974Z",
-        "lastUpdated": "2026-03-12T02:48:08.417Z",
+        "lastUpdated": "2026-03-12T17:49:29.383Z",
         "completedAt": "2026-03-02T00:00:00.000Z"
       },
-      "lastFile": "/Users/hoon/claude_local/ip-project/src/lib/reports/br-data.ts"
+      "lastFile": "/Users/hoon/claude_local/ip-project/src/app/(protected)/reports/ReportsContent.tsx"
     },
     "supabase-integration": {
       "phase": "archived",
@@ -438,7 +441,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-02T17:19:58.255Z",
-        "lastUpdated": "2026-03-11T19:59:47.468Z"
+        "lastUpdated": "2026-03-12T17:53:26.784Z"
       },
       "lastFile": "/Users/hoon/claude_local/ip-project/src/app/(protected)/campaigns/CampaignsContent.tsx"
     },
@@ -451,9 +454,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-02T17:26:41.832Z",
-        "lastUpdated": "2026-03-12T01:56:02.748Z"
+        "lastUpdated": "2026-03-12T17:53:19.634Z"
       },
-      "lastFile": "/Users/hoon/claude_local/ip-project/src/app/(protected)/reports/archived/page.tsx"
+      "lastFile": "/Users/hoon/claude_local/ip-project/src/app/(protected)/reports/archived/ArchivedReportsContent.tsx"
     },
     "ui": {
       "phase": "do",
@@ -464,7 +467,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-02T17:56:10.194Z",
-        "lastUpdated": "2026-03-12T01:37:11.055Z"
+        "lastUpdated": "2026-03-12T17:09:02.426Z"
       },
       "lastFile": "/Users/hoon/claude_local/ip-project/src/components/ui/TableFilters.tsx"
     },
@@ -536,9 +539,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-02T22:29:26.208Z",
-        "lastUpdated": "2026-03-12T03:00:59.474Z"
+        "lastUpdated": "2026-03-12T17:39:59.924Z"
       },
-      "lastFile": "/Users/hoon/claude_local/ip-project/src/app/api/reports/[id]/route.ts"
+      "lastFile": "/Users/hoon/claude_local/ip-project/src/app/(protected)/campaigns/[id]/CampaignDetailContent.tsx"
     },
     "IP project ": {
       "phase": "do",
@@ -784,7 +787,7 @@
       "phaseNumber": 3,
       "lastFile": "/Users/hoon/claude_local/ip-project/src/app/(protected)/patents/PatentsContent.tsx",
       "timestamps": {
-        "lastUpdated": "2026-03-11T19:17:59.752Z"
+        "lastUpdated": "2026-03-12T17:51:46.352Z"
       }
     },
     "completed": {
@@ -796,7 +799,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-03T03:46:36.998Z",
-        "lastUpdated": "2026-03-12T01:41:37.122Z"
+        "lastUpdated": "2026-03-12T17:59:53.120Z"
       },
       "lastFile": "/Users/hoon/claude_local/ip-project/src/app/(protected)/reports/completed/CompletedReportsContent.tsx"
     },
@@ -1123,9 +1126,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-04T10:27:32.710Z",
-        "lastUpdated": "2026-03-06T02:07:02.701Z"
+        "lastUpdated": "2026-03-12T17:31:03.729Z"
       },
-      "lastFile": "/Users/hoon/Library/Mobile Documents/com~apple~CloudDocs/Documents/Claude/code/IP project /src/app/api/reports/manual/route.ts"
+      "lastFile": "/Users/hoon/claude_local/ip-project/src/app/api/reports/manual/route.ts"
     },
     "audit-logs": {
       "phase": "do",
@@ -1526,7 +1529,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-05T00:46:35.866Z",
-        "lastUpdated": "2026-03-11T19:18:26.548Z"
+        "lastUpdated": "2026-03-12T17:53:24.077Z"
       },
       "lastFile": "/Users/hoon/claude_local/ip-project/src/app/(protected)/notices/NoticesContent.tsx"
     },
@@ -1538,6 +1541,62 @@
       "completedAt": "2026-03-11T18:00:00.000Z",
       "archivedAt": "2026-03-11T18:00:00.000Z",
       "archivedTo": "docs/archive/2026-03/notice-system/"
+    },
+    "new-report": {
+      "phase": "completed",
+      "matchRate": 96,
+      "iterationCount": 1,
+      "startedAt": "2026-03-12T00:00:00.000Z",
+      "completedAt": "2026-03-12T23:59:59.000Z",
+      "phaseNumber": 5,
+      "requirements": [
+        "ASIN + Marketplace popup modal",
+        "Extension fetch queue integration",
+        "10-second polling with timeout",
+        "Manual fallback creation",
+        "Delete /reports/new/ route",
+        "Campaign link URL params"
+      ],
+      "documents": {
+        "plan": "docs/01-plan/features/new-report.plan.md",
+        "design": "docs/02-design/features/new-report.design.md",
+        "analysis": "docs/03-analysis/new-report.analysis.md",
+        "report": "docs/04-report/features/new-report.report.md"
+      },
+      "timestamps": {
+        "started": "2026-03-12T00:00:00.000Z",
+        "lastUpdated": "2026-03-12T23:59:59.000Z",
+        "completedAt": "2026-03-12T23:59:59.000Z"
+      },
+      "history": [
+        {
+          "phase": "plan",
+          "action": "created",
+          "timestamp": "2026-03-12T00:00:00Z"
+        },
+        {
+          "phase": "design",
+          "action": "created",
+          "timestamp": "2026-03-12T00:00:00Z"
+        },
+        {
+          "phase": "do",
+          "action": "completed",
+          "timestamp": "2026-03-12T00:00:00Z"
+        },
+        {
+          "phase": "check",
+          "action": "completed",
+          "timestamp": "2026-03-12T00:00:00Z",
+          "note": "Gap analysis: 96% match (35 PASS, 3 WARN)"
+        },
+        {
+          "phase": "act",
+          "action": "completed",
+          "timestamp": "2026-03-12T23:59:59Z",
+          "note": "Completion report generated"
+        }
+      ]
     },
     "auth-status": {
       "phase": "do",
@@ -1927,9 +1986,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-03-06T18:42:28.346Z",
-        "lastUpdated": "2026-03-12T02:48:27.040Z"
+        "lastUpdated": "2026-03-12T17:30:16.107Z"
       },
-      "lastFile": "/Users/hoon/claude_local/ip-project/src/types/br-template.ts"
+      "lastFile": "/Users/hoon/claude_local/ip-project/src/types/api.ts"
     },
     "providers": {
       "phase": "do",
@@ -2541,6 +2600,45 @@
         "lastUpdated": "2026-03-12T03:03:19.020Z"
       },
       "lastFile": "/Users/hoon/claude_local/ip-project/src/app/api/reports/[id]/save-draft/route.ts"
+    },
+    "create-from-asin": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-12T17:29:50.356Z",
+        "lastUpdated": "2026-03-12T17:29:50.356Z"
+      },
+      "lastFile": "/Users/hoon/claude_local/ip-project/src/app/api/reports/create-from-asin/route.ts"
+    },
+    "fetch-status": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-12T17:29:54.103Z",
+        "lastUpdated": "2026-03-12T17:29:54.103Z"
+      },
+      "lastFile": "/Users/hoon/claude_local/ip-project/src/app/api/ext/fetch-status/route.ts"
+    },
+    "NewReportModal.tsx": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-03-12T17:31:42.623Z",
+        "lastUpdated": "2026-03-12T17:40:58.929Z"
+      },
+      "lastFile": "/Users/hoon/claude_local/ip-project/src/components/features/NewReportModal.tsx"
     }
   },
   "pipeline": {
@@ -2551,7 +2649,7 @@
   "session": {
     "startedAt": "2026-02-28T07:40:00.000Z",
     "onboardingCompleted": true,
-    "lastActivity": "2026-03-12T03:03:19.020Z"
+    "lastActivity": "2026-03-12T17:59:53.120Z"
   },
   "history": [
     {
@@ -21047,6 +21145,546 @@
     {
       "timestamp": "2026-03-12T03:03:19.020Z",
       "feature": "save-draft",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:11:28.161Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:11:36.187Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:21:11.438Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:25:38.166Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:25:54.014Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:27:55.883Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:28:00.408Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:28:08.691Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:28:16.689Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:28:36.088Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:28:44.404Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:28:57.968Z",
+      "feature": "archived",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:29:02.255Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T16:29:06.025Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:00:53.469Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:01:06.273Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:02:59.274Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:03:14.432Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:04:58.328Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:05:05.121Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:08:01.885Z",
+      "feature": "ip-project",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:08:13.553Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:08:23.596Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:08:32.123Z",
+      "feature": "archived",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:08:36.961Z",
+      "feature": "ui",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:08:42.016Z",
+      "feature": "ui",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:08:46.900Z",
+      "feature": "ui",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:08:57.251Z",
+      "feature": "ui",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:09:02.426Z",
+      "feature": "ui",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:09:14.715Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:09:20.577Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:09:27.342Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:09:36.128Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:09:49.769Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:09:54.514Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:14:09.864Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:14:15.126Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:14:22.287Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:14:27.476Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:14:41.945Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:14:53.364Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:29:50.356Z",
+      "feature": "create-from-asin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:29:54.103Z",
+      "feature": "fetch-status",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:30:16.107Z",
+      "feature": "ip-project",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:30:22.522Z",
+      "feature": "manual",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:30:41.966Z",
+      "feature": "manual",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:30:57.068Z",
+      "feature": "manual",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:31:03.729Z",
+      "feature": "manual",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:31:42.623Z",
+      "feature": "NewReportModal.tsx",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:31:55.610Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:32:02.853Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:32:11.130Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:32:21.931Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:39:54.183Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:39:59.924Z",
+      "feature": "[id]",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:40:17.255Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:40:31.266Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:40:37.856Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:40:49.363Z",
+      "feature": "NewReportModal.tsx",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:40:58.929Z",
+      "feature": "NewReportModal.tsx",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:41:18.889Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:49:23.444Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:49:27.557Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:49:29.383Z",
+      "feature": "reports",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:49:30.302Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:51:14.624Z",
+      "feature": "patents",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:51:19.619Z",
+      "feature": "patents",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:51:31.122Z",
+      "feature": "patents",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:51:35.930Z",
+      "feature": "patents",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:51:42.630Z",
+      "feature": "patents",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:51:46.352Z",
+      "feature": "patents",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:53:16.487Z",
+      "feature": "archived",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:53:18.368Z",
+      "feature": "archived",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:53:19.634Z",
+      "feature": "archived",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:53:20.917Z",
+      "feature": "notices",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:53:22.801Z",
+      "feature": "notices",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:53:24.077Z",
+      "feature": "notices",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:53:25.405Z",
+      "feature": "campaigns",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:53:26.784Z",
+      "feature": "campaigns",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:57:30.091Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:57:50.269Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:57:58.347Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:58:04.331Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:58:12.960Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:58:19.656Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:58:27.495Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:58:40.736Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:59:29.891Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:59:46.676Z",
+      "feature": "completed",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-03-12T17:59:53.120Z",
+      "feature": "completed",
       "phase": "do",
       "action": "updated"
     }
