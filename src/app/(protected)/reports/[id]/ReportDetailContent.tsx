@@ -1056,14 +1056,23 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                   </label>
                   <select
                     value={brFormType}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const val = e.target.value as BrFormTypeCode
+                      const prev = brFormType
                       setBrFormType(val)
-                      fetch(`/api/reports/${report.id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ br_form_type: val }),
-                      })
+                      try {
+                        const res = await fetch(`/api/reports/${report.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ br_form_type: val }),
+                        })
+                        if (!res.ok) throw new Error()
+                        setAutoSaveStatus('saved')
+                        setTimeout(() => setAutoSaveStatus('idle'), 2000)
+                      } catch {
+                        setBrFormType(prev)
+                        addToast({ type: 'error', title: 'Save failed', message: 'BR form type could not be saved.' })
+                      }
                     }}
                     className="flex-1 rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text"
                   >
