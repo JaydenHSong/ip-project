@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { notifyApproved } from '@/lib/notifications/google-chat'
-import { buildPdSubmitData } from '@/lib/reports/pd-data'
-import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
+import { buildBrSubmitData } from '@/lib/reports/br-data'
 import type { BrExtraFields } from '@/lib/reports/br-data'
 import type { ApproveReportRequest } from '@/types/api'
 import type { BrFormType } from '@/types/reports'
+import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
-// POST /api/reports/:id/approve — 승인 → pd_submitting 자동 전환
+// POST /api/reports/:id/approve — 승인 → BR 대상이면 br_submitting, 아니면 submitted
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -29,7 +29,7 @@ export const POST = withAuth(async (req) => {
   // 현재 상태 확인
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('status, draft_body, draft_title, draft_subject, draft_evidence, original_draft_body, listing_id, user_violation_type')
+    .select('status, draft_body, draft_title, draft_subject, draft_evidence, original_draft_body, listing_id, user_violation_type, br_form_type')
     .eq('id', id)
     .single()
 
@@ -47,7 +47,7 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  // Listing 조회 (PD 데이터 빌드용)
+  // Listing 조회 (BR 데이터 빌드용)
   const { data: listing } = await supabase
     .from('listings')
     .select('asin, marketplace, title, url, seller_storefront_url')
@@ -57,39 +57,26 @@ export const POST = withAuth(async (req) => {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   const now = new Date().toISOString()
 
-  // PD 데이터 준비
-  const pdSubmitData = listing
-    ? buildPdSubmitData({
-        report: {
-          id,
-          user_violation_type: report.user_violation_type,
-          draft_body: body.edited_draft_body ?? report.draft_body,
-          draft_evidence: report.draft_evidence as { type: string; url: string; description: string }[] | undefined,
-        },
-        listing,
-      })
-    : null
-
-  // BR 데이터 준비 (BR 대상 위반 유형인 경우에만)
-  const brSubmitData = listing && isBrReportable(report.user_violation_type)
+  // BR 데이터 준비 (BR 대상 폼 타입인 경우에만)
+  const brFormType = (body.br_form_type ?? report.br_form_type ?? 'other_policy') as BrFormTypeCode
+  const brReportable = isBrSubmittable(brFormType)
+  const brSubmitData = listing && brReportable
     ? buildBrSubmitData({
         report: {
           id,
-          user_violation_type: report.user_violation_type,
+          br_form_type: brFormType,
           draft_body: body.edited_draft_body ?? report.draft_body,
           draft_title: body.edited_draft_title ?? report.draft_title,
         },
         listing: { asin: listing.asin, url: listing.url ?? null, marketplace: listing.marketplace, seller_storefront_url: listing.seller_storefront_url },
-        formTypeOverride: body.br_form_type,
         extraFields: body.br_extra_fields,
       })
     : null
 
   const updates: Record<string, unknown> = {
-    status: 'pd_submitting',
+    status: brReportable ? 'br_submitting' : 'submitted',
     approved_by: authUser!.id,
     approved_at: now,
-    pd_submit_data: pdSubmitData,
     br_submit_data: brSubmitData,
   }
 

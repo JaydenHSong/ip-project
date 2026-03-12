@@ -1,21 +1,10 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { VIOLATION_TYPES, VIOLATION_CATEGORIES } from '@/constants/violations'
+import { BR_FORM_TYPES, type BrFormTypeCode } from '@/constants/br-form-types'
 import type { SubmitReportRequest, SubmitReportResponse } from '@/types/api'
 
-const VALID_VIOLATION_CODES = new Set(Object.keys(VIOLATION_TYPES))
-const VALID_CATEGORIES = new Set(Object.keys(VIOLATION_CATEGORIES))
-// 신규 카테고리는 violation_type으로도 사용 (category = violation_type)
-const NEW_CATEGORY_TYPES = new Set(['variation', 'main_image', 'wrong_category', 'pre_announcement', 'review_violation'])
-// 신규 카테고리 → V코드 매핑 (DB CHECK constraint: '^V[0-9]{2}$')
-const CATEGORY_TO_VCODE: Record<string, string> = {
-  variation: 'V10',
-  main_image: 'V08',
-  wrong_category: 'V07',
-  pre_announcement: 'V07',
-  review_violation: 'V11',
-}
+const VALID_BR_FORM_TYPES = new Set(Object.keys(BR_FORM_TYPES))
 const MAX_SCREENSHOT_BASE64_LENGTH = 3_000_000 // ~2.25MB decoded (구버전 익스텐션 호환)
 
 // POST /api/ext/submit-report — Extension에서 위반 제보 제출
@@ -23,25 +12,16 @@ export const POST = withAuth(async (req, { user }) => {
   const body = (await req.json()) as SubmitReportRequest
   const { asin, marketplace, title, violation_type, violation_category, extra_fields } = body
 
+  // v2: Extension은 br_form_type을 직접 보냄 (violation_type 필드로)
+  // 레거시 Extension 호환: violation_type이 BR form type이 아니면 other_policy로 폴백
+  const brFormType: BrFormTypeCode = VALID_BR_FORM_TYPES.has(violation_type)
+    ? (violation_type as BrFormTypeCode)
+    : 'other_policy'
+
   // 필수 필드 검증
-  if (!asin || !marketplace || !title || !violation_type || !violation_category) {
+  if (!asin || !marketplace || !title || !violation_type) {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: asin, marketplace, title, violation_type, violation_category' } },
-      { status: 400 },
-    )
-  }
-
-  // 위반 유형 유효성 검증 — V코드 또는 신규 카테고리명 허용
-  if (!VALID_VIOLATION_CODES.has(violation_type) && !NEW_CATEGORY_TYPES.has(violation_type)) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: `Invalid violation_type: ${violation_type}` } },
-      { status: 400 },
-    )
-  }
-
-  if (!VALID_CATEGORIES.has(violation_category)) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: `Invalid violation_category: ${violation_category}` } },
+      { error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: asin, marketplace, title, violation_type' } },
       { status: 400 },
     )
   }
@@ -112,15 +92,13 @@ export const POST = withAuth(async (req, { user }) => {
 
   const isDuplicate = (duplicates?.length ?? 0) > 0
 
-  // 3. 21일 이내 동일 listing+violation 활성 리포트 → 차단
-  const dbViolationType = CATEGORY_TO_VCODE[violation_type] ?? violation_type
-
+  // 3. 21일 이내 동일 listing+br_form_type 활성 리포트 → 차단
   if (isDuplicate) {
     const { data: recentActive } = await supabase
       .from('reports')
       .select('id')
       .eq('listing_id', listingId)
-      .eq('user_violation_type', dbViolationType)
+      .eq('br_form_type', brFormType)
       .not('status', 'in', '("cancelled","resolved")')
       .gte('created_at', cutoffDate)
       .limit(1)
@@ -133,13 +111,14 @@ export const POST = withAuth(async (req, { user }) => {
     }
   }
 
-  // 4. Report 생성 — 신규 카테고리는 V코드로 변환 (DB CHECK constraint)
+  // 4. Report 생성 — br_form_type 기반 (레거시 필드도 호환 기록)
   const { data: report, error: reportError } = await supabase
     .from('reports')
     .insert({
       listing_id: listingId,
-      user_violation_type: dbViolationType,
-      violation_category,
+      br_form_type: brFormType,
+      user_violation_type: violation_type,
+      violation_category: violation_category ?? null,
       status: 'draft',
       created_by: user.id,
       note: extra_fields ? JSON.stringify(extra_fields) : (body.note ?? null),
@@ -184,7 +163,6 @@ export const POST = withAuth(async (req, { user }) => {
 
     if (uploadError) {
       screenshotError = uploadError.message
-      console.error(`[submit-report] Screenshot upload failed for report ${report.id}:`, uploadError.message)
     } else {
       screenshotUploaded = true
       const { data: publicUrl } = supabase.storage
@@ -212,7 +190,7 @@ export const POST = withAuth(async (req, { user }) => {
         async: true,
         source: 'extension',
         priority: 'high',
-        violation_type: violation_type,
+        violation_type: brFormType,
       }),
     }).catch(() => {})
   }

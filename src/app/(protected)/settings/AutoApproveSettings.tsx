@@ -6,8 +6,7 @@ import { useToast } from '@/hooks/useToast'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Toggle } from '@/components/ui/Toggle'
-import { VIOLATION_TYPES } from '@/constants/violations'
-import type { ViolationCategory, ViolationCode } from '@/constants/violations'
+import { BR_FORM_TYPES, BR_FORM_TYPE_CODES, type BrFormTypeCode } from '@/constants/br-form-types'
 
 type AutoApproveConfig = {
   enabled: boolean
@@ -15,15 +14,7 @@ type AutoApproveConfig = {
   types: Record<string, boolean>
 }
 
-const CATEGORY_ORDER: ViolationCategory[] = [
-  'intellectual_property',
-  'listing_content',
-  'review_manipulation',
-  'selling_practice',
-  'regulatory_safety',
-]
-
-const IP_CATEGORIES: ViolationCategory[] = ['intellectual_property']
+const IP_FORM_TYPES: BrFormTypeCode[] = ['ip_violation']
 
 export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
   const { t } = useI18n()
@@ -67,17 +58,10 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
     }
   }
 
-  const violationsByCategory = CATEGORY_ORDER.map((cat) => ({
-    category: cat,
-    label: t(`violations.categories.${cat}` as Parameters<typeof t>[0]),
-    isIp: IP_CATEGORIES.includes(cat),
-    violations: Object.entries(VIOLATION_TYPES)
-      .filter(([, v]) => v.category === cat)
-      .map(([code, v]) => ({
-        code: code as ViolationCode,
-        name: t(`violations.types.${code}` as Parameters<typeof t>[0]) ?? v.name,
-        codeLabel: v.code,
-      })),
+  const brFormTypeList = BR_FORM_TYPE_CODES.map((code) => ({
+    code,
+    label: BR_FORM_TYPES[code].label,
+    isIp: IP_FORM_TYPES.includes(code),
   }))
 
   return (
@@ -134,36 +118,26 @@ export const AutoApproveSettings = ({ isAdmin }: { isAdmin: boolean }) => {
             {t('settings.autoApprove.violationTypes' as Parameters<typeof t>[0])}
           </h3>
 
-          <div className="space-y-5">
-            {violationsByCategory.map(({ category, label, isIp, violations }) => (
-              <div key={category}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs font-semibold text-th-text-secondary">
-                    {label}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {brFormTypeList.map(({ code, label, isIp }) => (
+              <div key={code} className="flex items-center gap-2">
+                <Toggle
+                  size="sm"
+                  checked={config.types[code] === true}
+                  onChange={(checked) =>
+                    setConfig((s) => ({
+                      ...s,
+                      types: { ...s.types, [code]: checked },
+                    }))
+                  }
+                  disabled={!isAdmin}
+                  label={label}
+                />
+                {isIp && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
+                    {t('settings.autoApprove.ipWarning' as Parameters<typeof t>[0])}
                   </span>
-                  {isIp && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
-                      {t('settings.autoApprove.ipWarning' as Parameters<typeof t>[0])}
-                    </span>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-1">
-                  {violations.map(({ code, name, codeLabel }) => (
-                    <Toggle
-                      key={code}
-                      size="sm"
-                      checked={config.types[code] === true}
-                      onChange={(checked) =>
-                        setConfig((s) => ({
-                          ...s,
-                          types: { ...s.types, [code]: checked },
-                        }))
-                      }
-                      disabled={!isAdmin}
-                      label={`${codeLabel} ${name}`}
-                    />
-                  ))}
-                </div>
+                )}
               </div>
             ))}
           </div>

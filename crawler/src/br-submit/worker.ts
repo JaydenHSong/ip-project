@@ -313,7 +313,7 @@ const fillBrForm = async (frame: Frame, data: BrSubmitJobData): Promise<{ filled
 }
 
 // ─── Submit Form ─────────────────────────────────────────────
-const submitBrForm = async (frame: Frame): Promise<string | null> => {
+const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> => {
   const clicked = await frame.evaluate(() => {
     const btns = Array.from(document.querySelectorAll('kat-button'))
     for (const btn of btns) {
@@ -332,16 +332,77 @@ const submitBrForm = async (frame: Frame): Promise<string | null> => {
 
   await delay(5000)
 
-  // Case ID 추출 시도
-  const caseId = await frame.evaluate(() => {
+  // 1차 시도: 제출 후 같은 프레임에서 Case ID 추출
+  const caseIdFromFrame = await frame.evaluate(() => {
     const body = document.body?.textContent || ''
     const match = body.match(/case\s*(?:id|#|number)[:\s]*(\d{5,})/i)
-    if (match) return match[1]
-    if (body.includes('Thank you') || body.includes('submitted')) return null
-    return null
+    return match ? match[1] : null
   }).catch(() => null)
 
-  return caseId
+  if (caseIdFromFrame) {
+    log('info', 'br-worker', `Case ID from frame: ${caseIdFromFrame}`)
+    return caseIdFromFrame
+  }
+
+  // 2차 시도: 케이스 대시보드에서 최신 케이스 ID 추출
+  log('info', 'br-worker', 'Case ID not found in frame, checking case dashboard...')
+  const caseIdFromDashboard = await extractCaseIdFromDashboard(page)
+
+  if (caseIdFromDashboard) {
+    log('info', 'br-worker', `Case ID from dashboard: ${caseIdFromDashboard}`)
+  } else {
+    log('warn', 'br-worker', 'Could not extract case ID from dashboard')
+  }
+
+  return caseIdFromDashboard
+}
+
+// ─── Case Dashboard에서 최신 케이스 ID 추출 ────────────────────
+const CASE_DASHBOARD_URL = 'https://brandregistry.amazon.com/cu/case-dashboard'
+
+const extractCaseIdFromDashboard = async (page: Page): Promise<string | null> => {
+  try {
+    await page.goto(CASE_DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 30_000 })
+    await delay(3000)
+
+    // 테이블 첫 번째 행에서 케이스 ID 추출
+    // 대시보드 구조: 테이블 행 → 첫 번째 열 = Case ID (숫자)
+    const caseId = await page.evaluate(() => {
+      // Method 1: 테이블 행에서 추출
+      const rows = document.querySelectorAll('table tbody tr, tr[data-row-key]')
+      for (const row of Array.from(rows)) {
+        const firstCell = row.querySelector('td')
+        const text = firstCell?.textContent?.trim()
+        if (text && /^\d{5,}$/.test(text)) {
+          return text
+        }
+      }
+
+      // Method 2: 링크에서 caseID 파라미터 추출
+      const viewLinks = document.querySelectorAll('a[href*="caseID"], a[href*="view-case"]')
+      for (const link of Array.from(viewLinks)) {
+        const href = link.getAttribute('href') || ''
+        const match = href.match(/caseID=(\d+)/)
+        if (match) return match[1]
+      }
+
+      // Method 3: 페이지 텍스트에서 첫 번째 긴 숫자 (케이스 ID 패턴)
+      const allCells = document.querySelectorAll('td, div[class*="case"], span[class*="case"]')
+      for (const cell of Array.from(allCells)) {
+        const text = cell.textContent?.trim()
+        if (text && /^\d{10,}$/.test(text)) {
+          return text
+        }
+      }
+
+      return null
+    })
+
+    return caseId
+  } catch (error) {
+    log('warn', 'br-worker', `Dashboard case ID extraction failed: ${error instanceof Error ? error.message : String(error)}`)
+    return null
+  }
 }
 
 // ─── Delay Helper ────────────────────────────────────────────
@@ -394,7 +455,7 @@ const processBrSubmitJob = async (job: Job<BrSubmitJobData>, sentinelClient?: { 
     }
 
     // 제출
-    const caseId = await submitBrForm(formFrame)
+    const caseId = await submitBrForm(formFrame, page)
 
     log('info', 'br-worker', `BR submit successful for report ${data.reportId}, case: ${caseId}`)
 

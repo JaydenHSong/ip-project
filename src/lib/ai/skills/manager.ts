@@ -1,14 +1,14 @@
 // Skill 파일 CRUD 관리자
-// 위반유형별 Markdown Skill 문서 (skills/V01-trademark.md 등)
+// v2: 레거시 V01~V19 스킬 파일 호환 유지, BR 폼 타입으로 전환 중
 
 import { readFile, writeFile, readdir, mkdir } from 'fs/promises'
 import { join } from 'path'
-import { VIOLATION_TYPES, type ViolationCode } from '@/constants/violations'
 import type { SkillDocument, SkillMetadata } from '@/types/ai'
 
 const SKILLS_DIR = join(process.cwd(), 'skills')
 
-const SKILL_FILENAME_MAP: Record<ViolationCode, string> = {
+// 레거시 V01~V19 파일명 매핑 (기존 스킬 파일 호환)
+const SKILL_FILENAME_MAP: Record<string, string> = {
   V01: 'V01-trademark.md',
   V02: 'V02-copyright.md',
   V03: 'V03-patent.md',
@@ -30,8 +30,8 @@ const SKILL_FILENAME_MAP: Record<ViolationCode, string> = {
   V19: 'V19-import-regulation.md',
 }
 
-const getSkillPath = (violationType: ViolationCode): string =>
-  join(SKILLS_DIR, SKILL_FILENAME_MAP[violationType])
+const getSkillPath = (skillKey: string): string =>
+  join(SKILLS_DIR, SKILL_FILENAME_MAP[skillKey] ?? `${skillKey}.md`)
 
 const DEFAULT_METADATA: SkillMetadata = {
   totalDrafts: 0,
@@ -54,7 +54,6 @@ const parseFrontmatter = (content: string): { metadata: Record<string, unknown>;
     const key = line.slice(0, colonIdx).trim()
     const value = line.slice(colonIdx + 1).trim()
 
-    // 숫자 변환
     if (/^\d+$/.test(value)) {
       metadata[key] = parseInt(value, 10)
     } else if (/^\d+\.\d+$/.test(value)) {
@@ -91,24 +90,23 @@ const skillManager = {
   list: async (): Promise<SkillDocument[]> => {
     const skills: SkillDocument[] = []
 
-    for (const [code] of Object.entries(VIOLATION_TYPES)) {
-      const violationType = code as ViolationCode
-      const doc = await skillManager.get(violationType)
+    for (const code of Object.keys(SKILL_FILENAME_MAP)) {
+      const doc = await skillManager.get(code)
       if (doc) skills.push(doc)
     }
 
     return skills
   },
 
-  get: async (violationType: ViolationCode): Promise<SkillDocument | null> => {
-    const path = getSkillPath(violationType)
+  get: async (skillKey: string): Promise<SkillDocument | null> => {
+    const path = getSkillPath(skillKey)
 
     try {
       const raw = await readFile(path, 'utf-8')
       const { metadata, body } = parseFrontmatter(raw)
 
       return {
-        violationType,
+        violationType: skillKey,
         version: (metadata.version as number) ?? 1,
         lastUpdatedBy: (metadata.lastUpdatedBy as 'opus' | 'admin') ?? 'admin',
         lastUpdatedAt: (metadata.lastUpdatedAt as string) ?? new Date().toISOString(),
@@ -127,11 +125,11 @@ const skillManager = {
   },
 
   update: async (
-    violationType: ViolationCode,
+    skillKey: string,
     content: string,
     updatedBy: 'opus' | 'admin',
   ): Promise<SkillDocument> => {
-    const existing = await skillManager.get(violationType)
+    const existing = await skillManager.get(skillKey)
     const version = existing ? existing.version + 1 : 1
     const metadata = existing?.metadata ?? { ...DEFAULT_METADATA }
 
@@ -140,7 +138,7 @@ const skillManager = {
     }
 
     const doc: SkillDocument = {
-      violationType,
+      violationType: skillKey,
       version,
       lastUpdatedBy: updatedBy,
       lastUpdatedAt: new Date().toISOString(),
@@ -148,22 +146,22 @@ const skillManager = {
       metadata,
     }
 
-    const path = getSkillPath(violationType)
+    const path = getSkillPath(skillKey)
     await writeFile(path, buildFrontmatter(doc), 'utf-8')
 
     return doc
   },
 
-  ensureExists: async (violationType: ViolationCode): Promise<void> => {
-    const existing = await skillManager.get(violationType)
+  ensureExists: async (skillKey: string): Promise<void> => {
+    const existing = await skillManager.get(skillKey)
     if (existing) return
 
-    const violation = VIOLATION_TYPES[violationType]
+    const name = SKILL_FILENAME_MAP[skillKey] ? skillKey : skillKey
     const defaultContent = [
-      `# ${violationType} — ${violation.name}`,
+      `# ${name} Skill`,
       '',
       '## 판단 기준',
-      `(${violation.name} 판단 기준을 여기에 작성)`,
+      `(판단 기준을 여기에 작성)`,
       '',
       '## 증거 수집 가이드',
       '(Opus 학습으로 자동 업데이트됨)',
@@ -180,7 +178,7 @@ const skillManager = {
     ].join('\n')
 
     const doc: SkillDocument = {
-      violationType,
+      violationType: skillKey,
       version: 1,
       lastUpdatedBy: 'admin',
       lastUpdatedAt: new Date().toISOString(),
@@ -189,14 +187,14 @@ const skillManager = {
     }
 
     await mkdir(SKILLS_DIR, { recursive: true })
-    const path = getSkillPath(violationType)
+    const path = getSkillPath(skillKey)
     await writeFile(path, buildFrontmatter(doc), 'utf-8')
   },
 
   initializeAll: async (): Promise<void> => {
     await mkdir(SKILLS_DIR, { recursive: true })
-    for (const code of Object.keys(VIOLATION_TYPES)) {
-      await skillManager.ensureExists(code as ViolationCode)
+    for (const code of Object.keys(SKILL_FILENAME_MAP)) {
+      await skillManager.ensureExists(code)
     }
   },
 }

@@ -15,7 +15,6 @@ const EVENT_STYLES: Record<TimelineEventType, { color: string; icon: string }> =
   approved: { color: 'text-st-success-text bg-st-success-bg', icon: '\u2713' },
   rejected: { color: 'text-st-danger-text bg-st-danger-bg', icon: '\u2717' },
   cancelled: { color: 'text-th-text-muted bg-th-bg-tertiary', icon: '\u2015' },
-  submitted_pd: { color: 'text-purple-500 bg-purple-500/10', icon: 'SC' },
   rewritten: { color: 'text-amber-500 bg-amber-500/10', icon: 'R' },
   monitoring_started: { color: 'text-blue-500 bg-blue-500/10', icon: 'M' },
   snapshot_taken: { color: 'text-cyan-500 bg-cyan-500/10', icon: 'S' },
@@ -32,7 +31,6 @@ const EVENT_I18N_KEYS: Record<TimelineEventType, string> = {
   approved: 'reports.timeline.approved',
   rejected: 'reports.timeline.rejected',
   cancelled: 'reports.timeline.cancelled',
-  submitted_pd: 'reports.timeline.submittedSC',
   rewritten: 'reports.timeline.rewritten',
   monitoring_started: 'reports.timeline.monitoringStarted',
   snapshot_taken: 'reports.timeline.snapshotTaken',
@@ -70,11 +68,6 @@ export const ReportTimeline = ({ events }: ReportTimelineProps) => {
                 {!event.actor && (event.type === 'ai_analyzed' || event.type === 'rewritten') && (
                   <p className="text-xs text-th-text-muted">
                     {t('reports.timeline.ai' as Parameters<typeof t>[0])}
-                  </p>
-                )}
-                {!event.actor && event.type === 'submitted_pd' && (
-                  <p className="text-xs text-th-text-muted">
-                    {t('reports.timeline.system' as Parameters<typeof t>[0])}
                   </p>
                 )}
                 {event.detail && (

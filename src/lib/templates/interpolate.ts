@@ -1,22 +1,17 @@
 import type { Listing } from '@/types/listings'
-import { VIOLATION_TYPES } from '@/constants/violations'
-import type { ViolationCode } from '@/constants/violations'
+import { getBrFormTypeLabel } from '@/constants/br-form-types'
 
 type InterpolateContext = {
   listing: Partial<Listing>
-  report?: { user_violation_type?: string; confirmed_violation_type?: string | null }
+  report?: { br_form_type?: string; user_violation_type?: string; confirmed_violation_type?: string | null }
 }
 
 export const interpolateTemplate = (template: string, ctx: InterpolateContext): string => {
   const { listing, report } = ctx
   const now = new Date()
 
-  const violationCode = (report?.confirmed_violation_type ?? report?.user_violation_type) as
-    | ViolationCode
-    | undefined
-  const violationLabel = violationCode
-    ? VIOLATION_TYPES[violationCode]?.name ?? violationCode
-    : ''
+  const formType = report?.br_form_type ?? report?.user_violation_type ?? ''
+  const violationLabel = formType ? getBrFormTypeLabel(formType) : ''
 
   const replacements: Record<string, string> = {
     '{{ASIN}}': listing.asin ?? '',

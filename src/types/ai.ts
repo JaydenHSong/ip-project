@@ -1,7 +1,6 @@
 // AI Analysis Pipeline 타입 정의
 // Teacher-Student Architecture: Sonnet(Worker), Opus(Teacher), Haiku(Monitor)
 
-import type { ViolationCode } from '@/constants/violations'
 import type { AiAnalysisResult } from './reports'
 
 // Claude API 모델 식별자
@@ -70,7 +69,7 @@ export type ScreenshotVerification = {
 
 // Skill 문서
 export type SkillDocument = {
-  violationType: ViolationCode
+  violationType: string
   version: number
   lastUpdatedBy: 'opus' | 'admin'
   lastUpdatedAt: string
@@ -89,7 +88,7 @@ export type SkillMetadata = {
 // Opus 학습 입출력
 export type LearningInput = {
   reportId: string
-  violationType: ViolationCode
+  violationType: string
   originalDraft: string
   approvedDraft: string
   editorFeedback: string | null
@@ -97,7 +96,7 @@ export type LearningInput = {
 
 export type LearningResult = {
   skillUpdated: boolean
-  violationType: ViolationCode
+  violationType: string
   changesSummary: string
   newVersion: number
 }

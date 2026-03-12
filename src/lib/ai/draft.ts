@@ -8,6 +8,7 @@ import { buildSystemPrompt } from './prompts/system'
 import { buildDraftPrompt } from './prompts/draft'
 import type { BrFormType } from '@/types/reports'
 import { getBrFormContext } from '@/lib/reports/br-data'
+import type { BrFormTypeCode } from '@/constants/br-form-types'
 
 const parseDraftResponse = (raw: string): AiDraftResponse => {
   const jsonMatch = raw.match(/\{[\s\S]*\}/)
@@ -55,11 +56,8 @@ const generateDraft = async (
     skillContent: options.skillContent,
   })
 
-  const brFormContext = options.brFormType
-    ? getBrFormContext(null, options.brFormType)
-    : options.violationCode
-      ? getBrFormContext(options.violationCode)
-      : null
+  const brFormType = options.brFormType ?? (options.violationCode as BrFormTypeCode | undefined)
+  const brFormContext = brFormType ? getBrFormContext(brFormType as BrFormTypeCode) : null
 
   const userPrompt = await buildDraftPrompt(analysis, listing, options.template, brFormContext)
 

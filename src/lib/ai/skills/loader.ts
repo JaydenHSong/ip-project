@@ -1,91 +1,69 @@
-// Skill 로더 — 의심 리스팅의 카테고리에 맞는 Skill 문서 로드
-// 시스템 프롬프트에 주입할 Skill 콘텐츠 생성
+// Skill 로더 — BR 폼 타입에 맞는 Skill 문서 로드
+// v2: V01~V19 → BR 폼 타입 기반으로 전환
 
-import { VIOLATION_TYPES, type ViolationCode, type ViolationCategory } from '@/constants/violations'
+import { BR_FORM_TYPES, type BrFormTypeCode } from '@/constants/br-form-types'
 import { skillManager } from './manager'
 
 const MAX_SKILLS_PER_ANALYSIS = 3
 const MAX_SKILL_CONTENT_LENGTH = 2000
 
-// 카테고리별 위반유형 매핑
-const CATEGORY_CODES: Record<ViolationCategory, ViolationCode[]> = {
-  intellectual_property: ['V01', 'V02', 'V03', 'V04'],
-  listing_content: ['V05', 'V06', 'V07', 'V08', 'V09', 'V10'],
-  review_manipulation: ['V11', 'V12'],
-  selling_practice: ['V13', 'V14', 'V15'],
-  regulatory_safety: ['V16', 'V17', 'V18', 'V19'],
-  // 신규 카테고리 (V코드 없음 — Extension 직접 신고용)
-  variation: [],
-  main_image: [],
-  wrong_category: [],
-  pre_announcement: [],
-  review_violation: [],
-}
-
-// suspect_reasons에서 관련 카테고리 추출
-const inferCategories = (suspectReasons: string[]): ViolationCategory[] => {
-  const categories = new Set<ViolationCategory>()
+// suspect_reasons에서 관련 BR 폼 타입 추출
+const inferFormTypes = (suspectReasons: string[]): BrFormTypeCode[] => {
+  const types = new Set<BrFormTypeCode>()
 
   for (const reason of suspectReasons) {
     const lower = reason.toLowerCase()
-    if (lower.includes('trademark') || lower.includes('상표')) {
-      categories.add('intellectual_property')
-    }
-    if (lower.includes('counterfeit') || lower.includes('위조')) {
-      categories.add('intellectual_property')
-    }
-    if (lower.includes('copyright') || lower.includes('image') || lower.includes('이미지')) {
-      categories.add('intellectual_property')
-      categories.add('listing_content')
+    if (lower.includes('trademark') || lower.includes('copyright') || lower.includes('patent') || lower.includes('counterfeit')) {
+      types.add('ip_violation')
     }
     if (lower.includes('review') || lower.includes('리뷰')) {
-      categories.add('review_manipulation')
+      types.add('product_review')
     }
-    if (lower.includes('keyword') || lower.includes('misleading') || lower.includes('키워드')) {
-      categories.add('listing_content')
+    if (lower.includes('variation') || lower.includes('변형')) {
+      types.add('incorrect_variation')
     }
-    if (lower.includes('certification') || lower.includes('regulatory') || lower.includes('인증')) {
-      categories.add('regulatory_safety')
+    if (lower.includes('keyword') || lower.includes('misleading') || lower.includes('policy')) {
+      types.add('other_policy')
     }
-    if (lower.includes('compatibility') || lower.includes('호환')) {
-      categories.add('listing_content')
+    if (lower.includes('listing') || lower.includes('category')) {
+      types.add('other_policy')
     }
   }
 
-  // 아무것도 추론 못하면 IP 기본
-  if (categories.size === 0) {
-    categories.add('intellectual_property')
+  if (types.size === 0) {
+    types.add('other_policy')
   }
 
-  return Array.from(categories)
+  return Array.from(types)
 }
 
 // 관련 Skill 문서를 로드하여 하나의 문자열로 합침
 const loadRelevantSkills = async (
   suspectReasons: string[],
 ): Promise<string> => {
-  const categories = inferCategories(suspectReasons)
-  const relevantCodes: ViolationCode[] = []
-
-  for (const category of categories) {
-    const codes = CATEGORY_CODES[category] ?? []
-    relevantCodes.push(...codes)
-  }
-
-  // 중복 제거 + 상위 N개만
-  const uniqueCodes = [...new Set(relevantCodes)].slice(0, MAX_SKILLS_PER_ANALYSIS)
-
+  const formTypes = inferFormTypes(suspectReasons)
   const skillParts: string[] = []
 
-  for (const code of uniqueCodes) {
-    const skill = await skillManager.get(code)
-    if (!skill) continue
+  // V01~V19 레거시 스킬 파일 로드 시도 (기존 파일 호환)
+  const FORM_TYPE_TO_LEGACY: Record<string, string[]> = {
+    ip_violation: ['V01', 'V02', 'V03'],
+    other_policy: ['V05', 'V07'],
+    incorrect_variation: ['V10'],
+    product_review: ['V11'],
+  }
 
-    const truncatedContent = skill.content.length > MAX_SKILL_CONTENT_LENGTH
-      ? skill.content.slice(0, MAX_SKILL_CONTENT_LENGTH) + '\n...(truncated)'
-      : skill.content
+  for (const formType of formTypes.slice(0, MAX_SKILLS_PER_ANALYSIS)) {
+    const legacyCodes = FORM_TYPE_TO_LEGACY[formType] ?? []
+    for (const code of legacyCodes.slice(0, 1)) {
+      const skill = await skillManager.get(code)
+      if (!skill) continue
 
-    skillParts.push(`### ${code} Skill (v${skill.version})\n${truncatedContent}`)
+      const truncatedContent = skill.content.length > MAX_SKILL_CONTENT_LENGTH
+        ? skill.content.slice(0, MAX_SKILL_CONTENT_LENGTH) + '\n...(truncated)'
+        : skill.content
+
+      skillParts.push(`### ${formType} Skill (v${skill.version})\n${truncatedContent}`)
+    }
   }
 
   return skillParts.length > 0
@@ -93,9 +71,9 @@ const loadRelevantSkills = async (
     : '(No relevant skill documents available)'
 }
 
-// 특정 위반유형의 Skill만 로드
+// 특정 위반유형의 Skill만 로드 (레거시 호환)
 const loadSkillForType = async (
-  violationType: ViolationCode,
+  violationType: string,
 ): Promise<string> => {
   const skill = await skillManager.get(violationType)
   if (!skill) return '(No skill document for this violation type)'
@@ -103,4 +81,4 @@ const loadSkillForType = async (
   return `### ${violationType} Skill (v${skill.version})\n${skill.content}`
 }
 
-export { loadRelevantSkills, loadSkillForType, inferCategories }
+export { loadRelevantSkills, loadSkillForType, inferFormTypes as inferCategories }

@@ -71,6 +71,7 @@ export const SlidePanel = ({ open, onClose, title, status, children, size = 'lg'
 
       {/* Panel */}
       <div
+        data-testid="slide-panel"
         className={cn(
           'fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-th-border bg-th-bg shadow-lg transition-transform duration-500 ease-in-out',
           SIZE_CLASSES[size],

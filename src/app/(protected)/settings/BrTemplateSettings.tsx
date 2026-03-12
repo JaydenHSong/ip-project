@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/hooks/useToast'
-import { BR_FORM_OPTIONS } from '@/lib/reports/br-data'
+import { BR_FORM_TYPE_OPTIONS } from '@/lib/reports/br-data'
 import { Upload, Trash2, RefreshCw, FileSpreadsheet, Plus, Pencil, Download } from 'lucide-react'
 
 type BrTemplate = {
@@ -351,7 +351,7 @@ export const BrTemplateSettings = () => {
           className="rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text"
         >
           <option value="">All Form Types</option>
-          {BR_FORM_OPTIONS.map((opt) => (
+          {BR_FORM_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
@@ -517,7 +517,7 @@ export const BrTemplateSettings = () => {
                 onChange={(e) => setForm((f) => ({ ...f, br_form_type: e.target.value }))}
                 className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-2 text-sm text-th-text"
               >
-                {BR_FORM_OPTIONS.map((opt) => (
+                {BR_FORM_TYPE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>

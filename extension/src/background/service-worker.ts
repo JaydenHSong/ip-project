@@ -1,8 +1,7 @@
 // Service Worker 엔트리 — 메시지 핸들러
 
-import type { PopupMessage, BackgroundResponse, AuthStatusResponse, PageDataResponse, ScreenshotResponse, SubmitResponse, FrontReportResultMessage } from '@shared/messages'
+import type { PopupMessage, BackgroundResponse, AuthStatusResponse, PageDataResponse, ScreenshotResponse, SubmitResponse } from '@shared/messages'
 import type { ParsedPageData, SubmitReportPayload } from '@shared/types'
-import { isFrontReportable } from '@shared/front-report-config'
 import { signInWithGoogle, getSession, signOut } from './auth'
 import { submitReport, checkAuthStatus } from './api'
 import { captureScreenshot } from './screenshot'
@@ -146,66 +145,10 @@ const handleCaptureScreenshot = async (): Promise<BackgroundResponse<ScreenshotR
 const handleSubmitReport = async (message: PopupMessage & { type: 'SUBMIT_REPORT' }): Promise<BackgroundResponse<SubmitResponse>> => {
   try {
     const result = await submitReport(message.payload)
-
-    // Two-track: front-end auto-report (BR is handled by Crawler worker)
-    triggerFrontReport(message.payload, result.report_id)
-
     return { success: true, data: result }
   } catch (err) {
     return { success: false, error: (err as Error).message }
   }
-}
-
-// Two-track front-end reporting — runs on the Amazon product page tab
-const triggerFrontReport = async (
-  payload: SubmitReportPayload,
-  reportId: string,
-): Promise<void> => {
-  try {
-    const violationCode = payload.violation_type
-    if (!isFrontReportable(violationCode)) return
-
-    // Find the active Amazon product page tab
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (!tab?.id || !tab.url?.includes('amazon.')) return
-
-    // Check if user is logged into Amazon
-    const loginCheck = await chrome.tabs.sendMessage(tab.id, { type: 'CHECK_AMAZON_LOGIN' })
-      .catch(() => ({ loggedIn: false })) as { loggedIn: boolean }
-
-    if (!loginCheck.loggedIn) return
-
-    // Send front-report command to content script
-    chrome.tabs.sendMessage(tab.id, {
-      type: 'EXECUTE_FRONT_REPORT',
-      violationCode,
-      asin: payload.page_data.asin,
-      sellerName: payload.page_data.seller_name ?? undefined,
-      brandName: payload.page_data.brand ?? undefined,
-      aiDetails: payload.note || `Violation detected: ${violationCode}`,
-      listingTitle: payload.page_data.title,
-      marketplace: payload.page_data.marketplace,
-      reportId,
-    })
-  } catch {
-    // Front-end report is best-effort, never block PD backend flow
-  }
-}
-
-// Handle front-report result from content script (logging only)
-const handleFrontReportResult = (msg: FrontReportResultMessage): void => {
-  if (msg.success) {
-    showBadge('2x', '#22C55E', 3000)  // "2x" = two-track success
-  }
-  // Store result for report detail page display
-  chrome.storage.session.set({
-    [`front_report_${msg.reportId}`]: {
-      success: msg.success,
-      durationMs: msg.durationMs,
-      error: msg.error,
-      timestamp: Date.now(),
-    },
-  }).catch(() => {})
 }
 
 const showBadge = (text: string, color: string, durationMs: number = 5000): void => {
@@ -290,7 +233,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 // 단일 메시지 라우터
 chrome.runtime.onMessage.addListener(
-  (message: PopupMessage | { type: 'OPEN_POPUP' | 'PASSIVE_PAGE_DATA' | 'PASSIVE_SEARCH_DATA' | 'FRONT_REPORT_RESULT'; data?: unknown; [key: string]: unknown }, _sender: chrome.runtime.MessageSender, sendResponse: (response?: unknown) => void) => {
+  (message: PopupMessage | { type: 'OPEN_POPUP' | 'PASSIVE_PAGE_DATA' | 'PASSIVE_SEARCH_DATA'; data?: unknown; [key: string]: unknown }, _sender: chrome.runtime.MessageSender, sendResponse: (response?: unknown) => void) => {
     // OPEN_POPUP는 동기 처리, 응답 불필요
     if (message.type === 'OPEN_POPUP') {
       handleOpenPopup()
@@ -304,12 +247,6 @@ chrome.runtime.onMessage.addListener(
     }
     if (message.type === 'PASSIVE_SEARCH_DATA') {
       enqueue('search', message.data as never)
-      return false
-    }
-
-    // Front-end report result: fire-and-forget
-    if (message.type === 'FRONT_REPORT_RESULT') {
-      handleFrontReportResult(message as FrontReportResultMessage)
       return false
     }
 

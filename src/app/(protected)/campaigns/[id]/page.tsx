@@ -36,6 +36,7 @@ type ReportRow = {
   id: string
   listing_id: string
   status: string
+  br_form_type: string | null
   user_violation_type: string
   ai_violation_type: string | null
   ai_confidence_score: number | null
@@ -86,6 +87,7 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
         id: r.id,
         listing_id: r.listing_id,
         status: r.status,
+        br_form_type: r.br_form_type ?? null,
         user_violation_type: r.user_violation_type,
         ai_violation_type: r.ai_violation_type,
         ai_confidence_score: r.ai_confidence_score,
@@ -136,7 +138,7 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
       const listingIds = listings.map((l) => l.id)
       const { data: reportData } = await supabase
         .from('reports')
-        .select('id, listing_id, status, user_violation_type, ai_violation_type, ai_confidence_score, confirmed_violation_type, disagreement_flag, draft_title, draft_body, rejection_reason, pd_case_id, created_at, approved_at, rejected_at')
+        .select('id, listing_id, status, br_form_type, user_violation_type, ai_violation_type, ai_confidence_score, confirmed_violation_type, disagreement_flag, draft_title, draft_body, rejection_reason, pd_case_id, created_at, approved_at, rejected_at')
         .in('listing_id', listingIds)
       reports = (reportData ?? []) as ReportRow[]
     }

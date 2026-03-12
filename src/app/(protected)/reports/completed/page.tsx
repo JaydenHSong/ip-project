@@ -11,7 +11,7 @@ const PAGE_SIZE = 100
 const CompletedReportsPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; owner?: string }>
+  searchParams: Promise<{ page?: string; status?: string; owner?: string; search?: string }>
 }) => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
@@ -31,13 +31,25 @@ const CompletedReportsPage = async ({
     const supabase = await createClient()
 
     const ownerFilter = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
+    const searchTerm = params.search?.trim()
     const statusFilter = params.status ? [params.status] : COMPLETED_STATUSES
 
     // Count query
     let countQuery = supabase
       .from('reports')
       .select('id', { count: 'exact', head: true })
-      .in('status', statusFilter)
+    if (searchTerm) {
+      const isNumber = /^\d+$/.test(searchTerm)
+      if (isNumber) {
+        countQuery = countQuery.eq('report_number', Number(searchTerm))
+      } else {
+        countQuery = countQuery.or(
+          `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`,
+        )
+      }
+    } else {
+      countQuery = countQuery.in('status', statusFilter)
+    }
     if (ownerFilter === 'my') {
       countQuery = countQuery.eq('created_by', user.id)
     }
@@ -53,9 +65,21 @@ const CompletedReportsPage = async ({
       .select(
         '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
       )
-      .in('status', statusFilter)
       .order('created_at', { ascending: false })
       .range(from, to)
+
+    if (searchTerm) {
+      const isNumber = /^\d+$/.test(searchTerm)
+      if (isNumber) {
+        query = query.eq('report_number', Number(searchTerm))
+      } else {
+        query = query.or(
+          `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`,
+        )
+      }
+    } else {
+      query = query.in('status', statusFilter)
+    }
 
     if (ownerFilter === 'my') {
       query = query.eq('created_by', user.id)
@@ -83,6 +107,7 @@ const CompletedReportsPage = async ({
       totalPages={totalPages}
       totalCount={totalCount}
       pageSize={PAGE_SIZE}
+      searchQuery={params.search ?? ''}
     />
   )
 }

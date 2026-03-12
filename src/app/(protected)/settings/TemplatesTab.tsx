@@ -9,8 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { Toggle } from '@/components/ui/Toggle'
 import { useI18n } from '@/lib/i18n/context'
-import { VIOLATION_CATEGORIES, VIOLATION_TYPES } from '@/constants/violations'
-import type { ViolationCategory, ViolationCode } from '@/constants/violations'
+import { BR_FORM_TYPES, BR_FORM_TYPE_CODES, type BrFormTypeCode } from '@/constants/br-form-types'
 import { TEMPLATE_VARIABLES } from '@/types/templates'
 import type { ReportTemplate } from '@/types/templates'
 import { Star, Pencil, Trash2, Copy, Plus, ChevronDown, ChevronRight } from 'lucide-react'
@@ -214,8 +213,8 @@ export const TemplatesTab = () => {
     }))
   }
 
-  const categories = Object.keys(VIOLATION_CATEGORIES) as ViolationCategory[]
-  const violationCodes = Object.keys(VIOLATION_TYPES) as ViolationCode[]
+  const categories = BR_FORM_TYPE_CODES
+  const brFormTypeCodes = BR_FORM_TYPE_CODES
 
   return (
     <div className="space-y-4">
@@ -249,7 +248,7 @@ export const TemplatesTab = () => {
                 : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
-            {VIOLATION_CATEGORIES[cat]} ({categoryCounts[cat] ?? 0})
+            {BR_FORM_TYPES[cat as BrFormTypeCode]?.label ?? cat} ({categoryCounts[cat] ?? 0})
           </button>
         ))}
       </ScrollTabs>
@@ -262,7 +261,7 @@ export const TemplatesTab = () => {
         <div className="space-y-2">
           {Object.entries(groupedTemplates).map(([cat, tmpls]) => {
             const isCollapsed = isGroupCollapsed(cat)
-            const catLabel = VIOLATION_CATEGORIES[cat as ViolationCategory] ?? cat
+            const catLabel = BR_FORM_TYPES[cat as BrFormTypeCode]?.label ?? cat
             return (
               <div key={cat} className="rounded-xl border border-th-border bg-surface-card shadow-sm">
                 <button
@@ -393,7 +392,7 @@ export const TemplatesTab = () => {
               <option value="">None</option>
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
-                  {VIOLATION_CATEGORIES[cat]}
+                  {BR_FORM_TYPES[cat]?.label ?? cat}
                 </option>
               ))}
             </select>
@@ -401,10 +400,10 @@ export const TemplatesTab = () => {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-th-text-secondary">
-              Violation Types
+              BR Form Types
             </label>
             <div className="flex flex-wrap gap-1.5">
-              {violationCodes.map((code) => (
+              {brFormTypeCodes.map((code) => (
                 <button
                   key={code}
                   type="button"
@@ -415,7 +414,7 @@ export const TemplatesTab = () => {
                       : 'bg-th-bg-secondary text-th-text-muted hover:bg-th-bg-tertiary'
                   }`}
                 >
-                  {code}
+                  {BR_FORM_TYPES[code].label}
                 </button>
               ))}
             </div>

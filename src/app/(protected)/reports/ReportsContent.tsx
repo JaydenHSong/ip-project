@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
@@ -20,11 +20,9 @@ import { SlaBadge } from '@/components/ui/SlaBadge'
 import { useSortableTable } from '@/hooks/useSortableTable'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
-import { VIOLATION_CATEGORIES, VIOLATION_TYPES } from '@/constants/violations'
+import { getBrFormTypeLabel } from '@/constants/br-form-types'
 import { MARKETPLACES } from '@/constants/marketplaces'
-import type { ViolationCategory } from '@/constants/violations'
 import type { ReportStatus } from '@/types/reports'
-import type { ViolationCode } from '@/constants/violations'
 import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
@@ -42,6 +40,7 @@ const getChannelCode = (marketplace: string | undefined): string => {
 
 type ReportRow = {
   id: string
+  br_form_type: string
   violation_type: string
   violation_category: string | null
   status: string
@@ -63,10 +62,10 @@ type ReportsContentProps = {
   totalCount: number
   page: number
   statusFilter: string
-  categoryFilter: ViolationCategory | ''
-  disagreementFilter: boolean
+  brFormTypeFilter: string
   userRole: Role
   ownerFilter: 'my' | 'all'
+  searchQuery: string
 }
 
 export const ReportsContent = ({
@@ -75,15 +74,40 @@ export const ReportsContent = ({
   totalCount,
   page,
   statusFilter,
-  categoryFilter,
-  disagreementFilter,
+  brFormTypeFilter,
   userRole,
   ownerFilter,
+  searchQuery,
 }: ReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
   const { addToast } = useToast()
-  const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
+  const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '' })
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isSearching = searchQuery.length > 0
+
+  const handleFiltersChange = useCallback((newFilters: TableFiltersType) => {
+    setFilters(newFilters)
+
+    // Debounce search → URL param
+    if (newFilters.search !== filters.search) {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        const term = newFilters.search.trim()
+        if (term) {
+          router.push(`/reports?search=${encodeURIComponent(term)}`)
+        } else {
+          router.push('/reports')
+        }
+      }, 300)
+    }
+  }, [filters.search, router])
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
   const [showNewReport, setShowNewReport] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState<string | null>(null)
@@ -95,7 +119,7 @@ export const ReportsContent = ({
       [item.report_number != null ? String(item.report_number).padStart(5, '0') : null, item.listings?.asin, item.listings?.title, item.listings?.seller_name].filter(Boolean).join(' '),
     [],
   )
-  const getViolationType = useCallback((item: ReportRow) => item.violation_type, [])
+  const getViolationType = useCallback((item: ReportRow) => item.br_form_type ?? item.violation_type, [])
   const getMarketplace = useCallback((item: ReportRow) => item.listings?.marketplace ?? '', [])
 
   const filteredData = useFilterableTable(reports ?? [], filters, getSearchableText, getViolationType, getMarketplace)
@@ -104,7 +128,7 @@ export const ReportsContent = ({
     switch (field) {
       case 'status': return item.status
       case 'channel': return item.listings?.marketplace ?? null
-      case 'violation': return item.violation_type
+      case 'violation': return item.br_form_type ?? item.violation_type
       case 'asin': return item.listings?.asin ?? null
       case 'seller': return item.listings?.seller_name ?? null
       case 'requester': return (item as Record<string, unknown>).users ? ((item as Record<string, unknown>).users as { name: string })?.name : null
@@ -234,7 +258,6 @@ export const ReportsContent = ({
   const STATUS_TABS = [
     { value: '', label: t('common.all') },
     { value: 'draft', label: t('reports.tabs.draft') },
-    { value: 'pd_submitting', label: 'PD Reporting' },
     { value: 'br_submitting', label: 'BR Submitting' },
     { value: 'monitoring', label: t('reports.tabs.monitoring') },
   ]
@@ -258,27 +281,17 @@ export const ReportsContent = ({
             {t('reports.new.title')}
           </Button>
         </div>
-        <div className="flex items-center gap-2">
-          {categoryFilter && (
+        {brFormTypeFilter && (
+          <div className="flex items-center gap-2">
             <Link
               href="/reports"
               className="flex items-center gap-1 rounded-xl border border-th-accent/30 bg-th-accent/10 px-3 py-1.5 text-xs font-medium text-th-accent-text"
             >
-              {VIOLATION_CATEGORIES[categoryFilter]}
+              {getBrFormTypeLabel(brFormTypeFilter)}
               <X className="h-3 w-3" />
             </Link>
-          )}
-          <Link
-            href={`/reports?${disagreementFilter ? '' : 'disagreement=true'}`}
-            className={`rounded-xl border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-              disagreementFilter
-                ? 'border-st-warning-text/30 bg-st-warning-bg text-st-warning-text'
-                : 'border-th-border text-th-text-tertiary hover:bg-th-bg-hover'
-            }`}
-          >
-            {t('reports.disagreementOnly')}
-          </Link>
-        </div>
+          </div>
+        )}
       </div>
 
       <ScrollTabs>
@@ -287,7 +300,7 @@ export const ReportsContent = ({
             key={tab.value}
             href={`/reports${tab.value ? `?status=${tab.value}` : ''}`}
             className={`snap-start whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
-              statusFilter === tab.value
+              !isSearching && statusFilter === tab.value
                 ? 'bg-surface-card text-th-text shadow-sm'
                 : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
@@ -299,7 +312,7 @@ export const ReportsContent = ({
 
       <BrCaseQueueBar />
 
-      <TableFilters filters={filters} onFiltersChange={setFilters} />
+      <TableFilters filters={filters} onFiltersChange={handleFiltersChange} />
 
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
@@ -374,7 +387,7 @@ export const ReportsContent = ({
               <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} size="md" />
+                    <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} size="md" />
                     {report.disagreement_flag && <Badge variant="warning" size="md">!</Badge>}
                   </div>
                   <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
@@ -498,7 +511,7 @@ export const ReportsContent = ({
                   <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
-                      <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} />
+                      <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
                       {report.disagreement_flag && <Badge variant="warning">!</Badge>}
                     </div>
                   </td>
@@ -531,7 +544,7 @@ export const ReportsContent = ({
           {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
             <Link
               key={p}
-              href={`/reports?page=${p}${statusFilter ? `&status=${statusFilter}` : ''}${disagreementFilter ? '&disagreement=true' : ''}`}
+              href={`/reports?page=${p}${statusFilter ? `&status=${statusFilter}` : ''}${brFormTypeFilter ? `&br_form_type=${brFormTypeFilter}` : ''}`}
               className={`rounded-md px-3 py-1.5 text-sm ${
                 p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'
               }`}

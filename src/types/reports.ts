@@ -1,9 +1,9 @@
-import type { ViolationCategory, ViolationCode } from '@/constants/violations'
+import type { BrFormTypeCode } from '@/constants/br-form-types'
 import type { BrCaseStatus, BrReplyPendingAttachment } from '@/types/br-case'
 
 export const REPORT_STATUSES = [
   'draft', 'pending_review', 'approved', 'rejected', 'cancelled',
-  'pd_submitting', 'br_submitting', 'submitted', 'monitoring', 'resolved', 'unresolved',
+  'br_submitting', 'submitted', 'monitoring', 'resolved', 'unresolved',
   'resubmitted', 'escalated', 'archived',
 ] as const
 export type ReportStatus = (typeof REPORT_STATUSES)[number]
@@ -64,12 +64,15 @@ export type Report = {
   listing_snapshot: ListingSnapshot | null
   related_asins: RelatedAsin[]
 
-  // 위반 유형 (AI vs 사용자 불일치 처리)
-  user_violation_type: ViolationCode
-  ai_violation_type: ViolationCode | null
-  confirmed_violation_type: ViolationCode | null
-  violation_type: ViolationCode
-  violation_category: ViolationCategory
+  // BR 폼 타입 (v2)
+  br_form_type: BrFormTypeCode
+
+  // 레거시 위반 유형 (deprecated — DB에 3개월 유지 후 삭제)
+  user_violation_type: string
+  ai_violation_type: string | null
+  confirmed_violation_type: string | null
+  violation_type: string
+  violation_category: string
   disagreement_flag: boolean
 
   status: ReportStatus
@@ -105,11 +108,6 @@ export type Report = {
   approved_by: string | null
   approved_at: string | null
 
-  // PD 신고
-  pd_case_id: string | null
-  pd_submitted_at: string | null
-  pd_submission_error: string | null
-
   // 팔로업
   pd_followup_interval_days: number | null
   monitoring_started_at: string | null
@@ -131,11 +129,6 @@ export type Report = {
   max_resubmit_count: number | null
   next_resubmit_at: string | null
   last_resubmit_at: string | null
-
-  // PD 제출 추적
-  pd_submit_attempts: number
-  pd_last_attempt_at: string | null
-  pd_submit_data: PdSubmitData | null
 
   // BR 제출 추적
   br_submit_data: BrSubmitData | null
@@ -159,29 +152,16 @@ export type Report = {
   updated_at: string
 }
 
-export type PdSubmitData = {
-  asin: string
-  violation_type_pd: string
-  description: string
-  evidence_urls: string[]
-  marketplace: string
-  pd_rav_url: string
-  prepared_at: string
-}
-
-export type BrFormType =
-  | 'other_policy'
-  | 'incorrect_variation'
-  | 'product_review'
-  | 'product_not_as_described'
+export type BrFormType = BrFormTypeCode
 
 export type BrSubmitData = {
-  form_type: BrFormType
+  form_type: BrFormTypeCode
   description: string
   product_urls: string[]
   seller_storefront_url?: string
   policy_url?: string
   asins?: string[]
+  review_urls?: string[]
   order_id?: string
   prepared_at: string
 }
@@ -208,7 +188,6 @@ export const TIMELINE_EVENT_TYPES = [
   'approved',
   'rejected',
   'cancelled',
-  'submitted_pd',
   'rewritten',
   'monitoring_started',
   'snapshot_taken',

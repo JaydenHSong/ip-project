@@ -15,16 +15,15 @@ export const DESC_LABEL_TEXT = {
   other_policy: 'Describe which Amazon policy is being violated',
   incorrect_variation: 'Describe what makes the product an incorrect variation',
   product_review: 'Describe the review policy violation',
-  product_not_as_described: 'Describe which Amazon policy is being violated',
 } as const
 
 // URL(s) label 텍스트
 export const URL_LABEL_PREFIX = 'Provide up to 10 URL(s)'
 
-// Seller storefront URL label (Other policy / Product not as described)
+// Seller storefront URL label (Other policy only)
 export const STOREFRONT_LABEL_PREFIX = 'Provide the seller storefront URL'
 
-// Amazon policy URL label (Other policy / Product not as described)
+// Amazon policy URL label (Other policy only)
 export const POLICY_URL_LABEL_PREFIX = 'Provide the URL to the specific Amazon policy'
 
 // ASIN(s) label (Product review only)

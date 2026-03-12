@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { isDemoMode } from '@/lib/demo'
 
 // POST /api/reports/:id/save-draft — sendBeacon 호환 (PATCH 대신 POST)
 export const POST = withAuth(async (req) => {
@@ -20,6 +21,10 @@ export const POST = withAuth(async (req) => {
       { error: { code: 'VALIDATION_ERROR', message: 'Invalid body' } },
       { status: 400 },
     )
+  }
+
+  if (isDemoMode()) {
+    return NextResponse.json({ ok: true })
   }
 
   const supabase = await createClient()

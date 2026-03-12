@@ -54,13 +54,6 @@
     },
     {
       "matches": [
-        "https://sellercentral.amazon.com/abuse-submission/*"
-      ],
-      "js": ["sc-content.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
         "https://brandregistry.amazon.com/*"
       ],
       "js": ["br-content.js"],

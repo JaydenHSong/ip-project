@@ -73,7 +73,7 @@ export const POST = async (req: Request) => {
 
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, draft_title, draft_body, resubmit_count, pd_submitted_at, pd_case_id, user_violation_type, listing_id')
+    .select('id, draft_title, draft_body, resubmit_count, approved_at, user_violation_type, listing_id')
     .eq('id', body.report_id)
     .single()
 
@@ -95,8 +95,8 @@ export const POST = async (req: Request) => {
     (t: { name: string; variations: string[] }) => [t.name, ...t.variations],
   )
 
-  const daysSince = report.pd_submitted_at
-    ? Math.floor((Date.now() - new Date(report.pd_submitted_at).getTime()) / (1000 * 60 * 60 * 24))
+  const daysSince = report.approved_at
+    ? Math.floor((Date.now() - new Date(report.approved_at).getTime()) / (1000 * 60 * 60 * 24))
     : 0
 
   const systemPrompt = await buildSystemPrompt({ trademarks: trademarkNames, skillContent: '' })

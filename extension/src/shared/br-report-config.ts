@@ -5,14 +5,12 @@ export type BrFormType =
   | 'other_policy'
   | 'incorrect_variation'
   | 'product_review'
-  | 'product_not_as_described'
 
 // 좌측 트리 메뉴에서 클릭할 텍스트 (정확히 일치해야 함)
 export const BR_MENU_TEXT: Record<BrFormType, string> = {
   other_policy: 'Other policy violations',
   incorrect_variation: 'Incorrect variation',
   product_review: 'Product review violation',
-  product_not_as_described: 'Product not as described',
 } as const
 
 // 상위 메뉴 — 펼쳐져 있어야 하위 메뉴가 보임
@@ -32,7 +30,7 @@ export const BR_VIOLATION_MAP: Record<string, BrFormType | null> = {
   // Listing Content
   V05: 'other_policy',          // False Advertising
   V06: 'other_policy',          // Prohibited Keywords
-  V07: 'product_not_as_described', // Inaccurate Product Info
+  V07: 'other_policy',            // Inaccurate Product Info
   V08: 'other_policy',          // Image Policy
   V09: 'other_policy',          // Comparative Advertising
   V10: 'incorrect_variation',   // Variation Policy Violation

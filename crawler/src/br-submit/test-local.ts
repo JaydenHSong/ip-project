@@ -13,7 +13,6 @@ const USER_DATA_DIR = process.env['BR_USER_DATA_DIR'] || '/tmp/br-test-data'
 const MENU_TEXT: Record<string, string> = {
   other_policy: 'Other policy violations',
   incorrect_variation: 'Incorrect variation',
-  product_not_as_described: 'Product not as described',
   product_review: 'Product review violation',
 }
 
@@ -22,7 +21,6 @@ const PARENT_MENU_TEXT = 'Report a store policy violation'
 const DESC_LABEL: Record<string, string> = {
   other_policy: 'Describe which Amazon policy is being violated',
   incorrect_variation: 'Describe what makes the product an incorrect variation',
-  product_not_as_described: 'Describe how the product received differs',
   product_review: 'Describe the review policy violation',
 }
 
@@ -228,7 +226,7 @@ const testFormType = async (page: Page, formType: string): Promise<void> => {
   const urlOk = await fillField(frame, 'Provide up to 10 URL(s)', 'kat-textarea', 'https://www.amazon.com/dp/B0TEST1234')
   p(`URLs: ${urlOk ? '✅' : '❌'}`)
 
-  if (formType === 'other_policy' || formType === 'product_not_as_described') {
+  if (formType === 'other_policy') {
     const sfOk = await fillField(frame, 'Provide the seller storefront URL', 'kat-input', 'https://www.amazon.com/sp?seller=A1TEST')
     p(`Storefront URL: ${sfOk ? '✅' : '❌'}`)
   }
@@ -236,11 +234,6 @@ const testFormType = async (page: Page, formType: string): Promise<void> => {
   if (formType === 'other_policy') {
     const policyOk = await fillField(frame, 'Provide the URL to the specific Amazon policy', 'kat-input', 'https://sellercentral.amazon.com/help/hub/reference/G200164330')
     p(`Policy URL: ${policyOk ? '✅' : '❌'}`)
-  }
-
-  if (formType === 'product_not_as_described') {
-    const orderOk = await fillField(frame, 'Provide the order ID of your test buy', 'kat-input', '111-2222222-3333333')
-    p(`Order ID: ${orderOk ? '✅' : '❌'}`)
   }
 
   if (formType === 'product_review') {
@@ -319,7 +312,7 @@ const run = async (): Promise<void> => {
   console.log(`✅ 로그인 완료: ${page.url()}`)
 
   // 3개 폼 순차 테스트
-  for (const formType of ['other_policy', 'incorrect_variation', 'product_not_as_described', 'product_review']) {
+  for (const formType of ['other_policy', 'incorrect_variation', 'product_review']) {
     try {
       await testFormType(page, formType)
     } catch (err) {

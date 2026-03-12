@@ -62,7 +62,7 @@ const findMenuItemByText = (text: string): HTMLElement | null => {
 }
 
 const expandParentMenu = async (): Promise<boolean> => {
-  const targetItems = ['Other policy violations', 'Incorrect variation', 'Product review violation', 'Product not as described']
+  const targetItems = ['Other policy violations', 'Incorrect variation', 'Product review violation']
   if (targetItems.some((text) => findMenuItemByText(text) !== null)) return true
 
   // kat-expander shadowRoot 클릭 — ISOLATED world에서도 open shadowRoot 접근 가능
@@ -155,11 +155,11 @@ const executeBrReport = async (msg: BrReportMessage): Promise<void> => {
     sendButtonText: SEND_BUTTON_TEXT,
   }
 
-  if (msg.sellerStorefrontUrl && (msg.violationType === 'other_policy' || msg.violationType === 'product_not_as_described')) {
+  if (msg.sellerStorefrontUrl && msg.violationType === 'other_policy') {
     fillData.sellerStorefrontUrl = msg.sellerStorefrontUrl
     fillData.storefrontLabelPrefix = STOREFRONT_LABEL_PREFIX
   }
-  if (msg.policyUrl && (msg.violationType === 'other_policy' || msg.violationType === 'product_not_as_described')) {
+  if (msg.policyUrl && msg.violationType === 'other_policy') {
     fillData.policyUrl = msg.policyUrl
     fillData.policyUrlLabelPrefix = POLICY_URL_LABEL_PREFIX
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { isDemoMode } from '@/lib/demo'
 
 // GET /api/reports/[id]/related — 관련 리포트 (parent chain + children + same listing)
 export const GET = withAuth(async (req) => {
@@ -9,6 +10,10 @@ export const GET = withAuth(async (req) => {
 
   if (!id) {
     return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'ID required' } }, { status: 400 })
+  }
+
+  if (isDemoMode()) {
+    return NextResponse.json({ parent_chain: [], children: [], same_listing: [] })
   }
 
   const supabase = await createClient()
@@ -48,7 +53,7 @@ export const GET = withAuth(async (req) => {
   // Same listing: 동일 listing_id의 다른 리포트
   const { data: sameListing } = await supabase
     .from('reports')
-    .select('id, status, br_case_id, br_case_status, created_at, user_violation_type, listings!reports_listing_id_fkey(asin, title)')
+    .select('id, status, br_case_id, br_case_status, created_at, user_violation_type, br_form_type, listings!reports_listing_id_fkey(asin, title)')
     .eq('listing_id', report.listing_id)
     .neq('id', id)
     .order('created_at', { ascending: false })

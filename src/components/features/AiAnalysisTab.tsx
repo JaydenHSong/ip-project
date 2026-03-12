@@ -1,6 +1,35 @@
 'use client'
 
 import { useI18n } from '@/lib/i18n/context'
+import { getBrFormTypeLabel } from '@/constants/br-form-types'
+
+// V코드 → BR form type 라벨 변환 (레거시 데이터 호환)
+const VCODE_TO_LABEL: Record<string, string> = {
+  V01: 'Trademark Infringement',
+  V02: 'Copyright Infringement',
+  V03: 'Design Patent Infringement',
+  V04: 'Counterfeit Product',
+  V05: 'False Advertising',
+  V06: 'Prohibited Keywords',
+  V07: 'Inaccurate Product Info',
+  V08: 'Image Policy Violation',
+  V09: 'Comparative Advertising',
+  V10: 'Variation Policy Violation',
+  V11: 'Review Manipulation',
+  V12: 'Review Hijacking',
+  V13: 'Price Manipulation',
+  V14: 'Resale Violation',
+  V15: 'Bundling Violation',
+  V16: 'Missing Certification',
+  V17: 'Safety Standards Failure',
+  V18: 'Missing Warning Label',
+  V19: 'Import Regulation Violation',
+}
+
+const getViolationLabel = (code: string | null): string => {
+  if (!code) return 'Unknown'
+  return VCODE_TO_LABEL[code] ?? getBrFormTypeLabel(code)
+}
 
 type AiEvidence = {
   type: string
@@ -90,13 +119,8 @@ export const AiAnalysisTab = ({
 
         {aiViolationType && (
           <div className="flex items-center gap-3">
-            <span className="px-2 py-1 text-sm font-mono font-bold bg-th-accent/10 text-th-accent rounded">
-              {aiViolationType}
-            </span>
-            <span className="text-sm text-th-text-secondary">
-              {t(`violations.${aiViolationType}`) !== `violations.${aiViolationType}`
-                ? t(`violations.${aiViolationType}`)
-                : aiViolationType}
+            <span className="text-sm font-medium text-th-text">
+              {getViolationLabel(aiViolationType)}
             </span>
           </div>
         )}
@@ -116,11 +140,11 @@ export const AiAnalysisTab = ({
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-th-text-muted text-xs">User</p>
-              <p className="font-mono text-th-text">{userViolationType}</p>
+              <p className="text-th-text">{getViolationLabel(userViolationType)}</p>
             </div>
             <div>
               <p className="text-th-text-muted text-xs">AI</p>
-              <p className="font-mono text-th-accent">{aiViolationType}</p>
+              <p className="text-th-accent">{getViolationLabel(aiViolationType)}</p>
             </div>
           </div>
         </div>

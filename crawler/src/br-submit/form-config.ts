@@ -35,16 +35,6 @@ const BR_FORM_CONFIG: Record<BrFormType, FormConfig> = {
       { key: 'urls', labelPrefix: 'Provide up to 10 URL(s)', element: 'kat-textarea', required: true },
     ],
   },
-  product_not_as_described: {
-    menuText: 'Product not as described',
-    formId: 5721,
-    fields: [
-      { key: 'description', labelPrefix: 'Describe how the product received differs', element: 'kat-textarea', required: true },
-      { key: 'urls', labelPrefix: 'Provide up to 10 URL(s)', element: 'kat-textarea', required: true },
-      { key: 'storefront_url', labelPrefix: 'Provide the seller storefront URL', element: 'kat-input', required: false },
-      { key: 'order_id', labelPrefix: 'Provide the order ID of your test buy', element: 'kat-input', required: false },
-    ],
-  },
   product_review: {
     menuText: 'Product review violation',
     formId: 5791,

@@ -8,13 +8,6 @@ import type {
 import type { PersonaRanges } from '../anti-bot/persona-ranges.js'
 import { log } from '../logger.js'
 
-type PdSubmitResult = {
-  reportId: string
-  success: boolean
-  pdCaseId: string | null
-  error: string | null
-}
-
 type BrSubmitResult = {
   reportId: string
   success: boolean
@@ -73,10 +66,6 @@ type SentinelClient = {
   submitLog: (logData: CrawlerLogRequest) => Promise<void>
   updateCampaignResult: (campaignId: string, result: CampaignResultUpdate) => Promise<void>
   getPersonaRanges: () => Promise<PersonaRanges | null>
-  getPendingPdSubmits: () => Promise<unknown[]>
-  reportPdResult: (result: PdSubmitResult) => Promise<void>
-  getPendingPdResubmits: () => Promise<{ reports: unknown[]; defaults: unknown }>
-  strengthenDraft: (reportId: string) => Promise<void>
   getPendingBrSubmits: () => Promise<unknown[]>
   reportBrResult: (result: BrSubmitResult) => Promise<void>
   getPendingBrMonitors: () => Promise<unknown[]>
@@ -252,53 +241,6 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
         return data.ranges
       } catch {
         return null
-      }
-    },
-
-    getPendingPdSubmits: async (): Promise<unknown[]> => {
-      const response = await fetchWithRetry(
-        `${baseUrl}/api/crawler/pd-pending`,
-        { method: 'GET', headers },
-      )
-      if (!response.ok) {
-        const body = await response.text()
-        throw new Error(`Failed to fetch SC pending: ${response.status} ${body}`)
-      }
-      const data = (await response.json()) as { reports: unknown[] }
-      return data.reports
-    },
-
-    reportPdResult: async (result: PdSubmitResult): Promise<void> => {
-      const response = await fetchWithRetry(
-        `${baseUrl}/api/crawler/pd-result`,
-        { method: 'POST', headers, body: JSON.stringify(result) },
-      )
-      if (!response.ok) {
-        const body = await response.text()
-        throw new Error(`Failed to report PD result: ${response.status} ${body}`)
-      }
-    },
-
-    getPendingPdResubmits: async (): Promise<{ reports: unknown[]; defaults: unknown }> => {
-      const response = await fetchWithRetry(
-        `${baseUrl}/api/crawler/resubmit-pending`,
-        { method: 'GET', headers },
-      )
-      if (!response.ok) {
-        const body = await response.text()
-        throw new Error(`Failed to fetch resubmit pending: ${response.status} ${body}`)
-      }
-      return (await response.json()) as { reports: unknown[]; defaults: unknown }
-    },
-
-    strengthenDraft: async (reportId: string): Promise<void> => {
-      const response = await fetchWithRetry(
-        `${baseUrl}/api/ai/strengthen`,
-        { method: 'POST', headers, body: JSON.stringify({ report_id: reportId }) },
-      )
-      if (!response.ok) {
-        const body = await response.text()
-        throw new Error(`Failed to strengthen draft: ${response.status} ${body}`)
       }
     },
 

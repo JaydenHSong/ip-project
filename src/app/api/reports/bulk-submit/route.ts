@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildPdSubmitData } from '@/lib/reports/pd-data'
-import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
 
 type BulkSubmitRequest = {
   report_ids: string[]
-  action: 'submit_review' | 'submit_sc'
+  action: 'submit_review'
 }
 
-// POST /api/reports/bulk-submit — 일괄 Submit (Review 또는 SC)
+// POST /api/reports/bulk-submit — 일괄 Submit (Review 전송)
 export const POST = withAuth(async (req, { user }) => {
   const body = (await req.json()) as BulkSubmitRequest
 
@@ -28,17 +26,12 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   const supabase = await createClient()
-  const now = new Date().toISOString()
-
-  // action에 따라 대상 상태 결정
-  const expectedStatus = body.action === 'submit_review' ? 'draft' : 'approved'
-  const targetStatus = body.action === 'submit_review' ? 'pending_review' : 'pd_submitting'
 
   const { data: reports, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, draft_body, draft_evidence, listing_id')
+    .select('id, status')
     .in('id', body.report_ids)
-    .eq('status', expectedStatus)
+    .eq('status', 'draft')
 
   if (fetchError) {
     return NextResponse.json(
@@ -50,54 +43,13 @@ export const POST = withAuth(async (req, { user }) => {
   const validReports = reports ?? []
   const skippedCount = body.report_ids.length - validReports.length
 
-  // PD submit인 경우 listing 정보 필요
-  let listingMap = new Map<string, { id: string; asin: string; marketplace: string; title: string; url: string | null }>()
-  if (body.action === 'submit_sc') {
-    const listingIds = [...new Set(validReports.map((r) => r.listing_id))]
-    const { data: listings } = await supabase
-      .from('listings')
-      .select('id, asin, marketplace, title, url')
-      .in('id', listingIds)
-    listingMap = new Map((listings ?? []).map((l) => [l.id, l]))
-  }
-
   let submitted = 0
   const errors: { id: string; reason: string }[] = []
 
   for (const report of validReports) {
-    const updates: Record<string, unknown> = { status: targetStatus }
-
-    if (body.action === 'submit_sc') {
-      const listing = listingMap.get(report.listing_id)
-      updates.approved_by = user.id
-      updates.approved_at = now
-      if (listing) {
-        updates.pd_submit_data = buildPdSubmitData({
-          report: {
-            id: report.id,
-            user_violation_type: report.user_violation_type,
-            draft_body: report.draft_body,
-            draft_evidence: report.draft_evidence as { type: string; url: string; description: string }[] | undefined,
-          },
-          listing,
-        })
-        if (isBrReportable(report.user_violation_type)) {
-          updates.br_submit_data = buildBrSubmitData({
-            report: {
-              id: report.id,
-              user_violation_type: report.user_violation_type,
-              draft_body: report.draft_body,
-              draft_title: null,
-            },
-            listing: { asin: listing.asin, url: listing.url ?? null, marketplace: listing.marketplace },
-          })
-        }
-      }
-    }
-
     const { error } = await supabase
       .from('reports')
-      .update(updates)
+      .update({ status: 'pending_review' })
       .eq('id', report.id)
 
     if (error) {

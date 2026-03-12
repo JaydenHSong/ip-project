@@ -1,6 +1,5 @@
 // API 공통 타입 정의
 
-import type { ViolationCode } from '@/constants/violations'
 import type { AiSeverity, DraftEvidence, PolicyReference } from './reports'
 
 // ============================================================
@@ -112,7 +111,7 @@ export type UpdateCampaignRequest = Partial<CreateCampaignRequest> & {
 
 export type CreateReportRequest = {
   listing_id: string
-  user_violation_type: ViolationCode
+  user_violation_type: string
   violation_category: string
   note?: string
   related_asins?: { asin: string; marketplace?: string; url?: string }[]
@@ -134,7 +133,7 @@ export type ManualReportRequest = {
   marketplace: string
   title?: string
   seller_name?: string
-  user_violation_type: ViolationCode
+  user_violation_type: string
   violation_category: string
   note?: string
   screenshot_url?: string
@@ -166,7 +165,7 @@ export type AiAnalyzeRequest = {
 export type AiAnalyzeResponse = {
   violation_detected: boolean
   violations: {
-    type: ViolationCode
+    type: string
     confidence: number
     category: string
     severity: AiSeverity
@@ -199,7 +198,7 @@ export type SubmitReportRequest = {
   seller_name?: string
   seller_id?: string
   images?: string[]
-  violation_type: string // ViolationCode (V01~V04) or category name (variation, main_image, etc.)
+  violation_type: string // string (V01~V04) or category name (variation, main_image, etc.)
   violation_category: string
   note?: string
   screenshot_base64?: string
@@ -213,7 +212,7 @@ export type SubmitReportResponse = {
   ai_preview?: {
     violation_detected: boolean
     confidence: number
-    suggested_type: ViolationCode
+    suggested_type: string
   }
 }
 

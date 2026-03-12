@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
@@ -12,7 +12,6 @@ import { useSortableTable } from '@/hooks/useSortableTable'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import type { ReportStatus } from '@/types/reports'
-import type { ViolationCode } from '@/constants/violations'
 import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Button } from '@/components/ui/Button'
@@ -33,6 +32,7 @@ const getChannelCode = (marketplace: string | undefined): string => {
 type ReportRow = {
   id: string
   report_number: number
+  br_form_type: string
   violation_type: string
   violation_category: string | null
   status: string
@@ -50,12 +50,37 @@ type CompletedReportsContentProps = {
   totalPages: number
   totalCount: number
   pageSize: number
+  searchQuery: string
 }
 
-export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, page, totalPages, totalCount, pageSize }: CompletedReportsContentProps) => {
+export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, page, totalPages, totalCount, pageSize, searchQuery }: CompletedReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
-  const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
+  const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '' })
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isSearching = searchQuery.length > 0
+
+  const handleFiltersChange = useCallback((newFilters: TableFiltersType) => {
+    setFilters(newFilters)
+
+    if (newFilters.search !== filters.search) {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => {
+        const term = newFilters.search.trim()
+        if (term) {
+          router.push(`/reports/completed?search=${encodeURIComponent(term)}`)
+        } else {
+          router.push('/reports/completed')
+        }
+      }, 300)
+    }
+  }, [filters.search, router])
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState<string | null>(null)
   const [previewReportId, setPreviewReportId] = useState<string | null>(null)
@@ -180,7 +205,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             key={tab.value}
             href={`/reports/completed${tab.value ? `?status=${tab.value}` : ''}`}
             className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              statusFilter === tab.value
+              !isSearching && statusFilter === tab.value
                 ? 'bg-surface-card text-th-text shadow-sm'
                 : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
@@ -190,7 +215,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         ))}
       </ScrollTabs>
 
-      <TableFilters filters={filters} onFiltersChange={setFilters} />
+      <TableFilters filters={filters} onFiltersChange={handleFiltersChange} />
 
       {/* Bulk Actions Bar */}
       {canBulk && selectedIds.size > 0 && (
@@ -229,7 +254,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             <Link key={report.id} href={`/reports/${report.id}`}>
               <div className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
-                  <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} />
+                  <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
                   <StatusBadge status={report.status as ReportStatus} type="report" />
                 </div>
                 <p className="mt-2 font-mono text-sm text-th-text">{report.listings?.asin ?? '—'}</p>
@@ -313,7 +338,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                   </td>
                   <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">
-                    <ViolationBadge code={(report.violation_category ?? report.violation_type) as ViolationCode} showLabel={false} />
+                    <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
                   </td>
                   <td className="px-4 py-3.5">
                     <span className="font-mono text-th-text">

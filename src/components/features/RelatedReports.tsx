@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
-import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus } from '@/types/reports'
 import { Clock, ExternalLink } from 'lucide-react'
 
@@ -13,7 +12,7 @@ type RelatedReport = {
   br_case_id: string | null
   br_case_status: string | null
   created_at: string
-  user_violation_type: string
+  br_form_type: string
   listings: { asin: string; title: string } | null
 }
 
@@ -90,7 +89,7 @@ export const RelatedReports = ({ reports, currentReportId, onNavigate }: Related
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <ViolationBadge code={r.user_violation_type as ViolationCode} showLabel={false} size="sm" />
+                  <ViolationBadge code={r.br_form_type} showLabel={false} size="sm" />
                   <StatusBadge status={r.status as ReportStatus} type="report" size="sm" />
                   {brStatus && (
                     <span className={`text-[10px] font-medium ${brStatus.color}`}>

@@ -10,9 +10,8 @@ import { Select } from '@/components/ui/Select'
 import { Textarea } from '@/components/ui/Textarea'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { useI18n } from '@/lib/i18n/context'
-import { VIOLATION_CATEGORIES, VIOLATION_GROUPS } from '@/constants/violations'
+import { BR_FORM_TYPE_OPTIONS } from '@/constants/br-form-types'
 import { MARKETPLACE_CODES, MARKETPLACES } from '@/constants/marketplaces'
-import type { ViolationCategory } from '@/constants/violations'
 import type { ReportTemplate } from '@/types/templates'
 import { Star, FileText, Upload, X, Image, Plus } from 'lucide-react'
 
@@ -21,9 +20,9 @@ const MARKETPLACE_OPTIONS = MARKETPLACE_CODES.map((code) => ({
   label: `${MARKETPLACES[code].name} (${code})`,
 }))
 
-const CATEGORY_OPTIONS = Object.entries(VIOLATION_CATEGORIES).map(([key, label]) => ({
-  value: key,
-  label: label as string,
+const BR_TYPE_OPTIONS = BR_FORM_TYPE_OPTIONS.map((opt) => ({
+  value: opt.value,
+  label: opt.label,
 }))
 
 type NewReportFormProps = {
@@ -47,9 +46,8 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
   const [sellerName, setSellerName] = useState(searchParams.get('seller') ?? '')
   const [prefilling, setPrefilling] = useState(false)
 
-  // Violation fields
-  const [category, setCategory] = useState('')
-  const [violationType, setViolationType] = useState('')
+  // BR form type (v2: single dropdown)
+  const [brFormType, setBrFormType] = useState('')
   const [note, setNote] = useState('')
 
   // Related ASINs (multi-ASIN support)
@@ -95,14 +93,7 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
     prefillFromListing()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const typeOptions = category
-    ? (VIOLATION_GROUPS[category as ViolationCategory] ?? []).map((v) => ({
-        value: v.code,
-        label: `${v.code}: ${v.name}`,
-      }))
-    : []
-
-  // Fetch recommended templates when violation type changes
+  // Fetch recommended templates when BR form type changes
   const fetchSuggestedTemplates = useCallback(async (vType: string) => {
     if (!vType) {
       setSuggestedTemplates([])
@@ -123,8 +114,8 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
   }, [])
 
   useEffect(() => {
-    fetchSuggestedTemplates(violationType)
-  }, [violationType, fetchSuggestedTemplates])
+    fetchSuggestedTemplates(brFormType)
+  }, [brFormType, fetchSuggestedTemplates])
 
   const handleUseTemplate = (tmpl: ReportTemplate) => {
     // Simple interpolation with available fields
@@ -181,12 +172,7 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
     setScreenshots((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const canSubmit = asin.trim() && category && violationType
-
-  const handleCategoryChange = (value: string) => {
-    setCategory(value)
-    setViolationType('')
-  }
+  const canSubmit = asin.trim() && brFormType
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -205,8 +191,7 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
           marketplace,
           title: title.trim() || undefined,
           seller_name: sellerName.trim() || undefined,
-          user_violation_type: violationType,
-          violation_category: category,
+          br_form_type: brFormType,
           note: note.trim() || undefined,
           screenshot_url: screenshots.length > 0 ? screenshots[0].url : undefined,
           screenshot_urls: screenshots.length > 0 ? screenshots.map((s) => s.url) : undefined,
@@ -350,25 +335,15 @@ export const NewReportForm = ({ embedded, onSuccess }: NewReportFormProps) => {
           <h2 className="font-semibold text-th-text">{t('reports.new.violationDetails')}</h2>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Select
-              label={t('reports.new.violationCategory')}
-              value={category}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              options={CATEGORY_OPTIONS}
-              placeholder={t('reports.new.selectCategory')}
-            />
-            <Select
-              label={t('reports.new.violationType')}
-              value={violationType}
-              onChange={(e) => setViolationType(e.target.value)}
-              options={typeOptions}
-              placeholder={t('reports.new.selectType')}
-              disabled={!category}
-            />
-          </div>
+          <Select
+            label="BR Form Type"
+            value={brFormType}
+            onChange={(e) => setBrFormType(e.target.value)}
+            options={BR_TYPE_OPTIONS}
+            placeholder="Select form type"
+          />
           {/* Recommended templates */}
-          {violationType && (
+          {brFormType && (
             <div className="space-y-2">
               <label className="block text-sm font-medium text-th-text-secondary">
                 Recommended Templates

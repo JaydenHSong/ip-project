@@ -69,7 +69,7 @@ export type FrontReportResultMessage = {
 export type BrReportMessage = {
   type: 'EXECUTE_BR_REPORT'
   reportId: string
-  violationType: 'other_policy' | 'incorrect_variation' | 'product_review' | 'product_not_as_described'
+  violationType: 'other_policy' | 'incorrect_variation' | 'product_review'
   description: string
   productUrls: string[]       // 최대 10개
   sellerStorefrontUrl?: string

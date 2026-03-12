@@ -3,7 +3,7 @@ import { getCurrentUser } from '@/lib/auth/session'
 import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo'
 import { getDemoDashboardStats } from '@/lib/demo/dashboard'
-import { VIOLATION_TYPES } from '@/constants/violations'
+import { getBrFormTypeLabel } from '@/constants/br-form-types'
 import type { PeriodFilter, DashboardStats } from '@/types/dashboard'
 
 const VALID_PERIODS: PeriodFilter[] = ['7d', '30d', '90d']
@@ -50,7 +50,7 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   // Fetch all reports in period for aggregation
   let reportQuery = supabase
     .from('reports')
-    .select('status, violation_type, ai_confidence_score, disagreement_flag, created_at, listings!inner(marketplace)')
+    .select('status, violation_type, br_form_type, ai_confidence_score, disagreement_flag, created_at, listings!inner(marketplace)')
     .gte('created_at', periodStartISO)
 
   if (userId) {
@@ -155,23 +155,14 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   }
   const reportTrend = Array.from(trendMap.entries()).map(([date, val]) => ({ date, ...val }))
 
-  // Violation distribution by category
+  // Violation distribution by BR form type
   const categoryMap = new Map<string, number>()
   for (const r of allReports) {
-    if (!r.violation_type) continue
-    const vt = VIOLATION_TYPES[r.violation_type as keyof typeof VIOLATION_TYPES]
-    const cat = vt?.category ?? 'unknown'
-    categoryMap.set(cat, (categoryMap.get(cat) ?? 0) + 1)
-  }
-  const CATEGORY_LABELS: Record<string, string> = {
-    intellectual_property: 'IP Infringement',
-    listing_content: 'Listing Content',
-    review_manipulation: 'Review Manipulation',
-    selling_practice: 'Selling Practice',
-    regulatory_safety: 'Regulatory/Safety',
+    const brType = r.br_form_type ?? r.violation_type ?? 'unknown'
+    categoryMap.set(brType, (categoryMap.get(brType) ?? 0) + 1)
   }
   const violationDist = Array.from(categoryMap.entries())
-    .map(([category, count]) => ({ category, categoryLabel: CATEGORY_LABELS[category] ?? category, count }))
+    .map(([category, count]) => ({ category, categoryLabel: getBrFormTypeLabel(category), count }))
     .sort((a, b) => b.count - a.count)
 
   // Status pipeline
@@ -187,16 +178,17 @@ export const GET = async (request: Request): Promise<NextResponse> => {
     .filter((s) => statusMap.has(s))
     .map((status) => ({ status, statusLabel: STATUS_LABELS[status] ?? status, count: statusMap.get(status) ?? 0 }))
 
-  // Top violations
+  // Top violations (by BR form type)
   const vtMap = new Map<string, number>()
   for (const r of allReports) {
-    if (!r.violation_type) continue
-    vtMap.set(r.violation_type, (vtMap.get(r.violation_type) ?? 0) + 1)
+    const brType = r.br_form_type ?? r.violation_type
+    if (!brType) continue
+    vtMap.set(brType, (vtMap.get(brType) ?? 0) + 1)
   }
   const topViolations = Array.from(vtMap.entries())
     .map(([code, count]) => ({
       code,
-      name: VIOLATION_TYPES[code as keyof typeof VIOLATION_TYPES]?.name ?? code,
+      name: getBrFormTypeLabel(code),
       count,
     }))
     .sort((a, b) => b.count - a.count)

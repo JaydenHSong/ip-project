@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildPdSubmitData } from '@/lib/reports/pd-data'
-import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
+import { buildBrSubmitData } from '@/lib/reports/br-data'
+import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
 type BulkApproveRequest = {
   report_ids: string[]
 }
 
-// POST /api/reports/bulk-approve — 일괄 승인 → pd_submitting
+// POST /api/reports/bulk-approve — 일괄 승인 → BR 대상이면 br_submitting, 아니면 submitted
 export const POST = withAuth(async (req) => {
   const body = (await req.json()) as BulkApproveRequest
 
@@ -33,7 +33,7 @@ export const POST = withAuth(async (req) => {
   // pending_review 상태인 리포트만 조회
   const { data: reports, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, draft_body, draft_evidence, listing_id')
+    .select('id, status, user_violation_type, br_form_type, draft_body, draft_evidence, listing_id')
     .in('id', body.report_ids)
     .eq('status', 'pending_review')
 
@@ -61,23 +61,14 @@ export const POST = withAuth(async (req) => {
 
   for (const report of validReports) {
     const listing = listingMap.get(report.listing_id)
-    const pdSubmitData = listing
-      ? buildPdSubmitData({
-          report: {
-            id: report.id,
-            user_violation_type: report.user_violation_type,
-            draft_body: report.draft_body,
-            draft_evidence: report.draft_evidence as { type: string; url: string; description: string }[] | undefined,
-          },
-          listing,
-        })
-      : null
+    const brFormType = (report.br_form_type ?? 'other_policy') as BrFormTypeCode
+    const brReportable = isBrSubmittable(brFormType)
 
-    const brSubmitData = listing && isBrReportable(report.user_violation_type)
+    const brSubmitData = listing && brReportable
       ? buildBrSubmitData({
           report: {
             id: report.id,
-            user_violation_type: report.user_violation_type,
+            br_form_type: brFormType,
             draft_body: report.draft_body,
             draft_title: null,
           },
@@ -88,10 +79,9 @@ export const POST = withAuth(async (req) => {
     const { error } = await supabase
       .from('reports')
       .update({
-        status: 'pd_submitting',
+        status: brReportable ? 'br_submitting' : 'submitted',
         approved_by: authUser!.id,
         approved_at: now,
-        pd_submit_data: pdSubmitData,
         br_submit_data: brSubmitData,
       })
       .eq('id', report.id)

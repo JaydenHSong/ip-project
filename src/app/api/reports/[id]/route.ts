@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { isDemoMode } from '@/lib/demo'
+import { DEMO_REPORTS } from '@/lib/demo/data'
+import { DEMO_MONITORING_REPORTS } from '@/lib/demo/monitoring'
 
 // GET /api/reports/:id — 신고 상세
 export const GET = withAuth(async (req) => {
@@ -12,6 +15,18 @@ export const GET = withAuth(async (req) => {
       { error: { code: 'VALIDATION_ERROR', message: 'ID가 필요합니다.' } },
       { status: 400 },
     )
+  }
+
+  if (isDemoMode()) {
+    const found = DEMO_MONITORING_REPORTS.find((r) => r.id === id)
+      ?? DEMO_REPORTS.find((r) => r.id === id)
+    if (!found) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: '신고를 찾을 수 없습니다.' } },
+        { status: 404 },
+      )
+    }
+    return NextResponse.json(found)
   }
 
   const supabase = await createClient()
@@ -52,6 +67,11 @@ export const PATCH = withAuth(async (req) => {
   }
 
   const body = await req.json()
+
+  if (isDemoMode()) {
+    return NextResponse.json({ id, ...body })
+  }
+
   const supabase = await createClient()
 
   // 수정 가능한 필드만 허용

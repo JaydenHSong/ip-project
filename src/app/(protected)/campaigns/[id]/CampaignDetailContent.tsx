@@ -17,7 +17,6 @@ import { SlidePanel } from '@/components/ui/SlidePanel'
 import { CampaignStats } from '@/components/features/CampaignStats'
 import { CampaignActions } from './CampaignActions'
 import { ReportActions } from '@/app/(protected)/reports/[id]/ReportActions'
-import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus } from '@/types/reports'
 import type { Role } from '@/types/users'
 
@@ -45,6 +44,7 @@ type ReportRow = {
   id: string
   listing_id: string
   status: string
+  br_form_type: string | null
   user_violation_type: string
   ai_violation_type: string | null
   ai_confidence_score: number | null
@@ -598,7 +598,7 @@ export const CampaignDetailContent = ({
                       </span>
                     </div>
                     <div className="mt-2.5 flex items-center gap-2">
-                      <ViolationBadge code={report.user_violation_type as ViolationCode} size="md" />
+                      <ViolationBadge code={report.br_form_type ?? report.user_violation_type} size="md" />
                       {report.ai_violation_type && report.ai_confidence_score !== null && (
                         <span className="text-xs text-th-text-muted">
                           AI {report.ai_confidence_score}%

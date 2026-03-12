@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useDashboardContext } from './DashboardContext'
-import { VIOLATION_TYPES } from '@/constants/violations'
-import type { ViolationCode } from '@/constants/violations'
+import { getBrFormTypeLabel } from '@/constants/br-form-types'
 
 type ViolationStat = {
   accuracy: number
@@ -86,7 +85,7 @@ export const AiAccuracyWidget = () => {
       <div className="space-y-2">
         <p className="text-xs font-medium text-th-text-tertiary">By Violation Type</p>
         {sortedTypes.map(([code, stat]) => {
-          const label = VIOLATION_TYPES[code as ViolationCode]?.name ?? code
+          const label = getBrFormTypeLabel(code)
           const barWidth = Math.max(stat.accuracy, 2)
           const barColor = stat.accuracy >= 85 ? 'bg-green-500' : stat.accuracy >= 70 ? 'bg-yellow-500' : 'bg-red-500'
           return (

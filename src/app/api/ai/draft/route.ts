@@ -10,7 +10,7 @@ import { loadSkillForType } from '@/lib/ai/skills/loader'
 import type { Report, BrFormType } from '@/types/reports'
 import type { Listing } from '@/types/listings'
 import type { AiAnalyzeResponse } from '@/types/api'
-import { getBrFormType } from '@/lib/reports/br-data'
+import type { BrFormTypeCode } from '@/constants/br-form-types'
 
 type DraftRequest = {
   report_id: string
@@ -112,7 +112,7 @@ export const POST = withAuth(async (req) => {
 
   // BR 템플릿 조회 — form type 기반 필터링 (사용자 선택 우선, 없으면 자동매핑)
   const violationType = typedReport.ai_violation_type ?? typedReport.user_violation_type
-  const brFormType = body.br_form_type ?? getBrFormType(violationType)
+  const brFormType = body.br_form_type ?? (typedReport as Record<string, unknown>).br_form_type as BrFormTypeCode ?? 'other_policy'
 
   let templateQuery = supabase
     .from('br_templates')

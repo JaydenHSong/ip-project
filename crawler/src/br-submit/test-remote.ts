@@ -15,7 +15,7 @@ import type { BrSubmitJobData, BrFormType } from './types.js'
 import type { Job } from 'bullmq'
 
 const FORM_TYPE = (process.argv[2] || 'other_policy') as BrFormType
-const VALID_TYPES: BrFormType[] = ['other_policy', 'incorrect_variation', 'product_review', 'product_not_as_described']
+const VALID_TYPES: BrFormType[] = ['other_policy', 'incorrect_variation', 'product_review']
 
 if (!VALID_TYPES.includes(FORM_TYPE)) {
   console.error(`Invalid form type: ${FORM_TYPE}`)
@@ -46,15 +46,6 @@ const TEST_DATA: Record<BrFormType, BrSubmitJobData> = {
     description: '[DRY-RUN TEST] This product has fake reviews that violate the review policy.',
     productUrls: ['https://www.amazon.com/dp/B0DRYRUN03'],
     asins: ['B0DRYRUN03', 'B0DRYRUN04'],
-    dryRun: true,
-  },
-  product_not_as_described: {
-    reportId: 'dry-run-test',
-    formType: 'product_not_as_described',
-    description: '[DRY-RUN TEST] The product received differs from the listing description.',
-    productUrls: ['https://www.amazon.com/dp/B0DRYRUN04'],
-    sellerStorefrontUrl: 'https://www.amazon.com/sp?seller=A1DRYRUNTEST',
-    orderId: '111-0000000-0000000',
     dryRun: true,
   },
 }

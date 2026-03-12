@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
+import { buildBrSubmitData } from '@/lib/reports/br-data'
+import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
 // POST /api/reports/bulk-br-resubmit — BR 일괄 재신고
 export const POST = withAuth(async (req, { user }) => {
@@ -19,7 +20,7 @@ export const POST = withAuth(async (req, { user }) => {
 
   const { data: reports, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, draft_body, draft_title, listing_id, resubmit_count')
+    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, listing_id, resubmit_count')
     .in('id', report_ids)
     .in('status', ['monitoring', 'resolved', 'unresolved'])
 
@@ -34,7 +35,8 @@ export const POST = withAuth(async (req, { user }) => {
   let skipped = 0
 
   for (const report of reports) {
-    if (!isBrReportable(report.user_violation_type)) {
+    const brFormType = (report.br_form_type ?? 'other_policy') as BrFormTypeCode
+    if (!isBrSubmittable(brFormType)) {
       skipped++
       continue
     }
@@ -49,7 +51,7 @@ export const POST = withAuth(async (req, { user }) => {
       ? buildBrSubmitData({
           report: {
             id: report.id,
-            user_violation_type: report.user_violation_type,
+            br_form_type: brFormType,
             draft_body: report.draft_body,
             draft_title: report.draft_title,
           },

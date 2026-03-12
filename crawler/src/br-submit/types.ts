@@ -2,7 +2,6 @@ export type BrFormType =
   | 'other_policy'
   | 'incorrect_variation'
   | 'product_review'
-  | 'product_not_as_described'
 
 export type BrSubmitJobData = {
   reportId: string

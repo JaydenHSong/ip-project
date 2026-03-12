@@ -15,16 +15,15 @@ import { ReportActions } from './ReportActions'
 import { ReportTimeline } from './ReportTimeline'
 import { SnapshotViewer } from './SnapshotViewer'
 import { BrTemplateList } from './BrTemplateList'
-import { isBrReportable, getBrFormType, BR_FORM_OPTIONS, BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT } from '@/lib/reports/br-data'
-import type { BrFormType } from '@/types/reports'
+import { BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT } from '@/lib/reports/br-data'
+import { BR_FORM_TYPES, BR_FORM_TYPE_OPTIONS, isBrSubmittable, brFormHasField, type BrFormTypeCode } from '@/constants/br-form-types'
 import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
 import { CaseThread } from '@/components/features/case-thread/CaseThread'
 import { CaseActivityLog } from '@/components/features/case-thread/CaseActivityLog'
 import { SlaBadge } from '@/components/ui/SlaBadge'
 import { CaseChain } from '@/components/features/CaseChain'
 import { RelatedReports } from '@/components/features/RelatedReports'
-import { VIOLATION_CATEGORIES } from '@/constants/violations'
-import type { ViolationCode, ViolationCategory } from '@/constants/violations'
+import { getBrFormTypeLabel } from '@/constants/br-form-types'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
 import type { BrCaseStatus } from '@/types/br-case'
 import { useToast } from '@/hooks/useToast'
@@ -34,6 +33,7 @@ type ReportDetailContentProps = {
   report: {
     id: string
     status: string
+    br_form_type: string | null
     user_violation_type: string
     ai_violation_type: string | null
     ai_confidence_score: number | null
@@ -51,10 +51,6 @@ type ReportDetailContentProps = {
     draft_subject: string | null
     draft_body: string | null
     rejection_reason: string | null
-    pd_case_id: string | null
-    pd_submission_error: string | null
-    pd_submit_attempts: number
-    pd_submit_data: { pd_rav_url?: string; asin?: string; marketplace?: string } | null
     violation_category: string | null
     note: string | null
     resubmit_count: number
@@ -119,15 +115,16 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [stopping, setStopping] = useState(false)
   const [suggestedTemplate, setSuggestedTemplate] = useState<{ id: string; title: string; body: string } | null>(null)
   const [templateDismissed, setTemplateDismissed] = useState(false)
-  const showBrFormType = isDraftEditable && isBrReportable(report.user_violation_type)
-  const [brFormType, setBrFormType] = useState<BrFormType>(
-    getBrFormType(report.user_violation_type) ?? 'other_policy'
+  const showBrFormType = isDraftEditable
+  const [brFormType, setBrFormType] = useState<BrFormTypeCode>(
+    (report.br_form_type ?? 'other_policy') as BrFormTypeCode
   )
   const [brFields, setBrFields] = useState({
     product_urls: listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : '',
     seller_storefront_url: '',
     policy_url: '',
     asins: listing?.asin ?? '',
+    review_urls: '',
     order_id: '',
   })
   const [brFieldsExpanded, setBrFieldsExpanded] = useState(false)
@@ -141,6 +138,8 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   )
   const [savingFollowupInterval, setSavingFollowupInterval] = useState(false)
   const [caseThreadTab, setCaseThreadTab] = useState<'thread' | 'activity'>('thread')
+  const hasScreenshots = (report.screenshots ?? []).length > 0 || !!report.screenshot_url
+  const [extraTab, setExtraTab] = useState<'screenshots' | 'ai'>(hasScreenshots ? 'screenshots' : 'ai')
   const [adminMemo, setAdminMemo] = useState(report.admin_memo ?? '')
   const [memoSaving, setMemoSaving] = useState(false)
   const [memoSaved, setMemoSaved] = useState(false)
@@ -148,7 +147,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [relatedData, setRelatedData] = useState<{
     parent_chain: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
     children: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
-    same_listing: Array<{ id: string; status: string; br_case_id: string | null; br_case_status: string | null; created_at: string; user_violation_type: string; listings: { asin: string; title: string } | null }>
+    same_listing: Array<{ id: string; status: string; br_case_id: string | null; br_case_status: string | null; created_at: string; user_violation_type: string; br_form_type: string; listings: { asin: string; title: string } | null }>
   } | null>(null)
 
   // Fetch related reports data
@@ -211,12 +210,13 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           edited_draft_subject: editSubject,
           edited_draft_body: editBody,
           ...(showBrFormType ? { br_form_type: brFormType } : {}),
-          ...(showBrFormType ? {
+          ...(showBrFormType && isBrSubmittable(brFormType) ? {
             br_extra_fields: {
               ...(brFields.product_urls ? { product_urls: brFields.product_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
               ...(brFields.seller_storefront_url ? { seller_storefront_url: brFields.seller_storefront_url } : {}),
               ...(brFields.policy_url ? { policy_url: brFields.policy_url } : {}),
               ...(brFields.asins ? { asins: brFields.asins.split(/[,;\n]/).map((a) => a.trim()).filter(Boolean) } : {}),
+              ...(brFields.review_urls ? { review_urls: brFields.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
               ...(brFields.order_id ? { order_id: brFields.order_id } : {}),
             },
           } : {}),
@@ -475,14 +475,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           <BackButton href="/reports" />
           <h1 className="text-2xl font-bold text-th-text">{t('reports.detail.title')}</h1>
           <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
-          {report.status === 'submitted' && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-st-success-bg px-2.5 py-0.5 text-xs font-medium text-st-success-text">
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-              PD Reported
-            </span>
-          )}
           {isDraftEditable && (
             <span className="rounded-full bg-th-accent-soft px-2 py-0.5 text-xs font-medium text-th-accent-text">
               {t('reports.detail.editing')}
@@ -495,9 +487,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 userRole={userRole}
                 createdBy={report.created_by}
                 currentUserId={currentUserId}
-                pdCaseId={report.pd_case_id}
-                pdSubmissionError={report.pd_submission_error}
-                pdSubmitAttempts={report.pd_submit_attempts}
                 resubmitCount={report.resubmit_count}
                 nextResubmitAt={report.next_resubmit_at}
               />
@@ -507,14 +496,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       {embedded && (
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
-          {report.status === 'submitted' && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-st-success-bg px-2.5 py-0.5 text-xs font-medium text-st-success-text">
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-              PD Reported
-            </span>
-          )}
           {isDraftEditable && (
             <span className="rounded-full bg-th-accent-soft px-2 py-0.5 text-xs font-medium text-th-accent-text">
               {t('reports.detail.editing')}
@@ -527,98 +508,9 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 userRole={userRole}
                 createdBy={report.created_by}
                 currentUserId={currentUserId}
-                pdCaseId={report.pd_case_id}
-                pdSubmissionError={report.pd_submission_error}
-                pdSubmitAttempts={report.pd_submit_attempts}
                 resubmitCount={report.resubmit_count}
                 nextResubmitAt={report.next_resubmit_at}
               />
-          </div>
-        </div>
-      )}
-
-      {/* PD Reporting Banner */}
-      {report.status === 'pd_submitting' && (
-        <div className="overflow-hidden rounded-xl border border-th-accent/30 bg-th-accent-soft">
-          <div className="h-1 w-full overflow-hidden bg-th-accent/20">
-            <div className="h-full w-1/3 animate-[shimmer_1.5s_ease-in-out_infinite] rounded-full bg-th-accent" />
-          </div>
-          <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-th-accent/20">
-                <svg className="h-5 w-5 animate-spin text-th-accent" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-th-text">PD Reporting 대기 중</p>
-                <p className="mt-0.5 text-xs text-th-text-secondary">
-                  Product Detail 페이지에서 신고를 제출하세요. Extension이 자동으로 폼을 채워줍니다.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <a
-                href={report.pd_submit_data?.pd_rav_url ?? `https://sellercentral.amazon.com/abuse-submission/report-abuse${listing ? `?asin=${listing.asin}` : ''}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-th-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-th-accent-hover"
-              >
-                PD Report 열기 ↗
-              </a>
-              <Button
-                variant="outline"
-                size="sm"
-                loading={approving}
-                onClick={async () => {
-                  setApproving(true)
-                  try {
-                    const res = await fetch(`/api/reports/${report.id}/confirm-submitted`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({}),
-                    })
-                    if (!res.ok) {
-                      const err = await res.json()
-                      throw new Error(err.error?.message ?? 'Confirm failed')
-                    }
-                    router.refresh()
-                  } catch (e) {
-                    addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
-                  } finally {
-                    setApproving(false)
-                  }
-                }}
-              >
-                제출 완료
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                loading={stopping}
-                className="text-st-danger-text hover:bg-st-danger-bg"
-                onClick={async () => {
-                  setStopping(true)
-                  try {
-                    const res = await fetch(`/api/reports/${report.id}/cancel-submit`, {
-                      method: 'POST',
-                    })
-                    if (!res.ok) {
-                      const err = await res.json()
-                      throw new Error(err.error?.message ?? 'Cancel failed')
-                    }
-                    router.refresh()
-                  } catch (e) {
-                    addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
-                  } finally {
-                    setStopping(false)
-                  }
-                }}
-              >
-                취소
-              </Button>
-            </div>
           </div>
         </div>
       )}
@@ -761,35 +653,12 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
               <div className="grid grid-cols-2 gap-4">
                 {/* Left: Violation Info */}
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.violationInfo')}</h3>
+                  <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">BR Form Type</h3>
                   <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-2.5">
-                    {report.violation_category && (
-                      <>
-                        <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.violationCategory')}</dt>
-                        <dd>
-                          <ViolationBadge code={report.violation_category as ViolationCode} size="md" />
-                        </dd>
-                      </>
-                    )}
-                    {report.ai_violation_type && (
-                      <>
-                        <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.aiViolationType')}</dt>
-                        <dd className="flex items-center gap-2">
-                          <ViolationBadge code={report.ai_violation_type as ViolationCode} size="md" />
-                          {report.ai_confidence_score !== null && (
-                            <span className="text-xs text-th-text-muted">{report.ai_confidence_score}%</span>
-                          )}
-                        </dd>
-                      </>
-                    )}
-                    {report.confirmed_violation_type && (
-                      <>
-                        <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.confirmedViolationType')}</dt>
-                        <dd>
-                          <ViolationBadge code={report.confirmed_violation_type as ViolationCode} size="md" />
-                        </dd>
-                      </>
-                    )}
+                    <dt className="text-xs text-th-text-tertiary self-center">Form Type</dt>
+                    <dd>
+                      <ViolationBadge code={report.br_form_type ?? report.violation_category ?? ''} size="md" />
+                    </dd>
                   </dl>
                 </div>
 
@@ -946,15 +815,59 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         </Card>
       </div>
 
-      {/* Screenshot Card */}
-      {screenshotList.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="group flex items-center justify-between">
-              <h2 className="font-semibold text-th-text">{t('reports.detail.screenshots')}</h2>
-              <div className="flex items-center gap-2">
+      {/* Screenshots + AI Analysis — 접힌 상태, 탭 전환 */}
+      {(screenshotList.length > 0 || report.ai_analysis || report.ai_violation_type) && (
+        <details className="group rounded-xl border border-th-border bg-th-bg-card">
+          <summary className="flex cursor-pointer items-center gap-3 px-5 py-3">
+            <h2 className="font-semibold text-th-text">Details</h2>
+            {screenshotList.length > 0 && (
+              <span className="rounded-full bg-th-accent/15 px-2 py-0.5 text-xs font-medium text-th-accent-text">
+                {screenshotList.length} {screenshotList.length === 1 ? 'screenshot' : 'screenshots'}
+              </span>
+            )}
+            {report.ai_analysis && (
+              <span className="rounded-full bg-purple-500/15 px-2 py-0.5 text-xs font-medium text-purple-400">
+                AI
+              </span>
+            )}
+            <svg className="ml-auto h-4 w-4 text-th-text-muted transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </summary>
+          <div className="border-t border-th-border">
+            {/* Tabs */}
+            <div className="flex border-b border-th-border">
+              {screenshotList.length > 0 && (
+                <button
+                  className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+                    extraTab === 'screenshots'
+                      ? 'border-b-2 border-th-accent text-th-accent-text'
+                      : 'text-th-text-muted hover:text-th-text'
+                  }`}
+                  onClick={() => setExtraTab('screenshots')}
+                >
+                  Screenshots ({screenshotList.length})
+                </button>
+              )}
+              {(report.ai_analysis || report.ai_violation_type) && (
+                <button
+                  className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+                    extraTab === 'ai'
+                      ? 'border-b-2 border-th-accent text-th-accent-text'
+                      : 'text-th-text-muted hover:text-th-text'
+                  }`}
+                  onClick={() => setExtraTab('ai')}
+                >
+                  AI Analysis
+                </button>
+              )}
+            </div>
+
+            {/* Screenshot content */}
+            {extraTab === 'screenshots' && screenshotList.length > 0 && (
+              <div className="p-4">
                 {screenshotList.length > 1 && (
-                  <div className="flex flex-wrap gap-1">
+                  <div className="mb-3 flex flex-wrap gap-1">
                     {screenshotList.map((ss, idx) => {
                       const d = new Date(ss.captured_at)
                       const label = `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
@@ -1006,12 +919,12 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                   </div>
                 )}
                 {screenshotList.length === 1 && (
-                  <div className="relative flex items-center gap-2">
+                  <div className="group/single relative mb-3 flex items-center gap-2">
                     <span className="text-xs text-th-text-muted">
                       {new Date(screenshotList[0].captured_at).toLocaleString()}
                     </span>
                     <button
-                      className="rounded px-1.5 py-0.5 text-xs text-th-text-muted opacity-0 transition-all hover:bg-red-500 hover:text-white group-hover:opacity-100"
+                      className="rounded px-1.5 py-0.5 text-xs text-th-text-muted opacity-0 transition-all hover:bg-red-500 hover:text-white group-hover/single:opacity-100"
                       onClick={() => setDeleteConfirmIdx(0)}
                       title="Delete screenshot"
                     >
@@ -1038,37 +951,28 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                     )}
                   </div>
                 )}
+                <img
+                  src={screenshotList[activeScreenshotIdx]?.url}
+                  alt="Listing screenshot"
+                  className="w-full h-auto rounded-lg border border-th-border"
+                />
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="overflow-hidden">
-            <img
-              src={screenshotList[activeScreenshotIdx]?.url}
-              alt="Listing screenshot"
-              className="w-full h-auto rounded-lg border border-th-border"
-            />
-          </CardContent>
-        </Card>
-      )}
+            )}
 
-      {/* AI Analysis */}
-      {(report.ai_analysis || report.ai_violation_type) && (
-        <Card>
-          <CardHeader>
-            <h2 className="font-semibold text-th-text">AI Analysis</h2>
-          </CardHeader>
-          <CardContent>
-            <AiAnalysisTab
-              aiAnalysis={report.ai_analysis}
-              aiViolationType={report.ai_violation_type}
-              aiSeverity={report.ai_severity}
-              aiConfidenceScore={report.ai_confidence_score}
-              userViolationType={report.user_violation_type}
-              disagreementFlag={report.disagreement_flag}
-              policyReferences={report.policy_references ?? []}
-            />
-          </CardContent>
-        </Card>
+            {/* AI Analysis content */}
+            {extraTab === 'ai' && (report.ai_analysis || report.ai_violation_type) && (
+              <AiAnalysisTab
+                aiAnalysis={report.ai_analysis}
+                aiViolationType={report.ai_violation_type}
+                aiSeverity={report.ai_severity}
+                aiConfidenceScore={report.ai_confidence_score}
+                userViolationType={report.user_violation_type}
+                disagreementFlag={report.disagreement_flag}
+                policyReferences={report.policy_references ?? []}
+              />
+            )}
+          </div>
+        </details>
       )}
 
       {/* Draft + Templates — Desktop: side-by-side, Mobile: tabs */}
@@ -1152,18 +1056,25 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                   </label>
                   <select
                     value={brFormType}
-                    onChange={(e) => setBrFormType(e.target.value as BrFormType)}
+                    onChange={(e) => setBrFormType(e.target.value as BrFormTypeCode)}
                     className="flex-1 rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text"
                   >
-                    {BR_FORM_OPTIONS.map((opt) => (
+                    {BR_FORM_TYPE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
                 </div>
-                <div className="rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:bg-sky-950/30 dark:text-sky-300">
-                  <p className="font-medium">{BR_FORM_DESCRIPTION_GUIDE[brFormType]}</p>
-                  <p className="mt-1 text-sky-600 dark:text-sky-400">{BR_FORM_FIELD_CONTEXT[brFormType]}</p>
-                </div>
+                {brFormType === 'ip_violation' ? (
+                  <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+                    <p className="font-medium">IP Violation은 RAV (Report a Violation) 경로로 처리됩니다.</p>
+                    <p className="mt-1 text-amber-600 dark:text-amber-400">BR Contact Support가 아닌 별도의 RAV 도구를 통해 아마존에 직접 위반 신고합니다.</p>
+                  </div>
+                ) : (
+                  <div className="rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-900 dark:bg-sky-900/50 dark:text-sky-100">
+                    <p className="font-medium">{BR_FORM_DESCRIPTION_GUIDE[brFormType]}</p>
+                    <p className="mt-1 text-sky-700 dark:text-sky-200">{BR_FORM_FIELD_CONTEXT[brFormType]}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1238,78 +1149,96 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                           label="Subject"
                           value={editSubject}
                           onChange={(e) => setEditSubject(e.target.value)}
-                          placeholder="BR case subject line"
+                          placeholder={BR_FORM_TYPES[brFormType].subject || 'BR case subject line'}
                         />
                         <Textarea
-                          label={t('reports.detail.draftBody')}
+                          label={BR_FORM_TYPES[brFormType].descriptionLabel || t('reports.detail.draftBody')}
                           value={editBody}
                           onChange={(e) => setEditBody(e.target.value)}
                           rows={8}
                         />
-                        {/* Extra fields */}
-                        {showBrFormType && (
+                        {/* Extra fields — IP는 BR Contact Support 아님 */}
+                        {showBrFormType && isBrSubmittable(brFormType) && (
                           <>
-                            <div>
-                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">
-                                Product URLs <span className="text-th-text-muted">(one per line, max 10)</span>
-                              </label>
-                              <textarea
-                                placeholder={'https://www.amazon.com/dp/B0...\nhttps://www.amazon.com/dp/B0...'}
-                                value={brFields.product_urls}
-                                onChange={(e) => setBrFields((f) => ({ ...f, product_urls: e.target.value }))}
-                                rows={2}
-                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                              />
-                            </div>
-                            {brFormType === 'other_policy' && (
-                              <>
-                                <div>
-                                  <label className="mb-1 block text-xs font-medium text-th-text-secondary">Seller Storefront URL</label>
-                                  <input
-                                    type="url"
-                                    placeholder="https://www.amazon.com/stores/..."
-                                    value={brFields.seller_storefront_url}
-                                    onChange={(e) => setBrFields((f) => ({ ...f, seller_storefront_url: e.target.value }))}
-                                    className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="mb-1 block text-xs font-medium text-th-text-secondary">Amazon Policy URL</label>
-                                  <input
-                                    type="url"
-                                    placeholder="https://sellercentral.amazon.com/..."
-                                    value={brFields.policy_url}
-                                    onChange={(e) => setBrFields((f) => ({ ...f, policy_url: e.target.value }))}
-                                    className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                                  />
-                                </div>
-                              </>
+                            {brFormHasField(brFormType, 'product_urls') && (
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                  Product URLs <span className="text-th-text-muted">(one per line, max 10)</span>
+                                </label>
+                                <textarea
+                                  placeholder={'https://www.amazon.com/dp/B0...\nhttps://www.amazon.com/dp/B0...'}
+                                  value={brFields.product_urls}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, product_urls: e.target.value }))}
+                                  rows={2}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
                             )}
-                            {brFormType === 'product_review' && (
-                              <>
-                                <div>
-                                  <label className="mb-1 block text-xs font-medium text-th-text-secondary">
-                                    ASINs <span className="text-th-text-muted">(comma separated)</span>
-                                  </label>
-                                  <input
-                                    type="text"
-                                    placeholder="B09F2J4SX1, B09F2J4SX2"
-                                    value={brFields.asins}
-                                    onChange={(e) => setBrFields((f) => ({ ...f, asins: e.target.value }))}
-                                    className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="mb-1 block text-xs font-medium text-th-text-secondary">Order ID</label>
-                                  <input
-                                    type="text"
-                                    placeholder="111-1234567-1234567"
-                                    value={brFields.order_id}
-                                    onChange={(e) => setBrFields((f) => ({ ...f, order_id: e.target.value }))}
-                                    className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                                  />
-                                </div>
-                              </>
+                            {brFormHasField(brFormType, 'seller_storefront_url') && (
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">Seller Storefront URL</label>
+                                <input
+                                  type="url"
+                                  placeholder="https://www.amazon.com/stores/..."
+                                  value={brFields.seller_storefront_url}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, seller_storefront_url: e.target.value }))}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
+                            )}
+                            {brFormHasField(brFormType, 'policy_url') && (
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">Amazon Policy URL</label>
+                                <input
+                                  type="url"
+                                  placeholder="https://sellercentral.amazon.com/..."
+                                  value={brFields.policy_url}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, policy_url: e.target.value }))}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
+                            )}
+                            {brFormHasField(brFormType, 'asins') && (
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                  ASINs <span className="text-th-text-muted">(comma separated, max 10)</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="B09F2J4SX1, B09F2J4SX2"
+                                  value={brFields.asins}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, asins: e.target.value }))}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
+                            )}
+                            {brFormHasField(brFormType, 'review_urls') && (
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                  Review URLs <span className="text-th-text-muted">(one per line, max 10)</span>
+                                </label>
+                                <textarea
+                                  placeholder={'https://www.amazon.com/gp/customer-reviews/...\nhttps://www.amazon.com/gp/customer-reviews/...'}
+                                  value={brFields.review_urls}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, review_urls: e.target.value }))}
+                                  rows={2}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
+                            )}
+                            {brFormHasField(brFormType, 'order_id') && (
+                              <div>
+                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                  Order ID <span className="text-th-text-muted">(optional)</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="121-1234567-1234567"
+                                  value={brFields.order_id}
+                                  onChange={(e) => setBrFields((f) => ({ ...f, order_id: e.target.value }))}
+                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                                />
+                              </div>
                             )}
                           </>
                         )}
@@ -1343,78 +1272,96 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                         label="Subject"
                         value={editSubject}
                         onChange={(e) => setEditSubject(e.target.value)}
-                        placeholder="BR case subject line"
+                        placeholder={BR_FORM_TYPES[brFormType].subject || 'BR case subject line'}
                       />
                       <Textarea
-                        label={t('reports.detail.draftBody')}
+                        label={BR_FORM_TYPES[brFormType].descriptionLabel || t('reports.detail.draftBody')}
                         value={editBody}
                         onChange={(e) => setEditBody(e.target.value)}
                         rows={10}
                       />
-                      {/* Extra fields */}
-                      {showBrFormType && (
+                      {/* Extra fields — field-based visibility matching Amazon BR forms */}
+                      {showBrFormType && isBrSubmittable(brFormType) && (
                         <>
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-th-text-secondary">
-                              Product URLs <span className="text-th-text-muted">(one per line, max 10)</span>
-                            </label>
-                            <textarea
-                              placeholder={'https://www.amazon.com/dp/B0...\nhttps://www.amazon.com/dp/B0...'}
-                              value={brFields.product_urls}
-                              onChange={(e) => setBrFields((f) => ({ ...f, product_urls: e.target.value }))}
-                              rows={3}
-                              className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                            />
-                          </div>
-                          {brFormType === 'other_policy' && (
-                            <>
-                              <div>
-                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">Seller Storefront URL</label>
-                                <input
-                                  type="url"
-                                  placeholder="https://www.amazon.com/stores/..."
-                                  value={brFields.seller_storefront_url}
-                                  onChange={(e) => setBrFields((f) => ({ ...f, seller_storefront_url: e.target.value }))}
-                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">Amazon Policy URL</label>
-                                <input
-                                  type="url"
-                                  placeholder="https://sellercentral.amazon.com/..."
-                                  value={brFields.policy_url}
-                                  onChange={(e) => setBrFields((f) => ({ ...f, policy_url: e.target.value }))}
-                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                                />
-                              </div>
-                            </>
+                          {brFormHasField(brFormType, 'product_urls') && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                Product URLs <span className="text-th-text-muted">(one per line, max 10)</span>
+                              </label>
+                              <textarea
+                                placeholder={'https://www.amazon.com/dp/B0...\nhttps://www.amazon.com/dp/B0...'}
+                                value={brFields.product_urls}
+                                onChange={(e) => setBrFields((f) => ({ ...f, product_urls: e.target.value }))}
+                                rows={3}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
                           )}
-                          {brFormType === 'product_review' && (
-                            <>
-                              <div>
-                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">
-                                  ASINs <span className="text-th-text-muted">(comma separated, max 10)</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  placeholder="B09F2J4SX1, B09F2J4SX2"
-                                  value={brFields.asins}
-                                  onChange={(e) => setBrFields((f) => ({ ...f, asins: e.target.value }))}
-                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                                />
-                              </div>
-                              <div>
-                                <label className="mb-1 block text-xs font-medium text-th-text-secondary">Order ID</label>
-                                <input
-                                  type="text"
-                                  placeholder="111-1234567-1234567"
-                                  value={brFields.order_id}
-                                  onChange={(e) => setBrFields((f) => ({ ...f, order_id: e.target.value }))}
-                                  className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
-                                />
-                              </div>
-                            </>
+                          {brFormHasField(brFormType, 'seller_storefront_url') && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">Seller Storefront URL</label>
+                              <input
+                                type="url"
+                                placeholder="https://www.amazon.com/stores/..."
+                                value={brFields.seller_storefront_url}
+                                onChange={(e) => setBrFields((f) => ({ ...f, seller_storefront_url: e.target.value }))}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
+                          )}
+                          {brFormHasField(brFormType, 'policy_url') && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">Amazon Policy URL</label>
+                              <input
+                                type="url"
+                                placeholder="https://sellercentral.amazon.com/..."
+                                value={brFields.policy_url}
+                                onChange={(e) => setBrFields((f) => ({ ...f, policy_url: e.target.value }))}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
+                          )}
+                          {brFormHasField(brFormType, 'asins') && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                ASINs <span className="text-th-text-muted">(comma separated, max 10)</span>
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="B09F2J4SX1, B09F2J4SX2"
+                                value={brFields.asins}
+                                onChange={(e) => setBrFields((f) => ({ ...f, asins: e.target.value }))}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
+                          )}
+                          {brFormHasField(brFormType, 'review_urls') && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                Review URLs <span className="text-th-text-muted">(one per line, max 10)</span>
+                              </label>
+                              <textarea
+                                placeholder={'https://www.amazon.com/gp/customer-reviews/...\nhttps://www.amazon.com/gp/customer-reviews/...'}
+                                value={brFields.review_urls}
+                                onChange={(e) => setBrFields((f) => ({ ...f, review_urls: e.target.value }))}
+                                rows={3}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
+                          )}
+                          {brFormHasField(brFormType, 'order_id') && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-th-text-secondary">
+                                Order ID <span className="text-th-text-muted">(optional)</span>
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="121-1234567-1234567"
+                                value={brFields.order_id}
+                                onChange={(e) => setBrFields((f) => ({ ...f, order_id: e.target.value }))}
+                                className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none"
+                              />
+                            </div>
                           )}
                         </>
                       )}

@@ -4,10 +4,6 @@ import { createChatNotifier } from './notifications/google-chat.js'
 import { createCrawlQueue, createCrawlWorker } from './scheduler/queue.js'
 import { createJobProcessor } from './scheduler/jobs.js'
 import { startScheduler } from './scheduler/scheduler.js'
-import { createPdSubmitQueue, createPdSubmitWorker } from './pd-submit/queue.js'
-import { processPdSubmitJob } from './pd-submit/worker.js'
-import { startPdScheduler } from './pd-submit/scheduler.js'
-import { startResubmitScheduler } from './pd-submit/resubmit-scheduler.js'
 import { createBrSubmitQueue, createBrSubmitWorker } from './br-submit/queue.js'
 import { processBrSubmitJob, closeBrBrowser } from './br-submit/worker.js'
 import { startBrScheduler } from './br-submit/scheduler.js'
@@ -96,21 +92,6 @@ const init = async (): Promise<void> => {
 
   const schedulerInterval = await startScheduler(queue, sentinelClient)
 
-  // PD Submit Queue + Worker + Schedulers
-  const pdQueue = createPdSubmitQueue(redisUrl)
-  const pdWorker = createPdSubmitWorker(redisUrl, async (job) => {
-    const result = await processPdSubmitJob(job, sentinelClient)
-    if (result.error === 'REPORT_DELETED') return result
-    await sentinelClient.reportPdResult(result).catch((err) => {
-      log('error', 'main', `Failed to report PD result: ${err instanceof Error ? err.message : String(err)}`)
-    })
-    return result
-  })
-  const pdSchedulerInterval = startPdScheduler(pdQueue, sentinelClient)
-  const resubmitSchedulerInterval = startResubmitScheduler(pdQueue, sentinelClient)
-
-  log('info', 'main', 'PD submit queue + worker + schedulers started')
-
   // BR Submit Queue + Worker + Scheduler
   const brQueue = createBrSubmitQueue(redisUrl)
   const brWorker = createBrSubmitWorker(redisUrl, async (job) => {
@@ -195,7 +176,6 @@ const init = async (): Promise<void> => {
   }
 
   worker.on('error', workerAlertHandler('Crawl Worker'))
-  pdWorker.on('error', workerAlertHandler('PD Submit Worker'))
   brWorker.on('error', workerAlertHandler('BR Submit Worker'))
   brMonitorWorker.on('error', workerAlertHandler('BR Monitor Worker'))
   brReplyWorker.on('error', workerAlertHandler('BR Reply Worker'))
@@ -204,7 +184,6 @@ const init = async (): Promise<void> => {
   // ─── A1 Heartbeat: 30s 간격으로 워커 활동 감지, 3회 연속 미활성 시 알림 ───
   const WORKER_NAMES = [
     'Crawl Worker',
-    'PD Submit Worker',
     'BR Submit Worker',
     'BR Monitor Worker',
     'BR Reply Worker',
@@ -214,7 +193,6 @@ const init = async (): Promise<void> => {
   const heartbeat = createHeartbeatMonitor(config.googleChatWebhookUrl, [...WORKER_NAMES])
 
   worker.on('completed', () => { heartbeat.recordActivity('Crawl Worker') })
-  pdWorker.on('completed', () => { heartbeat.recordActivity('PD Submit Worker') })
   brWorker.on('completed', () => { heartbeat.recordActivity('BR Submit Worker') })
   brMonitorWorker.on('completed', () => { heartbeat.recordActivity('BR Monitor Worker') })
   brReplyWorker.on('completed', () => { heartbeat.recordActivity('BR Reply Worker') })
@@ -229,7 +207,6 @@ const init = async (): Promise<void> => {
     try {
       const queues = [
         { name: 'Crawl', q: queue },
-        { name: 'PD Submit', q: pdQueue },
         { name: 'BR Submit', q: brQueue },
         { name: 'BR Monitor', q: brMonitorQueue },
         { name: 'BR Reply', q: brReplyQueue },
@@ -275,8 +252,6 @@ const init = async (): Promise<void> => {
     heartbeat.stop()
     clearInterval(dailyReportInterval)
     clearInterval(schedulerInterval)
-    clearInterval(pdSchedulerInterval)
-    clearInterval(resubmitSchedulerInterval)
     clearInterval(brSchedulerInterval)
     clearInterval(brMonitorSchedulerInterval)
     clearInterval(brReplySchedulerInterval)
@@ -293,8 +268,6 @@ const init = async (): Promise<void> => {
     await closeBrBrowser()
     await brWorker.close()
     await brQueue.close()
-    await pdWorker.close()
-    await pdQueue.close()
     await worker.close()
     await queue.close()
     log('info', 'main', 'Shutdown complete')

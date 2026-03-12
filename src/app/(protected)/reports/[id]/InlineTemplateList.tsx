@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
 import { useI18n } from '@/lib/i18n/context'
 import { interpolateTemplate } from '@/lib/templates/interpolate'
-import { VIOLATION_CATEGORIES } from '@/constants/violations'
-import type { ViolationCategory, ViolationCode } from '@/constants/violations'
+import { BR_FORM_TYPES, BR_FORM_TYPE_CODES, type BrFormTypeCode } from '@/constants/br-form-types'
 import type { ReportTemplate } from '@/types/templates'
 import type { Listing } from '@/types/listings'
 import { Star, Search, ChevronDown, ChevronUp, Check } from 'lucide-react'
@@ -90,7 +89,7 @@ export const InlineTemplateList = ({
     }).catch(() => {})
   }
 
-  const categories = Object.keys(VIOLATION_CATEGORIES) as ViolationCategory[]
+  const categories = BR_FORM_TYPE_CODES
 
   if (loading) {
     return (
@@ -107,7 +106,7 @@ export const InlineTemplateList = ({
     <div className="space-y-3">
       {currentViolationType && (
         <div className="flex items-center gap-2 rounded-lg border border-th-accent/20 bg-th-accent-soft/20 px-3 py-2">
-          <ViolationBadge code={currentViolationType as ViolationCode} />
+          <ViolationBadge code={currentViolationType ?? ''} />
           {matchCount > 0 && (
             <span className="text-xs text-th-text-muted">
               {matchCount} matching
@@ -147,7 +146,7 @@ export const InlineTemplateList = ({
                 : 'bg-th-bg-secondary text-th-text-secondary hover:bg-th-bg-tertiary'
             }`}
           >
-            {VIOLATION_CATEGORIES[cat]}
+            {BR_FORM_TYPES[cat as BrFormTypeCode]?.label ?? cat}
           </button>
         ))}
       </div>

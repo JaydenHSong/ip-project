@@ -5,7 +5,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { skillManager } from '@/lib/ai/skills/manager'
-import { VIOLATION_TYPES, type ViolationCode } from '@/constants/violations'
 
 type RouteContext = {
   params: Promise<{ type: string }>
@@ -13,20 +12,20 @@ type RouteContext = {
 
 export const GET = withAuth(async (_req: NextRequest, _ctx: unknown, routeCtx?: RouteContext) => {
   const params = routeCtx ? await routeCtx.params : null
-  const violationType = params?.type as ViolationCode
+  const skillType = params?.type
 
-  if (!violationType || !VIOLATION_TYPES[violationType]) {
+  if (!skillType) {
     return NextResponse.json(
-      { error: { code: 'INVALID_TYPE', message: `Invalid violation type: ${violationType}` } },
+      { error: { code: 'INVALID_TYPE', message: 'Missing skill type parameter' } },
       { status: 400 },
     )
   }
 
-  const skill = await skillManager.get(violationType)
+  const skill = await skillManager.get(skillType)
 
   if (!skill) {
     return NextResponse.json(
-      { error: { code: 'NOT_FOUND', message: `Skill not found for ${violationType}` } },
+      { error: { code: 'NOT_FOUND', message: `Skill not found for ${skillType}` } },
       { status: 404 },
     )
   }
@@ -36,11 +35,11 @@ export const GET = withAuth(async (_req: NextRequest, _ctx: unknown, routeCtx?: 
 
 export const PUT = withAuth(async (req: NextRequest, _ctx: unknown, routeCtx?: RouteContext) => {
   const params = routeCtx ? await routeCtx.params : null
-  const violationType = params?.type as ViolationCode
+  const skillType = params?.type
 
-  if (!violationType || !VIOLATION_TYPES[violationType]) {
+  if (!skillType) {
     return NextResponse.json(
-      { error: { code: 'INVALID_TYPE', message: `Invalid violation type: ${violationType}` } },
+      { error: { code: 'INVALID_TYPE', message: 'Missing skill type parameter' } },
       { status: 400 },
     )
   }
@@ -54,7 +53,7 @@ export const PUT = withAuth(async (req: NextRequest, _ctx: unknown, routeCtx?: R
     )
   }
 
-  const updated = await skillManager.update(violationType, body.content, 'admin')
+  const updated = await skillManager.update(skillType, body.content, 'admin')
 
   return NextResponse.json({
     violationType: updated.violationType,

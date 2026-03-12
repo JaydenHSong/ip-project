@@ -15,9 +15,6 @@ type ReportActionsProps = {
   userRole: string
   createdBy?: string | null
   currentUserId?: string | null
-  pdCaseId?: string | null
-  pdSubmissionError?: string | null
-  pdSubmitAttempts?: number
   resubmitCount?: number
   nextResubmitAt?: string | null
 }
@@ -28,8 +25,6 @@ export const ReportActions = ({
   userRole,
   createdBy,
   currentUserId,
-  pdSubmissionError,
-  pdSubmitAttempts,
   resubmitCount,
   nextResubmitAt,
 }: ReportActionsProps) => {
@@ -156,31 +151,10 @@ export const ReportActions = ({
     setPreviewBody('')
   }
 
-  const handleScRetry = async () => {
-    setLoading('scRetry')
+  const handleForceResubmit = async () => {
+    setLoading('brResubmit')
     try {
-      const res = await fetch(`/api/reports/${reportId}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Retry failed')
-      }
-      router.refresh()
-    } catch (e) {
-      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
-    } finally {
-      setLoading(null)
-    }
-  }
-
-  const handleForceResubmit = async (track: 'both' | 'br' = 'both') => {
-    const key = track === 'br' ? 'brResubmit' : 'forceResubmit'
-    setLoading(key)
-    try {
-      const res = await fetch(`/api/reports/${reportId}/force-resubmit?track=${track}`, {
+      const res = await fetch(`/api/reports/${reportId}/force-resubmit?track=br`, {
         method: 'POST',
       })
       if (!res.ok) {
@@ -200,15 +174,16 @@ export const ReportActions = ({
     try {
       const res = await fetch(`/api/reports/${reportId}/clone`, { method: 'POST' })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Clone failed')
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.error?.message ?? `Clone failed (${res.status})`)
       }
-      const { data } = await res.json()
-      addToast({ type: 'success', title: 'Cloned', message: 'New draft created from this case.' })
-      router.push(`/reports/${data.id}`)
+      const result = await res.json()
+      const newId = result?.data?.id
+      if (!newId) throw new Error('Clone succeeded but no ID returned')
+      // Full page navigation — router.push unreliable inside SlidePanel
+      window.location.href = `/reports/${newId}`
     } catch (e) {
       addToast({ type: 'error', title: 'Clone failed', message: e instanceof Error ? e.message : 'Unknown error' })
-    } finally {
       setLoading(null)
     }
   }
@@ -275,17 +250,6 @@ export const ReportActions = ({
           </>
         )}
 
-        {/* PD Reporting: Read-only spinner */}
-        {status === 'pd_submitting' && (
-          <div className="flex items-center gap-2 text-sm text-th-text-muted">
-            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <span>PD Reporting 중... (시도 {(pdSubmitAttempts ?? 0) + 1}/3)</span>
-          </div>
-        )}
-
         {/* BR Submitting: Read-only spinner */}
         {status === 'br_submitting' && (
           <div className="flex items-center gap-2 text-sm text-th-text-muted">
@@ -297,20 +261,6 @@ export const ReportActions = ({
           </div>
         )}
 
-        {/* PD Failed: approved + error → Retry button */}
-        {status === 'approved' && pdSubmissionError && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-st-danger-text">PD Report 실패: {pdSubmissionError}</span>
-            <Button
-              size="sm"
-              loading={loading === 'scRetry'}
-              onClick={handleScRetry}
-            >
-              PD 재시도
-            </Button>
-          </div>
-        )}
-
         {/* Monitoring: Status + BR 재신고 */}
         {status === 'monitoring' && (
           <div className="flex items-center gap-3">
@@ -319,7 +269,7 @@ export const ReportActions = ({
               variant="outline"
               size="sm"
               loading={loading === 'brResubmit'}
-              onClick={() => handleForceResubmit('br')}
+              onClick={handleForceResubmit}
             >
               BR 재신고
             </Button>
@@ -338,7 +288,7 @@ export const ReportActions = ({
               variant="outline"
               size="sm"
               loading={loading === 'forceResubmit'}
-              onClick={() => handleForceResubmit('both')}
+              onClick={handleForceResubmit}
             >
               강제 재제출
             </Button>
@@ -353,7 +303,7 @@ export const ReportActions = ({
               variant="outline"
               size="sm"
               loading={loading === 'brResubmit'}
-              onClick={() => handleForceResubmit('br')}
+              onClick={handleForceResubmit}
             >
               BR 재신고
             </Button>

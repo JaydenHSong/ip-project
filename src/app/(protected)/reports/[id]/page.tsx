@@ -13,6 +13,7 @@ type ReportData = {
   id: string
   listing_id: string
   status: string
+  br_form_type: string | null
   user_violation_type: string
   ai_violation_type: string | null
   ai_confidence_score: number | null
@@ -30,9 +31,6 @@ type ReportData = {
   draft_subject: string | null
   draft_body: string | null
   rejection_reason: string | null
-  pd_case_id: string | null
-  pd_submission_error: string | null
-  pd_submit_attempts: number
   resubmit_count: number
   resubmit_interval_days: number | null
   next_resubmit_at: string | null
@@ -46,14 +44,11 @@ type ReportData = {
   cancelled_at: string | null
   cancelled_by: string | null
   cancellation_reason: string | null
-  pd_submitted_at: string | null
   rejected_by: string | null
   // Monitoring fields
   monitoring_started_at: string | null
   resolved_at: string | null
   resolution_type: string | null
-  // PD data
-  pd_submit_data: { pd_rav_url?: string; asin?: string; marketplace?: string } | null
   // Extension form data
   violation_category: string | null
   note: string | null
@@ -141,8 +136,6 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
         cancelled_at: report.cancelled_at,
         cancelled_by: report.cancelled_by,
         cancellation_reason: report.cancellation_reason,
-        pd_case_id: report.pd_case_id,
-        pd_submitted_at: report.pd_submitted_at,
         monitoring_started_at: report.monitoring_started_at,
         resolved_at: report.resolved_at,
         resolution_type: report.resolution_type,

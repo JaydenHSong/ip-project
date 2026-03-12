@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildPdSubmitData } from '@/lib/reports/pd-data'
-import { buildBrSubmitData, isBrReportable } from '@/lib/reports/br-data'
+import { buildBrSubmitData } from '@/lib/reports/br-data'
+import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
-// POST /api/reports/:id/force-resubmit — 강제 재제출 (SC + BR)
-// query param: ?track=sc|br|both (default: both)
+// POST /api/reports/:id/force-resubmit — 강제 재제출 (BR)
+// query param: ?track=br (default: br)
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
-  const track = req.nextUrl.searchParams.get('track') ?? 'both'
 
   if (!id) {
     return NextResponse.json(
@@ -22,7 +21,7 @@ export const POST = withAuth(async (req) => {
 
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, draft_body, draft_title, draft_evidence, listing_id, resubmit_count')
+    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_evidence, listing_id, resubmit_count')
     .eq('id', id)
     .single()
 
@@ -53,33 +52,14 @@ export const POST = withAuth(async (req) => {
     last_resubmit_at: new Date().toISOString(),
   }
 
-  // PD track
-  if (track === 'pd' || track === 'both') {
-    const pdSubmitData = listing
-      ? buildPdSubmitData({
-          report: {
-            id,
-            user_violation_type: report.user_violation_type,
-            draft_body: report.draft_body,
-            draft_evidence: report.draft_evidence as { type: string; url: string; description: string }[] | undefined,
-          },
-          listing,
-        })
-      : null
-
-    updateData.status = 'pd_submitting'
-    updateData.pd_submit_data = pdSubmitData
-    updateData.pd_submit_attempts = 0
-    updateData.pd_submission_error = null
-  }
-
-  // BR track (BR-only resubmit or both)
-  if ((track === 'br' || track === 'both') && isBrReportable(report.user_violation_type)) {
+  // BR track
+  const brFormType = (report.br_form_type ?? 'other_policy') as BrFormTypeCode
+  if (isBrSubmittable(brFormType)) {
     const brSubmitData = listing
       ? buildBrSubmitData({
           report: {
             id,
-            user_violation_type: report.user_violation_type,
+            br_form_type: brFormType,
             draft_body: report.draft_body,
             draft_title: report.draft_title,
           },
@@ -92,14 +72,12 @@ export const POST = withAuth(async (req) => {
         })
       : null
 
+    updateData.status = 'br_submitting'
     updateData.br_submit_data = brSubmitData
     updateData.br_submit_attempts = 0
     updateData.br_submission_error = null
-
-    // BR-only resubmit: 바로 br_submitting으로
-    if (track === 'br') {
-      updateData.status = 'br_submitting'
-    }
+  } else {
+    updateData.status = 'submitted'
   }
 
   const { error } = await supabase
@@ -114,5 +92,5 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  return NextResponse.json({ status: updateData.status, track })
+  return NextResponse.json({ status: updateData.status })
 }, ['owner', 'admin'])

@@ -6,7 +6,6 @@ import { AlertTriangle, ChevronRight } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
-import type { ViolationCode } from '@/constants/violations'
 import type { ReportStatus } from '@/types/reports'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_REPORTS } from '@/lib/demo/data'
@@ -14,7 +13,7 @@ import { useDashboardContext } from './DashboardContext'
 
 type RecentReport = {
   id: string
-  violation_type: string
+  br_form_type: string
   status: string
   ai_confidence_score: number | null
   disagreement_flag: boolean
@@ -33,7 +32,7 @@ export const RecentReportsWidget = () => {
       setReports(
         DEMO_REPORTS.filter((r) => r.status !== 'archived').slice(0, 5).map((r) => ({
           id: r.id,
-          violation_type: r.violation_type,
+          br_form_type: r.br_form_type ?? r.violation_type,
           status: r.status,
           ai_confidence_score: r.ai_confidence_score,
           disagreement_flag: r.disagreement_flag,
@@ -87,7 +86,7 @@ export const RecentReportsWidget = () => {
               <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <ViolationBadge code={report.violation_type as ViolationCode} showLabel={false} />
+                    <ViolationBadge code={report.br_form_type} showLabel={false} />
                     <span className="truncate text-sm text-th-text">{report.listings?.asin ?? '—'}</span>
                     {report.disagreement_flag && (
                       <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-st-warning-text" />

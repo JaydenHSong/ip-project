@@ -4,7 +4,7 @@ export type BrTemplate = {
   category: string
   title: string
   body: string
-  br_form_type: 'other_policy' | 'incorrect_variation' | 'product_review' | 'product_not_as_described'
+  br_form_type: 'other_policy' | 'incorrect_variation' | 'product_review'
   instruction: string | null
   violation_codes: string[]
   placeholders: string[]
