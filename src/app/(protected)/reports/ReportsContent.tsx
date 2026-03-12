@@ -263,7 +263,7 @@ export const ReportsContent = ({
   ]
 
   return (
-    <div className="flex flex-col gap-4 md:h-full md:gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div className="shrink-0 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -425,7 +425,7 @@ export const ReportsContent = ({
                       <StatusBadge status={report.br_case_status as Parameters<typeof StatusBadge>[0]['status']} type="br_case" size="sm" />
                     )}
                     {report.ai_confidence_score !== null && <span>AI: {report.ai_confidence_score}%</span>}
-                    <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                    <span>{new Date(report.created_at).toLocaleDateString('en-CA')}</span>
                   </div>
                 </div>
               </div>
@@ -435,8 +435,8 @@ export const ReportsContent = ({
       </div>
 
       {/* Desktop: table — single table with sticky header */}
-      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <div ref={containerRef} className="min-h-0 flex-1 overflow-auto">
+      <div className="hidden flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+        <div ref={containerRef} className="overflow-auto">
           <table className="table-fixed text-left text-sm" style={tableStyle}>
           <colgroup>
             {defaultColWidths.map((_, i) => (
@@ -527,9 +527,9 @@ export const ReportsContent = ({
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.listings?.seller_name ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.users?.name ?? '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{row.updated_at ? new Date(row.updated_at as string).toLocaleDateString() : '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{row.resolved_at ? new Date(row.resolved_at as string).toLocaleDateString() : '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString('en-CA')}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{row.updated_at ? new Date(row.updated_at as string).toLocaleDateString('en-CA') : '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{row.resolved_at ? new Date(row.resolved_at as string).toLocaleDateString('en-CA') : '—'}</td>
                 </tr>
                 )
               })

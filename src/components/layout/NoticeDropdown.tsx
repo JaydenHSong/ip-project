@@ -150,7 +150,7 @@ export const NoticeDropdown = () => {
                       {style.label}
                     </span>
                     <span className="text-xs text-th-text-muted">
-                      {new Date(selectedNotice.created_at).toLocaleDateString()}
+                      {new Date(selectedNotice.created_at).toLocaleDateString('en-CA')}
                     </span>
                   </div>
                   <h3 className="mt-2.5 text-lg font-bold leading-snug text-th-text">{selectedNotice.title}</h3>

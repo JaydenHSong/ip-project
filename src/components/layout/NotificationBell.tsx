@@ -193,7 +193,7 @@ const NotificationDropdownPanel = ({ notifications, unreadCount, onMarkAllRead, 
                     <p className="text-sm font-medium text-th-text">{notif.title}</p>
                     <p className="mt-0.5 truncate text-xs text-th-text-secondary">{notif.message}</p>
                     <p className="mt-1 text-xs text-th-text-muted">
-                      {new Date(notif.created_at).toLocaleDateString()}
+                      {new Date(notif.created_at).toLocaleDateString('en-CA')}
                     </p>
                   </div>
                 </div>

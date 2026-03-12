@@ -179,7 +179,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   ]
 
   return (
-    <div className="flex flex-col gap-4 md:h-full md:gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div className="shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-bold text-th-text md:text-2xl">
@@ -261,7 +261,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                 <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
                 <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
                   <span>{report.pd_case_id ? `PD: ${report.pd_case_id}` : '—'}</span>
-                  <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                  <span>{new Date(report.created_at).toLocaleDateString('en-CA')}</span>
                 </div>
               </div>
             </Link>
@@ -270,8 +270,8 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       </div>
 
       {/* Desktop: table — single table with sticky header */}
-      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <div ref={containerRef} className="min-h-0 flex-1 overflow-auto">
+      <div className="hidden flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+        <div ref={containerRef} className="overflow-auto">
           <table className="table-fixed text-left text-sm" style={tableStyle}>
           <colgroup>
             {defaultColWidths.map((_, i) => (
@@ -347,9 +347,9 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{report.listings?.seller_name ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{row.users ? (row.users as { name: string }).name : '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{row.updated_at ? new Date(row.updated_at as string).toLocaleDateString() : '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{row.resolved_at ? new Date(row.resolved_at as string).toLocaleDateString() : '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString('en-CA')}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{row.updated_at ? new Date(row.updated_at as string).toLocaleDateString('en-CA') : '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{row.resolved_at ? new Date(row.resolved_at as string).toLocaleDateString('en-CA') : '—'}</td>
                 </tr>
                 )
               })

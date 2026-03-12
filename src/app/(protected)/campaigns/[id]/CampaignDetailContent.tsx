@@ -221,13 +221,13 @@ export const CampaignDetailContent = ({
             <div>
               <dt className="text-sm text-th-text-tertiary">{t('campaigns.detail.startDate')}</dt>
               <dd className="mt-1 text-sm font-medium text-th-text">
-                {new Date(campaign.start_date).toLocaleDateString()}
+                {new Date(campaign.start_date).toLocaleDateString('en-CA')}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-th-text-tertiary">{t('campaigns.detail.endDate')}</dt>
               <dd className="mt-1 text-sm font-medium text-th-text">
-                {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : t('campaigns.detail.noEndDate')}
+                {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString('en-CA') : t('campaigns.detail.noEndDate')}
               </dd>
             </div>
             <div>
@@ -594,7 +594,7 @@ export const CampaignDetailContent = ({
                     <div className="flex items-center justify-between">
                       <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
                       <span className="text-xs text-th-text-muted">
-                        {new Date(report.created_at).toLocaleDateString()}
+                        {new Date(report.created_at).toLocaleDateString('en-CA')}
                       </span>
                     </div>
                     <div className="mt-2.5 flex items-center gap-2">

@@ -136,7 +136,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
               )}
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-xs text-th-text-muted">
-                  {report.archived_at ? new Date(report.archived_at).toLocaleDateString() : '—'}
+                  {report.archived_at ? new Date(report.archived_at).toLocaleDateString('en-CA') : '—'}
                 </span>
                 {canAct && (
                   <Button
@@ -221,7 +221,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                     {report.archive_reason ?? '—'}
                   </td>
                   <td className="px-4 py-3.5 text-th-text-muted">
-                    {report.archived_at ? new Date(report.archived_at).toLocaleDateString() : '—'}
+                    {report.archived_at ? new Date(report.archived_at).toLocaleDateString('en-CA') : '—'}
                   </td>
                   {canAct && (
                     <td className="px-4 py-3.5">

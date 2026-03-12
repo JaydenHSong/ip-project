@@ -481,7 +481,7 @@ export const PatentsContent = ({
                 <div className="mt-2 flex items-center gap-3 text-xs text-th-text-muted">
                   <span>{asset.country}</span>
                   {asset.registration_number && <span>Reg: {asset.registration_number}</span>}
-                  {asset.expiry_date && <span>{new Date(asset.expiry_date).toLocaleDateString()}</span>}
+                  {asset.expiry_date && <span>{new Date(asset.expiry_date).toLocaleDateString('en-CA')}</span>}
                 </div>
               </div>
             </button>
@@ -538,7 +538,7 @@ export const PatentsContent = ({
                   <td className="px-4 py-3.5">{renderStatusBadge(asset.status)}</td>
                   <td className="px-4 py-3.5 font-mono text-xs text-th-text-secondary">{asset.registration_number ?? '-'}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary">
-                    {asset.expiry_date ? new Date(asset.expiry_date).toLocaleDateString() : '-'}
+                    {asset.expiry_date ? new Date(asset.expiry_date).toLocaleDateString('en-CA') : '-'}
                   </td>
                   <td className="px-4 py-3.5 text-th-text-muted">{asset.assignee ?? '-'}</td>
                 </tr>
@@ -609,7 +609,7 @@ export const PatentsContent = ({
                 <div>
                   <p className="text-xs text-th-text-muted">{t('patents.expiryDate')}</p>
                   <p className="mt-0.5 text-sm font-medium text-th-text">
-                    {selectedAsset.expiry_date ? new Date(selectedAsset.expiry_date).toLocaleDateString() : '—'}
+                    {selectedAsset.expiry_date ? new Date(selectedAsset.expiry_date).toLocaleDateString('en-CA') : '—'}
                   </p>
                 </div>
                 {selectedAsset.report_url && (
@@ -640,7 +640,7 @@ export const PatentsContent = ({
                 <div>
                   <p className="text-xs text-th-text-muted">{t('patents.applicationDate')}</p>
                   <p className="mt-0.5 text-sm font-medium text-th-text">
-                    {selectedAsset.application_date ? new Date(selectedAsset.application_date).toLocaleDateString() : '—'}
+                    {selectedAsset.application_date ? new Date(selectedAsset.application_date).toLocaleDateString('en-CA') : '—'}
                   </p>
                 </div>
                 <div>
@@ -650,7 +650,7 @@ export const PatentsContent = ({
                 <div>
                   <p className="text-xs text-th-text-muted">{t('patents.registrationDate')}</p>
                   <p className="mt-0.5 text-sm font-medium text-th-text">
-                    {selectedAsset.registration_date ? new Date(selectedAsset.registration_date).toLocaleDateString() : '—'}
+                    {selectedAsset.registration_date ? new Date(selectedAsset.registration_date).toLocaleDateString('en-CA') : '—'}
                   </p>
                 </div>
               </div>

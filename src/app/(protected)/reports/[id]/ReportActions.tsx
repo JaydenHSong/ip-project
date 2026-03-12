@@ -281,7 +281,7 @@ export const ReportActions = ({
           <div className="flex items-center gap-3">
             <span className="text-sm text-th-text-muted">
               {nextResubmitAt
-                ? `재제출 예정: ${new Date(nextResubmitAt).toLocaleDateString()} (${resubmitCount ?? 0}회 완료)`
+                ? `재제출 예정: ${new Date(nextResubmitAt).toLocaleDateString('en-CA')} (${resubmitCount ?? 0}회 완료)`
                 : `미해결 (${resubmitCount ?? 0}회 재제출)`}
             </span>
             <Button

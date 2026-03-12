@@ -252,7 +252,7 @@ export const BrTemplateSettings = () => {
   const lastImport = templates.length > 0
     ? new Date(
         Math.max(...templates.map((t) => new Date(t.created_at).getTime()))
-      ).toLocaleDateString()
+      ).toLocaleDateString('en-CA')
     : null
 
   return (

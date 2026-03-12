@@ -331,7 +331,7 @@ export const ExtensionGuide = () => {
                           </span>
                         )}
                         <span className="text-xs text-th-text-muted">
-                          {new Date(entry.released_at).toLocaleDateString()}
+                          {new Date(entry.released_at).toLocaleDateString('en-CA')}
                         </span>
                       </div>
                       <ChevronDown

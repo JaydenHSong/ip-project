@@ -118,7 +118,7 @@ export const UnreadNoticePopup = () => {
               {tNotices(`categories.${notice.category}`)}
             </Badge>
             <span className="text-xs text-th-text-muted">
-              {new Date(notice.created_at).toLocaleDateString()}
+              {new Date(notice.created_at).toLocaleDateString('en-CA')}
             </span>
           </div>
           <h3 className="text-lg font-bold leading-snug text-th-text">{notice.title}</h3>

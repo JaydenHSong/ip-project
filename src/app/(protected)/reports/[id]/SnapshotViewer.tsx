@@ -167,7 +167,7 @@ export const SnapshotViewer = ({ initialSnapshot, followupSnapshots }: SnapshotV
                         ? 'bg-st-warning-bg text-st-warning-text hover:bg-st-warning-bg/80'
                         : 'bg-th-bg-tertiary text-th-text-muted hover:bg-th-bg-hover'
                   }`}
-                  title={`${new Date(snap.crawled_at).toLocaleDateString()} — ${snap.change_type ?? 'no_change'}`}
+                  title={`${new Date(snap.crawled_at).toLocaleDateString('en-CA')} — ${snap.change_type ?? 'no_change'}`}
                 >
                   {new Date(snap.crawled_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                 </button>
@@ -213,7 +213,7 @@ const SnapshotDataView = ({ data, crawledAt }: { data: Record<string, unknown>; 
         </div>
       ))}
       <p className="mt-2 text-xs text-th-text-muted">
-        {new Date(crawledAt).toLocaleDateString()} {new Date(crawledAt).toLocaleTimeString()}
+        {new Date(crawledAt).toLocaleDateString('en-CA')} {new Date(crawledAt).toLocaleTimeString('en-CA')}
       </p>
     </div>
   )

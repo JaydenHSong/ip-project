@@ -289,7 +289,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                     <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{campaign.users?.name ?? '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(campaign.created_at).toLocaleDateString()}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(campaign.created_at).toLocaleDateString('en-CA')}</td>
                 </tr>
               ))
             )}

@@ -268,7 +268,7 @@ export const AiPromptsTab = () => {
                                 <span className="text-xs text-th-text-secondary">{v.accuracy_score}% accuracy</span>
                               )}
                               <span className="text-xs text-th-text-muted">
-                                {v.created_by} · {new Date(v.created_at).toLocaleDateString()}
+                                {v.created_by} · {new Date(v.created_at).toLocaleDateString('en-CA')}
                               </span>
                             </div>
                             {!v.is_active && (

@@ -37,7 +37,7 @@ const formatRelativeDate = (dateStr: string): string => {
   if (days === 1) return 'Yesterday'
   if (days < 30) return `${days}d ago`
   if (days < 365) return `${Math.floor(days / 30)}mo ago`
-  return new Date(dateStr).toLocaleDateString()
+  return new Date(dateStr).toLocaleDateString('en-CA')
 }
 
 export const RelatedReports = ({ reports, currentReportId, onNavigate }: RelatedReportsProps) => {

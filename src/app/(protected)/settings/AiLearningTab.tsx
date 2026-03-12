@@ -228,7 +228,7 @@ export const AiLearningTab = () => {
                     </span>
                   )}
                   <span className="shrink-0 text-xs text-th-text-muted">
-                    {new Date(record.created_at).toLocaleDateString()}
+                    {new Date(record.created_at).toLocaleDateString('en-CA')}
                   </span>
                   <ChevronDown className={cn('h-4 w-4 shrink-0 text-th-text-muted transition-transform', isExpanded && 'rotate-180')} />
                 </button>
