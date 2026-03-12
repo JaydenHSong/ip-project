@@ -128,7 +128,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
   ]
 
   return (
-    <div className="flex flex-col gap-4 md:h-full md:gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div className="shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('campaigns.title')}</h1>
@@ -218,8 +218,8 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
       )}
 
       {/* Desktop: table — single table with sticky header */}
-      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <div ref={campaignContainerRef} className="min-h-0 flex-1 overflow-auto">
+      <div className="hidden flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+        <div ref={campaignContainerRef} className="overflow-auto">
           <table className="table-fixed text-left text-sm" style={campaignTableStyle}>
           <colgroup>
             {defaultCampaignColWidths.map((_, i) => (

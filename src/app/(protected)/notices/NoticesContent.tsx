@@ -169,7 +169,7 @@ export const NoticesContent = ({
   }
 
   return (
-    <div className="flex flex-col gap-4 md:h-full md:gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between">
         <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{tNotices('title')}</h1>
@@ -295,8 +295,8 @@ export const NoticesContent = ({
       </div>
 
       {/* Desktop: Table — pocket scroll */}
-      <Card className="hidden min-h-0 flex-1 flex-col overflow-x-auto overflow-y-hidden md:flex">
-        <CardContent ref={noticeContainerRef} className="flex min-h-0 flex-1 flex-col p-0">
+      <Card className="hidden flex-col overflow-x-auto overflow-y-hidden md:flex">
+        <CardContent ref={noticeContainerRef} className="flex flex-col p-0">
           <table className="shrink-0 table-fixed text-left text-sm" style={noticeTableStyle}>
             <colgroup>
               {(canManage ? defaultNoticeColWidths : defaultNoticeColWidths.slice(0, -1)).map((_, i) => (
@@ -316,7 +316,7 @@ export const NoticesContent = ({
               </tr>
             </thead>
           </table>
-          <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
+          <div className="overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
             <table className="table-fixed text-left text-sm" style={noticeTableStyle}>
             <colgroup>
               {(canManage ? defaultNoticeColWidths : defaultNoticeColWidths.slice(0, -1)).map((_, i) => (

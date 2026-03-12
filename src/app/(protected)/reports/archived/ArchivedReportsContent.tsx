@@ -97,7 +97,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
   }
 
   return (
-    <div className="flex flex-col gap-4 md:h-full md:gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div className="shrink-0 flex items-center justify-between">
         <h1 className="text-xl font-bold text-th-text md:text-2xl">
           {t('reports.archivedTitle' as Parameters<typeof t>[0])}
@@ -155,7 +155,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
       </div>
 
       {/* Desktop: table — pocket scroll */}
-      <div ref={archiveContainerRef} className="hidden min-h-0 flex-1 flex-col overflow-x-auto overflow-y-hidden rounded-lg border border-th-border md:flex">
+      <div ref={archiveContainerRef} className="hidden flex-col overflow-x-auto overflow-y-hidden rounded-lg border border-th-border md:flex">
         <table className="shrink-0 table-fixed text-left text-sm" style={archiveTableStyle}>
           <colgroup>
             {(canAct ? defaultArchiveColWidths : defaultArchiveColWidths.slice(0, -1)).map((_, i) => (
@@ -187,7 +187,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
             </tr>
           </thead>
         </table>
-        <div className="min-h-0 flex-1 overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
+        <div className="overflow-y-auto shadow-[inset_0_6px_8px_-4px_rgba(0,0,0,0.15)]">
           <table className="table-fixed text-left text-sm" style={archiveTableStyle}>
           <colgroup>
             {(canAct ? defaultArchiveColWidths : defaultArchiveColWidths.slice(0, -1)).map((_, i) => (
