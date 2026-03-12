@@ -20,14 +20,16 @@ type Step = 'input' | 'loading' | 'timeout'
 type NewReportModalProps = {
   open: boolean
   onClose: () => void
+  prefillAsin?: string
+  prefillMarketplace?: string
 }
 
-export const NewReportModal = ({ open, onClose }: NewReportModalProps) => {
+export const NewReportModal = ({ open, onClose, prefillAsin, prefillMarketplace }: NewReportModalProps) => {
   const router = useRouter()
   const { addToast } = useToast()
   const [step, setStep] = useState<Step>('input')
-  const [asin, setAsin] = useState('')
-  const [marketplace, setMarketplace] = useState('US')
+  const [asin, setAsin] = useState(prefillAsin ?? '')
+  const [marketplace, setMarketplace] = useState(prefillMarketplace || 'US')
   const [loading, setLoading] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [duplicateId, setDuplicateId] = useState<string | null>(null)
@@ -45,13 +47,13 @@ export const NewReportModal = ({ open, onClose }: NewReportModalProps) => {
   const reset = useCallback(() => {
     cleanup()
     setStep('input')
-    setAsin('')
-    setMarketplace('US')
+    setAsin(prefillAsin ?? '')
+    setMarketplace(prefillMarketplace || 'US')
     setLoading(false)
     setElapsed(0)
     setDuplicateId(null)
     queueIdRef.current = null
-  }, [cleanup])
+  }, [cleanup, prefillAsin, prefillMarketplace])
 
   useEffect(() => {
     if (!open) reset()

@@ -555,7 +555,7 @@ export const CampaignDetailContent = ({
                     <p className="mt-1 text-xs leading-relaxed text-th-text-muted">
                       This listing was flagged as suspect. Create a violation report to start the review process.
                     </p>
-                    <Link href={`/reports/new?asin=${selectedListing.asin}&listing_id=${selectedListing.id}&marketplace=${campaign.marketplace}`}>
+                    <Link href={`/reports?new=1&asin=${selectedListing.asin}&marketplace=${campaign.marketplace}`}>
                       <Button className="mt-4">
                         <ClipboardList className="mr-1.5 h-4 w-4" />
                         Create Report
@@ -572,7 +572,7 @@ export const CampaignDetailContent = ({
                       No violations detected by the crawler.
                     </p>
                     <Link
-                      href={`/reports/new?asin=${selectedListing.asin}&listing_id=${selectedListing.id}&marketplace=${campaign.marketplace}`}
+                      href={`/reports?new=1&asin=${selectedListing.asin}&marketplace=${campaign.marketplace}`}
                       className="mt-3 inline-block text-xs text-th-accent-text hover:underline"
                     >
                       Create report manually →

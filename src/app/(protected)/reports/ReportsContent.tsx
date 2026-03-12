@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -118,6 +118,18 @@ export const ReportsContent = ({
     }
   }, [])
   const [showNewReport, setShowNewReport] = useState(false)
+  const [prefillAsin, setPrefillAsin] = useState('')
+  const [prefillMarketplace, setPrefillMarketplace] = useState('')
+  const searchParamsHook = useSearchParams()
+
+  // Auto-open modal from URL params (e.g. /reports?new=1&asin=B0XXX)
+  useEffect(() => {
+    if (searchParamsHook.get('new') === '1') {
+      setPrefillAsin(searchParamsHook.get('asin') ?? '')
+      setPrefillMarketplace(searchParamsHook.get('marketplace') ?? '')
+      setShowNewReport(true)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState<string | null>(null)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
@@ -568,6 +580,8 @@ export const ReportsContent = ({
       <NewReportModal
         open={showNewReport}
         onClose={handleNewReportClose}
+        prefillAsin={prefillAsin}
+        prefillMarketplace={prefillMarketplace}
       />
 
       {/* Bulk Delete Confirmation Modal */}
