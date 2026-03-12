@@ -593,7 +593,7 @@ export const ReportsContent = ({
       {/* Report Preview Panel */}
       <ReportPreviewPanel
         reportId={previewReportId}
-        onClose={() => setPreviewReportId(null)}
+        onClose={() => { setPreviewReportId(null); router.refresh() }}
         userRole={userRole}
       />
     </div>

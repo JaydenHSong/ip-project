@@ -393,7 +393,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         </div>
       )}
 
-      <ReportPreviewPanel reportId={previewReportId} onClose={() => setPreviewReportId(null)} userRole={userRole} />
+      <ReportPreviewPanel reportId={previewReportId} onClose={() => { setPreviewReportId(null); router.refresh() }} userRole={userRole} />
     </div>
   )
 }
