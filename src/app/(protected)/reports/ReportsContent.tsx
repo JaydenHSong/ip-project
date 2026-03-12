@@ -10,11 +10,10 @@ import { ViolationBadge } from '@/components/ui/ViolationBadge'
 import { Badge } from '@/components/ui/Badge'
 import { SortableHeader } from '@/components/ui/SortableHeader'
 import { TableFilters } from '@/components/ui/TableFilters'
-import { SlidePanel } from '@/components/ui/SlidePanel'
 import { Button } from '@/components/ui/Button'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Modal } from '@/components/ui/Modal'
-import { NewReportForm } from './new/NewReportForm'
+import { NewReportModal } from '@/components/features/NewReportModal'
 import { BrCaseQueueBar } from '@/components/features/BrCaseQueueBar'
 import { SlaBadge } from '@/components/ui/SlaBadge'
 import { useSortableTable } from '@/hooks/useSortableTable'
@@ -157,7 +156,7 @@ export const ReportsContent = ({
     defaultWidths: defaultColWidths,
   })
 
-  const handleNewReportSuccess = useCallback(() => {
+  const handleNewReportClose = useCallback(() => {
     setShowNewReport(false)
     router.refresh()
   }, [router])
@@ -565,16 +564,11 @@ export const ReportsContent = ({
         </div>
       )}
 
-      {/* New Report SlidePanel */}
-      <SlidePanel
+      {/* New Report Modal */}
+      <NewReportModal
         open={showNewReport}
-        onClose={() => setShowNewReport(false)}
-        title={t('reports.new.title')}
-      >
-        <div className="p-6">
-          <NewReportForm embedded onSuccess={handleNewReportSuccess} />
-        </div>
-      </SlidePanel>
+        onClose={handleNewReportClose}
+      />
 
       {/* Bulk Delete Confirmation Modal */}
       <Modal

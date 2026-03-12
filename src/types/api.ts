@@ -130,11 +130,13 @@ export type RejectReportRequest = {
 
 export type ManualReportRequest = {
   asin: string
-  marketplace: string
+  marketplace?: string
   title?: string
   seller_name?: string
-  user_violation_type: string
-  violation_category: string
+  listing_id?: string
+  br_form_type?: string
+  user_violation_type?: string
+  violation_category?: string
   note?: string
   screenshot_url?: string
   screenshot_urls?: string[]
