@@ -43,7 +43,7 @@ export const POST = withAuth(async (req) => {
 
   const { data: listing } = await supabase
     .from('listings')
-    .select('asin, marketplace, title, url, seller_storefront_url')
+    .select('asin, marketplace, title')
     .eq('id', report.listing_id)
     .single()
 
@@ -65,9 +65,9 @@ export const POST = withAuth(async (req) => {
           },
           listing: {
             asin: listing.asin,
-            url: listing.url,
+            url: null,
             marketplace: listing.marketplace,
-            seller_storefront_url: listing.seller_storefront_url,
+            seller_storefront_url: null,
           },
         })
       : null

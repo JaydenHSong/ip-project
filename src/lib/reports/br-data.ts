@@ -84,7 +84,8 @@ export const buildBrSubmitData = ({ report, listing, extraFields }: BuildBrDataI
     prepared_at: new Date().toISOString(),
   }
 
-  if (listing.seller_storefront_url) {
+  // seller_storefront_url은 other_policy 폼에서만 사용
+  if (listing.seller_storefront_url && report.br_form_type === 'other_policy') {
     data.seller_storefront_url = listing.seller_storefront_url
   }
 

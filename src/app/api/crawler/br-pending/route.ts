@@ -24,7 +24,7 @@ export const GET = async (req: Request) => {
     `)
     .eq('status', 'br_submitting')
     .not('br_submit_data', 'is', null)
-    .order('approved_at', { ascending: true })
+    .order('updated_at', { ascending: true })
     .limit(10)
 
   if (error) {

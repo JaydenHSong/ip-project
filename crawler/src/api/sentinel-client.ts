@@ -260,7 +260,16 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
     reportBrResult: async (result: BrSubmitResult): Promise<void> => {
       const response = await fetchWithRetry(
         `${baseUrl}/api/crawler/br-result`,
-        { method: 'POST', headers, body: JSON.stringify(result) },
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            report_id: result.reportId,
+            success: result.success,
+            br_case_id: result.brCaseId,
+            error: result.error,
+          }),
+        },
       )
       if (!response.ok) {
         const body = await response.text()

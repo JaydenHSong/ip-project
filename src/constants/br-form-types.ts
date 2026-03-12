@@ -62,6 +62,28 @@ export const brFormHasField = (code: BrFormTypeCode, field: string): boolean =>
 export const isBrSubmittable = (code: BrFormTypeCode): boolean =>
   code !== 'ip_violation'
 
+// Violation Type (9개) → BR Form Type (4개) 매핑
+export const VIOLATION_TO_BR_FORM: Record<string, BrFormTypeCode> = {
+  V01: 'ip_violation',
+  V02: 'ip_violation',
+  V03: 'ip_violation',
+  V04: 'ip_violation',
+  intellectual_property: 'ip_violation',
+  variation: 'incorrect_variation',
+  main_image: 'other_policy',
+  wrong_category: 'other_policy',
+  pre_announcement: 'other_policy',
+  review_violation: 'product_review',
+  // 레거시 BR form type은 그대로
+  ip_violation: 'ip_violation',
+  incorrect_variation: 'incorrect_variation',
+  product_review: 'product_review',
+  other_policy: 'other_policy',
+}
+
+export const toBrFormType = (violationType: string): BrFormTypeCode =>
+  VIOLATION_TO_BR_FORM[violationType] ?? 'other_policy'
+
 // Badge variant 매핑
 export type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'violet'
 

@@ -6,7 +6,7 @@ import { buildBrSubmitData } from '@/lib/reports/br-data'
 import type { BrExtraFields } from '@/lib/reports/br-data'
 import type { ApproveReportRequest } from '@/types/api'
 import type { BrFormType } from '@/types/reports'
-import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
+import { isBrSubmittable, BR_FORM_TYPE_CODES, type BrFormTypeCode } from '@/constants/br-form-types'
 
 // POST /api/reports/:id/approve — 승인 → BR 대상이면 br_submitting, 아니면 submitted
 export const POST = withAuth(async (req) => {
@@ -50,7 +50,7 @@ export const POST = withAuth(async (req) => {
   // Listing 조회 (BR 데이터 빌드용)
   const { data: listing } = await supabase
     .from('listings')
-    .select('asin, marketplace, title, url, seller_storefront_url')
+    .select('asin, marketplace, title')
     .eq('id', report.listing_id)
     .single()
 
@@ -58,7 +58,8 @@ export const POST = withAuth(async (req) => {
   const now = new Date().toISOString()
 
   // BR 데이터 준비 (BR 대상 폼 타입인 경우에만)
-  const brFormType = (body.br_form_type ?? report.br_form_type ?? 'other_policy') as BrFormTypeCode
+  const rawFormType = body.br_form_type ?? report.br_form_type ?? 'other_policy'
+  const brFormType = (BR_FORM_TYPE_CODES.includes(rawFormType as BrFormTypeCode) ? rawFormType : 'other_policy') as BrFormTypeCode
   const brReportable = isBrSubmittable(brFormType)
   const brSubmitData = listing && brReportable
     ? buildBrSubmitData({
@@ -68,7 +69,7 @@ export const POST = withAuth(async (req) => {
           draft_body: body.edited_draft_body ?? report.draft_body,
           draft_title: body.edited_draft_title ?? report.draft_title,
         },
-        listing: { asin: listing.asin, url: listing.url ?? null, marketplace: listing.marketplace, seller_storefront_url: listing.seller_storefront_url },
+        listing: { asin: listing.asin, url: null, marketplace: listing.marketplace, seller_storefront_url: null },
         extraFields: body.br_extra_fields,
       })
     : null

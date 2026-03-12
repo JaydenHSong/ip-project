@@ -91,6 +91,12 @@ export const POST = async (req: Request) => {
       })
     }
 
+    // Case ID 없이 성공한 경우 알림
+    if (!body.br_case_id) {
+      const { notifyPdFailed } = await import('@/lib/notifications/google-chat')
+      notifyPdFailed(body.report_id, '[BR] Submitted successfully but case ID not extracted').catch(() => {})
+    }
+
     return NextResponse.json({ status: 'monitoring', br_case_id: body.br_case_id })
   } else {
     // 실패

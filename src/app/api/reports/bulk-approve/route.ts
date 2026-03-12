@@ -47,11 +47,11 @@ export const POST = withAuth(async (req) => {
   const validReports = reports ?? []
   const skippedCount = body.report_ids.length - validReports.length
 
-  // Listing 정보 일괄 조회
-  const listingIds = [...new Set(validReports.map((r) => r.listing_id))]
+  // Listing 정보 일괄 조회 (null listing_id 제외)
+  const listingIds = [...new Set(validReports.map((r) => r.listing_id).filter(Boolean))] as string[]
   const { data: listings } = await supabase
     .from('listings')
-    .select('id, asin, marketplace, title, url')
+    .select('id, asin, marketplace, title')
     .in('id', listingIds)
 
   const listingMap = new Map((listings ?? []).map((l) => [l.id, l]))
@@ -72,7 +72,7 @@ export const POST = withAuth(async (req) => {
             draft_body: report.draft_body,
             draft_title: null,
           },
-          listing: { asin: listing.asin, url: listing.url ?? null, marketplace: listing.marketplace },
+          listing: { asin: listing.asin, url: null, marketplace: listing.marketplace, seller_storefront_url: null },
         })
       : null
 
