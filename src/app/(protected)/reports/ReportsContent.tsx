@@ -454,10 +454,10 @@ export const ReportsContent = ({
                 />
               </th>
               <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(1)} /></th>
-              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(2)} /></SortableHeader>
-              <SortableHeader label="CH" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(3)} /></SortableHeader>
-              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(4)} /></SortableHeader>
-              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(5)} /></SortableHeader>
+              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(2)} /></SortableHeader>
+              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(3)} /></SortableHeader>
+              <SortableHeader label="CH" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(4)} /></SortableHeader>
+              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(5)} /></SortableHeader>
               <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(6)} /></SortableHeader>
               <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(7)} /></SortableHeader>
               <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(8)} /></SortableHeader>
@@ -493,6 +493,16 @@ export const ReportsContent = ({
                   </td>
                   <td className="px-4 py-3.5 text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</td>
                   <td className="px-4 py-3.5">
+                    <span className="font-mono text-th-text">
+                      {report.listings?.asin ?? '—'}
+                      {(report.related_asins?.length ?? 0) > 0 && (
+                        <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
+                          +{report.related_asins!.length}
+                        </span>
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3.5">
                     <div className="flex flex-col gap-1">
                       <StatusBadge status={report.status as ReportStatus} type="report" />
                       {report.br_case_id && report.br_case_id !== 'submitted' && (
@@ -514,16 +524,6 @@ export const ReportsContent = ({
                       <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
                       {report.disagreement_flag && <Badge variant="warning">!</Badge>}
                     </div>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className="font-mono text-th-text">
-                      {report.listings?.asin ?? '—'}
-                      {(report.related_asins?.length ?? 0) > 0 && (
-                        <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
-                          +{report.related_asins!.length}
-                        </span>
-                      )}
-                    </span>
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.listings?.seller_name ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.users?.name ?? '—'}</td>
