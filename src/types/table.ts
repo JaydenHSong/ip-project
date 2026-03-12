@@ -9,4 +9,6 @@ export type TableFilters = {
   search: string
   violationType: string
   marketplace: string
+  dateFrom: string
+  dateTo: string
 }

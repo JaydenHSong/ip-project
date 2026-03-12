@@ -66,6 +66,8 @@ type ReportsContentProps = {
   userRole: Role
   ownerFilter: 'my' | 'all'
   searchQuery: string
+  dateFrom: string
+  dateTo: string
 }
 
 export const ReportsContent = ({
@@ -78,30 +80,38 @@ export const ReportsContent = ({
   userRole,
   ownerFilter,
   searchQuery,
+  dateFrom,
+  dateTo,
 }: ReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
   const { addToast } = useToast()
-  const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '' })
+  const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '', dateFrom, dateTo })
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isSearching = searchQuery.length > 0
+
+  const buildFilterUrl = useCallback((f: TableFiltersType) => {
+    const p = new URLSearchParams()
+    if (f.search.trim()) p.set('search', f.search.trim())
+    if (f.dateFrom) p.set('date_from', f.dateFrom)
+    if (f.dateTo) p.set('date_to', f.dateTo)
+    const qs = p.toString()
+    return qs ? `/reports?${qs}` : '/reports'
+  }, [])
 
   const handleFiltersChange = useCallback((newFilters: TableFiltersType) => {
     setFilters(newFilters)
 
-    // Debounce search → URL param
-    if (newFilters.search !== filters.search) {
+    const searchChanged = newFilters.search !== filters.search
+    const dateChanged = newFilters.dateFrom !== filters.dateFrom || newFilters.dateTo !== filters.dateTo
+
+    if (searchChanged || dateChanged) {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
-        const term = newFilters.search.trim()
-        if (term) {
-          router.push(`/reports?search=${encodeURIComponent(term)}`)
-        } else {
-          router.push('/reports')
-        }
-      }, 300)
+        router.push(buildFilterUrl(newFilters))
+      }, searchChanged ? 300 : 0)
     }
-  }, [filters.search, router])
+  }, [filters.search, filters.dateFrom, filters.dateTo, router, buildFilterUrl])
 
   useEffect(() => {
     return () => {

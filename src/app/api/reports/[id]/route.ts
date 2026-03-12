@@ -90,6 +90,19 @@ export const PATCH = withAuth(async (req) => {
     }
   }
 
+  // Manual submit: status → submitted (approved → submitted only)
+  if (body.status === 'submitted') {
+    const { data: current } = await supabase.from('reports').select('status').eq('id', id).single()
+    if (current?.status !== 'approved') {
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: 'approved 상태에서만 수동 제출 가능합니다.' } },
+        { status: 403 },
+      )
+    }
+    updates.status = 'submitted'
+    updates.br_submitted_at = new Date().toISOString()
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: '수정할 필드가 없습니다.' } },

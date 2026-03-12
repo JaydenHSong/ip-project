@@ -56,7 +56,7 @@ type CompletedReportsContentProps = {
 export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, page, totalPages, totalCount, pageSize, searchQuery }: CompletedReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
-  const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '' })
+  const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '', dateFrom: '', dateTo: '' })
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isSearching = searchQuery.length > 0
 
@@ -294,8 +294,8 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
               <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(o)} /></th>
               <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 1)} /></SortableHeader>
               <SortableHeader label="Channel" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 2)} /></SortableHeader>
-              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 3)} /></SortableHeader>
-              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 4)} /></SortableHeader>
+              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 3)} /></SortableHeader>
+              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 4)} /></SortableHeader>
               <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 5)} /></SortableHeader>
               <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 6)} /></SortableHeader>
               <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 7)} /></SortableHeader>
@@ -338,12 +338,12 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                   </td>
                   <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">
-                    <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
-                  </td>
-                  <td className="px-4 py-3.5">
                     <span className="font-mono text-th-text">
                       {report.listings?.asin ?? '—'}
                     </span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{report.listings?.seller_name ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{row.users ? (row.users as { name: string }).name : '—'}</td>

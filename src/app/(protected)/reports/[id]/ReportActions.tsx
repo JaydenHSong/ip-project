@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/useToast'
 type ReportActionsProps = {
   reportId: string
   status: string
+  brFormType?: string | null
   userRole: string
   createdBy?: string | null
   currentUserId?: string | null
@@ -22,6 +23,7 @@ type ReportActionsProps = {
 export const ReportActions = ({
   reportId,
   status,
+  brFormType,
   userRole,
   createdBy,
   currentUserId,
@@ -188,6 +190,27 @@ export const ReportActions = ({
     }
   }
 
+  const handleManualSubmit = async () => {
+    setLoading('manualSubmit')
+    try {
+      const res = await fetch(`/api/reports/${reportId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'submitted' }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Manual submit failed')
+      }
+      addToast({ type: 'success', title: 'Submitted', message: 'RAV 수동 제출 처리 완료' })
+      router.refresh()
+    } catch (e) {
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const handleDelete = async () => {
     setLoading('delete')
     try {
@@ -319,6 +342,18 @@ export const ReportActions = ({
             onClick={handleClone}
           >
             Clone as New
+          </Button>
+        )}
+
+        {/* Manual Submit — IP Violation (RAV) approved reports */}
+        {brFormType === 'ip_violation' && status === 'approved' && isAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            loading={loading === 'manualSubmit'}
+            onClick={handleManualSubmit}
+          >
+            Mark Submitted
           </Button>
         )}
 

@@ -17,6 +17,8 @@ const ReportsPage = async ({
     br_case_status?: string
     smart_queue?: string
     search?: string
+    date_from?: string
+    date_to?: string
   }>
 }) => {
   const user = await getCurrentUser()
@@ -86,6 +88,13 @@ const ReportsPage = async ({
         query = query.or(`br_last_scraped_at.lt.${sevenDaysAgo},br_last_scraped_at.is.null`)
       }
     }
+    if (params.date_from) {
+      query = query.gte('created_at', `${params.date_from}T00:00:00.000Z`)
+    }
+    if (params.date_to) {
+      query = query.lte('created_at', `${params.date_to}T23:59:59.999Z`)
+    }
+
     const ownerFilter = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
     if (ownerFilter === 'my') {
       query = query.eq('created_by', user.id)
@@ -114,6 +123,8 @@ const ReportsPage = async ({
       userRole={user.role}
       ownerFilter={effectiveOwner as 'my' | 'all'}
       searchQuery={params.search ?? ''}
+      dateFrom={params.date_from ?? ''}
+      dateTo={params.date_to ?? ''}
     />
   )
 }

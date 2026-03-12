@@ -39,7 +39,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
   const { t } = useI18n()
   const router = useRouter()
   const { addToast } = useToast()
-  const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '' })
+  const [filters, setFilters] = useState<TableFiltersType>({ search: '', violationType: '', marketplace: '', dateFrom: '', dateTo: '' })
   const [unarchiving, setUnarchiving] = useState<string | null>(null)
   const [previewId, setPreviewId] = useState<string | null>(null)
 

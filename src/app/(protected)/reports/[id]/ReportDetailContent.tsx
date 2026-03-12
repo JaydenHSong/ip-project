@@ -484,6 +484,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             <ReportActions
                 reportId={report.id}
                 status={report.status}
+                brFormType={report.br_form_type}
                 userRole={userRole}
                 createdBy={report.created_by}
                 currentUserId={currentUserId}
@@ -505,6 +506,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             <ReportActions
                 reportId={report.id}
                 status={report.status}
+                brFormType={report.br_form_type}
                 userRole={userRole}
                 createdBy={report.created_by}
                 currentUserId={currentUserId}
