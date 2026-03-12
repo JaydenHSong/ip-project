@@ -41,6 +41,10 @@ const createBrSubmitWorker = (
     },
   )
 
+  worker.on('active', (job) => {
+    log('info', 'br-queue', `BR submit job active: ${job.id} — processing started`)
+  })
+
   worker.on('completed', (job) => {
     const result = job.returnvalue
     log('info', 'br-queue', `BR submit completed: ${job.id} — report: ${result.reportId}, success: ${result.success}`)

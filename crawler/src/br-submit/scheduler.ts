@@ -36,17 +36,18 @@ const startBrScheduler = (
           continue
         }
 
-        const jobId = `br-${report.id}`
-
-        // Prevent duplicate jobs — remove stale completed/failed jobs first
-        const existing = await queue.getJob(jobId)
+        // Check for active jobs to prevent concurrent processing
+        const baseJobId = `br-${report.id}`
+        const existing = await queue.getJob(baseJobId)
         if (existing) {
           const state = await existing.getState()
           if (state === 'active' || state === 'waiting' || state === 'delayed') {
             continue
           }
-          // Remove completed/failed job so a new one can be queued
+          // Remove stale completed/failed job
           await existing.remove().catch(() => {})
+          // Wait for removal to propagate
+          await new Promise((r) => setTimeout(r, 100))
         }
 
         const jobData: BrSubmitJobData = {
@@ -60,8 +61,12 @@ const startBrScheduler = (
           orderId: report.br_submit_data.order_id,
         }
 
-        await queue.add('br-submit', jobData, { jobId })
-        log('info', 'br-scheduler', `Added BR submit job for report ${report.id}`)
+        const added = await queue.add('br-submit', jobData, { jobId: baseJobId })
+        if (added) {
+          log('info', 'br-scheduler', `Added BR submit job for report ${report.id} (jobId: ${added.id}, state: queued)`)
+        } else {
+          log('warn', 'br-scheduler', `Failed to add job for report ${report.id} — job may already exist`)
+        }
       }
     } catch (error) {
       log('error', 'br-scheduler', `Poll error: ${error instanceof Error ? error.message : String(error)}`)
