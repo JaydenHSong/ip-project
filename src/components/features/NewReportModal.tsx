@@ -256,9 +256,24 @@ export const NewReportModal = ({ open, onClose, prefillAsin, prefillMarketplace 
           </svg>
           <div className="text-center">
             <p className="text-sm font-medium text-th-text">
-              Extension에서 정보를 가져오는 중...
+              {elapsed < 5
+                ? 'Extension에서 정보를 가져오는 중...'
+                : elapsed < 15
+                  ? '아마존 페이지를 분석하고 있습니다...'
+                  : elapsed < 25
+                    ? '거의 완료됐습니다, 잠시만 기다려주세요...'
+                    : '응답이 늦어지고 있습니다...'}
             </p>
-            <p className="mt-1 text-xs text-th-text-muted">
+          </div>
+          {/* Progress bar */}
+          <div className="w-full max-w-xs">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-th-border">
+              <div
+                className="h-full rounded-full bg-th-accent transition-all duration-1000 ease-linear"
+                style={{ width: `${Math.min((elapsed / 30) * 100, 100)}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-center text-xs text-th-text-muted">
               {elapsed}초 경과
             </p>
           </div>
