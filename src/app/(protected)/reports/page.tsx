@@ -67,7 +67,7 @@ const ReportsPage = async ({
       if (params.status) {
         query = query.eq('status', params.status)
       } else {
-        query = query.in('status', ['draft', 'pending_review', 'approved', 'rejected'])
+        query = query.in('status', ['draft', 'pending_review', 'approved', 'rejected', 'br_submitting'])
       }
       if (params.br_form_type) {
         query = query.eq('br_form_type', params.br_form_type)

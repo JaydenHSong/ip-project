@@ -1,6 +1,7 @@
 'use client'
 
 import { useI18n } from '@/lib/i18n/context'
+import { formatDateTime } from '@/lib/utils/date'
 import type { TimelineEvent, TimelineEventType } from '@/types/reports'
 
 type ReportTimelineProps = {
@@ -75,7 +76,7 @@ export const ReportTimeline = ({ events }: ReportTimelineProps) => {
                 )}
               </div>
               <time className="shrink-0 text-xs text-th-text-muted sm:ms-4">
-                {new Date(event.timestamp).toLocaleString()}
+                {formatDateTime(event.timestamp)}
               </time>
             </div>
           </li>

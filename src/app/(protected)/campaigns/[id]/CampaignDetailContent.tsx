@@ -46,6 +46,7 @@ type ReportRow = {
   status: string
   br_form_type: string | null
   user_violation_type: string
+  violation_category: string | null
   ai_violation_type: string | null
   ai_confidence_score: number | null
   confirmed_violation_type: string | null
@@ -598,7 +599,7 @@ export const CampaignDetailContent = ({
                       </span>
                     </div>
                     <div className="mt-2.5 flex items-center gap-2">
-                      <ViolationBadge code={report.br_form_type ?? report.user_violation_type} size="md" />
+                      <ViolationBadge code={report.user_violation_type ?? report.br_form_type} violationCategory={report.violation_category} size="md" />
                       {report.ai_violation_type && report.ai_confidence_score !== null && (
                         <span className="text-xs text-th-text-muted">
                           AI {report.ai_confidence_score}%

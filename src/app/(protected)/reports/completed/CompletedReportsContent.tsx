@@ -20,6 +20,8 @@ import type { TableFilters as TableFiltersType } from '@/types/table'
 import { ReportPreviewPanel } from '@/components/features/ReportPreviewPanel'
 import { MARKETPLACES } from '@/constants/marketplaces'
 import { useToast } from '@/hooks/useToast'
+import { getAmazonUrl } from '@/lib/utils/amazon-url'
+import { formatDate } from '@/lib/utils/date'
 
 const DOMAIN_TO_CODE: Record<string, string> = Object.fromEntries(
   Object.values(MARKETPLACES).map((m) => [m.domain, m.code])
@@ -35,6 +37,7 @@ type ReportRow = {
   report_number: number
   br_form_type: string
   violation_type: string
+  user_violation_type: string | null
   violation_category: string | null
   status: string
   created_at: string
@@ -159,10 +162,10 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
-      [item.report_number != null ? String(item.report_number).padStart(5, '0') : null, item.listings?.asin, item.listings?.title, item.listings?.seller_name, item.pd_case_id].filter(Boolean).join(' '),
+      [item.report_number != null ? String(item.report_number).padStart(5, '0') : null, item.listings?.asin, item.listings?.title, item.listings?.seller_name, item.pd_case_id, (item as ReportRow & Record<string, unknown>).users ? ((item as ReportRow & Record<string, unknown>).users as { name: string })?.name : null].filter(Boolean).join(' '),
     [],
   )
-  const getViolationType = useCallback((item: ReportRow) => item.violation_type, [])
+  const getViolationType = useCallback((item: ReportRow) => item.violation_category ?? item.user_violation_type ?? item.br_form_type ?? item.violation_type, [])
   const getMarketplace = useCallback((item: ReportRow) => item.listings?.marketplace ?? '', [])
 
   const filteredData = useFilterableTable(reports ?? [], filters, getSearchableText, getViolationType, getMarketplace)
@@ -290,19 +293,21 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
               onClick={() => setPreviewReportId(report.id)}
             >
               <div className="flex items-start justify-between">
-                <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
+                <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                 <StatusBadge status={report.status as ReportStatus} type="report" />
               </div>
-              <Link href={`/reports/${report.id}`}>
-                <p className="mt-2 font-mono text-sm text-th-text hover:text-th-accent-text">{report.listings?.asin ?? '—'}</p>
-              </Link>
+              <p className="mt-2 font-mono text-sm">
+                {report.listings?.asin ? (
+                  <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline">{report.listings.asin}</a>
+                ) : '—'}
+              </p>
               <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
               {report.archive_reason && (
                 <p className="mt-1 truncate text-xs text-th-text-muted">{report.archive_reason}</p>
               )}
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-xs text-th-text-muted">
-                  {report.archived_at ? new Date(report.archived_at).toLocaleDateString('en-CA') : '—'}
+                  {formatDate(report.archived_at)}
                 </span>
                 {canAct && (
                   <Button
@@ -322,14 +327,18 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             <Link key={report.id} href={`/reports/${report.id}`}>
               <div className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
-                  <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
+                  <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                   <StatusBadge status={report.status as ReportStatus} type="report" />
                 </div>
-                <p className="mt-2 font-mono text-sm text-th-text">{report.listings?.asin ?? '—'}</p>
+                <p className="mt-2 font-mono text-sm">
+                  {report.listings?.asin ? (
+                    <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>{report.listings.asin}</a>
+                  ) : '—'}
+                </p>
                 <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
                 <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
                   <span>{report.pd_case_id ? `PD: ${report.pd_case_id}` : '—'}</span>
-                  <span>{new Date(report.created_at).toLocaleDateString('en-CA')}</span>
+                  <span>{formatDate(report.created_at)}</span>
                 </div>
               </div>
             </Link>
@@ -396,19 +405,19 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
               </tr>
             ) : isArchived ? (
               sortedData.map((report) => (
-                <tr key={report.id} className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover" onClick={() => setPreviewReportId(report.id)}>
+                <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => setPreviewReportId(report.id)}>
                   <td className="px-4 py-3.5">
-                    <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
+                    <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                   </td>
                   <td className="px-4 py-3.5">
-                    <Link href={`/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text" onClick={(e) => e.stopPropagation()}>
-                      {report.listings?.asin ?? '—'}
-                    </Link>
+                    {report.listings?.asin ? (
+                      <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="font-mono text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>{report.listings.asin}</a>
+                    ) : <span className="font-mono text-th-text">—</span>}
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-th-text-secondary">{report.listings?.title ?? '—'}</td>
                   <td className="max-w-xs truncate px-4 py-3 text-th-text-muted">{report.archive_reason ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-muted">
-                    {report.archived_at ? new Date(report.archived_at).toLocaleDateString('en-CA') : '—'}
+                    {formatDate(report.archived_at)}
                   </td>
                   {canAct && (
                     <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
@@ -430,7 +439,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                 return (
                 <tr
                   key={report.id}
-                  className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
+                  className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`}
                   onClick={() => setPreviewReportId(report.id)}
                 >
                   {canBulk && (
@@ -449,18 +458,18 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                   </td>
                   <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">
-                    <span className="font-mono text-th-text">
-                      {report.listings?.asin ?? '—'}
-                    </span>
+                    {report.listings?.asin ? (
+                      <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="font-mono text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>{report.listings.asin}</a>
+                    ) : <span className="font-mono text-th-text">—</span>}
                   </td>
                   <td className="px-4 py-3.5">
-                    <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
+                    <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{report.listings?.seller_name ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{row.users ? (row.users as { name: string }).name : '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString('en-CA')}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{row.updated_at ? new Date(row.updated_at as string).toLocaleDateString('en-CA') : '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{row.resolved_at ? new Date(row.resolved_at as string).toLocaleDateString('en-CA') : '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(report.created_at)}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(row.updated_at as string)}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(row.resolved_at as string)}</td>
                 </tr>
                 )
               })

@@ -6,11 +6,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const GET = withAuth(async (_req, { user }) => {
   const supabase = createAdminClient()
 
-  // pending 상태 중 가장 오래된 1건 조회
+  // pending 상태 중 본인이 요청한 가장 오래된 1건 조회
   const { data: item, error } = await supabase
     .from('extension_fetch_queue')
     .select('id, asin, marketplace')
     .eq('status', 'pending')
+    .eq('requested_by', user.id)
     .order('created_at', { ascending: true })
     .limit(1)
     .single()

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { SearchIcon, SlidersHorizontal, CalendarIcon } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { SlidePanel } from '@/components/ui/SlidePanel'
-import { BR_FORM_TYPE_OPTIONS } from '@/constants/br-form-types'
+import { VIOLATION_FILTER_OPTIONS } from '@/components/ui/ViolationBadge'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 
 const MARKETPLACES = ['US', 'JP', 'UK', 'DE', 'FR', 'IT', 'ES', 'CA', 'MX', 'AU', 'IN'] as const
@@ -49,7 +49,7 @@ const FilterControls = ({
           className="w-full rounded-lg border border-th-border bg-surface-card px-3 py-2 text-sm text-th-text focus:border-th-accent focus:outline-none focus:ring-1 focus:ring-th-accent sm:w-auto"
         >
           <option value="">{t('table.allTypes' as Parameters<typeof t>[0])}</option>
-          {BR_FORM_TYPE_OPTIONS.map((v) => (
+          {VIOLATION_FILTER_OPTIONS.map((v) => (
             <option key={v.value} value={v.value}>
               {v.label}
             </option>

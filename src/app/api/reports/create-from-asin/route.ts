@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // POST /api/reports/create-from-asin — ASIN으로 리포트 생성 시작
-export const POST = withAuth(async (req: NextRequest) => {
+export const POST = withAuth(async (req: NextRequest, { user }) => {
   const body = await req.json() as { asin?: string; marketplace?: string }
   const asin = body.asin?.trim().toUpperCase()
   const marketplace = body.marketplace || 'US'
@@ -46,6 +46,7 @@ export const POST = withAuth(async (req: NextRequest) => {
       asin,
       marketplace,
       status: 'pending',
+      requested_by: user.id,
       metadata: { purpose: 'new_report' },
     })
     .select('id')

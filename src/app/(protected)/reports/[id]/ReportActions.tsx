@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Textarea'
 import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
+import { formatDate } from '@/lib/utils/date'
 
 type ReportActionsProps = {
   reportId: string
@@ -304,7 +305,7 @@ export const ReportActions = ({
           <div className="flex items-center gap-3">
             <span className="text-sm text-th-text-muted">
               {nextResubmitAt
-                ? `재제출 예정: ${new Date(nextResubmitAt).toLocaleDateString('en-CA')} (${resubmitCount ?? 0}회 완료)`
+                ? `재제출 예정: ${formatDate(nextResubmitAt)} (${resubmitCount ?? 0}회 완료)`
                 : `미해결 (${resubmitCount ?? 0}회 재제출)`}
             </span>
             <Button
@@ -345,16 +346,27 @@ export const ReportActions = ({
           </Button>
         )}
 
-        {/* Manual Submit — IP Violation (RAV) approved reports */}
-        {brFormType === 'ip_violation' && status === 'approved' && isAdmin && (
-          <Button
-            variant="outline"
-            size="sm"
-            loading={loading === 'manualSubmit'}
-            onClick={handleManualSubmit}
-          >
-            Mark Submitted
-          </Button>
+        {/* Approved: Resubmit to BR (non-IP) or Mark Submitted (IP) */}
+        {status === 'approved' && isAdmin && (
+          brFormType === 'ip_violation' ? (
+            <Button
+              variant="outline"
+              size="sm"
+              loading={loading === 'manualSubmit'}
+              onClick={handleManualSubmit}
+            >
+              Mark Submitted
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              loading={loading === 'brResubmit'}
+              onClick={handleForceResubmit}
+            >
+              Resubmit to BR
+            </Button>
+          )
         )}
 
         {/* Delete */}

@@ -105,6 +105,7 @@ export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId 
         <ReportDetailContent
           report={{
             id: data.id as string,
+            report_number: (data.report_number as number) ?? 0,
             status: data.status as string,
             br_form_type: (data.br_form_type as string) ?? null,
             user_violation_type: data.user_violation_type as string,

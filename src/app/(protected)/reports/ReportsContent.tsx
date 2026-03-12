@@ -27,6 +27,8 @@ import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 import { useToast } from '@/hooks/useToast'
 import { ReportPreviewPanel } from '@/components/features/ReportPreviewPanel'
+import { getAmazonUrl } from '@/lib/utils/amazon-url'
+import { formatDate } from '@/lib/utils/date'
 
 const DOMAIN_TO_CODE: Record<string, string> = Object.fromEntries(
   Object.values(MARKETPLACES).map((m) => [m.domain, m.code])
@@ -41,6 +43,7 @@ type ReportRow = {
   id: string
   br_form_type: string
   violation_type: string
+  user_violation_type: string | null
   violation_category: string | null
   status: string
   ai_confidence_score: number | null
@@ -137,10 +140,10 @@ export const ReportsContent = ({
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
-      [item.report_number != null ? String(item.report_number).padStart(5, '0') : null, item.listings?.asin, item.listings?.title, item.listings?.seller_name].filter(Boolean).join(' '),
+      [item.report_number != null ? String(item.report_number).padStart(5, '0') : null, item.listings?.asin, item.listings?.title, item.listings?.seller_name, item.users?.name].filter(Boolean).join(' '),
     [],
   )
-  const getViolationType = useCallback((item: ReportRow) => item.br_form_type ?? item.violation_type, [])
+  const getViolationType = useCallback((item: ReportRow) => item.violation_category ?? item.user_violation_type ?? item.br_form_type ?? item.violation_type, [])
   const getMarketplace = useCallback((item: ReportRow) => item.listings?.marketplace ?? '', [])
 
   const filteredData = useFilterableTable(reports ?? [], filters, getSearchableText, getViolationType, getMarketplace)
@@ -408,13 +411,15 @@ export const ReportsContent = ({
               <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} size="md" />
+                    <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} size="md" />
                     {report.disagreement_flag && <Badge variant="warning" size="md">!</Badge>}
                   </div>
                   <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
                 </div>
                 <p className="mt-2 font-mono text-sm text-th-text">
-                  {report.listings?.asin ?? '—'}
+                  {report.listings?.asin ? (
+                    <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline">{report.listings.asin}</a>
+                  ) : '—'}
                   {(report.related_asins?.length ?? 0) > 0 && (
                     <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
                       +{report.related_asins!.length}
@@ -446,7 +451,7 @@ export const ReportsContent = ({
                       <StatusBadge status={report.br_case_status as Parameters<typeof StatusBadge>[0]['status']} type="br_case" size="sm" />
                     )}
                     {report.ai_confidence_score !== null && <span>AI: {report.ai_confidence_score}%</span>}
-                    <span>{new Date(report.created_at).toLocaleDateString('en-CA')}</span>
+                    <span>{formatDate(report.created_at)}</span>
                   </div>
                 </div>
               </div>
@@ -501,7 +506,7 @@ export const ReportsContent = ({
                 return (
                 <tr
                   key={report.id}
-                  className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
+                  className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`}
                   onClick={() => setPreviewReportId(report.id)}
                 >
                   <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
@@ -532,7 +537,9 @@ export const ReportsContent = ({
                   <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">
                     <span className="font-mono text-th-text">
-                      {report.listings?.asin ?? '—'}
+                      {report.listings?.asin ? (
+                        <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>{report.listings.asin}</a>
+                      ) : '—'}
                       {(report.related_asins?.length ?? 0) > 0 && (
                         <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
                           +{report.related_asins!.length}
@@ -542,15 +549,15 @@ export const ReportsContent = ({
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
-                      <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
+                      <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                       {report.disagreement_flag && <Badge variant="warning">!</Badge>}
                     </div>
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.listings?.seller_name ?? '—'}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.users?.name ?? '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(report.created_at).toLocaleDateString('en-CA')}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{row.updated_at ? new Date(row.updated_at as string).toLocaleDateString('en-CA') : '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{row.resolved_at ? new Date(row.resolved_at as string).toLocaleDateString('en-CA') : '—'}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(report.created_at)}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(row.updated_at as string)}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(row.resolved_at as string)}</td>
                 </tr>
                 )
               })

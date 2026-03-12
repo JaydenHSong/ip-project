@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
@@ -16,7 +16,8 @@ import { ReportTimeline } from './ReportTimeline'
 import { SnapshotViewer } from './SnapshotViewer'
 import { BrTemplateList } from './BrTemplateList'
 import { BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT } from '@/lib/reports/br-data'
-import { BR_FORM_TYPES, BR_FORM_TYPE_OPTIONS, isBrSubmittable, brFormHasField, type BrFormTypeCode } from '@/constants/br-form-types'
+import { BR_FORM_TYPES, isBrSubmittable, brFormHasField, toBrFormType, type BrFormTypeCode } from '@/constants/br-form-types'
+import { VIOLATION_FILTER_OPTIONS } from '@/components/ui/ViolationBadge'
 import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
 import { CaseThread } from '@/components/features/case-thread/CaseThread'
 import { CaseActivityLog } from '@/components/features/case-thread/CaseActivityLog'
@@ -27,11 +28,13 @@ import { getBrFormTypeLabel } from '@/constants/br-form-types'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
 import type { BrCaseStatus } from '@/types/br-case'
 import { useToast } from '@/hooks/useToast'
+import { formatDateTime } from '@/lib/utils/date'
 import type { ReportSnapshot } from '@/types/monitoring'
 
 type ReportDetailContentProps = {
   report: {
     id: string
+    report_number: number
     status: string
     br_form_type: string | null
     user_violation_type: string
@@ -104,7 +107,8 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const { addToast } = useToast()
   const router = useRouter()
 
-  const isDraftEditable = canEdit && (report.status === 'draft' || report.status === 'pending_review')
+  const [currentStatus, setCurrentStatus] = useState(report.status)
+  const isDraftEditable = canEdit && (currentStatus === 'draft' || currentStatus === 'pending_review')
 
   const [editTitle, setEditTitle] = useState(report.draft_title ?? '')
   const [editSubject, setEditSubject] = useState(report.draft_subject ?? '')
@@ -116,8 +120,11 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [suggestedTemplate, setSuggestedTemplate] = useState<{ id: string; title: string; body: string } | null>(null)
   const [templateDismissed, setTemplateDismissed] = useState(false)
   const showBrFormType = isDraftEditable
+  const [violationType, setViolationType] = useState(
+    report.violation_category ?? report.user_violation_type ?? report.br_form_type ?? 'other_policy'
+  )
   const [brFormType, setBrFormType] = useState<BrFormTypeCode>(
-    (report.br_form_type ?? 'other_policy') as BrFormTypeCode
+    toBrFormType(report.violation_category ?? report.user_violation_type ?? report.br_form_type ?? 'other_policy')
   )
   const [brFields, setBrFields] = useState({
     product_urls: listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : '',
@@ -147,7 +154,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [relatedData, setRelatedData] = useState<{
     parent_chain: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
     children: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
-    same_listing: Array<{ id: string; status: string; br_case_id: string | null; br_case_status: string | null; created_at: string; user_violation_type: string; br_form_type: string; listings: { asin: string; title: string } | null }>
+    same_listing: Array<{ id: string; status: string; br_case_id: string | null; br_case_status: string | null; created_at: string; user_violation_type: string; violation_category: string | null; br_form_type: string; listings: { asin: string; title: string } | null }>
   } | null>(null)
 
   // Fetch related reports data
@@ -226,6 +233,10 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
         const err = await res.json()
         throw new Error(err.error?.message ?? 'Submit failed')
       }
+      const result = await res.json()
+      const newStatus = result.status ?? 'approved'
+      setCurrentStatus(newStatus)
+      addToast({ type: 'success', title: 'Submitted', message: newStatus === 'br_submitting' ? 'BR 케이스 제출이 시작됩니다.' : '승인 완료되었습니다.' })
       router.refresh()
     } catch (e) {
       addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
@@ -473,8 +484,8 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       {!embedded && (
         <div className="flex flex-wrap items-center gap-3">
           <BackButton href="/reports" />
-          <h1 className="text-2xl font-bold text-th-text">{t('reports.detail.title')}</h1>
-          <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
+          <span className="font-mono text-4xl font-bold leading-none text-th-accent">#{String(report.report_number).padStart(5, '0')}</span>
+          <StatusBadge status={currentStatus as ReportStatus} type="report" size="md" />
           {isDraftEditable && (
             <span className="rounded-full bg-th-accent-soft px-2 py-0.5 text-xs font-medium text-th-accent-text">
               {t('reports.detail.editing')}
@@ -483,7 +494,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           <div className="ml-auto">
             <ReportActions
                 reportId={report.id}
-                status={report.status}
+                status={currentStatus}
                 brFormType={report.br_form_type}
                 userRole={userRole}
                 createdBy={report.created_by}
@@ -496,7 +507,8 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       )}
       {embedded && (
         <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
+          <span className="font-mono text-4xl font-bold leading-none text-th-accent">#{String(report.report_number).padStart(5, '0')}</span>
+          <StatusBadge status={currentStatus as ReportStatus} type="report" size="md" />
           {isDraftEditable && (
             <span className="rounded-full bg-th-accent-soft px-2 py-0.5 text-xs font-medium text-th-accent-text">
               {t('reports.detail.editing')}
@@ -505,7 +517,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           <div className="ml-auto">
             <ReportActions
                 reportId={report.id}
-                status={report.status}
+                status={currentStatus}
                 brFormType={report.br_form_type}
                 userRole={userRole}
                 createdBy={report.created_by}
@@ -518,23 +530,17 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       )}
 
       {/* BR Submitting Banner */}
-      {report.status === 'br_submitting' && (
+      {currentStatus === 'br_submitting' && (
         <div className="overflow-hidden rounded-xl border border-sky-500/30 bg-sky-50 dark:bg-sky-950/30">
-          <div className="h-1 w-full overflow-hidden bg-sky-500/20">
-            <div className="h-full w-1/3 animate-[shimmer_1.5s_ease-in-out_infinite] rounded-full bg-sky-500" />
-          </div>
           <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-500/20">
-                <svg className="h-5 w-5 animate-spin text-sky-500" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <svg className="h-5 w-5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
               </div>
               <div>
-                <p className="text-sm font-semibold text-th-text">BR 신고 제출 중</p>
+                <p className="text-sm font-semibold text-th-text">BR 제출 큐 등록 완료</p>
                 <p className="mt-0.5 text-xs text-th-text-secondary">
-                  Brand Registry에 자동으로 신고를 제출하고 있습니다.
+                  Crawler가 자동으로 Brand Registry에 제출합니다.
                 </p>
               </div>
             </div>
@@ -553,6 +559,8 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                     const err = await res.json()
                     throw new Error(err.error?.message ?? 'Cancel failed')
                   }
+                  setCurrentStatus('draft')
+                  addToast({ type: 'success', title: '취소 완료', message: 'Draft 상태로 돌아갔습니다.' })
                   router.refresh()
                 } catch (e) {
                   addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
@@ -561,7 +569,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 }
               }}
             >
-              취소
+              Cancel
             </Button>
           </div>
         </div>
@@ -616,13 +624,13 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 {report.br_submitted_at && (
                   <>
                     <dt className="text-xs text-th-text-tertiary self-center">Submitted</dt>
-                    <dd className="text-sm text-th-text">{new Date(report.br_submitted_at).toLocaleString()}</dd>
+                    <dd className="text-sm text-th-text">{formatDateTime(report.br_submitted_at)}</dd>
                   </>
                 )}
                 {report.br_last_amazon_reply_at && (
                   <>
                     <dt className="text-xs text-th-text-tertiary self-center">Last Reply</dt>
-                    <dd className="text-sm text-th-text">{new Date(report.br_last_amazon_reply_at).toLocaleString()}</dd>
+                    <dd className="text-sm text-th-text">{formatDateTime(report.br_last_amazon_reply_at)}</dd>
                   </>
                 )}
               </dl>
@@ -650,50 +658,36 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
               </div>
             )}
 
-            {/* Violation Info + Report Detail (side by side) */}
+            {/* Extension Report */}
             <div className="mt-4 border-t border-th-border pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Left: Violation Info */}
-                <div>
-                  <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">BR Form Type</h3>
-                  <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-2.5">
-                    <dt className="text-xs text-th-text-tertiary self-center">Form Type</dt>
-                    <dd>
-                      <ViolationBadge code={report.br_form_type ?? report.violation_category ?? ''} size="md" />
-                    </dd>
-                  </dl>
-                </div>
-
-                {/* Right: Report Detail (note/extra fields) */}
+              <h3 className="mb-3 text-xs font-semibold text-th-text-tertiary">Extension Report</h3>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xs text-th-text-tertiary">Type</span>
+                <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? ''} violationCategory={report.violation_category} size="md" />
                 {report.note && (() => {
                   try {
                     const parsed = JSON.parse(report.note) as Record<string, string>
                     if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
                       const entries = Object.entries(parsed).filter(([, v]) => v && String(v).trim())
                       if (entries.length > 0) {
-                        return (
-                          <div>
-                            <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.reportDetails')}</h3>
-                            <dl className="space-y-2">
-                              {entries.map(([key, value]) => (
-                                <div key={key} className="rounded bg-th-bg-subtle px-3 py-2">
-                                  <dt className="text-[11px] font-medium uppercase tracking-wide text-th-text-muted">{key.replace(/_/g, ' ')}</dt>
-                                  <dd className="mt-0.5 text-sm text-th-text whitespace-pre-wrap">{String(value)}</dd>
-                                </div>
-                              ))}
-                            </dl>
-                          </div>
-                        )
+                        return entries.map(([key, value]) => (
+                          <Fragment key={key}>
+                            <span className="text-th-border">|</span>
+                            <span className="text-xs text-th-text-tertiary capitalize">{key.replace(/_/g, ' ')}</span>
+                            <span className="text-sm text-th-text">{String(value)}</span>
+                          </Fragment>
+                        ))
                       }
                     }
                   } catch {
                     // not JSON
                   }
                   return (
-                    <div>
-                      <h3 className="mb-2 text-xs font-semibold text-th-text-tertiary">{t('reports.detail.reportDetails')}</h3>
-                      <p className="text-sm text-th-text whitespace-pre-wrap">{report.note}</p>
-                    </div>
+                    <>
+                      <span className="text-th-border">|</span>
+                      <span className="text-xs text-th-text-tertiary">Reason</span>
+                      <span className="text-sm text-th-text">{report.note}</span>
+                    </>
                   )
                 })()}
               </div>
@@ -766,34 +760,28 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                     </>
                   )}
 
-                  {listing.brand && (
-                    <>
-                      <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.brand')}</dt>
-                      <dd className="text-sm text-th-text">{listing.brand}</dd>
-                    </>
-                  )}
+                  <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.brand')}</dt>
+                  <dd className="text-sm text-th-text">{listing.brand ?? '-'}</dd>
 
-                  {listing.price_amount != null && (
-                    <>
-                      <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.price')}</dt>
-                      <dd className="text-sm font-medium text-th-text">
-                        {listing.price_currency === 'JPY' ? '¥' : '$'}{listing.price_amount.toLocaleString()}
-                      </dd>
-                    </>
-                  )}
+                  <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.price')}</dt>
+                  <dd className="text-sm font-medium text-th-text">
+                    {listing.price_amount != null
+                      ? `${listing.price_currency === 'JPY' ? '¥' : '$'}${listing.price_amount.toLocaleString()}`
+                      : '-'}
+                  </dd>
 
-                  {listing.rating != null && (
-                    <>
-                      <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.rating')}</dt>
-                      <dd className="flex items-center gap-1 text-sm text-th-text">
+                  <dt className="text-xs text-th-text-tertiary self-center">{t('reports.detail.rating')}</dt>
+                  <dd className="flex items-center gap-1 text-sm text-th-text">
+                    {listing.rating != null ? (
+                      <>
                         <svg className="h-3.5 w-3.5 fill-yellow-400" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                         {listing.rating.toFixed(1)}
                         {listing.review_count != null && (
                           <span className="text-xs text-th-text-muted">({listing.review_count.toLocaleString()})</span>
                         )}
-                      </dd>
-                    </>
-                  )}
+                      </>
+                    ) : '-'}
+                  </dd>
                 </dl>
                 {report.related_asins && report.related_asins.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
@@ -923,7 +911,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 {screenshotList.length === 1 && (
                   <div className="group/single relative mb-3 flex items-center gap-2">
                     <span className="text-xs text-th-text-muted">
-                      {new Date(screenshotList[0].captured_at).toLocaleString()}
+                      {formatDateTime(screenshotList[0].captured_at)}
                     </span>
                     <button
                       className="rounded px-1.5 py-0.5 text-xs text-th-text-muted opacity-0 transition-all hover:bg-red-500 hover:text-white group-hover/single:opacity-100"
@@ -1049,36 +1037,44 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {/* BR Form Type 드롭다운 + 가이드 배너 */}
+            {/* Violation Type 드롭다운 + BR 가이드 배너 */}
             {showBrFormType && (
               <div className="rounded-lg border border-th-border bg-th-bg-secondary/50 p-3 space-y-2">
                 <div className="flex items-center gap-3">
                   <label className="shrink-0 text-xs font-semibold uppercase tracking-wider text-th-text-muted">
-                    BR Report Category
+                    Violation Type
                   </label>
                   <select
-                    value={brFormType}
+                    value={violationType}
                     onChange={async (e) => {
-                      const val = e.target.value as BrFormTypeCode
-                      const prev = brFormType
-                      setBrFormType(val)
+                      const val = e.target.value
+                      const prevViolation = violationType
+                      const prevBr = brFormType
+                      const newBr = toBrFormType(val)
+                      setViolationType(val)
+                      setBrFormType(newBr)
                       try {
                         const res = await fetch(`/api/reports/${report.id}`, {
                           method: 'PATCH',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ br_form_type: val }),
+                          body: JSON.stringify({
+                            user_violation_type: val,
+                            violation_category: ['V01', 'V02', 'V03', 'V04'].includes(val) ? val : null,
+                            br_form_type: newBr,
+                          }),
                         })
                         if (!res.ok) throw new Error()
                         setAutoSaveStatus('saved')
                         setTimeout(() => setAutoSaveStatus('idle'), 2000)
                       } catch {
-                        setBrFormType(prev)
-                        addToast({ type: 'error', title: 'Save failed', message: 'BR form type could not be saved.' })
+                        setViolationType(prevViolation)
+                        setBrFormType(prevBr)
+                        addToast({ type: 'error', title: 'Save failed', message: 'Violation type could not be saved.' })
                       }
                     }}
                     className="flex-1 rounded-lg border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text"
                   >
-                    {BR_FORM_TYPE_OPTIONS.map((opt) => (
+                    {VIOLATION_FILTER_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
                     ))}
                   </select>
@@ -1515,7 +1511,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       )}
 
       {/* Monitoring Snapshots (only show for monitoring/resolved/unresolved) */}
-      {snapshots && snapshots.length > 0 && ['monitoring', 'resolved', 'unresolved'].includes(report.status) && (
+      {snapshots && snapshots.length > 0 && ['monitoring', 'resolved', 'unresolved'].includes(currentStatus) && (
         <SnapshotViewer
           initialSnapshot={snapshots.find((s) => s.snapshot_type === 'initial') ?? null}
           followupSnapshots={snapshots.filter((s) => s.snapshot_type === 'followup')}
@@ -1523,7 +1519,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
       )}
 
       {/* Monitoring Info + Resubmit Interval */}
-      {monitoringStartedAt && ['monitoring', 'resolved', 'unresolved'].includes(report.status) && (
+      {monitoringStartedAt && ['monitoring', 'resolved', 'unresolved'].includes(currentStatus) && (
         <Card>
         <CardContent className="pt-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-th-text-muted">
@@ -1538,7 +1534,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             </span>
           )}
           {/* PD 재신고 간격 */}
-          {canEdit && ['monitoring', 'unresolved'].includes(report.status) && (
+          {canEdit && ['monitoring', 'unresolved'].includes(currentStatus) && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-th-text-tertiary">
                 {t('reports.detail.resubmitInterval' as Parameters<typeof t>[0])}:
@@ -1563,7 +1559,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
             </div>
           )}
           {/* PD 팔로업 재방문 간격 */}
-          {canEdit && report.status === 'monitoring' && (
+          {canEdit && currentStatus === 'monitoring' && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-th-text-tertiary">Follow-up:</span>
               <select

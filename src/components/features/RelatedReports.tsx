@@ -13,6 +13,8 @@ type RelatedReport = {
   br_case_status: string | null
   created_at: string
   br_form_type: string
+  user_violation_type: string | null
+  violation_category: string | null
   listings: { asin: string; title: string } | null
 }
 
@@ -89,7 +91,7 @@ export const RelatedReports = ({ reports, currentReportId, onNavigate }: Related
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <ViolationBadge code={r.br_form_type} showLabel={false} size="sm" />
+                  <ViolationBadge code={r.user_violation_type ?? r.br_form_type} violationCategory={r.violation_category} showLabel={false} size="sm" />
                   <StatusBadge status={r.status as ReportStatus} type="report" size="sm" />
                   {brStatus && (
                     <span className={`text-[10px] font-medium ${brStatus.color}`}>

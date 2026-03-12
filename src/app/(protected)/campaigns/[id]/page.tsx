@@ -38,6 +38,7 @@ type ReportRow = {
   status: string
   br_form_type: string | null
   user_violation_type: string
+  violation_category: string | null
   ai_violation_type: string | null
   ai_confidence_score: number | null
   confirmed_violation_type: string | null
@@ -89,6 +90,7 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
         status: r.status,
         br_form_type: r.br_form_type ?? null,
         user_violation_type: r.user_violation_type,
+        violation_category: (r as Record<string, unknown>).violation_category as string | null ?? null,
         ai_violation_type: r.ai_violation_type,
         ai_confidence_score: r.ai_confidence_score,
         confirmed_violation_type: r.confirmed_violation_type,
@@ -138,7 +140,7 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
       const listingIds = listings.map((l) => l.id)
       const { data: reportData } = await supabase
         .from('reports')
-        .select('id, listing_id, status, br_form_type, user_violation_type, ai_violation_type, ai_confidence_score, confirmed_violation_type, disagreement_flag, draft_title, draft_body, rejection_reason, pd_case_id, created_at, approved_at, rejected_at')
+        .select('id, listing_id, status, br_form_type, user_violation_type, violation_category, ai_violation_type, ai_confidence_score, confirmed_violation_type, disagreement_flag, draft_title, draft_body, rejection_reason, pd_case_id, created_at, approved_at, rejected_at')
         .in('listing_id', listingIds)
       reports = (reportData ?? []) as ReportRow[]
     }

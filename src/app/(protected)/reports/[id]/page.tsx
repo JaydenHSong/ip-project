@@ -11,6 +11,7 @@ import type { ReportSnapshot } from '@/types/monitoring'
 
 type ReportData = {
   id: string
+  report_number: number
   listing_id: string
   status: string
   br_form_type: string | null

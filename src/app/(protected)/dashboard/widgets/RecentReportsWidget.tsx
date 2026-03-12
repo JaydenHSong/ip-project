@@ -14,6 +14,8 @@ import { useDashboardContext } from './DashboardContext'
 type RecentReport = {
   id: string
   br_form_type: string
+  user_violation_type: string | null
+  violation_category: string | null
   status: string
   ai_confidence_score: number | null
   disagreement_flag: boolean
@@ -33,6 +35,8 @@ export const RecentReportsWidget = () => {
         DEMO_REPORTS.filter((r) => r.status !== 'archived').slice(0, 5).map((r) => ({
           id: r.id,
           br_form_type: r.br_form_type ?? r.violation_type,
+          user_violation_type: (r as Record<string, unknown>).user_violation_type as string | null ?? null,
+          violation_category: (r as Record<string, unknown>).violation_category as string | null ?? null,
           status: r.status,
           ai_confidence_score: r.ai_confidence_score,
           disagreement_flag: r.disagreement_flag,
@@ -86,7 +90,7 @@ export const RecentReportsWidget = () => {
               <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <ViolationBadge code={report.br_form_type} showLabel={false} />
+                    <ViolationBadge code={report.user_violation_type ?? report.br_form_type} violationCategory={report.violation_category} showLabel={false} />
                     <span className="truncate text-sm text-th-text">{report.listings?.asin ?? '—'}</span>
                     {report.disagreement_flag && (
                       <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-st-warning-text" />

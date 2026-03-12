@@ -22,6 +22,7 @@ type ReportRow = {
   id: string
   br_form_type: string
   violation_type: string
+  user_violation_type: string | null
   violation_category: string | null
   status: string
   created_at: string
@@ -55,7 +56,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
         .join(' '),
     [],
   )
-  const getViolationType = useCallback((item: ReportRow) => item.violation_type, [])
+  const getViolationType = useCallback((item: ReportRow) => item.violation_category ?? item.user_violation_type ?? item.br_form_type ?? item.violation_type, [])
   const getMarketplace = useCallback((item: ReportRow) => item.listings?.marketplace ?? '', [])
 
   const filteredData = useFilterableTable(reports ?? [], filters, getSearchableText, getViolationType, getMarketplace)
@@ -122,7 +123,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
               onClick={() => setPreviewId(report.id)}
             >
               <div className="flex items-start justify-between">
-                <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
+                <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                 <StatusBadge status={report.status as ReportStatus} type="report" />
               </div>
               <Link href={`/reports/${report.id}`}>
@@ -207,7 +208,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
               sortedData.map((report) => (
                 <tr key={report.id} className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover" onClick={() => setPreviewId(report.id)}>
                   <td className="px-4 py-3.5">
-                    <ViolationBadge code={report.br_form_type ?? report.violation_type} showLabel={false} />
+                    <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                   </td>
                   <td className="px-4 py-3.5">
                     <Link href={`/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text">
@@ -257,7 +258,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                 <h3 className="text-sm font-semibold text-th-text">{t('reports.detail.violationInfo')}</h3>
               </CardHeader>
               <CardContent>
-                <ViolationBadge code={previewReport.br_form_type ?? previewReport.violation_type} />
+                <ViolationBadge code={previewReport.user_violation_type ?? previewReport.br_form_type ?? previewReport.violation_type} violationCategory={previewReport.violation_category} />
               </CardContent>
             </Card>
 

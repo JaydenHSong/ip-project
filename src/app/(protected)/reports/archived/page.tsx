@@ -9,6 +9,7 @@ type ReportRow = {
   id: string
   br_form_type: string
   violation_type: string
+  user_violation_type: string | null
   violation_category: string | null
   status: string
   created_at: string
@@ -28,6 +29,7 @@ export default async function ArchivedReportsPage() {
       id: r.id,
       br_form_type: r.br_form_type ?? 'other_policy',
       violation_type: r.violation_type,
+      user_violation_type: (r as Record<string, unknown>).user_violation_type as string | null ?? null,
       violation_category: (r as Record<string, unknown>).violation_category as string | null ?? null,
       status: r.status,
       created_at: r.created_at,
@@ -39,7 +41,7 @@ export default async function ArchivedReportsPage() {
     const supabase = await createClient()
     const { data, error } = await supabase
       .from('reports')
-      .select('id, br_form_type, violation_type, violation_category, status, created_at, archived_at, archive_reason, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name)')
+      .select('id, br_form_type, violation_type, user_violation_type, violation_category, status, created_at, archived_at, archive_reason, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name)')
       .eq('status', 'archived')
       .order('archived_at', { ascending: false, nullsFirst: false })
 

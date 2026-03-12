@@ -53,7 +53,7 @@ export const GET = withAuth(async (req) => {
   // Same listing: 동일 listing_id의 다른 리포트
   const { data: sameListing } = await supabase
     .from('reports')
-    .select('id, status, br_case_id, br_case_status, created_at, user_violation_type, br_form_type, listings!reports_listing_id_fkey(asin, title)')
+    .select('id, status, br_case_id, br_case_status, created_at, user_violation_type, violation_category, br_form_type, listings!reports_listing_id_fkey(asin, title)')
     .eq('listing_id', report.listing_id)
     .neq('id', id)
     .order('created_at', { ascending: false })
