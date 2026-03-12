@@ -95,7 +95,7 @@ export const NewReportModal = ({ open, onClose, prefillAsin, prefillMarketplace 
 
   const startPolling = (queueId: string) => {
     let pollCount = 0
-    const maxPolls = 10
+    const maxPolls = 30
 
     pollingRef.current = setInterval(async () => {
       pollCount++
@@ -107,8 +107,14 @@ export const NewReportModal = ({ open, onClose, prefillAsin, prefillMarketplace 
 
         if (data.status === 'completed') {
           cleanup()
-          const listingId = (data.result as { listing_id?: string })?.listing_id
-          await createDraft(listingId)
+          try {
+            const listingId = (data.result as { listing_id?: string })?.listing_id
+            await createDraft(listingId)
+          } catch (e) {
+            addToast({ type: 'error', title: 'Error', message: e instanceof Error ? e.message : 'Draft creation failed' })
+            setStep('input')
+            setLoading(false)
+          }
           return
         }
 
