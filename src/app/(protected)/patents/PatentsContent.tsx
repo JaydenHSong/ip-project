@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { RefreshCw, Search, X, Pencil, Trash2, Shield, PenTool, Tag, Copyright, ExternalLink } from 'lucide-react'
@@ -294,9 +294,24 @@ export const PatentsContent = ({
     }
   }, [router])
 
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current) }
+  }, [])
+
+  const handleSearchChange = useCallback((value: string) => {
+    setLocalSearch(value)
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    searchDebounceRef.current = setTimeout(() => {
+      router.push(buildHref({ search: value, page: '' }))
+    }, 300)
+  }, [router, buildHref])
+
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
-    router.push(buildHref({ search: localSearch }))
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    router.push(buildHref({ search: localSearch, page: '' }))
   }, [localSearch, router, buildHref])
 
   const handleSelectAsset = useCallback((asset: IpAsset) => {
@@ -350,7 +365,7 @@ export const PatentsContent = ({
   const inputClass = 'w-full rounded-xl border border-th-border bg-surface-card px-4 py-2.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/20'
 
   return (
-    <div className="flex flex-col gap-4 md:h-full md:gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between">
         <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('patents.title')}</h1>
@@ -405,7 +420,7 @@ export const PatentsContent = ({
           <input
             type="text"
             value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={t('patents.managementNumber') + ', ' + t('patents.name') + '...'}
             className="w-full rounded-xl border border-th-border bg-surface-card py-2.5 pl-10 pr-4 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/20"
           />
@@ -490,8 +505,8 @@ export const PatentsContent = ({
       </div>
 
       {/* Desktop: table — single table with sticky header */}
-      <div className="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <div ref={patentContainerRef} className="min-h-0 flex-1 overflow-auto">
+      <div className="hidden flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+        <div ref={patentContainerRef} className="overflow-auto">
           <table className="table-fixed text-left text-sm" style={patentTableStyle}>
           <colgroup>
             {defaultPatentColWidths.map((_, i) => (
@@ -551,18 +566,46 @@ export const PatentsContent = ({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <Link
-              key={p}
-              href={buildHref({ page: String(p) })}
-              className={`rounded-md px-3 py-1.5 text-sm ${
-                p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'
-              }`}
-            >
-              {p}
+        <div className="flex items-center justify-center gap-1">
+          {page > 1 && (
+            <Link href={buildHref({ page: String(page - 1) })} className="rounded-md px-3 py-1.5 text-sm text-th-text-secondary hover:bg-th-bg-hover">
+              ‹
             </Link>
-          ))}
+          )}
+          {(() => {
+            const pages: (number | '...')[] = []
+            if (totalPages <= 7) {
+              for (let i = 1; i <= totalPages; i++) pages.push(i)
+            } else {
+              pages.push(1)
+              if (page > 3) pages.push('...')
+              const start = Math.max(2, page - 1)
+              const end = Math.min(totalPages - 1, page + 1)
+              for (let i = start; i <= end; i++) pages.push(i)
+              if (page < totalPages - 2) pages.push('...')
+              pages.push(totalPages)
+            }
+            return pages.map((p, idx) =>
+              p === '...' ? (
+                <span key={`ellipsis-${idx}`} className="px-2 py-1.5 text-sm text-th-text-muted">...</span>
+              ) : (
+                <Link
+                  key={p}
+                  href={buildHref({ page: String(p) })}
+                  className={`rounded-md px-3 py-1.5 text-sm ${
+                    p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'
+                  }`}
+                >
+                  {p}
+                </Link>
+              ),
+            )
+          })()}
+          {page < totalPages && (
+            <Link href={buildHref({ page: String(page + 1) })} className="rounded-md px-3 py-1.5 text-sm text-th-text-secondary hover:bg-th-bg-hover">
+              ›
+            </Link>
+          )}
         </div>
       )}
 
