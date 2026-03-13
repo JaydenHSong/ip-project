@@ -21,6 +21,7 @@ const BR_FORM_CONFIG: Record<BrFormType, FormConfig> = {
     menuText: 'Other policy violations',
     formId: 5871,
     fields: [
+      { key: 'subject', labelPrefix: 'Subject', element: 'kat-input', required: false },
       { key: 'description', labelPrefix: 'Describe which Amazon policy is being violated', element: 'kat-textarea', required: true },
       { key: 'urls', labelPrefix: 'Provide up to 10 URL(s)', element: 'kat-textarea', required: true },
       { key: 'storefront_url', labelPrefix: 'Provide the seller storefront URL', element: 'kat-input', required: false },
@@ -31,6 +32,7 @@ const BR_FORM_CONFIG: Record<BrFormType, FormConfig> = {
     menuText: 'Incorrect variation',
     formId: 5781,
     fields: [
+      { key: 'subject', labelPrefix: 'Subject', element: 'kat-input', required: false },
       { key: 'description', labelPrefix: 'Describe what makes the product an incorrect variation', element: 'kat-textarea', required: true },
       { key: 'urls', labelPrefix: 'Provide up to 10 URL(s)', element: 'kat-textarea', required: true },
     ],
@@ -39,6 +41,7 @@ const BR_FORM_CONFIG: Record<BrFormType, FormConfig> = {
     menuText: 'Product review violation',
     formId: 5791,
     fields: [
+      { key: 'subject', labelPrefix: 'Subject', element: 'kat-input', required: false },
       { key: 'description', labelPrefix: 'Describe the review policy violation', element: 'kat-textarea', required: true },
       { key: 'asins', labelPrefix: 'List up to 10 ASIN(s)', element: 'kat-input', required: true },
       { key: 'urls', labelPrefix: 'Provide up to 10 URL(s)', element: 'kat-textarea', required: true },

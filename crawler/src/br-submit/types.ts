@@ -6,6 +6,7 @@ export type BrFormType =
 export type BrSubmitJobData = {
   reportId: string
   formType: BrFormType
+  subject?: string
   description: string
   productUrls: string[]
   sellerStorefrontUrl?: string

@@ -288,6 +288,7 @@ const fillBrForm = async (frame: Frame, data: BrSubmitJobData): Promise<{ filled
 
   // 데이터 키 → 값 매핑
   const dataMap: Record<string, string | undefined> = {
+    subject: data.subject,
     description: data.description,
     urls: data.productUrls.length > 0 ? data.productUrls.join('\n') : undefined,
     storefront_url: data.sellerStorefrontUrl,

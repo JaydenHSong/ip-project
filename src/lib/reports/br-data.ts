@@ -79,6 +79,7 @@ export const buildBrSubmitData = ({ report, listing, extraFields }: BuildBrDataI
 
   const data: BrSubmitData = {
     form_type: report.br_form_type,
+    subject: report.draft_title ?? undefined,
     description: report.draft_body ?? '',
     product_urls: productUrls,
     prepared_at: new Date().toISOString(),
