@@ -294,7 +294,9 @@ const fillBrForm = async (frame: Frame, data: BrSubmitJobData): Promise<{ filled
     storefront_url: data.sellerStorefrontUrl,
     policy_url: data.policyUrl,
     asins: data.asins && data.asins.length > 0 ? data.asins.join(', ') : undefined,
-    review_urls: data.reviewUrls && data.reviewUrls.length > 0 ? data.reviewUrls.join('\n') : undefined,
+    review_urls: data.reviewUrls && data.reviewUrls.length > 0
+      ? data.reviewUrls.join('\n')
+      : data.productUrls.length > 0 ? data.productUrls.join('\n') : undefined,
     order_id: data.orderId,
   }
 
