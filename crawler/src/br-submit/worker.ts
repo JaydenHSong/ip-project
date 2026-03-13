@@ -319,47 +319,145 @@ const fillBrForm = async (frame: Frame, data: BrSubmitJobData): Promise<{ filled
 
 // ─── Submit Form ─────────────────────────────────────────────
 const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> => {
-  // Try iframe first, then main page (Send button may be outside iframe)
-  const clickSendButton = () => {
+  // Amazon kat-button: label attribute 또는 textContent에 "Send"가 있을 수 있음
+  // <kat-button label="Send" variant="primary"></kat-button> 패턴
+  let clicked = false
+
+  // 1. iframe 안에서 kat-button + regular button 찾기
+  clicked = await frame.evaluate(() => {
     const btns = Array.from(document.querySelectorAll('kat-button'))
     for (const btn of btns) {
-      if (btn.textContent?.trim() === 'Send') {
+      const label = btn.getAttribute('label')?.trim() ?? ''
+      const text = btn.textContent?.trim() ?? ''
+      const innerText = (btn as HTMLElement).innerText?.trim() ?? ''
+      if (label === 'Send' || text === 'Send' || innerText === 'Send' ||
+          label === 'Submit' || text === 'Submit' || innerText === 'Submit') {
         const shadowBtn = btn.shadowRoot?.querySelector('button') as HTMLElement | null
         if (shadowBtn) { shadowBtn.click(); return true }
         ;(btn as HTMLElement).click()
         return true
       }
     }
+    // Also try regular buttons in iframe
+    const regBtns = Array.from(document.querySelectorAll('button, input[type="submit"]'))
+    for (const btn of regBtns) {
+      const text = btn.textContent?.trim() || (btn as HTMLInputElement).value?.trim() || ''
+      if (text === 'Send' || text === 'Submit') {
+        ;(btn as HTMLElement).click()
+        return true
+      }
+    }
     return false
-  }
-
-  let clicked = await frame.evaluate(clickSendButton)
+  })
 
   if (!clicked) {
-    log('info', 'br-worker', 'Send button not in iframe, trying main page...')
-    clicked = await page.evaluate(clickSendButton)
-  }
+    log('info', 'br-worker', 'Send button not in iframe, trying main page + shadow DOMs...')
 
-  if (!clicked) {
-    // Last resort: try shadow DOM on main page (spl-hill-form → shadowRoot → kat-button)
+    // 2. 메인 페이지에서 찾기
     clicked = await page.evaluate(() => {
-      const splForm = document.querySelector('spl-hill-form')
-      const shadow = splForm?.shadowRoot
-      if (!shadow) return false
-      const btns = Array.from(shadow.querySelectorAll('kat-button'))
+      // Main page kat-buttons
+      const btns = Array.from(document.querySelectorAll('kat-button'))
       for (const btn of btns) {
-        if (btn.textContent?.trim() === 'Send') {
+        const label = btn.getAttribute('label')?.trim() ?? ''
+        const text = btn.textContent?.trim() ?? ''
+        const innerText = (btn as HTMLElement).innerText?.trim() ?? ''
+        if (label === 'Send' || text === 'Send' || innerText === 'Send' ||
+            label === 'Submit' || text === 'Submit' || innerText === 'Submit') {
           const shadowBtn = btn.shadowRoot?.querySelector('button') as HTMLElement | null
           if (shadowBtn) { shadowBtn.click(); return true }
           ;(btn as HTMLElement).click()
           return true
         }
       }
+      // Main page regular buttons
+      const regBtns = Array.from(document.querySelectorAll('button, input[type="submit"]'))
+      for (const btn of regBtns) {
+        const text = btn.textContent?.trim() || (btn as HTMLInputElement).value?.trim() || ''
+        if (text === 'Send' || text === 'Submit') {
+          ;(btn as HTMLElement).click()
+          return true
+        }
+      }
+      // spl-hill-form shadow DOM
+      const splForm = document.querySelector('spl-hill-form')
+      const shadow = splForm?.shadowRoot
+      if (shadow) {
+        const sBtns = Array.from(shadow.querySelectorAll('kat-button'))
+        for (const btn of sBtns) {
+          const label = btn.getAttribute('label')?.trim() ?? ''
+          const text = btn.textContent?.trim() ?? ''
+          const innerText = (btn as HTMLElement).innerText?.trim() ?? ''
+          if (label === 'Send' || text === 'Send' || innerText === 'Send' ||
+              label === 'Submit' || text === 'Submit' || innerText === 'Submit') {
+            const shadowBtn = btn.shadowRoot?.querySelector('button') as HTMLElement | null
+            if (shadowBtn) { shadowBtn.click(); return true }
+            ;(btn as HTMLElement).click()
+            return true
+          }
+        }
+        const sRegBtns = Array.from(shadow.querySelectorAll('button, input[type="submit"]'))
+        for (const btn of sRegBtns) {
+          const text = btn.textContent?.trim() || (btn as HTMLInputElement).value?.trim() || ''
+          if (text === 'Send' || text === 'Submit') {
+            ;(btn as HTMLElement).click()
+            return true
+          }
+        }
+      }
       return false
     })
   }
 
-  if (!clicked) throw new Error('Send button not found')
+  if (!clicked) {
+    // 3. Playwright locator (pierces shadow DOM automatically)
+    log('info', 'br-worker', 'Trying Playwright locators...')
+
+    // Try in all frames
+    for (const f of page.frames()) {
+      const sendLocator = f.locator('kat-button[label="Send"], kat-button[label="Submit"]').first()
+      if (await sendLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await sendLocator.click()
+        clicked = true
+        log('info', 'br-worker', `Send button found via locator in frame: ${f.url().substring(0, 60)}`)
+        break
+      }
+    }
+
+    if (!clicked) {
+      const sendByRole = page.getByRole('button', { name: /send/i })
+      if (await sendByRole.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await sendByRole.click()
+        clicked = true
+      }
+    }
+  }
+
+  if (!clicked) {
+    // Debug: log ALL buttons across all contexts
+    const debugInfo = await frame.evaluate(() => {
+      const allBtns = Array.from(document.querySelectorAll('button, kat-button, input[type="submit"], [role="button"]'))
+      return allBtns.map(b => ({
+        tag: b.tagName,
+        label: b.getAttribute('label'),
+        text: (b.textContent ?? '').trim().substring(0, 40),
+        variant: b.getAttribute('variant'),
+        classes: (b.className ?? '').substring(0, 60),
+      }))
+    })
+    const mainDebug = await page.evaluate(() => {
+      const allBtns = Array.from(document.querySelectorAll('button, kat-button, input[type="submit"], [role="button"]'))
+      return allBtns.map(b => ({
+        tag: b.tagName,
+        label: b.getAttribute('label'),
+        text: (b.textContent ?? '').trim().substring(0, 40),
+        variant: b.getAttribute('variant'),
+        classes: (b.className ?? '').substring(0, 60),
+      }))
+    })
+    log('error', 'br-worker', `[iframe] buttons: ${JSON.stringify(debugInfo)}`)
+    log('error', 'br-worker', `[main] buttons: ${JSON.stringify(mainDebug)}`)
+    throw new Error('Send button not found — check debug logs for button details')
+  }
   log('info', 'br-worker', 'Send button clicked')
 
   await delay(5000)
