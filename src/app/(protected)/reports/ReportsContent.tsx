@@ -517,10 +517,9 @@ export const ReportsContent = ({
                       onChange={() => handleToggleSelect(report.id)}
                     />
                   </td>
-                  <td className="px-4 py-3.5 text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</td>
                   <td className="px-4 py-3.5">
-                    <div className="flex flex-col gap-1">
-                      <StatusBadge status={report.status as ReportStatus} type="report" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</span>
                       {report.br_case_id && report.br_case_id !== 'submitted' && (
                         <a
                           href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
@@ -533,6 +532,9 @@ export const ReportsContent = ({
                         </a>
                       )}
                     </div>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <StatusBadge status={report.status as ReportStatus} type="report" />
                   </td>
                   <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">

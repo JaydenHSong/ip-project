@@ -585,6 +585,8 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
               <h2 className="font-semibold text-th-text">Case Management</h2>
               {report.br_case_status ? (
                 <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
+              ) : report.br_case_id ? (
+                <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">Submitted</span>
               ) : (
                 <span className="rounded-full bg-th-bg-secondary px-2.5 py-1 text-xs font-medium text-th-text-muted">Not submitted</span>
               )}
@@ -592,7 +594,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           </CardHeader>
           <CardContent className="space-y-0">
             {/* BR Case Info */}
-            {report.br_case_status ? (
+            {(report.br_case_status || report.br_case_id) ? (
               <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-2.5">
                 <dt className="text-xs text-th-text-tertiary self-center">Case ID</dt>
                 <dd className="font-mono text-sm font-medium text-th-text">
