@@ -318,15 +318,61 @@ const fillBrForm = async (frame: Frame, data: BrSubmitJobData): Promise<{ filled
 }
 
 // ─── Submit Form ─────────────────────────────────────────────
-// ★ 핵심: JavaScript click()은 Amazon kat-button에서 작동 안 함
-//   → Playwright 물리 클릭 (좌표 기반 마우스 클릭) 사용해야 함
+// ★ Playwright locator.click() = 자동 scrollIntoView + 좌표변환 + 물리클릭
+//   수동 좌표 계산은 iframe+shadow DOM에서 부정확 → locator 최우선
 const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> => {
   let clicked = false
 
-  // 1차: Send 버튼 좌표를 찾아서 Playwright 물리 클릭
-  // iframe, main page, spl-hill-form shadow DOM 순서로 탐색
-  // ★ scrollIntoView 후 좌표를 가져와야 화면 안에서 클릭 가능
-  const scrollAndGetSendButtonRect = () => {
+  // 1차: Playwright locator — form frame에서 직접 (최우선, 자동 물리클릭)
+  const selectors = [
+    'kat-button[label="Send"]',
+    'kat-button[label="Submit"]',
+    'button:has-text("Send")',
+    'button:has-text("Submit")',
+  ]
+  for (const sel of selectors) {
+    const locator = frame.locator(sel).first()
+    if (await locator.isVisible({ timeout: 2000 }).catch(() => false)) {
+      log('info', 'br-worker', `Send button found via frame.locator("${sel}"), clicking...`)
+      await locator.click({ timeout: 5000 })
+      clicked = true
+      break
+    }
+  }
+
+  if (!clicked) {
+    // 2차: 모든 frame에서 locator 시도
+    log('info', 'br-worker', 'Not in form frame, trying all frames...')
+    for (const f of page.frames()) {
+      if (f === frame) continue
+      for (const sel of selectors) {
+        const locator = f.locator(sel).first()
+        if (await locator.isVisible({ timeout: 1500 }).catch(() => false)) {
+          log('info', 'br-worker', `Send in other frame via "${sel}"`)
+          await locator.click({ timeout: 5000 })
+          clicked = true
+          break
+        }
+      }
+      if (clicked) break
+    }
+  }
+
+  if (!clicked) {
+    // 3차: page.getByRole (shadow DOM 관통)
+    log('info', 'br-worker', 'Trying page.getByRole...')
+    const sendByRole = page.getByRole('button', { name: /send/i })
+    if (await sendByRole.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await sendByRole.click({ timeout: 5000 })
+      clicked = true
+      log('info', 'br-worker', 'Send clicked via getByRole')
+    }
+  }
+
+  if (!clicked) {
+    // 4차: 좌표 기반 fallback (최후의 수단)
+    log('info', 'br-worker', 'Locators failed, coordinate fallback...')
+    const scrollAndGetSendButtonRect = () => {
     // kat-button 찾기 (label attr 또는 textContent)
     const btns = Array.from(document.querySelectorAll('kat-button'))
     for (const btn of btns) {
@@ -360,83 +406,17 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
     return null
   }
 
-  // iframe에서 좌표 찾기 (scrollIntoView 후 좌표 가져옴)
-  const iframeRect = await frame.evaluate(scrollAndGetSendButtonRect)
-  // scrollIntoView 후 약간 대기 (스크롤 완료)
-  if (iframeRect) {
-    await delay(300) // scrollIntoView 완료 대기
-    // scroll 후 다시 좌표 가져오기 (스크롤 후 viewport 기준 좌표가 바뀜)
-    const freshRect = await frame.evaluate(scrollAndGetSendButtonRect)
-    const rect = freshRect || iframeRect
-    // iframe 내부 좌표 → page 좌표로 변환
-    const frameElement = await frame.frameElement()
-    const frameBox = await frameElement?.boundingBox()
-    if (frameBox) {
-      const pageX = frameBox.x + rect.x
-      const pageY = frameBox.y + rect.y
-      log('info', 'br-worker', `Send button found in iframe (${rect.found}: label="${rect.label}", text="${rect.text}") at iframe(${rect.x},${rect.y}) → page(${pageX},${pageY})`)
-      await page.mouse.click(pageX, pageY)
-      clicked = true
-    }
-  }
-
-  if (!clicked) {
-    log('info', 'br-worker', 'Send button not in iframe, trying main page...')
-    // 메인 페이지에서 좌표 찾기
-    const mainRect = await page.evaluate(scrollAndGetSendButtonRect)
-    if (mainRect) {
-      log('info', 'br-worker', `Send button found on main page (${mainRect.found}: label="${mainRect.label}", text="${mainRect.text}") at (${mainRect.x},${mainRect.y})`)
-      await page.mouse.click(mainRect.x, mainRect.y)
-      clicked = true
-    }
-  }
-
-  if (!clicked) {
-    // spl-hill-form shadow DOM에서 찾기
-    const shadowRect = await page.evaluate(() => {
-      const splForm = document.querySelector('spl-hill-form')
-      const shadow = splForm?.shadowRoot
-      if (!shadow) return null
-      const btns = Array.from(shadow.querySelectorAll('kat-button'))
-      for (const btn of btns) {
-        const label = btn.getAttribute('label')?.trim() ?? ''
-        const text = btn.textContent?.trim() ?? ''
-        if (/^send$/i.test(label) || /^send$/i.test(text) || /^submit$/i.test(label) || /^submit$/i.test(text)) {
-          const shadowBtn = btn.shadowRoot?.querySelector('button') as HTMLElement | null
-          const target = shadowBtn || btn as HTMLElement
-          const rect = target.getBoundingClientRect()
-          if (rect.width > 0 && rect.height > 0) {
-            return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, found: 'shadow-kat-button', label, text }
-          }
-        }
-      }
-      return null
-    })
-    if (shadowRect) {
-      log('info', 'br-worker', `Send button found in shadow DOM (${shadowRect.found}) at (${shadowRect.x},${shadowRect.y})`)
-      await page.mouse.click(shadowRect.x, shadowRect.y)
-      clicked = true
-    }
-  }
-
-  if (!clicked) {
-    // 2차: Playwright locator (자동 shadow DOM 관통 + 물리 클릭)
-    log('info', 'br-worker', 'Trying Playwright locators across all frames...')
-    for (const f of page.frames()) {
-      const sendLocator = f.locator('kat-button[label="Send"], kat-button[label="Submit"]').first()
-      if (await sendLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await sendLocator.click()
+    const btnRect = await frame.evaluate(scrollAndGetSendButtonRect)
+    if (btnRect) {
+      await delay(300)
+      const frameElement = await frame.frameElement()
+      const frameBox = await frameElement?.boundingBox()
+      if (frameBox) {
+        const px = frameBox.x + btnRect.x
+        const py = frameBox.y + btnRect.y
+        log('info', 'br-worker', `Coordinate click at (${px}, ${py})`)
+        await page.mouse.click(px, py)
         clicked = true
-        log('info', 'br-worker', `Send button clicked via Playwright locator in frame: ${f.url().substring(0, 60)}`)
-        break
-      }
-    }
-    if (!clicked) {
-      const sendByRole = page.getByRole('button', { name: /send/i })
-      if (await sendByRole.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await sendByRole.click()
-        clicked = true
-        log('info', 'br-worker', 'Send button clicked via getByRole')
       }
     }
   }
@@ -447,12 +427,7 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
       const all = Array.from(document.querySelectorAll('button, kat-button, input[type="submit"], [role="button"]'))
       return all.map(b => ({ tag: b.tagName, label: b.getAttribute('label'), text: (b.textContent ?? '').trim().substring(0, 40), variant: b.getAttribute('variant') }))
     })
-    const debugMain = await page.evaluate(() => {
-      const all = Array.from(document.querySelectorAll('button, kat-button, input[type="submit"], [role="button"]'))
-      return all.map(b => ({ tag: b.tagName, label: b.getAttribute('label'), text: (b.textContent ?? '').trim().substring(0, 40), variant: b.getAttribute('variant') }))
-    })
     log('error', 'br-worker', `[iframe] buttons: ${JSON.stringify(debugIframe)}`)
-    log('error', 'br-worker', `[main] buttons: ${JSON.stringify(debugMain)}`)
     throw new Error('Send button not found — check debug logs')
   }
   log('info', 'br-worker', 'Send button clicked')
