@@ -325,7 +325,8 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
 
   // 1차: Send 버튼 좌표를 찾아서 Playwright 물리 클릭
   // iframe, main page, spl-hill-form shadow DOM 순서로 탐색
-  const findSendButtonRect = () => {
+  // ★ scrollIntoView 후 좌표를 가져와야 화면 안에서 클릭 가능
+  const scrollAndGetSendButtonRect = () => {
     // kat-button 찾기 (label attr 또는 textContent)
     const btns = Array.from(document.querySelectorAll('kat-button'))
     for (const btn of btns) {
@@ -334,7 +335,8 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
       const innerText = (btn as HTMLElement).innerText?.trim() ?? ''
       if (/^send$/i.test(label) || /^send$/i.test(text) || /^send$/i.test(innerText) ||
           /^submit$/i.test(label) || /^submit$/i.test(text) || /^submit$/i.test(innerText)) {
-        // shadow DOM 안의 실제 button 좌표
+        // 화면 안으로 스크롤
+        ;(btn as HTMLElement).scrollIntoView({ block: 'center', behavior: 'instant' })
         const shadowBtn = btn.shadowRoot?.querySelector('button') as HTMLElement | null
         const target = shadowBtn || btn as HTMLElement
         const rect = target.getBoundingClientRect()
@@ -348,6 +350,7 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
     for (const btn of regBtns) {
       const text = btn.textContent?.trim() || (btn as HTMLInputElement).value?.trim() || ''
       if (/^send$/i.test(text) || /^submit$/i.test(text)) {
+        ;(btn as HTMLElement).scrollIntoView({ block: 'center', behavior: 'instant' })
         const rect = (btn as HTMLElement).getBoundingClientRect()
         if (rect.width > 0 && rect.height > 0) {
           return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, found: 'button', label: null, text }
@@ -357,16 +360,21 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
     return null
   }
 
-  // iframe에서 좌표 찾기 (iframe은 page 좌표계와 다를 수 있으므로 주의)
-  const iframeRect = await frame.evaluate(findSendButtonRect)
+  // iframe에서 좌표 찾기 (scrollIntoView 후 좌표 가져옴)
+  const iframeRect = await frame.evaluate(scrollAndGetSendButtonRect)
+  // scrollIntoView 후 약간 대기 (스크롤 완료)
   if (iframeRect) {
+    await delay(300) // scrollIntoView 완료 대기
+    // scroll 후 다시 좌표 가져오기 (스크롤 후 viewport 기준 좌표가 바뀜)
+    const freshRect = await frame.evaluate(scrollAndGetSendButtonRect)
+    const rect = freshRect || iframeRect
     // iframe 내부 좌표 → page 좌표로 변환
     const frameElement = await frame.frameElement()
     const frameBox = await frameElement?.boundingBox()
     if (frameBox) {
-      const pageX = frameBox.x + iframeRect.x
-      const pageY = frameBox.y + iframeRect.y
-      log('info', 'br-worker', `Send button found in iframe (${iframeRect.found}: label="${iframeRect.label}", text="${iframeRect.text}") at iframe(${iframeRect.x},${iframeRect.y}) → page(${pageX},${pageY})`)
+      const pageX = frameBox.x + rect.x
+      const pageY = frameBox.y + rect.y
+      log('info', 'br-worker', `Send button found in iframe (${rect.found}: label="${rect.label}", text="${rect.text}") at iframe(${rect.x},${rect.y}) → page(${pageX},${pageY})`)
       await page.mouse.click(pageX, pageY)
       clicked = true
     }
@@ -375,7 +383,7 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
   if (!clicked) {
     log('info', 'br-worker', 'Send button not in iframe, trying main page...')
     // 메인 페이지에서 좌표 찾기
-    const mainRect = await page.evaluate(findSendButtonRect)
+    const mainRect = await page.evaluate(scrollAndGetSendButtonRect)
     if (mainRect) {
       log('info', 'br-worker', `Send button found on main page (${mainRect.found}: label="${mainRect.label}", text="${mainRect.text}") at (${mainRect.x},${mainRect.y})`)
       await page.mouse.click(mainRect.x, mainRect.y)
