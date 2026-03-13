@@ -112,8 +112,13 @@ const navigateToFormType = async (page: Page, formType: BrFormType): Promise<voi
   // contact-us 페이지가 아니면 이동
   if (!page.url().includes('brandregistry.amazon.com/cu/contact-us')) {
     await page.goto(BR_URL, { waitUntil: 'networkidle', timeout: 30_000 })
-    await page.waitForTimeout(3000)
   }
+
+  // 메뉴 렌더링 대기 — kat-expander가 나타날 때까지 (최대 10초)
+  await page.waitForSelector('kat-expander', { timeout: 10_000 }).catch(() => {
+    log('warn', 'br-worker', 'kat-expander not found after 10s, proceeding anyway...')
+  })
+  await page.waitForTimeout(2000)
 
   log('info', 'br-worker', `Current URL: ${page.url()}`)
 
@@ -314,7 +319,8 @@ const fillBrForm = async (frame: Frame, data: BrSubmitJobData): Promise<{ filled
 
 // ─── Submit Form ─────────────────────────────────────────────
 const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> => {
-  const clicked = await frame.evaluate(() => {
+  // Try iframe first, then main page (Send button may be outside iframe)
+  const clickSendButton = () => {
     const btns = Array.from(document.querySelectorAll('kat-button'))
     for (const btn of btns) {
       if (btn.textContent?.trim() === 'Send') {
@@ -325,7 +331,33 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
       }
     }
     return false
-  })
+  }
+
+  let clicked = await frame.evaluate(clickSendButton)
+
+  if (!clicked) {
+    log('info', 'br-worker', 'Send button not in iframe, trying main page...')
+    clicked = await page.evaluate(clickSendButton)
+  }
+
+  if (!clicked) {
+    // Last resort: try shadow DOM on main page (spl-hill-form → shadowRoot → kat-button)
+    clicked = await page.evaluate(() => {
+      const splForm = document.querySelector('spl-hill-form')
+      const shadow = splForm?.shadowRoot
+      if (!shadow) return false
+      const btns = Array.from(shadow.querySelectorAll('kat-button'))
+      for (const btn of btns) {
+        if (btn.textContent?.trim() === 'Send') {
+          const shadowBtn = btn.shadowRoot?.querySelector('button') as HTMLElement | null
+          if (shadowBtn) { shadowBtn.click(); return true }
+          ;(btn as HTMLElement).click()
+          return true
+        }
+      }
+      return false
+    })
+  }
 
   if (!clicked) throw new Error('Send button not found')
   log('info', 'br-worker', 'Send button clicked')
