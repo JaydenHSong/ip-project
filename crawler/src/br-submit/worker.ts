@@ -305,12 +305,42 @@ const fillBrForm = async (frame: Frame, data: BrSubmitJobData): Promise<{ filled
       continue
     }
 
-    if (await fillFieldByLabel(frame, field.labelPrefix, field.element, value)) {
+    let success = false
+
+    // 1차: Playwright locator.fill() — kat-textarea/kat-input의 내부 상태도 업데이트
+    try {
+      const katEl = field.element === 'kat-textarea' ? 'kat-textarea' : 'kat-input'
+      // kat-label 텍스트로 필드를 찾고, 그 안의 shadow DOM textarea/input에 fill
+      const labelLocator = frame.locator(`kat-label:has-text("${field.labelPrefix}")`)
+      // label 다음 형제 kat-textarea/kat-input 찾기
+      const fieldLocator = labelLocator.locator(`xpath=following-sibling::${katEl} | following-sibling::*/${katEl}`).first()
+      // shadow DOM 안의 native textarea/input
+      const nativeTag = field.element === 'kat-textarea' ? 'textarea' : 'input'
+      const nativeLocator = fieldLocator.locator(nativeTag).first()
+
+      if (await nativeLocator.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await nativeLocator.fill(value, { timeout: 3000 })
+        success = true
+        log('info', 'br-worker', `${field.key}: OK (Playwright fill)`)
+      }
+    } catch {
+      // Playwright fill 실패 → evaluate fallback
+    }
+
+    // 2차: evaluate fallback (기존 방식)
+    if (!success) {
+      if (await fillFieldByLabel(frame, field.labelPrefix, field.element, value)) {
+        success = true
+        log('info', 'br-worker', `${field.key}: OK (evaluate)`)
+      }
+    }
+
+    if (success) {
       filled.push(field.key)
     } else {
       if (field.required) missed.push(field.key)
+      log('info', 'br-worker', `${field.key}: MISSED`)
     }
-    log('info', 'br-worker', `${field.key}: ${filled.includes(field.key) ? 'OK' : 'MISSED'}`)
     await delay(500)
   }
 
@@ -432,7 +462,47 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
   }
   log('info', 'br-worker', 'Send button clicked')
 
+  // ★ 디버그: 클릭 전 필드 상태 확인 (값이 실제로 들어갔는지)
+  const fieldState = await frame.evaluate(() => {
+    const textareas = Array.from(document.querySelectorAll('kat-textarea'))
+    return textareas.map(t => {
+      const native = t.shadowRoot?.querySelector('textarea') as HTMLTextAreaElement | null
+      const label = t.closest('div')?.querySelector('kat-label')?.textContent?.trim().substring(0, 30) ?? '?'
+      return {
+        label,
+        nativeValue: native?.value?.substring(0, 50) ?? 'null',
+        katValue: t.getAttribute('value')?.substring(0, 50) ?? 'null',
+      }
+    })
+  }).catch(() => [])
+  log('info', 'br-worker', `Field state after fill: ${JSON.stringify(fieldState)}`)
+
   await delay(5000)
+
+  // ★ 디버그: 클릭 후 상태 확인
+  const urlAfterClick = frame.url()
+  log('info', 'br-worker', `Frame URL after Send: ${urlAfterClick}`)
+
+  // 에러 메시지 확인
+  const errorMsgs = await frame.evaluate(() => {
+    // kat-alert, kat-error, 빨간 텍스트, validation 메시지 등
+    const selectors = ['kat-alert', '.error', '[class*="error"]', '[class*="validation"]', '[role="alert"]']
+    const found: string[] = []
+    for (const sel of selectors) {
+      const els = document.querySelectorAll(sel)
+      els.forEach(el => {
+        const text = el.textContent?.trim()
+        if (text) found.push(`[${sel}] ${text.substring(0, 80)}`)
+      })
+    }
+    return found
+  }).catch(() => [])
+  if (errorMsgs.length > 0) {
+    log('warn', 'br-worker', `Errors after Send: ${JSON.stringify(errorMsgs)}`)
+  }
+
+  const pageUrlAfter = page.url()
+  log('info', 'br-worker', `Page URL after Send: ${pageUrlAfter}`)
 
   // 1차 시도: 제출 후 같은 프레임에서 Case ID 추출
   const caseIdFromFrame = await frame.evaluate(() => {
