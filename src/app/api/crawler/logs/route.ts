@@ -10,7 +10,6 @@ const VALID_LOG_TYPES = [
   'captcha',
   'rate_limit',
   'api_error',
-  'pd_followup',
   'br_monitor',
   'br_submit',
   'br_reply',

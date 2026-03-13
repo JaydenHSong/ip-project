@@ -16,9 +16,6 @@ import { startBrMonitorScheduler } from './br-monitor/scheduler.js'
 import { createBrReplyQueue, createBrReplyWorker } from './br-reply/queue.js'
 import { processBrReplyJob, setBrowserPageAccessor } from './br-reply/worker.js'
 import { startBrReplyScheduler } from './br-reply/scheduler.js'
-import { createPdFollowupQueue, createPdFollowupWorker } from './pd-followup/queue.js'
-import { processPdFollowupJob, closePdFollowupBrowser } from './pd-followup/worker.js'
-import { startPdFollowupScheduler } from './pd-followup/scheduler.js'
 import { createHealthServer } from './health.js'
 import { createHeartbeatMonitor } from './heartbeat.js'
 import { createVisionAnalyzer } from './ai/vision-analyzer.js'
@@ -146,19 +143,6 @@ const init = async (): Promise<void> => {
 
   log('info', 'main', 'BR reply queue + worker + scheduler started')
 
-  // PD Follow-up Queue + Worker + Scheduler
-  const pdFollowupQueue = createPdFollowupQueue(redisUrl)
-  const pdFollowupWorker = createPdFollowupWorker(redisUrl, async (job) => {
-    await processPdFollowupJob(job, async (result) => {
-      await sentinelClient.reportFollowupResult(result).catch((err) => {
-        log('error', 'main', `Failed to report PD follow-up result: ${err instanceof Error ? err.message : String(err)}`)
-      })
-    }, sentinelClient.verifyReportExists)
-  })
-  const pdFollowupSchedulerInterval = startPdFollowupScheduler(pdFollowupQueue, sentinelClient)
-
-  log('info', 'main', 'PD follow-up queue + worker + scheduler started')
-
   redisConnected = true
   workerRunning = true
 
@@ -182,15 +166,12 @@ const init = async (): Promise<void> => {
   brWorker.on('error', workerAlertHandler('BR Submit Worker'))
   brMonitorWorker.on('error', workerAlertHandler('BR Monitor Worker'))
   brReplyWorker.on('error', workerAlertHandler('BR Reply Worker'))
-  pdFollowupWorker.on('error', workerAlertHandler('PD Follow-up Worker'))
-
   // ─── A1 Heartbeat: 30s 간격으로 워커 활동 감지, 3회 연속 미활성 시 알림 ───
   const WORKER_NAMES = [
     'Crawl Worker',
     'BR Submit Worker',
     'BR Monitor Worker',
     'BR Reply Worker',
-    'PD Follow-up Worker',
   ] as const
 
   const heartbeat = createHeartbeatMonitor(config.googleChatWebhookUrl, [...WORKER_NAMES])
@@ -199,8 +180,6 @@ const init = async (): Promise<void> => {
   brWorker.on('completed', () => { heartbeat.recordActivity('BR Submit Worker') })
   brMonitorWorker.on('completed', () => { heartbeat.recordActivity('BR Monitor Worker') })
   brReplyWorker.on('completed', () => { heartbeat.recordActivity('BR Reply Worker') })
-  pdFollowupWorker.on('completed', () => { heartbeat.recordActivity('PD Follow-up Worker') })
-
   log('info', 'main', 'Heartbeat monitor started (30s interval, alert after 3 misses)')
 
   // ─── A2: Daily Report (매일 09:00 KST = 16:00 PST 전날) ───
@@ -213,7 +192,6 @@ const init = async (): Promise<void> => {
         { name: 'BR Submit', q: brQueue },
         { name: 'BR Monitor', q: brMonitorQueue },
         { name: 'BR Reply', q: brReplyQueue },
-        { name: 'PD Follow-up', q: pdFollowupQueue },
       ]
 
       const lines = ['📊 *[Sentinel]* Daily Report']
@@ -258,11 +236,7 @@ const init = async (): Promise<void> => {
     clearInterval(brSchedulerInterval)
     clearInterval(brMonitorSchedulerInterval)
     clearInterval(brReplySchedulerInterval)
-    clearInterval(pdFollowupSchedulerInterval)
     healthServer.close()
-    await closePdFollowupBrowser()
-    await pdFollowupWorker.close()
-    await pdFollowupQueue.close()
     await brReplyWorker.close()
     await brReplyQueue.close()
     await closeMonitorBrowser()

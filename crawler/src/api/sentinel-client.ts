@@ -49,14 +49,6 @@ type CampaignResultUpdate = {
   success: boolean
 }
 
-type PdFollowupResultData = {
-  reportId: string
-  screenshotUrl: string | null
-  listingData: Record<string, unknown>
-  crawledAt: string
-  listingRemoved: boolean
-}
-
 type SentinelClient = {
   getActiveCampaigns: () => Promise<Campaign[]>
   verifyCampaignExists: (campaignId: string) => Promise<boolean>
@@ -72,8 +64,6 @@ type SentinelClient = {
   reportBrMonitorResult: (data: BrMonitorResultData) => Promise<void>
   getPendingBrReplies: () => Promise<unknown[]>
   reportBrReplyResult: (data: BrReplyResultData) => Promise<void>
-  getPendingFollowups: () => Promise<{ reports: unknown[] }>
-  reportFollowupResult: (data: PdFollowupResultData) => Promise<void>
 }
 
 const API_RETRY_MAX = 3
@@ -344,35 +334,6 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       }
     },
 
-    getPendingFollowups: async (): Promise<{ reports: unknown[] }> => {
-      const response = await fetchWithRetry(
-        `${baseUrl}/api/crawler/pd-followup-pending`,
-        { method: 'GET', headers },
-      )
-      if (!response.ok) {
-        const body = await response.text()
-        throw new Error(`Failed to fetch PD follow-up pending: ${response.status} ${body}`)
-      }
-      return (await response.json()) as { reports: unknown[] }
-    },
-
-    reportFollowupResult: async (data: PdFollowupResultData): Promise<void> => {
-      const payload = {
-        report_id: data.reportId,
-        screenshot_url: data.screenshotUrl,
-        listing_data: data.listingData,
-        crawled_at: data.crawledAt,
-        listing_removed: data.listingRemoved,
-      }
-      const response = await fetchWithRetry(
-        `${baseUrl}/api/crawler/pd-followup-result`,
-        { method: 'POST', headers, body: JSON.stringify(payload) },
-      )
-      if (!response.ok) {
-        const body = await response.text()
-        throw new Error(`Failed to report PD follow-up result: ${response.status} ${body}`)
-      }
-    },
   }
 }
 
