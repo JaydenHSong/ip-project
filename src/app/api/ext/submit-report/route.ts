@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { BR_FORM_TYPES, type BrFormTypeCode } from '@/constants/br-form-types'
+import { toBrFormType } from '@/constants/br-form-types'
 import type { SubmitReportRequest, SubmitReportResponse } from '@/types/api'
 
-const VALID_BR_FORM_TYPES = new Set(Object.keys(BR_FORM_TYPES))
 const MAX_SCREENSHOT_BASE64_LENGTH = 3_000_000 // ~2.25MB decoded (구버전 익스텐션 호환)
 
 // POST /api/ext/submit-report — Extension에서 위반 제보 제출
@@ -12,11 +11,8 @@ export const POST = withAuth(async (req, { user }) => {
   const body = (await req.json()) as SubmitReportRequest
   const { asin, marketplace, title, violation_type, violation_category, extra_fields } = body
 
-  // v2: Extension은 br_form_type을 직접 보냄 (violation_type 필드로)
-  // 레거시 Extension 호환: violation_type이 BR form type이 아니면 other_policy로 폴백
-  const brFormType: BrFormTypeCode = VALID_BR_FORM_TYPES.has(violation_type)
-    ? (violation_type as BrFormTypeCode)
-    : 'other_policy'
+  // Extension violation_type (V01~V04, variation, review_violation 등) → BR form type 매핑
+  const brFormType = toBrFormType(violation_type)
 
   // 필수 필드 검증
   if (!asin || !marketplace || !title || !violation_type) {

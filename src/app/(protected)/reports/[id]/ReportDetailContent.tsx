@@ -120,11 +120,10 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [suggestedTemplate, setSuggestedTemplate] = useState<{ id: string; title: string; body: string } | null>(null)
   const [templateDismissed, setTemplateDismissed] = useState(false)
   const showBrFormType = isDraftEditable
-  const [violationType, setViolationType] = useState(
-    report.violation_category ?? report.user_violation_type ?? report.br_form_type ?? 'other_policy'
-  )
+  const initialViolationType = report.user_violation_type ?? report.violation_category ?? report.br_form_type ?? 'other_policy'
+  const [violationType, setViolationType] = useState(initialViolationType)
   const [brFormType, setBrFormType] = useState<BrFormTypeCode>(
-    toBrFormType(report.violation_category ?? report.user_violation_type ?? report.br_form_type ?? 'other_policy')
+    toBrFormType(initialViolationType)
   )
   const [brFields, setBrFields] = useState({
     product_urls: listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : '',

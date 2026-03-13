@@ -33,8 +33,8 @@ type ViolationBadgeProps = {
 }
 
 export const ViolationBadge = ({ code, violationCategory, showLabel = true, size = 'sm', className }: ViolationBadgeProps) => {
-  // 우선순위: violation_category (V01~V04) > user_violation_type/code > 폴백
-  const displayKey = violationCategory || code
+  // 우선순위: code(V01~V04, 세분화) > violationCategory > 폴백
+  const displayKey = VIOLATION_DISPLAY[code] ? code : (violationCategory || code)
   const display = VIOLATION_DISPLAY[displayKey]
 
   if (display) {
