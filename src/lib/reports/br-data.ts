@@ -90,6 +90,12 @@ export const buildBrSubmitData = ({ report, listing, extraFields }: BuildBrDataI
     data.seller_storefront_url = listing.seller_storefront_url
   }
 
+  // product_review 폼: 리스팅 URL을 review_urls에도 기본값으로 넣기
+  // (실제 BR 폼의 URL 필드가 "product review you want to report" 용도)
+  if (report.br_form_type === 'product_review' && productUrls.length > 0) {
+    data.review_urls = [...productUrls]
+  }
+
   if (listing.asin) {
     data.asins = [listing.asin]
   }
