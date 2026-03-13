@@ -24,7 +24,9 @@ const optionalEnv = (key: string, defaultValue: string): string => {
   return process.env[key] || defaultValue
 }
 
-const loadConfig = (): CrawlerConfig => {
+type ServiceType = 'crawl' | 'br' | 'all'
+
+const loadConfig = (service?: ServiceType): CrawlerConfig => {
   const missing: string[] = []
 
   const check = (key: string): string => {
@@ -39,7 +41,7 @@ const loadConfig = (): CrawlerConfig => {
     redis: {
       url: process.env['REDIS_URL'] || check('UPSTASH_REDIS_URL'),
     },
-    browserWs: check('BRIGHTDATA_BROWSER_WS'),
+    browserWs: service === 'br' ? (process.env['BRIGHTDATA_BROWSER_WS'] ?? '') : check('BRIGHTDATA_BROWSER_WS'),
     concurrency: Number(optionalEnv('CRAWLER_CONCURRENCY', '1')),
     pageDelayMin: Number(optionalEnv('CRAWLER_PAGE_DELAY_MIN', '2000')),
     pageDelayMax: Number(optionalEnv('CRAWLER_PAGE_DELAY_MAX', '5000')),
@@ -63,4 +65,4 @@ const loadConfig = (): CrawlerConfig => {
 }
 
 export { loadConfig }
-export type { CrawlerConfig }
+export type { CrawlerConfig, ServiceType }
