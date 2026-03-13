@@ -504,7 +504,15 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
   const pageUrlAfter = page.url()
   log('info', 'br-worker', `Page URL after Send: ${pageUrlAfter}`)
 
-  // 1차 시도: 제출 후 같은 프레임에서 Case ID 추출
+  // 1차: URL에서 caseID 파라미터 추출 (가장 확실)
+  // 성공 시 URL: ...view-case?...&caseID=19650956461&successMessage=caseCreated
+  const urlMatch = pageUrlAfter.match(/caseID=(\d+)/)
+  if (urlMatch) {
+    log('info', 'br-worker', `Case ID from URL: ${urlMatch[1]}`)
+    return urlMatch[1]
+  }
+
+  // 2차: 프레임 텍스트에서 추출
   const caseIdFromFrame = await frame.evaluate(() => {
     const body = document.body?.textContent || ''
     const match = body.match(/case\s*(?:id|#|number)[:\s]*(\d{5,})/i)
@@ -516,8 +524,8 @@ const submitBrForm = async (frame: Frame, page: Page): Promise<string | null> =>
     return caseIdFromFrame
   }
 
-  // 2차 시도: 케이스 대시보드에서 최신 케이스 ID 추출
-  log('info', 'br-worker', 'Case ID not found in frame, checking case dashboard...')
+  // 3차: 대시보드 페이지에서 추출
+  log('info', 'br-worker', 'Case ID not found in URL/frame, checking dashboard...')
   const caseIdFromDashboard = await extractCaseIdFromDashboard(page)
 
   if (caseIdFromDashboard) {
