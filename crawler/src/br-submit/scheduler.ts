@@ -16,6 +16,7 @@ type BrPendingReport = {
     seller_storefront_url?: string
     policy_url?: string
     asins?: string[]
+    review_urls?: string[]
     order_id?: string
   } | null
 }
@@ -60,6 +61,7 @@ const startBrScheduler = (
           sellerStorefrontUrl: report.br_submit_data.seller_storefront_url,
           policyUrl: report.br_submit_data.policy_url,
           asins: report.br_submit_data.asins,
+          reviewUrls: report.br_submit_data.review_urls,
           orderId: report.br_submit_data.order_id,
         }
 

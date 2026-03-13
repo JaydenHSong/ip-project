@@ -12,6 +12,7 @@ export type BrSubmitJobData = {
   sellerStorefrontUrl?: string
   policyUrl?: string
   asins?: string[]
+  reviewUrls?: string[]
   orderId?: string
   dryRun?: boolean
 }

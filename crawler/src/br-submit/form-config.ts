@@ -44,7 +44,7 @@ const BR_FORM_CONFIG: Record<BrFormType, FormConfig> = {
       { key: 'subject', labelPrefix: 'Subject', element: 'kat-input', required: false },
       { key: 'description', labelPrefix: 'Describe the review policy violation', element: 'kat-textarea', required: true },
       { key: 'asins', labelPrefix: 'List up to 10 ASIN(s)', element: 'kat-input', required: true },
-      { key: 'urls', labelPrefix: 'Provide up to 10 URL(s)', element: 'kat-textarea', required: true },
+      { key: 'review_urls', labelPrefix: 'Provide up to 10 URL(s) in a new line for each product review', element: 'kat-textarea', required: true },
       { key: 'order_id', labelPrefix: 'If this violation occurred as part of a purchase, provide the order ID', element: 'kat-input', required: false },
     ],
   },
