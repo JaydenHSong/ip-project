@@ -33,7 +33,7 @@ export const POST = withAuth(async (req) => {
   }
 
   // unresolved 외에 monitoring, done 상태에서도 BR 재신고 허용
-  const allowedStatuses = ['unresolved', 'monitoring', 'done']
+  const allowedStatuses = ['approved', 'unresolved', 'monitoring', 'done']
   if (!allowedStatuses.includes(report.status)) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: `Cannot resubmit from status: ${report.status}` } },
