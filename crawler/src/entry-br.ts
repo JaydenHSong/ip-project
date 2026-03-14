@@ -46,19 +46,6 @@ const init = async (): Promise<void> => {
 
   const redisUrl = config.redis.url
 
-  // 큐 클리어 (stalled job 정리용 — 1회성, 이후 제거)
-  if (process.env['CLEAR_QUEUES'] === 'true') {
-    log('info', 'main', 'Clearing all BR queues...')
-    const { Queue } = await import('bullmq')
-    const connection = { url: redisUrl }
-    for (const name of ['sentinel-br-submit', 'sentinel-br-monitor', 'sentinel-br-reply']) {
-      const q = new Queue(name, { connection })
-      await q.obliterate({ force: true }).catch(() => {})
-      await q.close()
-      log('info', 'main', `Queue ${name} cleared`)
-    }
-  }
-
   // BR Submit
   const brQueue = createBrSubmitQueue(redisUrl)
   const brWorker = createBrSubmitWorker(redisUrl, async (job) => {
