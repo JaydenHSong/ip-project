@@ -205,7 +205,11 @@ const extractMessages = async (page: Page): Promise<ScrapedMessage[]> => {
       const bodyEl = parent.querySelector(selectors.messageContainer.replace('div.', '.'))
 
       const senderText = senderEl?.textContent?.trim() || ''
-      const dateText = dateEl?.textContent?.trim() || ''
+      // date 컨테이너에 자식 div가 2개 (날짜 + 시간) → 공백으로 합치기
+      const dateChildren = dateEl?.querySelectorAll('div')
+      const dateText = dateChildren && dateChildren.length > 1
+        ? Array.from(dateChildren).map((d) => d.textContent?.trim()).join(' ')
+        : dateEl?.textContent?.trim() || ''
       const bodyText = bodyEl?.textContent?.trim() || ''
 
       if (!bodyText) continue
