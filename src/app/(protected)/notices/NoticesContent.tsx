@@ -71,9 +71,11 @@ export const NoticesContent = ({
 
   // pin/unread(48) + title(auto=300) + category(100) + author(120) + date(80) + actions(48)
   const defaultNoticeColWidths = useMemo(() => [48, 600, 130, 150, 100, 48], [])
+  const minNoticeColWidths = useMemo(() => [40, 200, 80, 100, 80, 40], [])
   const { containerRef: noticeContainerRef, tableStyle: noticeTableStyle, getColStyle: getNoticeColStyle, getResizeHandleProps: getNoticeResizeProps } = useResizableColumns({
     storageKey: 'notices',
     defaultWidths: defaultNoticeColWidths,
+    minWidths: minNoticeColWidths,
   })
 
   const [now] = useState(() => Date.now())

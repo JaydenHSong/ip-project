@@ -63,9 +63,14 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
     () => canDelete ? [40, 280, 130, 110, 80, 100, 110, 140, 110] : [280, 130, 110, 80, 100, 110, 140, 110],
     [canDelete],
   )
+  const minCampaignColWidths = useMemo(
+    () => canDelete ? [40, 150, 80, 80, 60, 80, 80, 100, 80] : [150, 80, 80, 60, 80, 80, 100, 80],
+    [canDelete],
+  )
   const { containerRef: campaignContainerRef, tableStyle: campaignTableStyle, getColStyle: getCampaignColStyle, getResizeHandleProps: getCampaignResizeProps } = useResizableColumns({
     storageKey: canDelete ? 'campaigns-v2' : 'campaigns-v2-v',
     defaultWidths: defaultCampaignColWidths,
+    minWidths: minCampaignColWidths,
   })
 
   const toggleSelect = (id: string) => {

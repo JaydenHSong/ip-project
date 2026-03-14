@@ -138,9 +138,11 @@ export const PatentsContent = ({
 
   // ipType(100) + mgmtNo(150) + name(200) + country(80) + status(100) + regNo(150) + expiry(100) + assignee(120)
   const defaultPatentColWidths = useMemo(() => [110, 170, 280, 90, 110, 170, 110, 140], [])
+  const minPatentColWidths = useMemo(() => [80, 120, 150, 60, 80, 120, 80, 100], [])
   const { containerRef: patentContainerRef, tableStyle: patentTableStyle, getColStyle: getPatentColStyle, getResizeHandleProps: getPatentResizeProps } = useResizableColumns({
     storageKey: 'patents',
     defaultWidths: defaultPatentColWidths,
+    minWidths: minPatentColWidths,
   })
 
   useEffect(() => {

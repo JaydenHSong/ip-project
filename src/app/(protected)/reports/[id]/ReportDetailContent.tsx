@@ -125,13 +125,21 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
   const [brFormType, setBrFormType] = useState<BrFormTypeCode>(
     toBrFormType(initialViolationType)
   )
-  const [brFields, setBrFields] = useState({
-    product_urls: listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : '',
-    seller_storefront_url: '',
-    policy_url: '',
-    asins: listing?.asin ?? '',
-    review_urls: '',
-    order_id: '',
+  const [brFields, setBrFields] = useState(() => {
+    // Parse extra_fields from note (Extension stores them as JSON in note column)
+    let extra: Record<string, unknown> = {}
+    if (report.note) {
+      try { extra = JSON.parse(report.note) as Record<string, unknown> } catch { /* not JSON, ignore */ }
+    }
+    const arrToLines = (v: unknown) => Array.isArray(v) ? v.join('\n') : (typeof v === 'string' ? v : '')
+    return {
+      product_urls: arrToLines(extra.product_urls) || (listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : ''),
+      seller_storefront_url: (extra.seller_storefront_url as string) ?? '',
+      policy_url: (extra.policy_url as string) ?? '',
+      asins: arrToLines(extra.asins) || (listing?.asin ?? ''),
+      review_urls: arrToLines(extra.review_urls),
+      order_id: (extra.order_id as string) ?? '',
+    }
   })
   const [brFieldsExpanded, setBrFieldsExpanded] = useState(false)
   const [aiPreview, setAiPreview] = useState<{ draft_title: string; draft_body: string } | null>(null)

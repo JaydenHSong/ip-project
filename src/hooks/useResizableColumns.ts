@@ -7,8 +7,10 @@ type UseResizableColumnsOptions = {
   storageKey: string
   /** Default widths in px for each column index */
   defaultWidths: number[]
-  /** Minimum column width in px */
+  /** Minimum column width in px (global fallback) */
   minWidth?: number
+  /** Per-column minimum widths in px (overrides minWidth) */
+  minWidths?: number[]
 }
 
 type UseResizableColumnsReturn = {
@@ -64,10 +66,17 @@ export const useResizableColumns = ({
   storageKey,
   defaultWidths,
   minWidth = 40,
+  minWidths,
 }: UseResizableColumnsOptions): UseResizableColumnsReturn => {
+  const getMinWidth = (index: number) => minWidths?.[index] ?? minWidth
   const containerRef = useRef<HTMLDivElement | null>(null)
   const initializedRef = useRef(false)
-  const [widths, setWidths] = useState<number[]>(() => loadWidths(storageKey, defaultWidths) ?? defaultWidths)
+  const [widths, setWidths] = useState<number[]>(() => {
+    const saved = loadWidths(storageKey, defaultWidths)
+    if (!saved) return defaultWidths
+    // Enforce per-column minimums on saved widths
+    return minWidths ? saved.map((w, i) => Math.max(w, minWidths[i] ?? minWidth)) : saved
+  })
   const dragRef = useRef<{ index: number; startX: number; startWidth: number } | null>(null)
 
   // On mount: if no saved widths, scale defaults to fill container
@@ -90,14 +99,14 @@ export const useResizableColumns = ({
       if (!dragRef.current) return
       const { index, startX, startWidth } = dragRef.current
       const delta = e.clientX - startX
-      const newWidth = Math.max(minWidth, startWidth + delta)
+      const newWidth = Math.max(getMinWidth(index), startWidth + delta)
       setWidths((prev) => {
         const next = [...prev]
         next[index] = newWidth
         return next
       })
     },
-    [minWidth],
+    [getMinWidth],
   )
 
   const handleMouseUp = useCallback(() => {
@@ -134,9 +143,9 @@ export const useResizableColumns = ({
   const getColStyle = useCallback(
     (index: number): React.CSSProperties => ({
       width: widths[index],
-      minWidth: minWidth,
+      minWidth: getMinWidth(index),
     }),
-    [widths, minWidth],
+    [widths, getMinWidth],
   )
 
   const getResizeHandleProps = useCallback(

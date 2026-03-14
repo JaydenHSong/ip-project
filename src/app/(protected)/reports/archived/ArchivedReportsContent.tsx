@@ -76,9 +76,11 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
 
   // violation(130) + asin(140) + title(200) + reason(150) + archivedAt(120) + action(80)
   const defaultArchiveColWidths = useMemo(() => [160, 160, 350, 180, 140, 90], [])
+  const minArchiveColWidths = useMemo(() => [100, 100, 200, 120, 100, 70], [])
   const { containerRef: archiveContainerRef, tableStyle: archiveTableStyle, getColStyle: getArchiveColStyle, getResizeHandleProps: getArchiveResizeProps } = useResizableColumns({
     storageKey: 'reports-archived',
     defaultWidths: defaultArchiveColWidths,
+    minWidths: minArchiveColWidths,
   })
 
   const handleUnarchive = async (reportId: string) => {

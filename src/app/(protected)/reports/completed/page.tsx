@@ -36,10 +36,11 @@ const CompletedReportsPage = async ({
     const isArchived = params.status === 'archived'
     const statusFilter = isArchived ? ['archived'] : params.status ? [params.status] : COMPLETED_STATUSES
 
-    // Count query
+    // Count query — always apply status filter
     let countQuery = supabase
       .from('reports')
       .select('id', { count: 'exact', head: true })
+      .in('status', statusFilter)
     if (searchTerm) {
       const isNumber = /^\d+$/.test(searchTerm)
       if (isNumber) {
@@ -49,8 +50,6 @@ const CompletedReportsPage = async ({
           `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`,
         )
       }
-    } else {
-      countQuery = countQuery.in('status', statusFilter)
     }
     if (ownerFilter === 'my') {
       countQuery = countQuery.eq('created_by', user.id)
@@ -68,6 +67,8 @@ const CompletedReportsPage = async ({
       .order(isArchived ? 'archived_at' : 'created_at', { ascending: false, nullsFirst: false })
       .range(from, to)
 
+    // Always apply status filter + search on top
+    query = query.in('status', statusFilter)
     if (searchTerm) {
       const isNumber = /^\d+$/.test(searchTerm)
       if (isNumber) {
@@ -77,8 +78,6 @@ const CompletedReportsPage = async ({
           `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`,
         )
       }
-    } else {
-      query = query.in('status', statusFilter)
     }
 
     if (ownerFilter === 'my') {

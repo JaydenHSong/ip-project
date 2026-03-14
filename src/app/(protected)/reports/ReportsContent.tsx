@@ -92,14 +92,22 @@ export const ReportsContent = ({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isSearching = searchQuery.length > 0
 
+  // Sync searchQuery prop → local filters state when server re-renders
+  useEffect(() => {
+    setFilters((prev) => prev.search !== searchQuery ? { ...prev, search: searchQuery } : prev)
+  }, [searchQuery])
+
   const buildFilterUrl = useCallback((f: TableFiltersType) => {
     const p = new URLSearchParams()
     if (f.search.trim()) p.set('search', f.search.trim())
+    if (statusFilter) p.set('status', statusFilter)
+    if (brFormTypeFilter) p.set('br_form_type', brFormTypeFilter)
+    if (ownerFilter !== 'all') p.set('owner', ownerFilter)
     if (f.dateFrom) p.set('date_from', f.dateFrom)
     if (f.dateTo) p.set('date_to', f.dateTo)
     const qs = p.toString()
     return qs ? `/reports?${qs}` : '/reports'
-  }, [])
+  }, [statusFilter, brFormTypeFilter, ownerFilter])
 
   const handleFiltersChange = useCallback((newFilters: TableFiltersType) => {
     setFilters(newFilters)
@@ -146,7 +154,12 @@ export const ReportsContent = ({
   const getViolationType = useCallback((item: ReportRow) => item.violation_category ?? item.user_violation_type ?? item.br_form_type ?? item.violation_type, [])
   const getMarketplace = useCallback((item: ReportRow) => item.listings?.marketplace ?? '', [])
 
-  const filteredData = useFilterableTable(reports ?? [], filters, getSearchableText, getViolationType, getMarketplace)
+  // Server already filters by search — only apply client-side violationType/marketplace
+  const clientFilters = useMemo<TableFiltersType>(() => ({
+    ...filters,
+    search: searchQuery ? '' : filters.search,
+  }), [filters, searchQuery])
+  const filteredData = useFilterableTable(reports ?? [], clientFilters, getSearchableText, getViolationType, getMarketplace)
 
   const getSortValue = useCallback((item: ReportRow, field: string): string | number | null => {
     switch (field) {
@@ -165,10 +178,13 @@ export const ReportsContent = ({
 
   const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'date', direction: 'desc' }, getSortValue)
 
+  //                                    ck  No.  Status CH  ASIN Viol Seller Req  Date Upd  Resol
   const defaultColWidths = useMemo(() => [40, 56, 110, 65, 140, 150, 220, 110, 95, 95, 115], [])
+  const minColWidths     = useMemo(() => [40, 50,  80, 40, 100, 100, 100,  80, 80, 80,  80], [])
   const { containerRef, tableStyle, getColStyle, getResizeHandleProps } = useResizableColumns({
     storageKey: 'reports-queue-v3',
     defaultWidths: defaultColWidths,
+    minWidths: minColWidths,
   })
 
   const handleNewReportClose = useCallback(() => {
@@ -322,7 +338,13 @@ export const ReportsContent = ({
         {STATUS_TABS.map((tab) => (
           <Link
             key={tab.value}
-            href={`/reports${tab.value ? `?status=${tab.value}` : ''}`}
+            href={(() => {
+              const p = new URLSearchParams()
+              if (tab.value) p.set('status', tab.value)
+              if (ownerFilter !== 'all') p.set('owner', ownerFilter)
+              const qs = p.toString()
+              return qs ? `/reports?${qs}` : '/reports'
+            })()}
             className={`snap-start whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
               !isSearching && statusFilter === tab.value
                 ? 'bg-surface-card text-th-text shadow-sm'
@@ -518,23 +540,23 @@ export const ReportsContent = ({
                     />
                   </td>
                   <td className="px-4 py-3.5">
+                    <span className="text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</span>
+                  </td>
+                  <td className="px-4 py-3.5">
                     <div className="flex flex-col">
-                      <span className="text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</span>
+                      <StatusBadge status={report.status as ReportStatus} type="report" />
                       {report.br_case_id && report.br_case_id !== 'submitted' && (
                         <a
                           href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-mono text-[10px] text-th-accent hover:underline"
+                          className="mt-0.5 font-mono text-[10px] text-th-accent hover:underline"
                           onClick={(e) => e.stopPropagation()}
                         >
                           BR#{report.br_case_id}
                         </a>
                       )}
                     </div>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <StatusBadge status={report.status as ReportStatus} type="report" />
                   </td>
                   <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">

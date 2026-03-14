@@ -42,6 +42,7 @@ type ReportRow = {
   status: string
   created_at: string
   pd_case_id?: string | null
+  br_case_id?: string | null
   archived_at?: string | null
   archive_reason?: string | null
   listings: { asin: string; title: string; marketplace: string; seller_name: string | null } | null
@@ -69,21 +70,30 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   const isArchived = statusFilter === 'archived'
   const [unarchiving, setUnarchiving] = useState<string | null>(null)
 
+  // Sync searchQuery prop → local filters state when server re-renders
+  useEffect(() => {
+    setFilters((prev) => prev.search !== searchQuery ? { ...prev, search: searchQuery } : prev)
+  }, [searchQuery])
+
+  const buildFilterUrl = useCallback((search: string) => {
+    const p = new URLSearchParams()
+    if (search.trim()) p.set('search', search.trim())
+    if (statusFilter) p.set('status', statusFilter)
+    if (ownerFilter !== 'all') p.set('owner', ownerFilter)
+    const qs = p.toString()
+    return qs ? `/reports/completed?${qs}` : '/reports/completed'
+  }, [statusFilter, ownerFilter])
+
   const handleFiltersChange = useCallback((newFilters: TableFiltersType) => {
     setFilters(newFilters)
 
     if (newFilters.search !== filters.search) {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
-        const term = newFilters.search.trim()
-        if (term) {
-          router.push(`/reports/completed?search=${encodeURIComponent(term)}`)
-        } else {
-          router.push('/reports/completed')
-        }
+        router.push(buildFilterUrl(newFilters.search))
       }, 300)
     }
-  }, [filters.search, router])
+  }, [filters.search, router, buildFilterUrl])
 
   useEffect(() => {
     return () => {
@@ -168,7 +178,12 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   const getViolationType = useCallback((item: ReportRow) => item.violation_category ?? item.user_violation_type ?? item.br_form_type ?? item.violation_type, [])
   const getMarketplace = useCallback((item: ReportRow) => item.listings?.marketplace ?? '', [])
 
-  const filteredData = useFilterableTable(reports ?? [], filters, getSearchableText, getViolationType, getMarketplace)
+  // Server already filters by search — only apply client-side violationType/marketplace
+  const clientFilters = useMemo<TableFiltersType>(() => ({
+    ...filters,
+    search: searchQuery ? '' : filters.search,
+  }), [filters, searchQuery])
+  const filteredData = useFilterableTable(reports ?? [], clientFilters, getSearchableText, getViolationType, getMarketplace)
 
   const getSortValue = useCallback((item: ReportRow, field: string): string | number | null => {
     const row = item as ReportRow & Record<string, unknown>
@@ -198,11 +213,18 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       : (canBulk ? [40, 56, 110, 65, 140, 150, 220, 110, 95, 95, 115] : [56, 110, 65, 140, 150, 220, 110, 95, 95, 115]),
     [canBulk, isArchived, canAct],
   )
+  const minColWidths = useMemo(
+    () => isArchived
+      ? (canAct ? [100, 100, 200, 120, 100, 70] : [100, 100, 200, 120, 100])
+      : (canBulk ? [40, 50, 80, 40, 100, 100, 100, 80, 80, 80, 80] : [50, 80, 40, 100, 100, 100, 80, 80, 80, 80]),
+    [canBulk, isArchived, canAct],
+  )
   const { containerRef, tableStyle, getColStyle, getResizeHandleProps } = useResizableColumns({
     storageKey: isArchived
       ? 'reports-archived-v2'
       : (canBulk ? 'reports-completed-v3' : 'reports-completed-v3-v'),
     defaultWidths: defaultColWidths,
+    minWidths: minColWidths,
   })
 
   const STATUS_TABS = [
@@ -237,7 +259,13 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         {STATUS_TABS.map((tab) => (
           <Link
             key={tab.value}
-            href={`/reports/completed${tab.value ? `?status=${tab.value}` : ''}`}
+            href={(() => {
+              const p = new URLSearchParams()
+              if (tab.value) p.set('status', tab.value)
+              if (ownerFilter !== 'all') p.set('owner', ownerFilter)
+              const qs = p.toString()
+              return qs ? `/reports/completed?${qs}` : '/reports/completed'
+            })()}
             className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               !isSearching && statusFilter === tab.value
                 ? 'bg-surface-card text-th-text shadow-sm'
@@ -454,7 +482,20 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                   )}
                   <td className="px-4 py-3.5 text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</td>
                   <td className="px-4 py-3.5">
-                    <StatusBadge status={report.status as ReportStatus} type="report" />
+                    <div className="flex flex-col">
+                      <StatusBadge status={report.status as ReportStatus} type="report" />
+                      {report.br_case_id && report.br_case_id !== 'submitted' && (
+                        <a
+                          href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-0.5 font-mono text-[10px] text-th-accent hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          BR#{report.br_case_id}
+                        </a>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
                   <td className="px-4 py-3.5">
