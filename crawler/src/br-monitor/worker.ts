@@ -74,10 +74,49 @@ const ensureLoggedIn = async (page: Page): Promise<boolean> => {
     timeout: PAGE_LOAD_TIMEOUT,
   }).catch(() => {})
 
-  // 로그인 페이지로 리다이렉트됨 = 세션 만료
+  // 로그인 페이지로 리다이렉트됨 = 세션 만료 → 자동 로그인 시도
   if (page.url().includes('signin') || page.url().includes('/ap/')) {
-    log('warn', 'br-monitor', 'Session expired — login required. Skipping this cycle.')
-    return false
+    log('warn', 'br-monitor', 'Session expired — attempting auto-login')
+
+    const email = process.env['BR_EMAIL']
+    const password = process.env['BR_PASSWORD']
+
+    if (!email || !password) {
+      log('warn', 'br-monitor', 'BR_EMAIL/BR_PASSWORD not set — skipping this cycle')
+      return false
+    }
+
+    try {
+      await page.fill('#ap_email', email, { timeout: 10_000 }).catch(() => {})
+      await page.click('#continue').catch(() => {})
+      await page.fill('#ap_password', password, { timeout: 10_000 }).catch(() => {})
+      await page.click('#signInSubmit').catch(() => {})
+
+      // OTP 처리
+      const otpInput = await page.waitForSelector('#auth-mfa-otpcode', { timeout: 5_000 }).catch(() => null)
+      if (otpInput) {
+        const secret = process.env['BR_OTP_SECRET']
+        if (secret) {
+          const { TOTP } = await import('otpauth')
+          const totp = new TOTP({ secret, digits: 6, period: 30 })
+          await otpInput.fill(totp.generate())
+          await page.click('#auth-signin-button').catch(() => {})
+        } else {
+          log('warn', 'br-monitor', 'OTP required but BR_OTP_SECRET not set — skipping')
+          return false
+        }
+      }
+
+      await page.waitForURL(
+        (u) => u.toString().includes('brandregistry.amazon.com') && !u.toString().includes('/ap/'),
+        { timeout: 30_000 },
+      )
+      log('info', 'br-monitor', 'BR login successful (auto)')
+      return true
+    } catch (err) {
+      log('warn', 'br-monitor', `Auto-login failed: ${err instanceof Error ? err.message : String(err)}`)
+      return false
+    }
   }
 
   return true
