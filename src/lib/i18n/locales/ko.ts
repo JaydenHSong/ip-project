@@ -165,7 +165,6 @@ export const ko = {
       draft: '초안',
       pending: '검토 대기',
       approved: '승인됨',
-      submitted: '제출됨',
       monitoring: '모니터링',
       resolved: '해결됨',
       unresolved: '미해결',

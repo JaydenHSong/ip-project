@@ -95,8 +95,10 @@ export const CaseThread = ({ reportId, currentUserId, canEdit, hasPendingReply =
           No messages yet. Messages will appear here when Amazon responds.
         </p>
       ) : (
-        items.map((item) => {
+        items.map((item, idx) => {
           if (item.type === 'message') {
+            // 마지막 메시지만 펼침, 나머지는 접음
+            const lastMessageIdx = items.findLastIndex((i) => i.type === 'message')
             return (
               <CaseMessage
                 key={item.id}
@@ -104,6 +106,7 @@ export const CaseThread = ({ reportId, currentUserId, canEdit, hasPendingReply =
                 sender={item.data.sender ?? 'Unknown'}
                 body={item.data.body ?? ''}
                 sentAt={item.data.sent_at ?? item.timestamp}
+                collapsed={idx !== lastMessageIdx}
               />
             )
           }

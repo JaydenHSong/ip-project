@@ -5,7 +5,7 @@ import { isDemoMode } from '@/lib/demo'
 import { DEMO_REPORTS } from '@/lib/demo/data'
 import { CompletedReportsContent } from './CompletedReportsContent'
 
-const COMPLETED_STATUSES = ['submitted', 'monitoring', 'resolved', 'unresolved', 'resubmitted', 'escalated']
+const COMPLETED_STATUSES = ['resolved', 'unresolved', 'resubmitted', 'escalated']
 const PAGE_SIZE = 100
 const ARCHIVED_SELECT = '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)'
 

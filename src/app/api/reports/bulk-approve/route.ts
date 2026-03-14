@@ -8,7 +8,7 @@ type BulkApproveRequest = {
   report_ids: string[]
 }
 
-// POST /api/reports/bulk-approve — 일괄 승인 → BR 대상이면 br_submitting, 아니면 submitted
+// POST /api/reports/bulk-approve — 일괄 승인 → BR 대상이면 br_submitting, 아니면 monitoring
 export const POST = withAuth(async (req) => {
   const body = (await req.json()) as BulkApproveRequest
 
@@ -79,7 +79,7 @@ export const POST = withAuth(async (req) => {
     const { error } = await supabase
       .from('reports')
       .update({
-        status: brReportable ? 'br_submitting' : 'submitted',
+        status: brReportable ? 'br_submitting' : 'monitoring',
         approved_by: authUser!.id,
         approved_at: now,
         br_submit_data: brSubmitData,

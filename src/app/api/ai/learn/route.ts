@@ -50,9 +50,9 @@ export const POST = withAuth(async (req: NextRequest) => {
   const typedReport = report as Report
 
   // 승인된 보고서만 학습 가능
-  if (typedReport.status !== 'approved' && typedReport.status !== 'submitted') {
+  if (typedReport.status !== 'approved' && typedReport.status !== 'monitoring') {
     return NextResponse.json(
-      { error: { code: 'INVALID_STATUS', message: 'Only approved/submitted reports can trigger learning' } },
+      { error: { code: 'INVALID_STATUS', message: 'Only approved/monitoring reports can trigger learning' } },
       { status: 400 },
     )
   }

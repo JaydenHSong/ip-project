@@ -197,7 +197,7 @@ export const ReportActions = ({
       const res = await fetch(`/api/reports/${reportId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'submitted' }),
+        body: JSON.stringify({ status: 'monitoring' }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -334,8 +334,8 @@ export const ReportActions = ({
           </div>
         )}
 
-        {/* Clone as New — for submitted/monitoring/resolved/unresolved/archived */}
-        {['submitted', 'monitoring', 'resolved', 'unresolved', 'archived'].includes(status) && (
+        {/* Clone as New — for monitoring/resolved/unresolved/archived */}
+        {['monitoring', 'resolved', 'unresolved', 'archived'].includes(status) && (
           <Button
             variant="outline"
             size="sm"

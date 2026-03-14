@@ -172,9 +172,9 @@ export const GET = async (request: Request): Promise<NextResponse> => {
   }
   const STATUS_LABELS: Record<string, string> = {
     draft: 'Draft', pending_review: 'Pending', approved: 'Approved',
-    submitted: 'Submitted', monitoring: 'Monitoring', resolved: 'Resolved', rejected: 'Rejected',
+    br_submitting: 'BR Submitting', monitoring: 'Monitoring', resolved: 'Resolved', rejected: 'Rejected',
   }
-  const statusPipeline = ['draft', 'pending_review', 'approved', 'submitted', 'monitoring', 'resolved', 'rejected']
+  const statusPipeline = ['draft', 'pending_review', 'approved', 'br_submitting', 'monitoring', 'resolved', 'rejected']
     .filter((s) => statusMap.has(s))
     .map((status) => ({ status, statusLabel: STATUS_LABELS[status] ?? status, count: statusMap.get(status) ?? 0 }))
 
@@ -195,7 +195,7 @@ export const GET = async (request: Request): Promise<NextResponse> => {
     .slice(0, 10)
 
   // AI performance
-  const approvedCount = allReports.filter((r) => r.status === 'approved' || r.status === 'submitted').length
+  const approvedCount = allReports.filter((r) => r.status === 'approved' || r.status === 'monitoring').length
   const rejectedCount = allReports.filter((r) => r.status === 'rejected').length
   const totalDecided = approvedCount + rejectedCount
   const approveRate = totalDecided > 0 ? Math.round((approvedCount / totalDecided) * 100) : 0

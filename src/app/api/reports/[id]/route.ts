@@ -90,8 +90,8 @@ export const PATCH = withAuth(async (req) => {
     }
   }
 
-  // Manual submit: status → submitted (approved → submitted only)
-  if (body.status === 'submitted') {
+  // Manual submit: status → monitoring (approved → monitoring only)
+  if (body.status === 'monitoring') {
     const { data: current } = await supabase.from('reports').select('status').eq('id', id).single()
     if (current?.status !== 'approved') {
       return NextResponse.json(
@@ -99,7 +99,7 @@ export const PATCH = withAuth(async (req) => {
         { status: 403 },
       )
     }
-    updates.status = 'submitted'
+    updates.status = 'monitoring'
     updates.br_submitted_at = new Date().toISOString()
   }
 

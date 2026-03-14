@@ -31,9 +31,9 @@ export const POST = withAuth(async (req, { user }) => {
     )
   }
 
-  if (report.status !== 'submitted') {
+  if (report.status !== 'monitoring' && report.status !== 'approved') {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'submitted 상태의 신고만 모니터링 시작 가능합니다.' } },
+      { error: { code: 'VALIDATION_ERROR', message: 'monitoring 또는 approved 상태에서만 가능합니다.' } },
       { status: 400 },
     )
   }

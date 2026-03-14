@@ -77,7 +77,7 @@ export const POST = withAuth(async (req) => {
     updateData.br_submit_attempts = 0
     updateData.br_submission_error = null
   } else {
-    updateData.status = 'submitted'
+    updateData.status = 'monitoring'
   }
 
   const { error } = await supabase

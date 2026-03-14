@@ -6,9 +6,7 @@ type ReportStatus =
   | 'approved'
   | 'rejected'
   | 'cancelled'
-  | 'pd_submitting'
   | 'br_submitting'
-  | 'submitted'
   | 'monitoring'
   | 'resolved'
   | 'unresolved'
@@ -34,9 +32,7 @@ const REPORT_STATUS_MAP = {
   approved: { label: 'Approved', variant: 'success' },
   rejected: { label: 'Rejected', variant: 'danger' },
   cancelled: { label: 'Cancelled', variant: 'default' },
-  pd_submitting: { label: 'PD Reporting', variant: 'info' },
   br_submitting: { label: 'BR Submitting', variant: 'info' },
-  submitted: { label: 'Submitted', variant: 'info' },
   monitoring: { label: 'Monitoring', variant: 'violet' },
   resolved: { label: 'Resolved', variant: 'success' },
   unresolved: { label: 'Unresolved', variant: 'danger' },

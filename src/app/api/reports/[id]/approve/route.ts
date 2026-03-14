@@ -8,7 +8,7 @@ import type { ApproveReportRequest } from '@/types/api'
 import type { BrFormType } from '@/types/reports'
 import { isBrSubmittable, BR_FORM_TYPE_CODES, type BrFormTypeCode } from '@/constants/br-form-types'
 
-// POST /api/reports/:id/approve — 승인 → BR 대상이면 br_submitting, 아니면 submitted
+// POST /api/reports/:id/approve — 승인 → BR 대상이면 br_submitting, 아니면 monitoring
 export const POST = withAuth(async (req) => {
   const segments = req.nextUrl.pathname.split('/')
   const id = segments[segments.length - 2]
@@ -75,7 +75,7 @@ export const POST = withAuth(async (req) => {
     : null
 
   const updates: Record<string, unknown> = {
-    status: brReportable ? 'br_submitting' : 'submitted',
+    status: brReportable ? 'br_submitting' : 'monitoring',
     approved_by: authUser!.id,
     approved_at: now,
     br_submit_data: brSubmitData,

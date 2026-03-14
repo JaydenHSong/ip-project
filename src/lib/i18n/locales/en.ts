@@ -165,7 +165,6 @@ export const en = {
       draft: 'Draft',
       pending: 'Pending',
       approved: 'Approved',
-      submitted: 'Submitted',
       monitoring: 'Monitoring',
       resolved: 'Resolved',
       unresolved: 'Unresolved',
