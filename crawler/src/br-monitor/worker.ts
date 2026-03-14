@@ -21,7 +21,8 @@ const SELECTORS = {
   sender: 'div.m8v2kxruDtg3OA3mwzEj',
   email: 'div.q8_q8rkh9qNTsGWfOAbD',
   dateContainer: 'div.nzO_8eJLQRkq5RdzrqNn',
-  messageContainer: 'div.IJgI1Q0k2QtdW4J3onhO',
+  messageContainer: 'div.gvsF1mi5Rw4CeOQSjINM',
+  messageHeader: 'div.IJgI1Q0k2QtdW4J3onhO',
   senderContainer: 'div.P7wGTaW4ghGkEYr8Absw',
 }
 
@@ -181,7 +182,7 @@ const normalizeStatus = (raw: string): string => {
 
 // ─── Message Extraction ──────────────────────────────────────
 const extractMessages = async (page: Page): Promise<ScrapedMessage[]> => {
-  // Method 1: 클래스명 기반 셀렉터
+  // Method 1: kat-box 기반 — 각 메시지 카드에서 header(sender+date) + body 추출
   const messages = await page.evaluate((selectors) => {
     const results: Array<{
       direction: 'inbound' | 'outbound'
@@ -190,17 +191,22 @@ const extractMessages = async (page: Page): Promise<ScrapedMessage[]> => {
       sentAt: string
     }> = []
 
-    // 발신자 컨테이너들 찾기
-    const senderEls = document.querySelectorAll(selectors.sender)
-    const dateEls = document.querySelectorAll(selectors.dateContainer)
-    const msgEls = document.querySelectorAll(selectors.messageContainer)
+    // 각 메시지 헤더를 기준으로 같은 카드 내 body를 찾음
+    const headerEls = document.querySelectorAll(selectors.messageHeader)
 
-    const count = Math.min(senderEls.length, msgEls.length)
+    for (let i = 0; i < headerEls.length; i++) {
+      const header = headerEls[i]
+      // 같은 부모(kat-box) 안에서 body div 찾기
+      const parent = header.parentElement
+      if (!parent) continue
 
-    for (let i = 0; i < count; i++) {
-      const senderText = senderEls[i]?.textContent?.trim() || ''
-      const dateText = dateEls[i]?.textContent?.trim() || ''
-      const bodyText = msgEls[i]?.textContent?.trim() || ''
+      const senderEl = header.querySelector(selectors.sender.replace('div.', '.'))
+      const dateEl = header.querySelector(selectors.dateContainer.replace('div.', '.'))
+      const bodyEl = parent.querySelector(selectors.messageContainer.replace('div.', '.'))
+
+      const senderText = senderEl?.textContent?.trim() || ''
+      const dateText = dateEl?.textContent?.trim() || ''
+      const bodyText = bodyEl?.textContent?.trim() || ''
 
       if (!bodyText) continue
 
@@ -208,11 +214,12 @@ const extractMessages = async (page: Page): Promise<ScrapedMessage[]> => {
       const direction = isAmazon ? 'inbound' as const : 'outbound' as const
       const sender = isAmazon ? 'Amazon' : senderText
 
-      // 날짜 파싱: "Mar 06, 2026 4:35 PM PST" 형태
+      // 날짜 파싱: "Mar 06, 2026 4:35 PM PST" 또는 "Mar 13, 2026" + "7:54 PM UTC"
       let sentAt = ''
       if (dateText) {
         try {
-          const parsed = new Date(dateText.replace(/\s*(PST|PDT|EST|EDT|CST|CDT|MST|MDT|UTC)$/i, '').trim())
+          const cleaned = dateText.replace(/\s*(PST|PDT|EST|EDT|CST|CDT|MST|MDT|UTC)$/i, '').trim()
+          const parsed = new Date(cleaned)
           if (!isNaN(parsed.getTime())) {
             sentAt = parsed.toISOString()
           } else {
