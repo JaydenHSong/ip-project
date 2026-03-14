@@ -59,7 +59,6 @@ type ReportData = {
   br_last_amazon_reply_at: string | null
   br_last_our_reply_at: string | null
   br_submitted_at: string | null
-  br_sla_deadline_at: string | null
   parent_report_id: string | null
   escalation_level: number | null
   // Admin memo

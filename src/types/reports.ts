@@ -3,7 +3,7 @@ import type { BrCaseStatus, BrReplyPendingAttachment } from '@/types/br-case'
 
 export const REPORT_STATUSES = [
   'draft', 'pending_review', 'approved', 'rejected', 'cancelled',
-  'br_submitting', 'submitted', 'monitoring', 'resolved', 'unresolved',
+  'br_submitting', 'monitoring', 'resolved', 'unresolved',
   'resubmitted', 'escalated', 'archived',
 ] as const
 export type ReportStatus = (typeof REPORT_STATUSES)[number]
@@ -141,7 +141,6 @@ export type Report = {
   br_case_status: BrCaseStatus | null
   br_last_amazon_reply_at: string | null
   br_last_our_reply_at: string | null
-  br_sla_deadline_at: string | null
   br_reply_pending_text: string | null
   br_reply_pending_attachments: BrReplyPendingAttachment[] | null
   br_last_scraped_at: string | null

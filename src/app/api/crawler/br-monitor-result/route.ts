@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { calculateSlaDeadline, findSlaConfig } from '@/lib/br-case/sla'
-import type { BrSlaConfig } from '@/types/br-case'
 
 type MonitorResultMessage = {
   direction: 'inbound' | 'outbound'
@@ -167,28 +165,10 @@ export const POST = async (req: Request) => {
     }
   }
 
-  // 4. SLA deadline 재계산 (상태 변경 시)
-  // needs_attention → 새 deadline (Action Required), 아마존 응답 → paused (deadline 유지)
-  let slaDeadlineAt: string | null | undefined = undefined
-  if (report.br_case_status !== body.br_case_status && body.br_case_status === 'needs_attention') {
-    // Action Required — SLA restart with new deadline
-    const violationCategory = report.user_violation_type?.replace(/^V\d+_/, '').split('_').slice(0, -1).join('_') ?? ''
-    const { data: slaConfigs } = await supabase.from('br_sla_configs').select('*')
-    const configs = (slaConfigs ?? []) as BrSlaConfig[]
-    const slaConfig = findSlaConfig(configs, violationCategory)
-    const expectedHours = slaConfig?.expected_response_hours ?? 120
-    const deadline = calculateSlaDeadline({ baseTime: new Date(), expectedResponseHours: expectedHours })
-    slaDeadlineAt = deadline.toISOString()
-  }
-
-  // 5. reports 테이블 업데이트
+  // 4. reports 테이블 업데이트
   const updateData: Record<string, unknown> = {
     br_case_status: body.br_case_status,
     br_last_scraped_at: now,
-  }
-
-  if (slaDeadlineAt !== undefined) {
-    updateData.br_sla_deadline_at = slaDeadlineAt
   }
 
   if (body.last_amazon_reply_at) {

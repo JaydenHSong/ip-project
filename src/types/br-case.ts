@@ -23,17 +23,10 @@ export const BR_CASE_EVENT_TYPES = [
   'br_case_closed',
   'br_case_reopened',
   'br_escalated',
-  'br_sla_warning',
-  'br_sla_breached',
   'br_note_added',
   'br_file_attached',
 ] as const
 export type BrCaseEventType = (typeof BR_CASE_EVENT_TYPES)[number]
-
-// === SLA Status ===
-
-export const SLA_STATUSES = ['on_track', 'warning', 'breached', 'paused'] as const
-export type SlaStatus = (typeof SLA_STATUSES)[number]
 
 // === Notification Channel ===
 
@@ -45,8 +38,6 @@ export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number]
 export const NOTIFICATION_TRIGGER_TYPES = [
   'amazon_replied',
   'action_required',
-  'sla_warning',
-  'sla_breached',
   'stale_case',
   'case_closed',
 ] as const
@@ -93,15 +84,6 @@ export type BrCaseEvent = {
   metadata: BrCaseEventMetadata
   actor_id: string | null
   created_at: string
-}
-
-export type BrSlaConfig = {
-  id: string
-  violation_category: string
-  expected_response_hours: number
-  warning_threshold_hours: number
-  created_at: string
-  updated_at: string
 }
 
 export type NotificationRuleCondition = Record<string, unknown>

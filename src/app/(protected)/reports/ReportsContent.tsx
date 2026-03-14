@@ -15,7 +15,6 @@ import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Modal } from '@/components/ui/Modal'
 import { NewReportModal } from '@/components/features/NewReportModal'
 import { BrCaseQueueBar } from '@/components/features/BrCaseQueueBar'
-import { SlaBadge } from '@/components/ui/SlaBadge'
 import { useSortableTable } from '@/hooks/useSortableTable'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
@@ -54,7 +53,6 @@ type ReportRow = {
   users?: { name: string } | null
   br_case_status?: string | null
   br_case_id?: string | null
-  br_sla_deadline_at?: string | null
   report_number: number
 }
 
@@ -300,6 +298,7 @@ export const ReportsContent = ({
     { value: 'draft', label: t('reports.tabs.draft') },
     { value: 'br_submitting', label: 'BR Submitting' },
     { value: 'monitoring', label: t('reports.tabs.monitoring') },
+    { value: 'answered', label: 'Answered' },
   ]
 
   return (
@@ -452,12 +451,6 @@ export const ReportsContent = ({
                 <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
                   <span>{report.listings?.seller_name ?? '—'}</span>
                   <div className="flex items-center gap-2">
-                    {report.br_sla_deadline_at && (
-                      <SlaBadge
-                        deadline={report.br_sla_deadline_at}
-                        paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
-                      />
-                    )}
                     {report.br_case_id && report.br_case_id !== 'submitted' && (
                       <a
                         href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}

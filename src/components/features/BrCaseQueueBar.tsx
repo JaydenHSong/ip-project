@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/Badge'
 
 type QueueSummary = {
   action_required: number
-  sla_warning: number
   new_reply: number
   stale: number
   total: number
@@ -14,7 +13,6 @@ type QueueSummary = {
 
 const QUEUE_ITEMS = [
   { key: 'action_required', label: 'Action Required', variant: 'danger' as const, param: 'needs_attention' },
-  { key: 'sla_warning', label: 'SLA Warning', variant: 'warning' as const, param: 'sla_warning' },
   { key: 'new_reply', label: 'New Reply', variant: 'info' as const, param: 'new_reply' },
   { key: 'stale', label: 'Stale (7d+)', variant: 'default' as const, param: 'stale' },
 ] as const

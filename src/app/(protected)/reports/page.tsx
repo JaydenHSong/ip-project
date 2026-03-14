@@ -54,10 +54,14 @@ const ReportsPage = async ({
       .range(offset, offset + limit - 1)
 
     // Status filter — always apply (even with search)
-    if (params.status) {
+    if (params.status === 'answered') {
+      query = query.eq('status', 'monitoring').eq('br_case_status', 'answered')
+    } else if (params.status === 'monitoring') {
+      query = query.eq('status', 'monitoring').neq('br_case_status', 'answered')
+    } else if (params.status) {
       query = query.eq('status', params.status)
     } else {
-      query = query.in('status', ['draft', 'pending_review', 'approved', 'rejected', 'br_submitting'])
+      query = query.in('status', ['draft', 'pending_review', 'approved', 'rejected', 'br_submitting', 'monitoring'])
     }
     if (params.br_form_type) {
       query = query.eq('br_form_type', params.br_form_type)
@@ -69,9 +73,6 @@ const ReportsPage = async ({
       query = query.eq('br_case_status', 'needs_attention')
     } else if (params.smart_queue === 'new_reply') {
       query = query.not('br_last_amazon_reply_at', 'is', null)
-    } else if (params.smart_queue === 'sla_warning') {
-      query = query.not('br_sla_deadline_at', 'is', null)
-        .lt('br_sla_deadline_at', new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
     } else if (params.smart_queue === 'stale') {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
       query = query.or(`br_last_scraped_at.lt.${sevenDaysAgo},br_last_scraped_at.is.null`)

@@ -9,27 +9,20 @@ export const GET = withAuth(async () => {
   // 모니터링 중인 리포트만 대상
   const { data: reports } = await supabase
     .from('reports')
-    .select('id, br_case_status, br_last_amazon_reply_at, br_last_our_reply_at, br_sla_deadline_at, br_last_scraped_at')
+    .select('id, br_case_status, br_last_amazon_reply_at, br_last_our_reply_at, br_last_scraped_at')
     .eq('status', 'monitoring')
     .not('br_case_id', 'is', null)
 
   const rows = reports ?? []
   const now = Date.now()
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
-  const twentyFourHoursMs = 24 * 60 * 60 * 1000
 
   let actionRequired = 0
-  let slaWarning = 0
   let newReply = 0
   let stale = 0
 
   for (const r of rows) {
     if (r.br_case_status === 'needs_attention') actionRequired++
-
-    if (r.br_sla_deadline_at) {
-      const deadline = new Date(r.br_sla_deadline_at).getTime()
-      if (deadline < now + twentyFourHoursMs) slaWarning++
-    }
 
     if (r.br_last_amazon_reply_at) {
       const amazonReply = new Date(r.br_last_amazon_reply_at).getTime()
@@ -45,7 +38,6 @@ export const GET = withAuth(async () => {
 
   return NextResponse.json({
     action_required: actionRequired,
-    sla_warning: slaWarning,
     new_reply: newReply,
     stale,
     total: rows.length,

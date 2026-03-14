@@ -21,7 +21,6 @@ import { VIOLATION_FILTER_OPTIONS } from '@/components/ui/ViolationBadge'
 import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
 import { CaseThread } from '@/components/features/case-thread/CaseThread'
 import { CaseActivityLog } from '@/components/features/case-thread/CaseActivityLog'
-import { SlaBadge } from '@/components/ui/SlaBadge'
 import { CaseChain } from '@/components/features/CaseChain'
 import { RelatedReports } from '@/components/features/RelatedReports'
 import { getBrFormTypeLabel } from '@/constants/br-form-types'
@@ -71,7 +70,6 @@ type ReportDetailContentProps = {
     br_last_amazon_reply_at?: string | null
     br_last_our_reply_at?: string | null
     br_submitted_at?: string | null
-    br_sla_deadline_at?: string | null
     br_reply_pending_text?: string | null
     parent_report_id?: string | null
     escalation_level?: number | null
@@ -619,17 +617,6 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                     <span className="text-th-text-muted">Pending</span>
                   )}
                 </dd>
-                {report.br_sla_deadline_at && (
-                  <>
-                    <dt className="text-xs text-th-text-tertiary self-center">SLA</dt>
-                    <dd>
-                      <SlaBadge
-                        deadline={report.br_sla_deadline_at}
-                        paused={['open', 'work_in_progress', 'answered'].includes(report.br_case_status ?? '')}
-                      />
-                    </dd>
-                  </>
-                )}
                 {report.br_submitted_at && (
                   <>
                     <dt className="text-xs text-th-text-tertiary self-center">Submitted</dt>

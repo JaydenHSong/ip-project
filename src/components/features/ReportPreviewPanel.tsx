@@ -137,7 +137,6 @@ export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId 
             br_last_amazon_reply_at: data.br_last_amazon_reply_at as string | null,
             br_last_our_reply_at: data.br_last_our_reply_at as string | null,
             br_submitted_at: data.br_submitted_at as string | null,
-            br_sla_deadline_at: data.br_sla_deadline_at as string | null,
             br_reply_pending_text: data.br_reply_pending_text as string | null,
             parent_report_id: data.parent_report_id as string | null,
             escalation_level: data.escalation_level as number | null,
