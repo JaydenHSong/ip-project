@@ -54,9 +54,10 @@ export const middleware = async (req: NextRequest): Promise<NextResponse> => {
     return res
   }
 
-  // Cron / Crawler API는 자체 인증 사용 — 미들웨어 스킵
+  // Cron / Crawler / Ops API는 자체 인증 사용 — 미들웨어 스킵
   if (req.nextUrl.pathname.startsWith('/api/cron/') ||
-      req.nextUrl.pathname.startsWith('/api/crawler/')) {
+      req.nextUrl.pathname.startsWith('/api/crawler/') ||
+      req.nextUrl.pathname.startsWith('/api/ops/')) {
     return res
   }
 

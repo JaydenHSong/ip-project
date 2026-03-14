@@ -51,10 +51,13 @@ const restartService = async (serviceId: string): Promise<boolean> => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: `mutation { serviceInstanceRedeploy(serviceId: "${serviceId}", environmentId: "${envId}") }`,
+        query: 'mutation ($serviceId: String!, $environmentId: String!) { serviceInstanceRedeploy(serviceId: $serviceId, environmentId: $environmentId) }',
+        variables: { serviceId, environmentId: envId },
       }),
     })
-    return response.ok
+    if (!response.ok) return false
+    const data = (await response.json()) as { data?: { serviceInstanceRedeploy?: boolean } }
+    return data.data?.serviceInstanceRedeploy === true
   } catch {
     return false
   }
@@ -73,7 +76,8 @@ const getServiceStatus = async (serviceId: string): Promise<string | null> => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: `query { deployments(first: 1, input: { serviceId: "${serviceId}", environmentId: "${envId}" }) { edges { node { status } } } }`,
+        query: 'query ($serviceId: String!, $environmentId: String!) { deployments(first: 1, input: { serviceId: $serviceId, environmentId: $environmentId }) { edges { node { status } } } }',
+        variables: { serviceId, environmentId: envId },
       }),
     })
     if (!response.ok) return null
