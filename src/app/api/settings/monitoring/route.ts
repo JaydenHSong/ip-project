@@ -2,83 +2,97 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { MonitoringSettings } from '@/types/monitoring'
+
+type BrMonitoringSettings = {
+  br_checks_per_day: number
+  br_max_monitoring_days: number
+  clone_threshold_days: number
+}
+
+const KEYS = ['br_checks_per_day', 'br_max_monitoring_days', 'clone_threshold_days'] as const
+const LEGACY_KEYS: Record<string, string> = {
+  monitoring_interval_days: 'br_checks_per_day',
+  monitoring_max_days: 'br_max_monitoring_days',
+}
+const DEFAULTS: BrMonitoringSettings = {
+  br_checks_per_day: 2,
+  br_max_monitoring_days: 90,
+  clone_threshold_days: 14,
+}
 
 // GET /api/settings/monitoring
-// 모니터링 주기 설정 조회
 export const GET = withAuth(async () => {
   const supabase = await createClient()
 
-  const { data: intervalSetting } = await supabase
+  const { data: rows } = await supabase
     .from('system_configs')
-    .select('value')
-    .eq('key', 'monitoring_interval_days')
-    .single()
+    .select('key, value')
+    .in('key', [...KEYS, ...Object.keys(LEGACY_KEYS)])
 
-  const { data: maxDaysSetting } = await supabase
-    .from('system_configs')
-    .select('value')
-    .eq('key', 'monitoring_max_days')
-    .single()
-
-  const settings: MonitoringSettings = {
-    monitoring_interval_days: intervalSetting?.value ? Number(intervalSetting.value) : 7,
-    monitoring_max_days: maxDaysSetting?.value ? Number(maxDaysSetting.value) : 90,
+  const result = { ...DEFAULTS }
+  for (const row of rows ?? []) {
+    const mappedKey = LEGACY_KEYS[row.key] ?? row.key
+    if (mappedKey in result) {
+      (result as Record<string, number>)[mappedKey] = Number(row.value)
+    }
   }
 
-  return NextResponse.json(settings)
+  return NextResponse.json(result)
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PUT /api/settings/monitoring
-// 모니터링 주기 설정 수정 (admin only)
 export const PUT = withAuth(async (req, { user }) => {
-  const body = await req.json().catch(() => ({})) as Partial<MonitoringSettings>
-
+  const body = await req.json().catch(() => ({})) as Partial<BrMonitoringSettings>
   const supabase = createAdminClient()
   const now = new Date().toISOString()
 
-  if (body.monitoring_interval_days !== undefined) {
-    const val = Number(body.monitoring_interval_days)
-    if (val < 1 || val > 30) {
+  const updates: { key: string; value: number }[] = []
+
+  if (body.br_checks_per_day !== undefined) {
+    const val = Number(body.br_checks_per_day)
+    if (val < 1 || val > 4) {
       return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: '재확인 주기는 1~30일 사이여야 합니다.' } },
+        { error: { code: 'VALIDATION_ERROR', message: 'Checks per day must be 1~4.' } },
         { status: 400 },
       )
     }
-    await supabase
-      .from('system_configs')
-      .upsert({
-        key: 'monitoring_interval_days',
-        value: val,
-        updated_by: user.id,
-        updated_at: now,
-      })
+    updates.push({ key: 'br_checks_per_day', value: val })
   }
 
-  if (body.monitoring_max_days !== undefined) {
-    const val = Number(body.monitoring_max_days)
+  if (body.br_max_monitoring_days !== undefined) {
+    const val = Number(body.br_max_monitoring_days)
     if (val < 7 || val > 365) {
       return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: '최대 모니터링 기간은 7~365일 사이여야 합니다.' } },
+        { error: { code: 'VALIDATION_ERROR', message: 'Max monitoring days must be 7~365.' } },
         { status: 400 },
       )
     }
+    updates.push({ key: 'br_max_monitoring_days', value: val })
+  }
+
+  if (body.clone_threshold_days !== undefined) {
+    const val = Number(body.clone_threshold_days)
+    if (val < 7 || val > 60) {
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Clone threshold must be 7~60 days.' } },
+        { status: 400 },
+      )
+    }
+    updates.push({ key: 'clone_threshold_days', value: val })
+  }
+
+  for (const { key, value } of updates) {
     await supabase
       .from('system_configs')
-      .upsert({
-        key: 'monitoring_max_days',
-        value: val,
-        updated_by: user.id,
-        updated_at: now,
-      })
+      .upsert({ key, value, updated_by: user.id, updated_at: now })
   }
 
-  const settings: MonitoringSettings = {
-    monitoring_interval_days: body.monitoring_interval_days ?? 7,
-    monitoring_max_days: body.monitoring_max_days ?? 90,
+  const settings: BrMonitoringSettings = {
+    br_checks_per_day: body.br_checks_per_day ?? DEFAULTS.br_checks_per_day,
+    br_max_monitoring_days: body.br_max_monitoring_days ?? DEFAULTS.br_max_monitoring_days,
+    clone_threshold_days: body.clone_threshold_days ?? DEFAULTS.clone_threshold_days,
   }
 
-  // 감사 로그
   void supabase
     .from('audit_logs')
     .insert({

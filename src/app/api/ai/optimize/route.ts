@@ -4,7 +4,7 @@ import { optimizePrompt, checkAndRollback } from '@/lib/ai/prompt-optimizer'
 import type { PromptType } from '@/lib/ai/prompt-manager'
 import { createClient } from '@/lib/supabase/server'
 
-const OPTIMIZABLE_TYPES: PromptType[] = ['system', 'analyze', 'draft']
+const OPTIMIZABLE_TYPES: PromptType[] = ['system', 'tone-suggest']
 
 // POST /api/ai/optimize — Vercel Cron or manual trigger
 export const POST = async (request: NextRequest): Promise<NextResponse> => {

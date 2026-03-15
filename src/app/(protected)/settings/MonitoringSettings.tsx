@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -11,11 +10,18 @@ type MonitoringSettingsProps = {
   isAdmin: boolean
 }
 
+const CHECKS_OPTIONS = [
+  { value: 1, label: 'Once daily' },
+  { value: 2, label: 'Twice daily' },
+  { value: 3, label: '3 times daily' },
+  { value: 4, label: '4 times daily' },
+]
+
 export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
-  const { t } = useI18n()
   const { addToast } = useToast()
-  const [intervalDays, setIntervalDays] = useState(7)
-  const [maxDays, setMaxDays] = useState(90)
+  const [brChecksPerDay, setBrChecksPerDay] = useState(2)
+  const [brMaxMonitoringDays, setBrMaxMonitoringDays] = useState(90)
+  const [cloneThresholdDays, setCloneThresholdDays] = useState(14)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -24,8 +30,11 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
     fetch('/api/settings/monitoring')
       .then((res) => res.json())
       .then((data) => {
-        if (data.monitoring_interval_days) setIntervalDays(data.monitoring_interval_days)
-        if (data.monitoring_max_days) setMaxDays(data.monitoring_max_days)
+        if (data.br_checks_per_day) setBrChecksPerDay(data.br_checks_per_day)
+        // Fallback for legacy key
+        if (data.br_max_monitoring_days) setBrMaxMonitoringDays(data.br_max_monitoring_days)
+        else if (data.monitoring_max_days) setBrMaxMonitoringDays(data.monitoring_max_days)
+        if (data.clone_threshold_days) setCloneThresholdDays(data.clone_threshold_days)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -39,8 +48,9 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          monitoring_interval_days: intervalDays,
-          monitoring_max_days: maxDays,
+          br_checks_per_day: brChecksPerDay,
+          br_max_monitoring_days: brMaxMonitoringDays,
+          clone_threshold_days: cloneThresholdDays,
         }),
       })
       if (!res.ok) {
@@ -59,48 +69,72 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
   return (
     <Card>
       <CardHeader>
-        <h2 className="font-semibold text-th-text">{t('settings.monitoring.title' as Parameters<typeof t>[0])}</h2>
+        <h2 className="font-semibold text-th-text">BR Monitoring</h2>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
         {loading ? (
           <div className="space-y-4">
+            <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
             <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
             <div className="h-10 rounded-lg bg-th-bg-secondary animate-pulse" />
           </div>
         ) : (
           <>
+            <div>
+              <label className="block text-sm font-medium text-th-text-secondary mb-1">
+                BR Case Checks Per Day
+              </label>
+              <select
+                value={brChecksPerDay}
+                onChange={(e) => setBrChecksPerDay(Number(e.target.value))}
+                disabled={!isAdmin}
+                className="w-full rounded-lg border border-th-border bg-th-bg-secondary px-3 py-2 text-sm text-th-text focus:border-th-accent focus:outline-none disabled:opacity-50"
+              >
+                {CHECKS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-th-text-muted">
+                How often the crawler checks BR case status per day.
+              </p>
+            </div>
+
             <Input
-              label={t('settings.monitoring.intervalDays' as Parameters<typeof t>[0])}
-              type="number"
-              min={1}
-              max={30}
-              value={intervalDays}
-              onChange={(e) => setIntervalDays(Number(e.target.value))}
-              disabled={!isAdmin}
-            />
-            <Input
-              label={t('settings.monitoring.maxDays' as Parameters<typeof t>[0])}
+              label="Max Monitoring Days"
               type="number"
               min={7}
               max={365}
-              value={maxDays}
-              onChange={(e) => setMaxDays(Number(e.target.value))}
+              value={brMaxMonitoringDays}
+              onChange={(e) => setBrMaxMonitoringDays(Number(e.target.value))}
               disabled={!isAdmin}
             />
-        {isAdmin && (
-          <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              loading={saving}
-              onClick={handleSave}
-            >
-              {t('settings.monitoring.save' as Parameters<typeof t>[0])}
-            </Button>
-            {saved && (
-              <span className="text-sm text-green-500">{t('settings.monitoring.saved' as Parameters<typeof t>[0])}</span>
+            <p className="-mt-3 text-xs text-th-text-muted">
+              Auto-close as &quot;unresolved&quot; after this many days.
+            </p>
+
+            <Input
+              label="Clone Suggestion Threshold (days)"
+              type="number"
+              min={7}
+              max={60}
+              value={cloneThresholdDays}
+              onChange={(e) => setCloneThresholdDays(Number(e.target.value))}
+              disabled={!isAdmin}
+            />
+            <p className="-mt-3 text-xs text-th-text-muted">
+              Show &quot;Clone suggested&quot; badge after this many days without resolution.
+            </p>
+
+            {isAdmin && (
+              <div className="flex items-center gap-3">
+                <Button size="sm" loading={saving} onClick={handleSave}>
+                  Save
+                </Button>
+                {saved && (
+                  <span className="text-sm text-green-500">Saved</span>
+                )}
+              </div>
             )}
-          </div>
-        )}
           </>
         )}
       </CardContent>

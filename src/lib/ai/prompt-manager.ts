@@ -4,8 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export type PromptType =
   | 'system'
-  | 'analyze'
-  | 'draft'
+  | 'tone-suggest'
   | 'crawler-violation-scan'
   | 'crawler-thumbnail-scan'
 

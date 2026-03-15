@@ -1,9 +1,66 @@
-// 신고서 드래프트 생성 프롬프트 — Sonnet 전용
+// 톤/매너 제안 프롬프트 — v2: AI는 제안자 역할
+// 기존 buildDraftPrompt는 레거시 호환용으로 유지
 
 import type { AiAnalyzeResponse } from '@/types/api'
 import type { Listing } from '@/types/listings'
 import { promptManager } from '@/lib/ai/prompt-manager'
 import { fetchBrTemplateExamples } from '@/lib/ai/prompts/br-template-examples'
+
+// === v2: Tone Suggest Prompt ===
+
+const TONE_SUGGEST_TEMPLATE = `Refine the tone and manner of this Amazon Brand Registry violation report text.
+Do NOT rewrite — only improve word choice, grammar, and professional tone.
+
+## Original Template Text
+{{templateText}}
+
+## Listing Context
+- ASIN: {{asin}}
+- Title: {{title}}
+- Seller: {{seller}}
+- BR Form Type: {{brFormType}}
+
+## Format Rules (CRITICAL)
+1. Preserve ALL line breaks from the original exactly as they are
+2. Preserve ALL spacing and indentation
+3. Preserve ALL paragraph structure and blank lines
+4. Do NOT modify bracket variables: [ASIN], [SELLER], [BRAND], [TITLE], or any [VARIABLE] format
+5. Do NOT add or remove lines — output must have the SAME number of lines as input
+6. Only modify: word choice, tone, grammar, phrasing clarity
+7. Keep a professional, assertive tone suitable for Amazon Brand Registry submissions
+
+## What to Improve
+- Fix grammar and spelling errors
+- Make phrasing more professional and direct
+- Strengthen evidence language where appropriate
+- Ensure policy references are clear and specific
+- Remove filler words or redundant phrases
+
+## Response Format (JSON only)
+{
+  "suggested_text": "The refined text preserving exact same formatting...",
+  "changes": [
+    { "original": "phrase before", "suggested": "phrase after", "reason": "brief reason" }
+  ]
+}`
+
+const buildToneSuggestPrompt = async (
+  templateText: string,
+  listing: { asin: string; title?: string | null; seller_name?: string | null },
+  brFormType: string,
+): Promise<string> => {
+  const dbPrompt = await promptManager.getActive('tone-suggest')
+  const template = dbPrompt?.content ?? TONE_SUGGEST_TEMPLATE
+
+  return template
+    .replace('{{templateText}}', templateText)
+    .replace('{{asin}}', listing.asin)
+    .replace('{{title}}', listing.title ?? '(unknown)')
+    .replace('{{seller}}', listing.seller_name ?? '(unknown)')
+    .replace('{{brFormType}}', brFormType)
+}
+
+// === Legacy: Draft Prompt (v1 호환) ===
 
 const DRAFT_PROMPT_TEMPLATE = `Generate a formal violation report draft for Amazon Seller Central based on the analysis below.
 
@@ -67,7 +124,7 @@ const buildDraftPrompt = async (
   const violationCodes = (analysis.violations ?? []).map((v) => v.type).filter(Boolean)
   const brExamples = await fetchBrTemplateExamples(violationCodes)
 
-  const dbPrompt = await promptManager.getActive('draft')
+  const dbPrompt = await promptManager.getActive('tone-suggest')
   const promptTemplate = dbPrompt?.content ?? DRAFT_PROMPT_TEMPLATE
 
   let prompt = promptTemplate
@@ -87,4 +144,4 @@ const buildDraftPrompt = async (
   return prompt
 }
 
-export { buildDraftPrompt }
+export { buildDraftPrompt, buildToneSuggestPrompt }

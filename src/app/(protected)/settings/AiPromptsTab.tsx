@@ -5,7 +5,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/hooks/useToast'
-import { RefreshCw, RotateCcw, ChevronDown, Sparkles, FileText, Search, Image, Bot, CheckCircle2, Clock } from 'lucide-react'
+import { RefreshCw, RotateCcw, ChevronDown, Sparkles, FileText, Image, Bot, CheckCircle2, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 
 type PromptVersion = {
@@ -29,9 +29,8 @@ type PromptTypeInfo = {
 }
 
 const PROMPT_TYPES: PromptTypeInfo[] = [
-  { type: 'system', icon: Bot, label: 'System Prompt', description: 'Sonnet/Opus shared system prompt for violation detection' },
-  { type: 'analyze', icon: Search, label: 'Analyze Prompt', description: 'Violation analysis prompt template' },
-  { type: 'draft', icon: FileText, label: 'Draft Prompt', description: 'Report draft generation prompt' },
+  { type: 'system', icon: Bot, label: 'System Prompt', description: 'Shared system prompt for all AI calls' },
+  { type: 'tone-suggest', icon: FileText, label: 'Tone Suggest', description: 'Template tone/manner refinement prompt' },
   { type: 'crawler-violation-scan', icon: Sparkles, label: 'Crawler Violation Scan', description: 'Crawler AI violation detection prompt' },
   { type: 'crawler-thumbnail-scan', icon: Image, label: 'Crawler Thumbnail Scan', description: 'Crawler thumbnail policy check prompt' },
 ]

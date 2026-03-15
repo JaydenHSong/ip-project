@@ -2,7 +2,6 @@
 
 import type { Listing } from '@/types/listings'
 import type { Patent } from '@/types/patents'
-import { promptManager } from '@/lib/ai/prompt-manager'
 
 const ANALYZE_PROMPT_TEMPLATE = `Analyze the following Amazon listing for potential policy violations against Spigen.
 
@@ -86,9 +85,8 @@ const buildAnalyzePrompt = async (
     ? '## Images\n[Product images are attached for visual analysis. Check for logo/trademark usage and image theft.]'
     : ''
 
-  // DB에서 활성 프롬프트 로딩, 실패 시 하드코딩 fallback
-  const dbPrompt = await promptManager.getActive('analyze')
-  const template = dbPrompt?.content ?? ANALYZE_PROMPT_TEMPLATE
+  // v2: analyze 프롬프트 타입은 제거됨 — 하드코딩 fallback만 사용
+  const template = ANALYZE_PROMPT_TEMPLATE
 
   return template
     .replace('{{asin}}', listing.asin)

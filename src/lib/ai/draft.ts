@@ -5,8 +5,8 @@ import type { AiAnalyzeResponse, AiDraftResponse } from '@/types/api'
 import type { Listing } from '@/types/listings'
 import { MODEL_ROLES, type ClaudeClient } from '@/types/ai'
 import { buildSystemPrompt } from './prompts/system'
-import { buildDraftPrompt } from './prompts/draft'
-import type { BrFormType } from '@/types/reports'
+import { buildDraftPrompt, buildToneSuggestPrompt } from './prompts/draft'
+import type { BrFormType, ToneSuggestionResponse } from '@/types/reports'
 import { getBrFormContext } from '@/lib/reports/br-data'
 import type { BrFormTypeCode } from '@/constants/br-form-types'
 
@@ -73,4 +73,44 @@ const generateDraft = async (
   return parseDraftResponse(response.content)
 }
 
-export { generateDraft }
+// v2: Tone Suggestion — 템플릿 톤/매너만 다듬기
+const generateToneSuggestion = async (
+  client: ClaudeClient,
+  templateText: string,
+  listing: { asin: string; title?: string | null; seller_name?: string | null },
+  brFormType: string,
+  options: { skillContent: string; trademarks: string[] },
+): Promise<ToneSuggestionResponse> => {
+  const systemPrompt = await buildSystemPrompt({
+    trademarks: options.trademarks,
+    skillContent: options.skillContent,
+  })
+
+  const userPrompt = await buildToneSuggestPrompt(templateText, listing, brFormType)
+
+  const response = await client.call({
+    model: MODEL_ROLES.worker,
+    systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+    maxTokens: 2048,
+    temperature: 0.3,
+    cacheSystemPrompt: true,
+  })
+
+  const jsonMatch = response.content.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    return { suggested_text: templateText, changes: [] }
+  }
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]) as ToneSuggestionResponse
+    return {
+      suggested_text: parsed.suggested_text ?? templateText,
+      changes: parsed.changes ?? [],
+    }
+  } catch {
+    return { suggested_text: templateText, changes: [] }
+  }
+}
+
+export { generateDraft, generateToneSuggestion }

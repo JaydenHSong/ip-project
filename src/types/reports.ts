@@ -151,6 +151,11 @@ export type Report = {
   updated_at: string
 }
 
+export type ToneSuggestionResponse = {
+  suggested_text: string
+  changes: { original: string; suggested: string; reason: string }[]
+}
+
 export type BrFormType = BrFormTypeCode
 
 export type BrSubmitData = {

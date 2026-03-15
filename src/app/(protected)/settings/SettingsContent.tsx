@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
 import {
-  Activity, Puzzle, Search, ShieldCheck, FileText, Brain, Sparkles, Users, ChevronDown,
+  Activity, Puzzle, Search, Wand2, FileText, Brain, Sparkles, Users, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { MonitoringSettings } from './MonitoringSettings'
-import { AutoApproveSettings } from './AutoApproveSettings'
+import { AutoDraftSettings } from './AutoDraftSettings'
 import { CrawlerSettings } from './CrawlerSettings'
 import { ExtensionGuide } from './ExtensionGuide'
 import { UserManagement } from './UserManagement'
@@ -23,7 +23,7 @@ type SettingsContentProps = {
   currentUserId: string
 }
 
-type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'auto-approve' | 'br-templates' | 'ai-learning' | 'ai-prompts' | 'users'
+type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'auto-draft' | 'br-templates' | 'ai-learning' | 'ai-prompts' | 'users'
 
 type NavItem = {
   key: SettingsTab
@@ -48,7 +48,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Automation',
     items: [
       { key: 'crawler', icon: Search, minRole: 'admin' },
-      { key: 'auto-approve', icon: ShieldCheck, minRole: 'admin' },
+      { key: 'auto-draft', icon: Wand2, minRole: 'admin' },
     ],
   },
   {
@@ -99,7 +99,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
       case 'monitoring': return t('settings.monitoring.title')
       case 'extension': return t('settings.extension.title' as Parameters<typeof t>[0])
       case 'crawler': return t('settings.crawler.title' as Parameters<typeof t>[0])
-      case 'auto-approve': return t('settings.autoApprove.title' as Parameters<typeof t>[0])
+      case 'auto-draft': return 'Auto Draft'
       case 'br-templates': return 'Templates'
       case 'ai-learning': return t('settings.aiLearning.title' as Parameters<typeof t>[0])
       case 'ai-prompts': return 'AI Prompts'
@@ -199,7 +199,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
           {activeTab === 'monitoring' && <MonitoringSettings isAdmin={isAdmin} />}
                     {activeTab === 'extension' && <ExtensionGuide />}
           {activeTab === 'crawler' && <CrawlerSettings isAdmin={isAdmin} />}
-                    {activeTab === 'auto-approve' && <AutoApproveSettings isAdmin={isAdmin} />}
+                    {activeTab === 'auto-draft' && <AutoDraftSettings isAdmin={isAdmin} />}
           {activeTab === 'br-templates' && <BrTemplateSettings />}
           {activeTab === 'ai-learning' && <AiLearningTab />}
           {activeTab === 'ai-prompts' && <AiPromptsTab />}
@@ -212,7 +212,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
         {activeTab === 'monitoring' && <MonitoringSettings isAdmin={isAdmin} />}
                 {activeTab === 'extension' && <ExtensionGuide />}
         {activeTab === 'crawler' && <CrawlerSettings isAdmin={isAdmin} />}
-                {activeTab === 'auto-approve' && <AutoApproveSettings isAdmin={isAdmin} />}
+                {activeTab === 'auto-draft' && <AutoDraftSettings isAdmin={isAdmin} />}
         {activeTab === 'br-templates' && <BrTemplateSettings />}
         {activeTab === 'ai-learning' && <AiLearningTab />}
         {activeTab === 'ai-prompts' && <AiPromptsTab />}
