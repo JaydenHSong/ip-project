@@ -28,6 +28,9 @@ export const POST = withAuth(async (req) => {
     return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Report not found' } }, { status: 404 })
   }
 
+  const body = await req.json().catch(() => ({})) as { resolution?: string }
+  const resolvedStatus = body.resolution === 'unresolved' ? 'unresolved' : 'resolved'
+
   if (!report.br_case_id) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'No BR case ID' } },
@@ -49,9 +52,9 @@ export const POST = withAuth(async (req) => {
     .from('reports')
     .update({
       br_case_status: 'closed',
-      status: 'resolved',
+      status: resolvedStatus,
       resolved_at: now,
-      resolution_type: 'no_change',
+      resolution_type: resolvedStatus === 'resolved' ? 'seller_action_taken' : 'no_change',
     })
     .eq('id', id)
 
