@@ -144,10 +144,6 @@ export const CaseThread = ({ reportId, currentUserId, canEdit, hasPendingReply =
       )}
 
       {canEdit && <AddNoteForm reportId={reportId} onAdded={fetchThread} />}
-
-      {canEdit && brCaseStatus !== 'closed' && (
-        <CaseCloseButton reportId={reportId} onClosed={onCaseChanged} />
-      )}
     </div>
   )
 }
