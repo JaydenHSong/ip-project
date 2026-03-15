@@ -21,7 +21,6 @@ import { VIOLATION_FILTER_OPTIONS } from '@/components/ui/ViolationBadge'
 import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
 import { CaseThread } from '@/components/features/case-thread/CaseThread'
 import { CaseActivityLog } from '@/components/features/case-thread/CaseActivityLog'
-import { CaseCloseButton } from '@/components/features/case-thread/CaseCloseButton'
 import { CaseChain } from '@/components/features/CaseChain'
 import { RelatedReports } from '@/components/features/RelatedReports'
 import { getBrFormTypeLabel } from '@/constants/br-form-types'
@@ -590,18 +589,13 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
           <CardHeader>
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-th-text">Case Management</h2>
-              <div className="flex items-center gap-2">
-                {report.br_case_status ? (
-                  <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
-                ) : report.br_case_id ? (
-                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">Submitted</span>
-                ) : (
-                  <span className="rounded-full bg-th-bg-secondary px-2.5 py-1 text-xs font-medium text-th-text-muted">Not submitted</span>
-                )}
-                {canEdit && report.br_case_status && report.br_case_status !== 'closed' && (
-                  <CaseCloseButton reportId={report.id} onClosed={() => router.refresh()} />
-                )}
-              </div>
+              {report.br_case_status ? (
+                <StatusBadge status={report.br_case_status as BrCaseStatus} type="br_case" size="md" />
+              ) : report.br_case_id ? (
+                <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">Submitted</span>
+              ) : (
+                <span className="rounded-full bg-th-bg-secondary px-2.5 py-1 text-xs font-medium text-th-text-muted">Not submitted</span>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-0">

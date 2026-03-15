@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { CaseCloseButton } from '@/components/features/case-thread/CaseCloseButton'
 import { buildTimelineEvents } from '@/lib/timeline'
 import { ReportDetailContent } from '@/app/(protected)/reports/[id]/ReportDetailContent'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
@@ -88,7 +89,12 @@ export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId 
       size="2xl"
       status={
         data ? (
-          <StatusBadge status={data.status as ReportStatus} type="report" />
+          <div className="flex items-center gap-2">
+            <StatusBadge status={data.status as ReportStatus} type="report" />
+            {(canEdit && data.status === 'monitoring' && !!data.br_case_status && (data.br_case_status as string) !== 'closed') ? (
+              <CaseCloseButton reportId={data.id as string} onClosed={() => { setData(null); setActiveId(activeId) }} />
+            ) : null}
+          </div>
         ) : undefined
       }
     >
