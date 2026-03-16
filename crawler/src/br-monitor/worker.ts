@@ -388,6 +388,28 @@ const processBrMonitorJob = async (
       }
 
       const caseResult = await processSingleCase(page, target, reportResult)
+
+      // 자가 복구: processSingleCase가 null 반환 = 로그인 만료 감지
+      if (!caseResult) {
+        log('warn', 'br-monitor', `Session expired mid-cycle at case ${target.brCaseId}, attempting re-login`)
+        const reLoggedIn = await ensureLoggedIn(page)
+        if (reLoggedIn) {
+          log('info', 'br-monitor', 'Re-login successful, retrying case')
+          const retryResult = await processSingleCase(page, target, reportResult)
+          if (retryResult) {
+            processed++
+            if (retryResult.newMessageCount > 0) casesWithNewMessages++
+            totalNewMessages += retryResult.newMessageCount
+            totalRejected += retryResult.rejectedCount
+            continue
+          }
+        }
+        // 재로그인 실패 → 남은 케이스 전부 스킵
+        log('error', 'br-monitor', 'Re-login failed, aborting remaining cases')
+        await notifyOperator('🚨 *[BR Monitor]* 사이클 중 세션 만료 → 재로그인 실패. 남은 케이스 스킵.')
+        break
+      }
+
       processed++
       if (caseResult.newMessageCount > 0) casesWithNewMessages++
       totalNewMessages += caseResult.newMessageCount
@@ -427,10 +449,16 @@ const processSingleCase = async (
   page: Page,
   target: BrMonitorTarget,
   reportResult: (result: BrMonitorResult) => Promise<void>,
-): Promise<CaseProcessResult> => {
+): Promise<CaseProcessResult | null> => {
   const detail = await scrapeCaseDetail(page, target.brCaseId)
 
+  // null = 로그인 리다이렉트 또는 페이지 로드 실패 → 상위에서 재로그인 시도
   if (!detail) {
+    // 로그인 페이지인지 확인
+    const currentUrl = page.url()
+    if (currentUrl.includes('signin') || currentUrl.includes('/ap/')) {
+      return null // 상위에서 재로그인 + 재시도
+    }
     log('warn', 'br-monitor', `No data for case ${target.brCaseId}`)
     return { newMessageCount: 0, rejectedCount: 0 }
   }
