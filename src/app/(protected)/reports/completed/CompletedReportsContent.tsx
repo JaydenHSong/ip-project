@@ -8,7 +8,6 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
 import { SortableHeader } from '@/components/ui/SortableHeader'
 import { TableFilters } from '@/components/ui/TableFilters'
-import { useSortableTable } from '@/hooks/useSortableTable'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import type { ReportStatus } from '@/types/reports'
@@ -58,9 +57,11 @@ type CompletedReportsContentProps = {
   totalCount: number
   pageSize: number
   searchQuery: string
+  sortField: string
+  sortDir: 'asc' | 'desc'
 }
 
-export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, page, totalPages, totalCount, pageSize, searchQuery }: CompletedReportsContentProps) => {
+export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, page, totalPages, totalCount, pageSize, searchQuery, sortField, sortDir }: CompletedReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
   const { addToast } = useToast()
@@ -185,25 +186,20 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   }), [filters, searchQuery])
   const filteredData = useFilterableTable(reports ?? [], clientFilters, getSearchableText, getViolationType, getMarketplace)
 
-  const getSortValue = useCallback((item: ReportRow, field: string): string | number | null => {
-    const row = item as ReportRow & Record<string, unknown>
-    switch (field) {
-      case 'status': return item.status
-      case 'channel': return item.listings?.marketplace ?? null
-      case 'violation': return item.violation_type
-      case 'asin': return item.listings?.asin ?? null
-      case 'seller': return item.listings?.seller_name ?? null
-      case 'requester': return row.users ? (row.users as { name: string })?.name : null
-      case 'date': return new Date(item.created_at).getTime()
-      case 'updated': return row.updated_at ? new Date(row.updated_at as string).getTime() : null
-      case 'resolved': return row.resolved_at ? new Date(row.resolved_at as string).getTime() : null
-      case 'reason': return item.archive_reason ?? null
-      case 'archived_at': return item.archived_at ? new Date(item.archived_at).getTime() : null
-      default: return null
+  // Server-side sorting
+  const sort = useMemo(() => ({ field: sortField, direction: sortDir }), [sortField, sortDir])
+  const toggleSort = useCallback((field: string) => {
+    const url = new URL(window.location.href)
+    if (sortField === field) {
+      url.searchParams.set('sort_dir', sortDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      url.searchParams.set('sort_field', field)
+      url.searchParams.set('sort_dir', 'desc')
     }
-  }, [])
-
-  const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'date', direction: 'desc' }, getSortValue)
+    url.searchParams.delete('page')
+    router.push(url.pathname + url.search)
+  }, [sortField, sortDir, router])
+  const sortedData = filteredData
 
   const canAct = userRole === 'owner' || userRole === 'admin' || userRole === 'editor'
 

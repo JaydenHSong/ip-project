@@ -15,7 +15,6 @@ import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Modal } from '@/components/ui/Modal'
 import { NewReportModal } from '@/components/features/NewReportModal'
 import { BrCaseQueueBar } from '@/components/features/BrCaseQueueBar'
-import { useSortableTable } from '@/hooks/useSortableTable'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import { getBrFormTypeLabel } from '@/constants/br-form-types'
@@ -68,6 +67,8 @@ type ReportsContentProps = {
   searchQuery: string
   dateFrom: string
   dateTo: string
+  sortField: string
+  sortDir: 'asc' | 'desc'
 }
 
 export const ReportsContent = ({
@@ -82,6 +83,8 @@ export const ReportsContent = ({
   searchQuery,
   dateFrom,
   dateTo,
+  sortField,
+  sortDir,
 }: ReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
@@ -159,22 +162,20 @@ export const ReportsContent = ({
   }), [filters, searchQuery])
   const filteredData = useFilterableTable(reports ?? [], clientFilters, getSearchableText, getViolationType, getMarketplace)
 
-  const getSortValue = useCallback((item: ReportRow, field: string): string | number | null => {
-    switch (field) {
-      case 'status': return item.status
-      case 'channel': return item.listings?.marketplace ?? null
-      case 'violation': return item.br_form_type ?? item.violation_type
-      case 'asin': return item.listings?.asin ?? null
-      case 'seller': return item.listings?.seller_name ?? null
-      case 'requester': return (item as Record<string, unknown>).users ? ((item as Record<string, unknown>).users as { name: string })?.name : null
-      case 'date': return new Date(item.created_at).getTime()
-      case 'updated': return (item as Record<string, unknown>).updated_at ? new Date((item as Record<string, unknown>).updated_at as string).getTime() : null
-      case 'resolved': return (item as Record<string, unknown>).resolved_at ? new Date((item as Record<string, unknown>).resolved_at as string).getTime() : null
-      default: return null
+  // Server-side sorting — push sort params to URL
+  const sort = useMemo(() => ({ field: sortField, direction: sortDir }), [sortField, sortDir])
+  const toggleSort = useCallback((field: string) => {
+    const url = new URL(window.location.href)
+    if (sortField === field) {
+      url.searchParams.set('sort_dir', sortDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      url.searchParams.set('sort_field', field)
+      url.searchParams.set('sort_dir', 'desc')
     }
-  }, [])
-
-  const { sortedData, sort, toggleSort } = useSortableTable(filteredData, { field: 'date', direction: 'desc' }, getSortValue)
+    url.searchParams.delete('page')
+    router.push(url.pathname + url.search)
+  }, [sortField, sortDir, router])
+  const sortedData = filteredData
 
   //                                    ck  No.  Status CH  ASIN Viol Seller Req  Date Upd  Resol
   const defaultColWidths = useMemo(() => [40, 56, 110, 65, 140, 150, 220, 110, 95, 95, 115], [])
@@ -588,7 +589,7 @@ export const ReportsContent = ({
           {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
             <Link
               key={p}
-              href={`/reports?page=${p}${statusFilter ? `&status=${statusFilter}` : ''}${brFormTypeFilter ? `&br_form_type=${brFormTypeFilter}` : ''}`}
+              href={`/reports?page=${p}${statusFilter ? `&status=${statusFilter}` : ''}${brFormTypeFilter ? `&br_form_type=${brFormTypeFilter}` : ''}${sortField !== 'date' ? `&sort_field=${sortField}` : ''}${sortDir !== 'desc' ? `&sort_dir=${sortDir}` : ''}`}
               className={`rounded-md px-3 py-1.5 text-sm ${
                 p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'
               }`}

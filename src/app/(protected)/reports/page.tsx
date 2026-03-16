@@ -19,6 +19,8 @@ const ReportsPage = async ({
     search?: string
     date_from?: string
     date_to?: string
+    sort_field?: string
+    sort_dir?: string
   }>
 }) => {
   const user = await getCurrentUser()
@@ -44,13 +46,27 @@ const ReportsPage = async ({
     const offset = (page - 1) * limit
     const supabase = await createClient()
 
+    // Sort field mapping: UI field → DB column
+    const SORT_MAP: Record<string, string> = {
+      status: 'status',
+      channel: 'listing_snapshot->>marketplace',
+      asin: 'listing_snapshot->>asin',
+      violation: 'br_form_type',
+      seller: 'listing_snapshot->>seller_name',
+      date: 'created_at',
+      updated: 'updated_at',
+      resolved: 'resolved_at',
+    }
+    const sortField = params.sort_field && SORT_MAP[params.sort_field] ? SORT_MAP[params.sort_field] : 'created_at'
+    const sortAsc = params.sort_dir === 'asc'
+
     let query = supabase
       .from('reports')
       .select(
         '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)',
         { count: 'exact' },
       )
-      .order('created_at', { ascending: false })
+      .order(sortField, { ascending: sortAsc, nullsFirst: false })
       .range(offset, offset + limit - 1)
 
     // Status filter — always apply (even with search)
@@ -128,6 +144,8 @@ const ReportsPage = async ({
       searchQuery={params.search ?? ''}
       dateFrom={params.date_from ?? ''}
       dateTo={params.date_to ?? ''}
+      sortField={params.sort_field ?? 'date'}
+      sortDir={(params.sort_dir ?? 'desc') as 'asc' | 'desc'}
     />
   )
 }

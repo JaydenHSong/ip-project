@@ -12,7 +12,7 @@ const ARCHIVED_SELECT = '*, listing_snapshot, listings!reports_listing_id_fkey(a
 const CompletedReportsPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; owner?: string; search?: string }>
+  searchParams: Promise<{ page?: string; status?: string; owner?: string; search?: string; sort_field?: string; sort_dir?: string }>
 }) => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
@@ -61,10 +61,24 @@ const CompletedReportsPage = async ({
     const from = (page - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
+    const SORT_MAP: Record<string, string> = {
+      status: 'status',
+      channel: 'listing_snapshot->>marketplace',
+      asin: 'listing_snapshot->>asin',
+      violation: 'br_form_type',
+      seller: 'listing_snapshot->>seller_name',
+      date: 'created_at',
+      updated: 'updated_at',
+      resolved: 'resolved_at',
+    }
+    const defaultSort = isArchived ? 'archived_at' : 'created_at'
+    const sortField = params.sort_field && SORT_MAP[params.sort_field] ? SORT_MAP[params.sort_field] : defaultSort
+    const sortAsc = params.sort_dir === 'asc'
+
     let query = supabase
       .from('reports')
       .select(ARCHIVED_SELECT)
-      .order(isArchived ? 'archived_at' : 'created_at', { ascending: false, nullsFirst: false })
+      .order(sortField, { ascending: sortAsc, nullsFirst: false })
       .range(from, to)
 
     // Always apply status filter + search on top
@@ -107,6 +121,8 @@ const CompletedReportsPage = async ({
       totalCount={totalCount}
       pageSize={PAGE_SIZE}
       searchQuery={params.search ?? ''}
+      sortField={params.sort_field ?? 'date'}
+      sortDir={(params.sort_dir ?? 'desc') as 'asc' | 'desc'}
     />
   )
 }
