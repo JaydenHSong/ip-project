@@ -28,11 +28,11 @@ type PromptTypeInfo = {
   icon: React.ComponentType<{ className?: string }>
 }
 
-const PROMPT_TYPES: PromptTypeInfo[] = [
-  { type: 'system', icon: Bot, label: 'System Prompt', description: 'Shared system prompt for all AI calls' },
-  { type: 'tone-suggest', icon: FileText, label: 'Tone Suggest', description: 'Template tone/manner refinement prompt' },
-  { type: 'crawler-violation-scan', icon: Sparkles, label: 'Crawler Violation Scan', description: 'Crawler AI violation detection prompt' },
-  { type: 'crawler-thumbnail-scan', icon: Image, label: 'Crawler Thumbnail Scan', description: 'Crawler thumbnail policy check prompt' },
+const PROMPT_TYPES: (PromptTypeInfo & { labelKey: string; descKey: string })[] = [
+  { type: 'system', icon: Bot, label: '', description: '', labelKey: 'settings.aiPrompts.systemPrompt', descKey: 'settings.aiPrompts.systemPromptDesc' },
+  { type: 'tone-suggest', icon: FileText, label: '', description: '', labelKey: 'settings.aiPrompts.toneSuggest', descKey: 'settings.aiPrompts.toneSuggestDesc' },
+  { type: 'crawler-violation-scan', icon: Sparkles, label: '', description: '', labelKey: 'settings.aiPrompts.crawlerViolation', descKey: 'settings.aiPrompts.crawlerViolationDesc' },
+  { type: 'crawler-thumbnail-scan', icon: Image, label: '', description: '', labelKey: 'settings.aiPrompts.crawlerThumbnail', descKey: 'settings.aiPrompts.crawlerThumbnailDesc' },
 ]
 
 export const AiPromptsTab = () => {
@@ -132,9 +132,9 @@ export const AiPromptsTab = () => {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-th-text">AI Prompts</h2>
+          <h2 className="text-lg font-semibold text-th-text">{t('settings.aiPrompts.title' as Parameters<typeof t>[0])}</h2>
           <p className="mt-0.5 text-sm text-th-text-muted">
-            Manage and optimize AI prompt versions. Opus analyzes accuracy weekly and suggests improvements.
+            {t('settings.aiPrompts.description' as Parameters<typeof t>[0])}
           </p>
         </div>
         <Button
@@ -144,7 +144,7 @@ export const AiPromptsTab = () => {
           onClick={handleOptimize}
           icon={<RefreshCw className={`h-4 w-4 ${optimizing ? 'animate-spin' : ''}`} />}
         >
-          Optimize
+          {t('settings.aiPrompts.optimize' as Parameters<typeof t>[0])}
         </Button>
       </div>
 
@@ -208,7 +208,7 @@ export const AiPromptsTab = () => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-th-text">{pt.label}</h3>
+                    <h3 className="text-sm font-semibold text-th-text">{t(pt.labelKey as Parameters<typeof t>[0])}</h3>
                     {activeVersion ? (
                       <span className="rounded-full bg-st-success-bg px-2 py-0.5 text-[10px] font-bold text-st-success-text">
                         v{activeVersion.version}
@@ -224,7 +224,7 @@ export const AiPromptsTab = () => {
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-th-text-muted">{pt.description}</p>
+                  <p className="mt-0.5 text-xs text-th-text-muted">{t(pt.descKey as Parameters<typeof t>[0])}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   {hasDb && (

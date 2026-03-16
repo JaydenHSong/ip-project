@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
@@ -10,14 +11,8 @@ type MonitoringSettingsProps = {
   isAdmin: boolean
 }
 
-const CHECKS_OPTIONS = [
-  { value: 1, label: 'Once daily' },
-  { value: 2, label: 'Twice daily' },
-  { value: 3, label: '3 times daily' },
-  { value: 4, label: '4 times daily' },
-]
-
 export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
+  const { t } = useI18n()
   const { addToast } = useToast()
   const [brChecksPerDay, setBrChecksPerDay] = useState(2)
   const [brMaxMonitoringDays, setBrMaxMonitoringDays] = useState(90)
@@ -26,12 +21,18 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  const checksOptions = [
+    { value: 1, label: t('settings.monitoring.onceDaily' as Parameters<typeof t>[0]) },
+    { value: 2, label: t('settings.monitoring.twiceDaily' as Parameters<typeof t>[0]) },
+    { value: 3, label: t('settings.monitoring.threeDaily' as Parameters<typeof t>[0]) },
+    { value: 4, label: t('settings.monitoring.fourDaily' as Parameters<typeof t>[0]) },
+  ]
+
   useEffect(() => {
     fetch('/api/settings/monitoring')
       .then((res) => res.json())
       .then((data) => {
         if (data.br_checks_per_day) setBrChecksPerDay(data.br_checks_per_day)
-        // Fallback for legacy key
         if (data.br_max_monitoring_days) setBrMaxMonitoringDays(data.br_max_monitoring_days)
         else if (data.monitoring_max_days) setBrMaxMonitoringDays(data.monitoring_max_days)
         if (data.clone_threshold_days) setCloneThresholdDays(data.clone_threshold_days)
@@ -69,7 +70,7 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
   return (
     <Card>
       <CardHeader>
-        <h2 className="font-semibold text-th-text">BR Monitoring</h2>
+        <h2 className="font-semibold text-th-text">{t('settings.monitoring.title' as Parameters<typeof t>[0])}</h2>
       </CardHeader>
       <CardContent className="space-y-5">
         {loading ? (
@@ -82,7 +83,7 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
           <>
             <div>
               <label className="block text-sm font-medium text-th-text-secondary mb-1">
-                BR Case Checks Per Day
+                {t('settings.monitoring.checksPerDay' as Parameters<typeof t>[0])}
               </label>
               <select
                 value={brChecksPerDay}
@@ -90,17 +91,17 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
                 disabled={!isAdmin}
                 className="w-full rounded-lg border border-th-border bg-th-bg-secondary px-3 py-2 text-sm text-th-text focus:border-th-accent focus:outline-none disabled:opacity-50"
               >
-                {CHECKS_OPTIONS.map((opt) => (
+                {checksOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
               <p className="mt-1 text-xs text-th-text-muted">
-                How often the crawler checks BR case status per day.
+                {t('settings.monitoring.checksPerDayDesc' as Parameters<typeof t>[0])}
               </p>
             </div>
 
             <Input
-              label="Max Monitoring Days"
+              label={t('settings.monitoring.maxDays' as Parameters<typeof t>[0])}
               type="number"
               min={7}
               max={365}
@@ -109,11 +110,11 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
               disabled={!isAdmin}
             />
             <p className="-mt-3 text-xs text-th-text-muted">
-              Auto-close as &quot;unresolved&quot; after this many days.
+              {t('settings.monitoring.maxDaysDesc' as Parameters<typeof t>[0])}
             </p>
 
             <Input
-              label="Clone Suggestion Threshold (days)"
+              label={t('settings.monitoring.cloneThreshold' as Parameters<typeof t>[0])}
               type="number"
               min={7}
               max={60}
@@ -122,16 +123,16 @@ export const MonitoringSettings = ({ isAdmin }: MonitoringSettingsProps) => {
               disabled={!isAdmin}
             />
             <p className="-mt-3 text-xs text-th-text-muted">
-              Show &quot;Clone suggested&quot; badge after this many days without resolution.
+              {t('settings.monitoring.cloneThresholdDesc' as Parameters<typeof t>[0])}
             </p>
 
             {isAdmin && (
               <div className="flex items-center gap-3">
                 <Button size="sm" loading={saving} onClick={handleSave}>
-                  Save
+                  {t('settings.monitoring.save' as Parameters<typeof t>[0])}
                 </Button>
                 {saved && (
-                  <span className="text-sm text-green-500">Saved</span>
+                  <span className="text-sm text-green-500">{t('settings.monitoring.saved' as Parameters<typeof t>[0])}</span>
                 )}
               </div>
             )}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -15,6 +16,7 @@ type AutoDraftConfig = {
 const IP_FORM_TYPES: BrFormTypeCode[] = ['ip_violation']
 
 export const AutoDraftSettings = ({ isAdmin }: { isAdmin: boolean }) => {
+  const { t } = useI18n()
   const { addToast } = useToast()
   const [config, setConfig] = useState<AutoDraftConfig>({
     enabled: false,
@@ -63,7 +65,7 @@ export const AutoDraftSettings = ({ isAdmin }: { isAdmin: boolean }) => {
   return (
     <Card>
       <CardHeader>
-        <h2 className="font-semibold text-th-text">Auto Draft</h2>
+        <h2 className="font-semibold text-th-text">{t('settings.autoDraft.title' as Parameters<typeof t>[0])}</h2>
       </CardHeader>
       <CardContent className="space-y-5">
         {loading ? (
@@ -74,30 +76,30 @@ export const AutoDraftSettings = ({ isAdmin }: { isAdmin: boolean }) => {
         ) : (
           <>
         <p className="text-sm text-th-text-muted">
-          Automatically generate AI tone/manner suggestions when new reports are created with complete data.
+          {t('settings.autoDraft.description' as Parameters<typeof t>[0])}
         </p>
 
         <Toggle
           checked={config.enabled}
           onChange={(checked) => setConfig((s) => ({ ...s, enabled: checked }))}
           disabled={!isAdmin}
-          label="Enable Auto Draft"
+          label={t('settings.autoDraft.enable' as Parameters<typeof t>[0])}
         />
 
         <div className="rounded-lg bg-th-bg-tertiary p-3">
           <p className="text-xs text-th-text-muted">
-            <strong>Auto Draft runs when:</strong>
+            <strong>{t('settings.autoDraft.conditionsTitle' as Parameters<typeof t>[0])}</strong>
           </p>
           <ul className="mt-1 space-y-0.5 text-xs text-th-text-muted">
-            <li>• ASIN is present</li>
-            <li>• BR form type is selected</li>
-            <li>• Screenshot is attached</li>
+            <li>• {t('settings.autoDraft.conditionAsin' as Parameters<typeof t>[0])}</li>
+            <li>• {t('settings.autoDraft.conditionFormType' as Parameters<typeof t>[0])}</li>
+            <li>• {t('settings.autoDraft.conditionScreenshot' as Parameters<typeof t>[0])}</li>
           </ul>
         </div>
 
         <div>
           <h3 className="text-sm font-medium text-th-text mb-3">
-            Per Form Type
+            {t('settings.autoDraft.perFormType' as Parameters<typeof t>[0])}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {brFormTypeList.map(({ code, label, isIp }) => (
@@ -116,7 +118,7 @@ export const AutoDraftSettings = ({ isAdmin }: { isAdmin: boolean }) => {
                 />
                 {isIp && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
-                    IP
+                    {t('settings.autoDraft.ipWarning' as Parameters<typeof t>[0])}
                   </span>
                 )}
               </div>
@@ -127,10 +129,10 @@ export const AutoDraftSettings = ({ isAdmin }: { isAdmin: boolean }) => {
         {isAdmin && (
           <div className="flex items-center gap-3">
             <Button size="sm" loading={saving} onClick={handleSave}>
-              Save
+              {t('settings.autoDraft.save' as Parameters<typeof t>[0])}
             </Button>
             {saved && (
-              <span className="text-sm text-green-500">Saved</span>
+              <span className="text-sm text-green-500">{t('settings.autoDraft.saved' as Parameters<typeof t>[0])}</span>
             )}
           </div>
         )}

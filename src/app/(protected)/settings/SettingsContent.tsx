@@ -32,27 +32,27 @@ type NavItem = {
 }
 
 type NavGroup = {
-  label: string
+  labelKey: string
   items: NavItem[]
 }
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'General',
+    labelKey: 'settings.navGroups.general',
     items: [
       { key: 'monitoring', icon: Activity, minRole: 'admin' },
       { key: 'extension', icon: Puzzle, minRole: 'viewer' },
     ],
   },
   {
-    label: 'Automation',
+    labelKey: 'settings.navGroups.automation',
     items: [
       { key: 'crawler', icon: Search, minRole: 'admin' },
       { key: 'auto-draft', icon: Wand2, minRole: 'admin' },
     ],
   },
   {
-    label: 'AI & Content',
+    labelKey: 'settings.navGroups.aiContent',
     items: [
       { key: 'br-templates', icon: FileText, minRole: 'admin' },
       { key: 'ai-learning', icon: Brain, minRole: 'admin' },
@@ -60,7 +60,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Admin',
+    labelKey: 'settings.navGroups.admin',
     items: [
       { key: 'users', icon: Users, minRole: 'owner' },
     ],
@@ -96,13 +96,13 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
 
   const tabLabel = (tab: SettingsTab): string => {
     switch (tab) {
-      case 'monitoring': return t('settings.monitoring.title')
+      case 'monitoring': return t('settings.monitoring.title' as Parameters<typeof t>[0])
       case 'extension': return t('settings.extension.title' as Parameters<typeof t>[0])
       case 'crawler': return t('settings.crawler.title' as Parameters<typeof t>[0])
-      case 'auto-draft': return 'Auto Draft'
-      case 'br-templates': return 'Templates'
+      case 'auto-draft': return t('settings.autoDraft.title' as Parameters<typeof t>[0])
+      case 'br-templates': return t('settings.brTemplates.title' as Parameters<typeof t>[0])
       case 'ai-learning': return t('settings.aiLearning.title' as Parameters<typeof t>[0])
-      case 'ai-prompts': return 'AI Prompts'
+      case 'ai-prompts': return t('settings.aiPrompts.title' as Parameters<typeof t>[0])
       case 'users': return t('settings.users.title')
     }
   }
@@ -132,9 +132,9 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
             <div className="fixed inset-0 z-40" onClick={() => setMobileOpen(false)} />
             <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-th-border bg-surface-card shadow-xl">
               {visibleGroups.map((group) => (
-                <div key={group.label}>
+                <div key={t(group.labelKey as Parameters<typeof t>[0])}>
                   <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-th-text-muted">
-                    {group.label}
+                    {t(group.labelKey as Parameters<typeof t>[0])}
                   </p>
                   {group.items.map((item) => {
                     const Icon = item.icon
@@ -165,9 +165,9 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
       <div className="hidden min-h-0 flex-1 gap-6 md:flex">
         <nav className="sticky top-0 w-52 shrink-0 self-start space-y-4">
           {visibleGroups.map((group) => (
-            <div key={group.label}>
+            <div key={t(group.labelKey as Parameters<typeof t>[0])}>
               <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-th-text-muted">
-                {group.label}
+                {t(group.labelKey as Parameters<typeof t>[0])}
               </p>
               <div className="space-y-0.5">
                 {group.items.map((item) => {
