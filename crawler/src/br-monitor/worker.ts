@@ -10,6 +10,7 @@ import type {
   CaseDetailScraped,
 } from './types.js'
 import { log } from '../logger.js'
+import { validateMessages, detectCycleAnomaly } from './validate.js'
 
 const CASE_DETAIL_URL = 'https://brandregistry.amazon.com/cu/case-dashboard/view-case'
 const USER_DATA_DIR = process.env['BR_MONITOR_DATA_DIR'] || '/tmp/br-monitor-data'
@@ -370,6 +371,9 @@ const processBrMonitorJob = async (
 
   let processed = 0
   let skipped = 0
+  let casesWithNewMessages = 0
+  let totalNewMessages = 0
+  let totalRejected = 0
 
   for (const target of reports) {
     try {
@@ -383,8 +387,11 @@ const processBrMonitorJob = async (
         }
       }
 
-      await processSingleCase(page, target, reportResult)
+      const caseResult = await processSingleCase(page, target, reportResult)
       processed++
+      if (caseResult.newMessageCount > 0) casesWithNewMessages++
+      totalNewMessages += caseResult.newMessageCount
+      totalRejected += caseResult.rejectedCount
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error)
       log('error', 'br-monitor', `Failed to process case ${target.brCaseId}: ${errorMsg}`)
@@ -398,23 +405,41 @@ const processBrMonitorJob = async (
   }
 
   log('info', 'br-monitor', `Monitor cycle complete: processed=${processed}, skipped=${skipped}`)
+
+  // Layer 2: 사이클 이상 감지
+  const anomaly = detectCycleAnomaly({
+    totalCases: processed,
+    casesWithNewMessages,
+    totalNewMessages,
+    rejectedMessages: totalRejected,
+  })
+
+  if (anomaly.anomalyDetected) {
+    log('error', 'br-monitor', `ANOMALY: ${anomaly.reason} (action: ${anomaly.action})`)
+    await notifyOperator(`🚨 *[BR Monitor]* 이상 감지\n${anomaly.reason}\n조치: ${anomaly.action}`)
+  }
 }
 
 // ─── Process Single Case ─────────────────────────────────────
+type CaseProcessResult = { newMessageCount: number; rejectedCount: number }
+
 const processSingleCase = async (
   page: Page,
   target: BrMonitorTarget,
   reportResult: (result: BrMonitorResult) => Promise<void>,
-): Promise<void> => {
+): Promise<CaseProcessResult> => {
   const detail = await scrapeCaseDetail(page, target.brCaseId)
 
   if (!detail) {
     log('warn', 'br-monitor', `No data for case ${target.brCaseId}`)
-    return
+    return { newMessageCount: 0, rejectedCount: 0 }
   }
 
-  // 새 메시지 필터
-  const newMessages = detectNewMessages(detail.messages, target.lastScrapedAt)
+  // Layer 1: 메시지 검증
+  const { accepted, rejected } = validateMessages(detail.messages)
+
+  // 새 메시지 필터 (검증 통과한 것만)
+  const newMessages = detectNewMessages(accepted, target.lastScrapedAt)
 
   // 상태 변경 감지
   const statusChanged = target.brCaseStatus !== detail.status
@@ -422,7 +447,7 @@ const processSingleCase = async (
   // 변경 없으면 스킵
   if (newMessages.length === 0 && !statusChanged) {
     log('info', 'br-monitor', `Case ${target.brCaseId}: no changes`)
-    return
+    return { newMessageCount: 0, rejectedCount: rejected.length }
   }
 
   // 아마존 마지막 답장 시간
@@ -448,6 +473,7 @@ const processSingleCase = async (
   }
 
   await reportResult(result)
+  return { newMessageCount: newMessages.length, rejectedCount: rejected.length }
 }
 
 // ─── Browser Cleanup ─────────────────────────────────────────

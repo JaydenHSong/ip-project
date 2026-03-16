@@ -55,28 +55,45 @@ export const POST = async (req: Request) => {
     )
   }
 
-  // 2. 새 메시지 저장 (br_case_messages)
+  // 2. 새 메시지 저장 (br_case_messages) — 중복 body 방어
   if (body.new_messages.length > 0) {
-    const messageRows = body.new_messages.map((msg) => ({
-      report_id: body.report_id,
-      br_case_id: body.br_case_id,
-      direction: msg.direction,
-      sender: msg.sender,
-      body: msg.body,
-      attachments: [],
-      sent_at: msg.sent_at,
-      scraped_at: now,
-    }))
-
-    const { error: insertError } = await supabase
+    // 기존 메시지 body 조회 (중복 체크)
+    const { data: existingMessages } = await supabase
       .from('br_case_messages')
-      .insert(messageRows)
+      .select('body')
+      .eq('report_id', body.report_id)
 
-    if (insertError) {
-      return NextResponse.json(
-        { error: { code: 'DB_ERROR', message: `Failed to insert messages: ${insertError.message}` } },
-        { status: 500 },
-      )
+    const existingBodies = new Set((existingMessages ?? []).map((e: { body: string }) => e.body))
+    const deduplicated = body.new_messages.filter((msg) => !existingBodies.has(msg.body))
+
+    if (deduplicated.length < body.new_messages.length) {
+      const skipped = body.new_messages.length - deduplicated.length
+      // 중복은 로그만, 에러 아님
+      console.warn(`[br-monitor-result] ${skipped} duplicate messages skipped for report ${body.report_id}`)
+    }
+
+    if (deduplicated.length > 0) {
+      const messageRows = deduplicated.map((msg) => ({
+        report_id: body.report_id,
+        br_case_id: body.br_case_id,
+        direction: msg.direction,
+        sender: msg.sender,
+        body: msg.body,
+        attachments: [],
+        sent_at: msg.sent_at,
+        scraped_at: now,
+      }))
+
+      const { error: insertError } = await supabase
+        .from('br_case_messages')
+        .insert(messageRows)
+
+      if (insertError) {
+        return NextResponse.json(
+          { error: { code: 'DB_ERROR', message: `Failed to insert messages: ${insertError.message}` } },
+          { status: 500 },
+        )
+      }
     }
   }
 
