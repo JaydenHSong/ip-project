@@ -282,14 +282,14 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       {/* Bulk Actions Bar */}
       {!isArchived && canBulk && selectedIds.size > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-th-border bg-surface-card px-4 py-2">
-          <span className="text-sm font-medium text-th-text">{selectedIds.size}건 선택</span>
+          <span className="text-sm font-medium text-th-text">{t('reports.bulk.selected' as Parameters<typeof t>[0]).replace('{count}', String(selectedIds.size))}</span>
           <Button
             size="sm"
             variant="outline"
             loading={bulkLoading === 'brResubmit'}
             onClick={handleBulkBrResubmit}
           >
-            BR 재신고
+            {t('reports.bulk.brResubmit' as Parameters<typeof t>[0])}
           </Button>
           <Button
             size="sm"
@@ -298,7 +298,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             loading={bulkLoading === 'archive'}
             onClick={handleBulkArchive}
           >
-            Archive
+            {t('reports.bulk.archive' as Parameters<typeof t>[0])}
           </Button>
         </div>
       )}
@@ -408,14 +408,14 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                 {(() => { const o = canBulk ? 1 : 0; return (<>
                 <th className="relative px-4 py-3 text-sm font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(o)} /></th>
                 <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 1)} /></SortableHeader>
-                <SortableHeader label="Channel" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 2)} /></SortableHeader>
+                <SortableHeader label={t('reports.table.channel' as Parameters<typeof t>[0])} field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 2)} /></SortableHeader>
                 <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 3)} /></SortableHeader>
                 <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 4)} /></SortableHeader>
                 <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 5)} /></SortableHeader>
                 <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 6)} /></SortableHeader>
                 <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 7)} /></SortableHeader>
-                <SortableHeader label="Last Updated" field="updated" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 8)} /></SortableHeader>
-                <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 9)} /></SortableHeader>
+                <SortableHeader label={t('reports.table.lastUpdated' as Parameters<typeof t>[0])} field="updated" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 8)} /></SortableHeader>
+                <SortableHeader label={t('reports.table.resolved' as Parameters<typeof t>[0])} field="resolved" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(o + 9)} /></SortableHeader>
                 </>)})()}
               </>)}
             </tr>

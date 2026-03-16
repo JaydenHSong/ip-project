@@ -702,7 +702,7 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-xs font-semibold text-th-text-tertiary">Memo</h3>
                   <span className="text-[11px] text-th-text-muted">
-                    {memoSaving ? 'Saving...' : memoSaved ? 'Saved' : ''}
+                    {memoSaving ? t('common.loading' as Parameters<typeof t>[0]) : memoSaved ? t('common.save' as Parameters<typeof t>[0]) : ''}
                   </span>
                 </div>
                 <Textarea

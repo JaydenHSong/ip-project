@@ -297,7 +297,7 @@ export const ReportsContent = ({
     { value: '', label: t('common.all') },
     { value: 'draft', label: t('reports.tabs.draft') },
     { value: 'monitoring', label: t('reports.tabs.monitoring') },
-    { value: 'answered', label: 'Answered' },
+    { value: 'answered', label: t('reports.tabs.answered' as Parameters<typeof t>[0]) },
   ]
 
   return (
@@ -361,7 +361,7 @@ export const ReportsContent = ({
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-th-accent/30 bg-th-accent/5 px-4 py-2.5">
-          <span className="text-sm font-medium text-th-text">{selectedIds.size}건 선택</span>
+          <span className="text-sm font-medium text-th-text">{t('reports.bulk.selected' as Parameters<typeof t>[0]).replace('{count}', String(selectedIds.size))}</span>
           <div className="h-4 w-px bg-th-border" />
           {(selectedStatuses['draft'] ?? 0) > 0 && canEdit && (
             <Button
@@ -370,7 +370,7 @@ export const ReportsContent = ({
               loading={bulkLoading === 'submit_review'}
               onClick={() => handleBulkSubmit('submit_review')}
             >
-              Submit Review ({selectedStatuses['draft']})
+              {t('reports.bulk.submitReview' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['draft']))}
             </Button>
           )}
           {(selectedStatuses['pending_review'] ?? 0) > 0 && canEdit && (
@@ -379,7 +379,7 @@ export const ReportsContent = ({
               loading={bulkLoading === 'approve'}
               onClick={handleBulkApprove}
             >
-              Approve ({selectedStatuses['pending_review']})
+              {t('reports.bulk.approve' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['pending_review']))}
             </Button>
           )}
           {(selectedStatuses['approved'] ?? 0) > 0 && canEdit && (
@@ -389,7 +389,7 @@ export const ReportsContent = ({
               loading={bulkLoading === 'submit_sc'}
               onClick={() => handleBulkSubmit('submit_sc')}
             >
-              Submit SC ({selectedStatuses['approved']})
+              {t('reports.bulk.submitSc' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['approved']))}
             </Button>
           )}
           {canEdit && (
@@ -399,7 +399,7 @@ export const ReportsContent = ({
               className="border-st-danger-text/30 text-st-danger-text hover:bg-st-danger-text/10"
               onClick={() => setShowBulkDeleteConfirm(true)}
             >
-              Delete ({selectedIds.size})
+              {t('reports.bulk.delete' as Parameters<typeof t>[0]).replace('{count}', String(selectedIds.size))}
             </Button>
           )}
           <Button
@@ -407,7 +407,7 @@ export const ReportsContent = ({
             size="sm"
             onClick={() => setSelectedIds(new Set())}
           >
-            선택 해제
+            {t('reports.bulk.deselect' as Parameters<typeof t>[0])}
           </Button>
         </div>
       )}
@@ -495,14 +495,14 @@ export const ReportsContent = ({
               </th>
               <th className="relative px-4 py-3 text-sm font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(1)} /></th>
               <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(2)} /></SortableHeader>
-              <SortableHeader label="CH" field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(3)} /></SortableHeader>
+              <SortableHeader label={t('reports.table.channel' as Parameters<typeof t>[0])} field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(3)} /></SortableHeader>
               <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(4)} /></SortableHeader>
               <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(5)} /></SortableHeader>
               <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(6)} /></SortableHeader>
               <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(7)} /></SortableHeader>
               <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(8)} /></SortableHeader>
-              <SortableHeader label="Updated" field="updated" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(9)} /></SortableHeader>
-              <SortableHeader label="Resolved" field="resolved" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(10)} /></SortableHeader>
+              <SortableHeader label={t('reports.table.updated' as Parameters<typeof t>[0])} field="updated" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(9)} /></SortableHeader>
+              <SortableHeader label={t('reports.table.resolved' as Parameters<typeof t>[0])} field="resolved" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(10)} /></SortableHeader>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
@@ -611,14 +611,14 @@ export const ReportsContent = ({
       <Modal
         open={showBulkDeleteConfirm}
         onClose={() => setShowBulkDeleteConfirm(false)}
-        title="Delete Reports"
+        title={t('reports.bulk.deleteTitle' as Parameters<typeof t>[0])}
       >
         <p className="text-sm text-th-text-secondary">
-          선택한 {selectedIds.size}건을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+          {t('reports.bulk.deleteConfirm' as Parameters<typeof t>[0]).replace('{count}', String(selectedIds.size))}
         </p>
         <div className="mt-4 flex justify-end gap-3">
           <Button variant="ghost" size="sm" onClick={() => setShowBulkDeleteConfirm(false)}>
-            취소
+            {t('common.cancel')}
           </Button>
           <Button
             size="sm"
@@ -626,7 +626,7 @@ export const ReportsContent = ({
             loading={bulkLoading === 'delete'}
             onClick={handleBulkDelete}
           >
-            Delete
+            {t('common.delete')}
           </Button>
         </div>
       </Modal>
