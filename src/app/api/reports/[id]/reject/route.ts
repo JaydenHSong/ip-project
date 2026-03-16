@@ -77,7 +77,7 @@ export const POST = withAuth(async (req) => {
     .eq('id', report.listing_id)
     .single()
 
-  notifyRejected(id, listing?.asin ?? 'N/A', body.rejection_reason).catch(() => {})
+  // 반려 알림 제거 — 에러 시에만 알림
 
   return NextResponse.json(data)
 }, ['owner', 'admin', 'editor'])

@@ -29,7 +29,7 @@ export const POST = withAuth(async (req) => {
   // 현재 상태 확인
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('status, draft_body, draft_title, draft_subject, draft_evidence, original_draft_body, listing_id, user_violation_type, br_form_type')
+    .select('status, report_number, draft_body, draft_title, draft_subject, draft_evidence, original_draft_body, listing_id, user_violation_type, br_form_type')
     .eq('id', id)
     .single()
 
@@ -111,7 +111,7 @@ export const POST = withAuth(async (req) => {
   }
 
   // 알림 (fire-and-forget)
-  notifyApproved(id, listing?.asin ?? 'N/A').catch(() => {})
+  // 승인 알림 제거 — 에러 시에만 알림
 
   // Opus 학습 트리거 (fire-and-forget): 수정된 경우에만
   const hasOriginal = !!report.original_draft_body

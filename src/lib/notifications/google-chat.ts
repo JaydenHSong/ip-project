@@ -40,15 +40,17 @@ const notifyDraftReady = async (
   await sendGoogleChatMessage(text)
 }
 
-// 신고서 승인 알림 (MS2)
+// 신고서 승인 알림
 const notifyApproved = async (
   reportId: string,
   asin: string,
+  reportNumber?: number,
 ): Promise<void> => {
+  const label = reportNumber ? `#${String(reportNumber).padStart(5, '0')}` : reportId.slice(0, 8)
   const text = [
     `✅ *[Sentinel]* 신고서 승인됨`,
-    `Report: ${reportId} | ASIN: ${asin}`,
-    `→ PD Reporting 제출이 가능합니다.`,
+    `Report: ${label} | ASIN: ${asin}`,
+    `→ BR 제출 큐에 등록되었습니다.`,
   ].join('\n')
   await sendGoogleChatMessage(text)
 }

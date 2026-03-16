@@ -70,7 +70,7 @@ export const POST = withAuth(async (req) => {
     .eq('id', report.listing_id)
     .single()
 
-  notifyDraftReady(id, listing?.asin ?? 'N/A', report.user_violation_type).catch(() => {})
+  // 드래프트 알림 제거 — 에러 시에만 알림
 
   return NextResponse.json(data)
 }, ['owner', 'admin', 'editor'])

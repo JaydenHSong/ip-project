@@ -176,11 +176,11 @@ const processAiAnalysis = async (
     }
   }
 
-  // [Step 7] Google Chat 알림
+  // [Step 7] Google Chat 알림 — 정상 동작 알림 제거 (에러 시에만)
   try {
-    await notifyDraftReady(reportId, listing.asin, primaryViolation.type)
+    // notifyDraftReady removed — only error notifications
   } catch {
-    // 알림 실패는 무시
+    // noop
   }
 
   result.duration = Date.now() - startTime
