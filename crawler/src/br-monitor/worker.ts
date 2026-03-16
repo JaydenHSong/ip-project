@@ -130,6 +130,13 @@ const scrapeCaseDetail = async (page: Page, caseId: string): Promise<CaseDetailS
 
   await page.goto(url, { waitUntil: 'networkidle', timeout: PAGE_LOAD_TIMEOUT })
 
+  // 로그인 페이지 감지 — 세션 만료 시 스크래핑 방지
+  const currentUrl = page.url()
+  if (currentUrl.includes('signin') || currentUrl.includes('/ap/')) {
+    log('warn', 'br-monitor', `Case ${caseId}: redirected to login page, skipping`)
+    return null
+  }
+
   // 404 or case not found
   const pageText = await page.textContent('body').catch(() => '') ?? ''
   if (pageText.includes('not found') || pageText.includes('404') || pageText.includes('does not exist')) {
