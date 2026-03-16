@@ -57,7 +57,8 @@ const ReportsPage = async ({
     if (params.status === 'answered') {
       query = query.eq('status', 'monitoring').eq('br_case_status', 'answered')
     } else if (params.status === 'monitoring') {
-      query = query.eq('status', 'monitoring').neq('br_case_status', 'answered')
+      // monitoring + br_submitting 모두 포함 (answered 제외)
+      query = query.in('status', ['monitoring', 'br_submitting']).neq('br_case_status', 'answered')
     } else if (params.status) {
       query = query.eq('status', params.status)
     } else {
