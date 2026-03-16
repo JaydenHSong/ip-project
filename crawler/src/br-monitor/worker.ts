@@ -374,6 +374,8 @@ const processBrMonitorJob = async (
   let casesWithNewMessages = 0
   let totalNewMessages = 0
   let totalRejected = 0
+  let reLoginCount = 0
+  let abortedAt: string | null = null
 
   for (const target of reports) {
     try {
@@ -392,6 +394,7 @@ const processBrMonitorJob = async (
       // 자가 복구: processSingleCase가 null 반환 = 로그인 만료 감지
       if (!caseResult) {
         log('warn', 'br-monitor', `Session expired mid-cycle at case ${target.brCaseId}, attempting re-login`)
+        reLoginCount++
         const reLoggedIn = await ensureLoggedIn(page)
         if (reLoggedIn) {
           log('info', 'br-monitor', 'Re-login successful, retrying case')
@@ -406,7 +409,7 @@ const processBrMonitorJob = async (
         }
         // 재로그인 실패 → 남은 케이스 전부 스킵
         log('error', 'br-monitor', 'Re-login failed, aborting remaining cases')
-        await notifyOperator('🚨 *[BR Monitor]* 사이클 중 세션 만료 → 재로그인 실패. 남은 케이스 스킵.')
+        abortedAt = target.brCaseId
         break
       }
 
@@ -436,9 +439,21 @@ const processBrMonitorJob = async (
     rejectedMessages: totalRejected,
   })
 
-  if (anomaly.anomalyDetected) {
-    log('error', 'br-monitor', `ANOMALY: ${anomaly.reason} (action: ${anomaly.action})`)
-    await notifyOperator(`🚨 *[BR Monitor]* 이상 감지\n${anomaly.reason}\n조치: ${anomaly.action}`)
+  // 종합 리포트 — 문제가 있었을 때만 알림 (한 번만)
+  const issues: string[] = []
+  if (reLoginCount > 0) issues.push(`🔄 세션 만료 ${reLoginCount}회 → 자동 재로그인${abortedAt ? ' (실패, 중단됨)' : ' 성공'}`)
+  if (totalRejected > 0) issues.push(`🚫 메시지 ${totalRejected}건 검증 거부 (로그인 페이지/HTML/잘못된 sender)`)
+  if (anomaly.anomalyDetected) issues.push(`⚠️ 이상 패턴: ${anomaly.reason}`)
+  if (abortedAt) issues.push(`❌ 케이스 ${abortedAt}에서 중단`)
+
+  if (issues.length > 0) {
+    const report = [
+      '🛡️ *[BR Monitor]* 사이클 리포트',
+      `처리: ${processed}/${reports.length} | 새 메시지: ${totalNewMessages}건`,
+      '',
+      ...issues,
+    ].join('\n')
+    await notifyOperator(report)
   }
 }
 
