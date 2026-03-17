@@ -14,9 +14,11 @@ export const CaseCloseButton = ({ reportId, onClosed }: CaseCloseButtonProps) =>
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [resolution, setResolution] = useState<'resolved' | 'unresolved'>('resolved')
+  const [error, setError] = useState<string | null>(null)
 
   const handleClose = async () => {
     setLoading(true)
+    setError(null)
     try {
       const res = await fetch(`/api/reports/${reportId}/case-close`, {
         method: 'POST',
@@ -29,8 +31,8 @@ export const CaseCloseButton = ({ reportId, onClosed }: CaseCloseButtonProps) =>
       }
       setOpen(false)
       onClosed?.()
-    } catch {
-      // keep modal open
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to close case')
     } finally {
       setLoading(false)
     }
@@ -52,6 +54,9 @@ export const CaseCloseButton = ({ reportId, onClosed }: CaseCloseButtonProps) =>
           <p className="text-sm text-th-text-secondary">
             How was this case resolved?
           </p>
+          {error && (
+            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>
+          )}
           <div className="flex gap-2">
             <button
               type="button"
