@@ -44,7 +44,7 @@ export const CaseCloseButton = ({ reportId, onClosed }: CaseCloseButtonProps) =>
         className="flex items-center gap-1 rounded-full border border-red-400/30 px-2.5 py-1 text-xs font-medium text-red-500 transition-colors hover:bg-red-100/50 dark:hover:bg-red-900/20"
       >
         <XCircle className="h-3.5 w-3.5" />
-        Close
+        Close Case
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Close Case">
