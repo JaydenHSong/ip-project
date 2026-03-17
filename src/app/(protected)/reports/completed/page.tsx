@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/session'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_REPORTS } from '@/lib/demo/data'
+import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 import { CompletedReportsContent } from './CompletedReportsContent'
 
 const COMPLETED_STATUSES = ['resolved', 'unresolved', 'resubmitted', 'escalated']
@@ -38,16 +39,17 @@ const CompletedReportsPage = async ({
 
     // Pre-fetch matching listing IDs for search (covers reports without listing_snapshot)
     let matchedListingIds: string[] = []
+    const safeSearch = searchTerm ? sanitizeSearchTerm(searchTerm) : ''
     if (searchTerm && !/^\d+$/.test(searchTerm)) {
       const { data: matchedListings } = await supabase
         .from('listings')
         .select('id')
-        .or(`asin.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`)
+        .or(`asin.ilike.%${safeSearch}%,title.ilike.%${safeSearch}%,seller_name.ilike.%${safeSearch}%`)
       matchedListingIds = matchedListings?.map((l) => l.id) ?? []
     }
 
-    const buildSearchFilter = (searchTerm: string) => {
-      const snapshotFilter = `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`
+    const buildSearchFilter = () => {
+      const snapshotFilter = `listing_snapshot->>asin.ilike.%${safeSearch}%,listing_snapshot->>title.ilike.%${safeSearch}%,listing_snapshot->>seller_name.ilike.%${safeSearch}%`
       if (matchedListingIds.length > 0) {
         return `${snapshotFilter},listing_id.in.(${matchedListingIds.join(',')})`
       }
@@ -64,7 +66,7 @@ const CompletedReportsPage = async ({
       if (isNumber) {
         countQuery = countQuery.eq('report_number', Number(searchTerm))
       } else {
-        countQuery = countQuery.or(buildSearchFilter(searchTerm))
+        countQuery = countQuery.or(buildSearchFilter())
       }
     }
     if (ownerFilter === 'my') {
@@ -104,7 +106,7 @@ const CompletedReportsPage = async ({
       if (isNumber) {
         query = query.eq('report_number', Number(searchTerm))
       } else {
-        query = query.or(buildSearchFilter(searchTerm))
+        query = query.or(buildSearchFilter())
       }
     }
 

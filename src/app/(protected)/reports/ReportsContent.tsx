@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { X } from 'lucide-react'
@@ -92,12 +92,8 @@ export const ReportsContent = ({
   const { addToast } = useToast()
   const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '', dateFrom, dateTo })
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isSearching = searchQuery.length > 0
-
-  // Sync searchQuery prop → local filters state when server re-renders
-  useEffect(() => {
-    setFilters((prev) => prev.search !== searchQuery ? { ...prev, search: searchQuery } : prev)
-  }, [searchQuery])
+  const [, startTransition] = useTransition()
+  const isSearching = filters.search.length > 0
 
   const buildFilterUrl = useCallback((f: TableFiltersType) => {
     return buildTableUrl('/reports', {
@@ -121,7 +117,9 @@ export const ReportsContent = ({
     if (searchChanged || dateChanged) {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
-        router.push(buildFilterUrl(newFilters))
+        startTransition(() => {
+          router.replace(buildFilterUrl(newFilters))
+        })
       }, searchChanged ? 300 : 0)
     }
   }, [filters.search, filters.dateFrom, filters.dateTo, router, buildFilterUrl])
@@ -158,10 +156,12 @@ export const ReportsContent = ({
   const getMarketplace = useCallback((item: ReportRow) => item.listings?.marketplace ?? '', [])
 
   // Server already filters by search — only apply client-side violationType/marketplace
+  // When search is active (debounced to URL), skip client-side search filtering to avoid double-filtering
+  const serverHasSearch = searchQuery.length > 0
   const clientFilters = useMemo<TableFiltersType>(() => ({
     ...filters,
-    search: searchQuery ? '' : filters.search,
-  }), [filters, searchQuery])
+    search: serverHasSearch ? '' : filters.search,
+  }), [filters, serverHasSearch])
   const filteredData = useFilterableTable(reports ?? [], clientFilters, getSearchableText, getViolationType, getMarketplace)
 
   // Server-side sorting — push sort params to URL
@@ -593,7 +593,7 @@ export const ReportsContent = ({
               key={p}
               href={buildTableUrl('/reports', {
                 page: p,
-                search: searchQuery,
+                search: filters.search,
                 status: statusFilter,
                 br_form_type: brFormTypeFilter,
                 owner: ownerFilter,

@@ -21,7 +21,11 @@ type CaseChainProps = {
 
 export const CaseChain = ({ currentId, parentChain, children }: CaseChainProps) => {
   const router = useRouter()
-  const allNodes = [...parentChain, { id: currentId, isCurrent: true } as unknown as ChainNode, ...children]
+  const allNodes: (ChainNode & { isCurrent?: boolean })[] = [
+    ...parentChain,
+    { id: currentId, isCurrent: true, status: '', br_case_status: null, escalation_level: null, created_at: '', user_violation_type: '' },
+    ...children,
+  ]
 
   if (parentChain.length === 0 && children.length === 0) return null
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 import type { CreateReportRequest } from '@/types/api'
 
 // GET /api/reports — 신고 대기열 목록
@@ -41,7 +42,7 @@ export const GET = withAuth(async (req) => {
     query = query.eq('disagreement_flag', true)
   }
   if (search) {
-    query = query.or(`draft_title.ilike.%${search}%`)
+    query = query.or(`draft_title.ilike.%${sanitizeSearchTerm(search)}%`)
   }
   if (brCaseStatus) {
     query = query.eq('br_case_status', brCaseStatus)

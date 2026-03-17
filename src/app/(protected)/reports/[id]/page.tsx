@@ -101,7 +101,7 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
     report = found as unknown as ReportData
     listing = found.listings as ListingInfo
     creator = found.users
-    timeline = buildDemoTimeline(found as unknown as (typeof DEMO_REPORTS)[number])
+    timeline = buildDemoTimeline(found as (typeof DEMO_REPORTS)[number])
     snapshots = DEMO_SNAPSHOTS[id] ?? []
   } else {
     const supabase = await createClient()
@@ -115,10 +115,10 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
       .single()
 
     if (error || !data) notFound()
-    report = data as unknown as ReportData
+    report = data as ReportData
     // listing_snapshot fallback
-    listing = (data.listings ?? data.listing_snapshot) as unknown as ListingInfo | null
-    creator = data.users as unknown as { name: string; email: string } | null
+    listing = (data.listings ?? data.listing_snapshot) as ListingInfo | null
+    creator = data.users as { name: string; email: string } | null
 
     timeline = buildTimelineEvents(
       {
@@ -157,7 +157,7 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
         .eq('report_id', id)
         .order('crawled_at', { ascending: true })
 
-      snapshots = (snapshotData ?? []) as unknown as ReportSnapshot[]
+      snapshots = (snapshotData ?? []) as ReportSnapshot[]
     }
   }
 

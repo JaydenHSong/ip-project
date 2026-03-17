@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 
 // GET /api/patents — IP 자산 목록
 export const GET = withAuth(async (req) => {
@@ -34,7 +35,7 @@ export const GET = withAuth(async (req) => {
   }
   if (search) {
     query = query.or(
-      `management_number.ilike.%${search}%,name.ilike.%${search}%`,
+      `management_number.ilike.%${sanitizeSearchTerm(search)}%,name.ilike.%${sanitizeSearchTerm(search)}%`,
     )
   }
 

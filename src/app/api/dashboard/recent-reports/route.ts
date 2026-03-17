@@ -37,7 +37,7 @@ export const GET = async (request: NextRequest): Promise<NextResponse> => {
     ai_confidence_score: r.ai_confidence_score,
     disagreement_flag: r.disagreement_flag,
     created_at: r.created_at,
-    listings: (r.listings as unknown as { asin: string; title: string; marketplace: string; seller_name: string | null }) ?? { asin: '', title: '', marketplace: '', seller_name: null },
+    listings: (Array.isArray(r.listings) ? r.listings[0] : r.listings) as { asin: string; title: string; marketplace: string; seller_name: string | null } ?? { asin: '', title: '', marketplace: '', seller_name: null },
   }))
 
   return NextResponse.json(reports)

@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentUser } from '@/lib/auth/session'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_NOTICES } from '@/lib/demo/data'
+import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 import { NoticesContent } from './NoticesContent'
 
 const NoticesPage = async ({
@@ -60,7 +61,8 @@ const NoticesPage = async ({
       query = query.eq('category', params.category)
     }
     if (params.search) {
-      query = query.or(`title.ilike.%${params.search}%,content.ilike.%${params.search}%`)
+      const safe = sanitizeSearchTerm(params.search)
+      query = query.or(`title.ilike.%${safe}%,content.ilike.%${safe}%`)
     }
     if (params.from) {
       query = query.gte('created_at', params.from)

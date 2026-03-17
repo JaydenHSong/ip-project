@@ -47,7 +47,8 @@ export const GET = async (req: Request) => {
     .filter(Boolean)
 
   const mapped = (reports ?? []).map((r) => {
-    const listing = r.listings as unknown as { asin: string } | null
+    const listingArr = r.listings as { asin: string }[] | null
+      const listing = Array.isArray(listingArr) ? listingArr[0] ?? null : listingArr
     return {
       report_id: r.id,
       draft_title: r.draft_title,

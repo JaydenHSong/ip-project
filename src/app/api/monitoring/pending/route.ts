@@ -76,7 +76,8 @@ export const GET = withAuth(async () => {
 
     // 재방문 시점 도래
     if (daysSinceLastCrawl >= intervalDays) {
-      const listing = report.listings as unknown as { asin: string; marketplace: string } | null
+      const listingArr = report.listings as { asin: string; marketplace: string }[] | null
+      const listing = Array.isArray(listingArr) ? listingArr[0] ?? null : listingArr
       results.push({
         report_id: report.id,
         listing_id: report.listing_id,

@@ -24,7 +24,8 @@ export const GET = withAuth(async (req: NextRequest) => {
 
   // listings join을 통해 ASIN + marketplace 매칭
   const matches = (data ?? []).filter((r) => {
-    const listing = r.listings as unknown as { asin: string; marketplace: string } | null
+    const listingArr = r.listings as { asin: string; marketplace: string }[] | null
+    const listing = Array.isArray(listingArr) ? listingArr[0] ?? null : listingArr
     return listing?.asin === asin && listing?.marketplace === marketplace
   })
 

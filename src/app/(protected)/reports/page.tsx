@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/session'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_REPORTS } from '@/lib/demo/data'
+import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 import { ReportsContent } from './ReportsContent'
 
 const ReportsPage = async ({
@@ -102,20 +103,21 @@ const ReportsPage = async ({
       if (isNumber) {
         query = query.eq('report_number', Number(searchTerm))
       } else {
+        const safe = sanitizeSearchTerm(searchTerm)
         // Search listing_snapshot (JSONB) + fallback to listings table for reports without snapshot
         const { data: matchedListings } = await supabase
           .from('listings')
           .select('id')
-          .or(`asin.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`)
+          .or(`asin.ilike.%${safe}%,title.ilike.%${safe}%,seller_name.ilike.%${safe}%`)
         const matchedIds = matchedListings?.map((l) => l.id) ?? []
 
         if (matchedIds.length > 0) {
           query = query.or(
-            `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%,listing_id.in.(${matchedIds.join(',')})`,
+            `listing_snapshot->>asin.ilike.%${safe}%,listing_snapshot->>title.ilike.%${safe}%,listing_snapshot->>seller_name.ilike.%${safe}%,listing_id.in.(${matchedIds.join(',')})`,
           )
         } else {
           query = query.or(
-            `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`,
+            `listing_snapshot->>asin.ilike.%${safe}%,listing_snapshot->>title.ilike.%${safe}%,listing_snapshot->>seller_name.ilike.%${safe}%`,
           )
         }
       }

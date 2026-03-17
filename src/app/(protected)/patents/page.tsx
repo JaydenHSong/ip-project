@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth/session'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_IP_ASSETS } from '@/lib/demo/patents'
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 import { PatentsContent } from './PatentsContent'
 import type { IpType } from '@/types/ip-assets'
 
@@ -57,8 +58,9 @@ const PatentsPage = async ({
       query = query.eq('country', params.country)
     }
     if (params.search) {
+      const safe = sanitizeSearchTerm(params.search)
       query = query.or(
-        `management_number.ilike.%${params.search}%,name.ilike.%${params.search}%`,
+        `management_number.ilike.%${safe}%,name.ilike.%${safe}%`,
       )
     }
 

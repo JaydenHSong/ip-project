@@ -22,11 +22,16 @@ export const POST = withAuth(async (req: NextRequest) => {
     return NextResponse.json({ error: 'Report or listing not found' }, { status: 404 })
   }
 
-  const listing = report.listings as unknown as {
+  const listingArr = report.listings as {
     id: string
     asin: string
     marketplace: string
     last_fetched_at: string | null
+  }[] | null
+  const listing = Array.isArray(listingArr) ? listingArr[0] ?? null : listingArr
+
+  if (!listing) {
+    return NextResponse.json({ error: 'Listing data not found' }, { status: 404 })
   }
 
   // 쿨다운 체크

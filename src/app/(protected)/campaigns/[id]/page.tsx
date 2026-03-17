@@ -113,7 +113,7 @@ const CampaignDetailPage = async ({ params }: { params: Promise<{ id: string }> 
       .single()
 
     if (error || !data) notFound()
-    campaign = data as unknown as CampaignData
+    campaign = data as CampaignData
 
     const { count: tc } = await supabase
       .from('listings')

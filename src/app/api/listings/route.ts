@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { checkSuspectListing } from '@/lib/utils/suspect-filter'
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 import type { CreateListingRequest } from '@/types/api'
 
 // POST /api/listings — 리스팅 데이터 수집 (Crawler/Extension)
@@ -99,7 +100,7 @@ export const GET = withAuth(async (req) => {
     query = query.eq('is_suspect', true)
   }
   if (search) {
-    query = query.or(`title.ilike.%${search}%,asin.ilike.%${search}%`)
+    query = query.or(`title.ilike.%${sanitizeSearchTerm(search)}%,asin.ilike.%${sanitizeSearchTerm(search)}%`)
   }
   if (campaignId) {
     query = query.eq('source_campaign_id', campaignId)

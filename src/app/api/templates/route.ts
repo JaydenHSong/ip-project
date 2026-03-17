@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_TEMPLATES } from '@/lib/demo/data'
 
@@ -52,7 +53,7 @@ export const GET = withAuth(async (req) => {
   if (marketplace) {
     query = query.or(`marketplace.cs.{${marketplace}},marketplace.eq.{}`)
   }
-  if (search) query = query.or(`title.ilike.%${search}%,body.ilike.%${search}%`)
+  if (search) query = query.or(`title.ilike.%${sanitizeSearchTerm(search)}%,body.ilike.%${sanitizeSearchTerm(search)}%`)
 
   query = query.order('is_default', { ascending: false }).order('usage_count', { ascending: false })
 

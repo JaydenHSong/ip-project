@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
@@ -68,14 +68,10 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   const { addToast } = useToast()
   const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '', dateFrom: '', dateTo: '' })
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isSearching = searchQuery.length > 0
+  const [, startTransition] = useTransition()
+  const isSearching = filters.search.length > 0
   const isArchived = statusFilter === 'archived'
   const [unarchiving, setUnarchiving] = useState<string | null>(null)
-
-  // Sync searchQuery prop → local filters state when server re-renders
-  useEffect(() => {
-    setFilters((prev) => prev.search !== searchQuery ? { ...prev, search: searchQuery } : prev)
-  }, [searchQuery])
 
   const buildFilterUrl = useCallback((search: string) => {
     return buildTableUrl('/reports/completed', {
@@ -93,7 +89,9 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
     if (newFilters.search !== filters.search) {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
-        router.push(buildFilterUrl(newFilters.search))
+        startTransition(() => {
+          router.replace(buildFilterUrl(newFilters.search))
+        })
       }, 300)
     }
   }, [filters.search, router, buildFilterUrl])
