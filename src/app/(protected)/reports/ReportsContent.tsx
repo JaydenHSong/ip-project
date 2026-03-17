@@ -17,8 +17,11 @@ import { Modal } from '@/components/ui/Modal'
 import { NewReportModal } from '@/components/features/NewReportModal'
 import { BrCaseQueueBar } from '@/components/features/BrCaseQueueBar'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
+import { useColumnVisibility } from '@/hooks/useColumnVisibility'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import { getBrFormTypeLabel } from '@/constants/br-form-types'
+import { REPORT_QUEUE_COLUMNS, getVisibleColumns, getVisibleColumnWidths, columnsHash } from '@/constants/table-columns'
+import { ColumnVisibilityToggle } from '@/components/ui/ColumnVisibilityToggle'
 import { MARKETPLACES } from '@/constants/marketplaces'
 import type { ReportStatus } from '@/types/reports'
 import { OwnerToggle } from '@/components/ui/OwnerToggle'
@@ -208,11 +211,16 @@ export const ReportsContent = ({
   }, [sortField, sortDir, router])
   const sortedData = filteredData
 
-  //                                    ck  No.  Status CH  ASIN Viol Seller Req  Date Upd  Resol
-  const defaultColWidths = useMemo(() => [40, 56, 110, 65, 140, 150, 220, 110, 95, 95, 115], [])
-  const minColWidths     = useMemo(() => [40, 50,  80, 40, 100, 100, 100,  80, 80, 80,  80], [])
+  const { hiddenIds, toggleColumn, resetToDefault } = useColumnVisibility({
+    columns: REPORT_QUEUE_COLUMNS,
+    preferenceKey: 'table_columns_reports_queue',
+  })
+  const visibleColumns = useMemo(() => getVisibleColumns(REPORT_QUEUE_COLUMNS, hiddenIds), [hiddenIds])
+  const { defaultWidths: defaultColWidths, minWidths: minColWidths } = useMemo(
+    () => getVisibleColumnWidths(REPORT_QUEUE_COLUMNS, hiddenIds), [hiddenIds],
+  )
   const { containerRef, tableStyle, getColStyle, getResizeHandleProps } = useResizableColumns({
-    storageKey: 'reports-queue-v3',
+    storageKey: `reports-queue-v4-${columnsHash(visibleColumns.map((c) => c.id))}`,
     defaultWidths: defaultColWidths,
     minWidths: minColWidths,
   })
@@ -317,7 +325,14 @@ export const ReportsContent = ({
 
       <BrCaseQueueBar />
 
-      <TableFilters filters={filters} onFiltersChange={handleFiltersChange} showMarketplace={false} />
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <TableFilters filters={filters} onFiltersChange={handleFiltersChange} showMarketplace={false} />
+        </div>
+        <div className="hidden sm:block">
+          <ColumnVisibilityToggle columns={REPORT_QUEUE_COLUMNS} hiddenIds={hiddenIds} onToggle={toggleColumn} onReset={resetToDefault} />
+        </div>
+      </div>
 
       <BulkActionBar
         selectedCount={selectedIds.size}
@@ -354,102 +369,99 @@ export const ReportsContent = ({
         <div ref={containerRef} className="overflow-auto">
           <table className="table-fixed text-left text-sm" style={tableStyle}>
           <colgroup>
-            {defaultColWidths.map((_, i) => (
+            {visibleColumns.map((_, i) => (
               <col key={i} style={getColStyle(i)} />
             ))}
           </colgroup>
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
-              <th className="px-3 py-3">
-                <input
-                  type="checkbox"
-                  className="accent-th-accent"
-                  checked={sortedData.length > 0 && sortedData.every((r) => selectedIds.has(r.id))}
-                  onChange={handleToggleSelectAll}
-                />
-              </th>
-              <th className="relative px-4 py-3 text-sm font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(1)} /></th>
-              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(2)} /></SortableHeader>
-              <SortableHeader label={t('reports.table.channel' as Parameters<typeof t>[0])} field="channel" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(3)} /></SortableHeader>
-              <SortableHeader label={t('reports.asin')} field="asin" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(4)} /></SortableHeader>
-              <SortableHeader label={t('reports.violation')} field="violation" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(5)} /></SortableHeader>
-              <SortableHeader label={t('reports.seller')} field="seller" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(6)} /></SortableHeader>
-              <SortableHeader label={t('reports.createdBy')} field="requester" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(7)} /></SortableHeader>
-              <SortableHeader label={t('common.date')} field="date" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(8)} /></SortableHeader>
-              <SortableHeader label={t('reports.table.updated' as Parameters<typeof t>[0])} field="updated" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(9)} /></SortableHeader>
-              <SortableHeader label={t('reports.table.resolved' as Parameters<typeof t>[0])} field="resolved" currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(10)} /></SortableHeader>
+              {visibleColumns.map((col, i) => {
+                if (col.id === 'checkbox') return (
+                  <th key={col.id} className="px-3 py-3">
+                    <input type="checkbox" className="accent-th-accent" checked={sortedData.length > 0 && sortedData.every((r) => selectedIds.has(r.id))} onChange={handleToggleSelectAll} />
+                  </th>
+                )
+                if (col.id === 'no') return (
+                  <th key={col.id} className="relative px-4 py-3 text-sm font-semibold text-th-text-tertiary">No.<div {...getResizeHandleProps(i)} /></th>
+                )
+                const labelMap: Record<string, string> = {
+                  status: t('common.status'),
+                  br_case_id: 'BR Case ID',
+                  channel: t('reports.table.channel' as Parameters<typeof t>[0]),
+                  asin: t('reports.asin'),
+                  violation: t('reports.violation'),
+                  seller: t('reports.seller'),
+                  requester: t('reports.createdBy'),
+                  date: t('common.date'),
+                  updated: t('reports.table.updated' as Parameters<typeof t>[0]),
+                  resolved: t('reports.table.resolved' as Parameters<typeof t>[0]),
+                }
+                return col.sortField ? (
+                  <SortableHeader key={col.id} label={labelMap[col.id] ?? col.id} field={col.sortField} currentSort={sort} onSort={toggleSort}><div {...getResizeHandleProps(i)} /></SortableHeader>
+                ) : (
+                  <th key={col.id} className="relative px-4 py-3 text-sm font-semibold text-th-text-tertiary">{labelMap[col.id] ?? col.id}<div {...getResizeHandleProps(i)} /></th>
+                )
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
             {sortedData.length === 0 ? (
               <tr>
-                <td colSpan={12} className="px-4 py-10 text-center text-sm text-th-text-muted">
+                <td colSpan={visibleColumns.length} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
                     ? t('table.noResults' as Parameters<typeof t>[0])
                     : t('reports.noReports')}
                 </td>
               </tr>
             ) : (
-              sortedData.map((report, idx) => {
+              sortedData.map((report) => {
                 const row = report as ReportRow & Record<string, unknown>
+                const cellMap: Record<string, React.ReactNode> = {
+                  checkbox: (
+                    <td key="checkbox" className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      <input type="checkbox" className="accent-th-accent" checked={selectedIds.has(report.id)} onChange={() => handleToggleSelect(report.id)} />
+                    </td>
+                  ),
+                  no: <td key="no" className="px-4 py-3.5"><span className="text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</span></td>,
+                  status: <td key="status" className="px-4 py-3.5"><StatusBadge status={report.status as ReportStatus} type="report" /></td>,
+                  br_case_id: (
+                    <td key="br_case_id" className="px-4 py-3.5">
+                      {report.br_case_id && report.br_case_id !== 'submitted' ? (
+                        <a href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>BR#{report.br_case_id}</a>
+                      ) : <span className="text-th-text-muted">—</span>}
+                    </td>
+                  ),
+                  channel: <td key="channel" className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>,
+                  asin: (
+                    <td key="asin" className="px-4 py-3.5">
+                      <span className="font-mono text-th-text">
+                        {report.listings?.asin ? (
+                          <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>{report.listings.asin}</a>
+                        ) : '—'}
+                        {(report.related_asins?.length ?? 0) > 0 && (
+                          <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">+{report.related_asins!.length}</span>
+                        )}
+                      </span>
+                    </td>
+                  ),
+                  violation: (
+                    <td key="violation" className="px-4 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
+                        {report.disagreement_flag && <Badge variant="warning">!</Badge>}
+                      </div>
+                    </td>
+                  ),
+                  seller: <td key="seller" className="px-4 py-3.5 text-th-text-secondary truncate">{report.listings?.seller_name ?? '—'}</td>,
+                  requester: <td key="requester" className="px-4 py-3.5 text-th-text-secondary truncate">{report.users?.name ?? '—'}</td>,
+                  date: <td key="date" className="px-4 py-3.5 text-th-text-muted">{formatDate(report.created_at)}</td>,
+                  updated: <td key="updated" className="px-4 py-3.5 text-th-text-muted">{formatDate(row.updated_at as string)}</td>,
+                  resolved: <td key="resolved" className="px-4 py-3.5 text-th-text-muted">{formatDate(row.resolved_at as string)}</td>,
+                }
                 return (
-                <tr
-                  key={report.id}
-                  className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`}
-                  onClick={() => setPreviewReportId(report.id)}
-                >
-                  <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      className="accent-th-accent"
-                      checked={selectedIds.has(report.id)}
-                      onChange={() => handleToggleSelect(report.id)}
-                    />
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className="text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <div className="flex flex-col">
-                      <StatusBadge status={report.status as ReportStatus} type="report" />
-                      {report.br_case_id && report.br_case_id !== 'submitted' && (
-                        <a
-                          href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-0.5 font-mono text-[10px] text-th-accent hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          BR#{report.br_case_id}
-                        </a>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 text-xs font-medium text-th-text">{getChannelCode(report.listings?.marketplace)}</td>
-                  <td className="px-4 py-3.5">
-                    <span className="font-mono text-th-text">
-                      {report.listings?.asin ? (
-                        <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>{report.listings.asin}</a>
-                      ) : '—'}
-                      {(report.related_asins?.length ?? 0) > 0 && (
-                        <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
-                          +{report.related_asins!.length}
-                        </span>
-                      )}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
-                      {report.disagreement_flag && <Badge variant="warning">!</Badge>}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.listings?.seller_name ?? '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-secondary truncate">{report.users?.name ?? '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(report.created_at)}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(row.updated_at as string)}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(row.resolved_at as string)}</td>
-                </tr>
+                  <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => setPreviewReportId(report.id)}>
+                    {visibleColumns.map((col) => cellMap[col.id])}
+                  </tr>
                 )
               })
             )}
