@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -18,6 +19,7 @@ type ReportPreviewPanelProps = {
 
 export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId }: ReportPreviewPanelProps) => {
   const { t } = useI18n()
+  const router = useRouter()
   const [activeId, setActiveId] = useState<string | null>(reportId)
   const [data, setData] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(false)
@@ -91,8 +93,8 @@ export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId 
         data ? (
           <div className="flex items-center gap-2">
             <StatusBadge status={data.status as ReportStatus} type="report" />
-            {(canEdit && data.status === 'monitoring' && !!data.br_case_status && (data.br_case_status as string) !== 'closed') ? (
-              <CaseCloseButton reportId={data.id as string} onClosed={() => { setData(null); setActiveId(activeId) }} />
+            {(canEdit && data.status === 'monitoring' && (data.br_case_status as string) !== 'closed') ? (
+              <CaseCloseButton reportId={data.id as string} onClosed={() => { setData(null); onClose(); router.refresh() }} />
             ) : null}
           </div>
         ) : undefined
