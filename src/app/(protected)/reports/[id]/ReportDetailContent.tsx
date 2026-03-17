@@ -238,6 +238,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
   )
   const [savingFollowupInterval, setSavingFollowupInterval] = useState(false)
   const [caseThreadTab, setCaseThreadTab] = useState<'thread' | 'activity'>('thread')
+  const [caseThreadExpanded, setCaseThreadExpanded] = useState(false)
   const hasScreenshots = (report.screenshots ?? []).length > 0 || !!report.screenshot_url
   const [extraTab, setExtraTab] = useState<'screenshots' | 'ai'>(hasScreenshots ? 'screenshots' : 'ai')
   const [adminMemo, setAdminMemo] = useState(report.admin_memo ?? '')
@@ -1717,47 +1718,56 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
         </Card>
       )}
 
-      {/* Case Thread (R03) + Activity Log (R05) */}
+      {/* Case Thread (R03) + Activity Log (R05) — 기본 접힘 */}
       {report.br_case_status && (
         <Card>
-          <CardHeader>
-            <div className="flex items-center gap-1 rounded-lg bg-th-bg-secondary p-0.5">
-              <button
-                onClick={() => setCaseThreadTab('thread')}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  caseThreadTab === 'thread'
-                    ? 'bg-surface-card text-th-text shadow-sm'
-                    : 'text-th-text-muted hover:text-th-text-secondary'
-                }`}
-              >
-                Case Thread
-              </button>
-              <button
-                onClick={() => setCaseThreadTab('activity')}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  caseThreadTab === 'activity'
-                    ? 'bg-surface-card text-th-text shadow-sm'
-                    : 'text-th-text-muted hover:text-th-text-secondary'
-                }`}
-              >
-                Activity Log
-              </button>
+          <div
+            className="cursor-pointer select-none px-6 py-4"
+            onClick={() => setCaseThreadExpanded((v) => !v)}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-th-text">Case Thread</h2>
+              <svg className={`h-4 w-4 text-th-text-muted transition-transform ${caseThreadExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
-          </CardHeader>
-          <CardContent>
-            {caseThreadTab === 'thread' ? (
-              <CaseThread
-                reportId={report.id}
-                currentUserId={currentUserId}
-                canEdit={canEdit}
-                hasPendingReply={!!report.br_reply_pending_text}
-                brCaseStatus={report.br_case_status}
-                onCaseChanged={() => router.refresh()}
-              />
-            ) : (
-              <CaseActivityLog reportId={report.id} />
-            )}
-          </CardContent>
+          </div>
+          {caseThreadExpanded && (
+            <CardContent>
+              <div className="mb-3 flex items-center gap-1 rounded-lg bg-th-bg-secondary p-0.5">
+                <button
+                  onClick={() => setCaseThreadTab('thread')}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    caseThreadTab === 'thread'
+                      ? 'bg-surface-card text-th-text shadow-sm'
+                      : 'text-th-text-muted hover:text-th-text-secondary'
+                  }`}
+                >
+                  Thread
+                </button>
+                <button
+                  onClick={() => setCaseThreadTab('activity')}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    caseThreadTab === 'activity'
+                      ? 'bg-surface-card text-th-text shadow-sm'
+                      : 'text-th-text-muted hover:text-th-text-secondary'
+                  }`}
+                >
+                  Activity
+                </button>
+              </div>
+              {caseThreadTab === 'thread' ? (
+                <CaseThread
+                  reportId={report.id}
+                  currentUserId={currentUserId}
+                  canEdit={canEdit}
+                  hasPendingReply={!!report.br_reply_pending_text}
+                  brCaseStatus={report.br_case_status}
+                  onCaseChanged={() => router.refresh()}
+                />
+              ) : (
+                <CaseActivityLog reportId={report.id} />
+              )}
+            </CardContent>
+          )}
         </Card>
       )}
 
