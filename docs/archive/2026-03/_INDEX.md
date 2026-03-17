@@ -9,3 +9,4 @@
 | new-report | 96% | 2026-03-12 | plan, design, analysis, report |
 | crawler-service-split | 100% | 2026-03-13 | plan, design, analysis, report |
 | code-quality-overhaul | 83% | 2026-03-17 | plan, design, analysis, report |
+| api-route-params-migration | 100% | 2026-03-17 | plan, design, analysis, report |
