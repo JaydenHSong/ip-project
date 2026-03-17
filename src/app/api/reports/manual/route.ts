@@ -86,11 +86,26 @@ export const POST = withAuth(async (req: NextRequest) => {
   // 3. 사용자 ID
   const { data: { user: authUser } } = await supabase.auth.getUser()
 
-  // 4. 신고 생성
+  // 4. listing_snapshot 생성 (검색용)
+  const { data: listingData } = await supabase
+    .from('listings')
+    .select('asin, title, marketplace, seller_name')
+    .eq('id', listingId)
+    .single()
+
+  const listingSnapshot = listingData ?? {
+    asin: body.asin,
+    title: body.title || body.asin,
+    marketplace,
+    seller_name: body.seller_name || null,
+  }
+
+  // 5. 신고 생성
   const { data: report, error: reportError } = await supabase
     .from('reports')
     .insert({
       listing_id: listingId,
+      listing_snapshot: listingSnapshot,
       ...(body.user_violation_type ? { user_violation_type: body.user_violation_type } : {}),
       ...(body.violation_category ? { violation_category: body.violation_category } : {}),
       ...(body.br_form_type ? { br_form_type: body.br_form_type } : {}),
@@ -111,7 +126,7 @@ export const POST = withAuth(async (req: NextRequest) => {
     )
   }
 
-  // 5. AI 분석 트리거 (fire-and-forget)
+  // 6. AI 분석 트리거 (fire-and-forget)
   const baseUrl = req.nextUrl.origin
   fetch(`${baseUrl}/api/ai/analyze`, {
     method: 'POST',

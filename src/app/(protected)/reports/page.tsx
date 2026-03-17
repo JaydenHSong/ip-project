@@ -102,9 +102,22 @@ const ReportsPage = async ({
       if (isNumber) {
         query = query.eq('report_number', Number(searchTerm))
       } else {
-        query = query.or(
-          `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`,
-        )
+        // Search listing_snapshot (JSONB) + fallback to listings table for reports without snapshot
+        const { data: matchedListings } = await supabase
+          .from('listings')
+          .select('id')
+          .or(`asin.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`)
+        const matchedIds = matchedListings?.map((l) => l.id) ?? []
+
+        if (matchedIds.length > 0) {
+          query = query.or(
+            `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%,listing_id.in.(${matchedIds.join(',')})`,
+          )
+        } else {
+          query = query.or(
+            `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`,
+          )
+        }
       }
     }
     if (params.date_from) {

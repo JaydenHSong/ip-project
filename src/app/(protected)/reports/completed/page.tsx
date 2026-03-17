@@ -36,6 +36,24 @@ const CompletedReportsPage = async ({
     const isArchived = params.status === 'archived'
     const statusFilter = isArchived ? ['archived'] : params.status ? [params.status] : COMPLETED_STATUSES
 
+    // Pre-fetch matching listing IDs for search (covers reports without listing_snapshot)
+    let matchedListingIds: string[] = []
+    if (searchTerm && !/^\d+$/.test(searchTerm)) {
+      const { data: matchedListings } = await supabase
+        .from('listings')
+        .select('id')
+        .or(`asin.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`)
+      matchedListingIds = matchedListings?.map((l) => l.id) ?? []
+    }
+
+    const buildSearchFilter = (searchTerm: string) => {
+      const snapshotFilter = `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`
+      if (matchedListingIds.length > 0) {
+        return `${snapshotFilter},listing_id.in.(${matchedListingIds.join(',')})`
+      }
+      return snapshotFilter
+    }
+
     // Count query — always apply status filter
     let countQuery = supabase
       .from('reports')
@@ -46,9 +64,7 @@ const CompletedReportsPage = async ({
       if (isNumber) {
         countQuery = countQuery.eq('report_number', Number(searchTerm))
       } else {
-        countQuery = countQuery.or(
-          `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`,
-        )
+        countQuery = countQuery.or(buildSearchFilter(searchTerm))
       }
     }
     if (ownerFilter === 'my') {
@@ -88,9 +104,7 @@ const CompletedReportsPage = async ({
       if (isNumber) {
         query = query.eq('report_number', Number(searchTerm))
       } else {
-        query = query.or(
-          `listing_snapshot->>asin.ilike.%${searchTerm}%,listing_snapshot->>title.ilike.%${searchTerm}%,listing_snapshot->>seller_name.ilike.%${searchTerm}%`,
-        )
+        query = query.or(buildSearchFilter(searchTerm))
       }
     }
 
