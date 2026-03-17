@@ -21,6 +21,7 @@ import { MARKETPLACES } from '@/constants/marketplaces'
 import { useToast } from '@/hooks/useToast'
 import { getAmazonUrl } from '@/lib/utils/amazon-url'
 import { formatDate } from '@/lib/utils/date'
+import { buildTableUrl } from '@/lib/utils/table-url'
 
 const DOMAIN_TO_CODE: Record<string, string> = Object.fromEntries(
   Object.values(MARKETPLACES).map((m) => [m.domain, m.code])
@@ -77,13 +78,14 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   }, [searchQuery])
 
   const buildFilterUrl = useCallback((search: string) => {
-    const p = new URLSearchParams()
-    if (search.trim()) p.set('search', search.trim())
-    if (statusFilter) p.set('status', statusFilter)
-    if (ownerFilter !== 'all') p.set('owner', ownerFilter)
-    const qs = p.toString()
-    return qs ? `/reports/completed?${qs}` : '/reports/completed'
-  }, [statusFilter, ownerFilter])
+    return buildTableUrl('/reports/completed', {
+      search: search.trim(),
+      status: statusFilter,
+      owner: ownerFilter,
+      sort_field: sortField,
+      sort_dir: sortDir,
+    })
+  }, [statusFilter, ownerFilter, sortField, sortDir])
 
   const handleFiltersChange = useCallback((newFilters: TableFiltersType) => {
     setFilters(newFilters)
@@ -524,6 +526,9 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             disabled={page <= 1}
             statusFilter={statusFilter}
             ownerFilter={ownerFilter}
+            searchQuery={searchQuery}
+            sortField={sortField}
+            sortDir={sortDir}
             label="<"
           />
           {getPaginationRange(page, totalPages).map((p, i) =>
@@ -535,6 +540,9 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                 page={p as number}
                 statusFilter={statusFilter}
                 ownerFilter={ownerFilter}
+                searchQuery={searchQuery}
+                sortField={sortField}
+                sortDir={sortDir}
                 label={String(p)}
                 active={p === page}
               />
@@ -545,6 +553,9 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             disabled={page >= totalPages}
             statusFilter={statusFilter}
             ownerFilter={ownerFilter}
+            searchQuery={searchQuery}
+            sortField={sortField}
+            sortDir={sortDir}
             label=">"
           />
         </div>
@@ -555,20 +566,25 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   )
 }
 
-const PaginationLink = ({ page, disabled, statusFilter, ownerFilter, label, active }: {
+const PaginationLink = ({ page, disabled, statusFilter, ownerFilter, searchQuery, sortField, sortDir, label, active }: {
   page: number
   disabled?: boolean
   statusFilter: string
   ownerFilter: string
+  searchQuery?: string
+  sortField?: string
+  sortDir?: string
   label: string
   active?: boolean
 }) => {
-  const params = new URLSearchParams()
-  if (page > 1) params.set('page', String(page))
-  if (statusFilter) params.set('status', statusFilter)
-  if (ownerFilter) params.set('owner', ownerFilter)
-  const qs = params.toString()
-  const href = `/reports/completed${qs ? `?${qs}` : ''}`
+  const href = buildTableUrl('/reports/completed', {
+    page,
+    status: statusFilter,
+    owner: ownerFilter,
+    search: searchQuery,
+    sort_field: sortField,
+    sort_dir: sortDir,
+  })
 
   if (disabled) {
     return (

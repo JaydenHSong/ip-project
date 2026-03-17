@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/useToast'
 import { ReportPreviewPanel } from '@/components/features/ReportPreviewPanel'
 import { getAmazonUrl } from '@/lib/utils/amazon-url'
 import { formatDate } from '@/lib/utils/date'
+import { buildTableUrl } from '@/lib/utils/table-url'
 
 const DOMAIN_TO_CODE: Record<string, string> = Object.fromEntries(
   Object.values(MARKETPLACES).map((m) => [m.domain, m.code])
@@ -99,16 +100,17 @@ export const ReportsContent = ({
   }, [searchQuery])
 
   const buildFilterUrl = useCallback((f: TableFiltersType) => {
-    const p = new URLSearchParams()
-    if (f.search.trim()) p.set('search', f.search.trim())
-    if (statusFilter) p.set('status', statusFilter)
-    if (brFormTypeFilter) p.set('br_form_type', brFormTypeFilter)
-    if (ownerFilter !== 'all') p.set('owner', ownerFilter)
-    if (f.dateFrom) p.set('date_from', f.dateFrom)
-    if (f.dateTo) p.set('date_to', f.dateTo)
-    const qs = p.toString()
-    return qs ? `/reports?${qs}` : '/reports'
-  }, [statusFilter, brFormTypeFilter, ownerFilter])
+    return buildTableUrl('/reports', {
+      search: f.search.trim(),
+      status: statusFilter,
+      br_form_type: brFormTypeFilter,
+      owner: ownerFilter,
+      date_from: f.dateFrom,
+      date_to: f.dateTo,
+      sort_field: sortField,
+      sort_dir: sortDir,
+    })
+  }, [statusFilter, brFormTypeFilter, ownerFilter, sortField, sortDir])
 
   const handleFiltersChange = useCallback((newFilters: TableFiltersType) => {
     setFilters(newFilters)
@@ -589,7 +591,17 @@ export const ReportsContent = ({
           {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
             <Link
               key={p}
-              href={`/reports?page=${p}${statusFilter ? `&status=${statusFilter}` : ''}${brFormTypeFilter ? `&br_form_type=${brFormTypeFilter}` : ''}${sortField !== 'date' ? `&sort_field=${sortField}` : ''}${sortDir !== 'desc' ? `&sort_dir=${sortDir}` : ''}`}
+              href={buildTableUrl('/reports', {
+                page: p,
+                search: searchQuery,
+                status: statusFilter,
+                br_form_type: brFormTypeFilter,
+                owner: ownerFilter,
+                date_from: dateFrom,
+                date_to: dateTo,
+                sort_field: sortField,
+                sort_dir: sortDir,
+              })}
               className={`rounded-md px-3 py-1.5 text-sm ${
                 p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'
               }`}
