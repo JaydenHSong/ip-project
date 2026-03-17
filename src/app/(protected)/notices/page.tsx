@@ -13,12 +13,13 @@ const NoticesPage = async ({
   if (!user) redirect('/login')
 
   const params = await searchParams
-  const { notices, totalPages, readNoticeIds } = await fetchNotices(params, user)
+  const { notices, totalPages, totalCount, readNoticeIds } = await fetchNotices(params, user)
 
   return (
     <NoticesContent
       notices={notices}
       totalPages={totalPages}
+      totalCount={totalCount}
       page={Number(params.page) || 1}
       categoryFilter={params.category ?? ''}
       userRole={user.role}

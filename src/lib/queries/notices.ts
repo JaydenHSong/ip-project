@@ -16,6 +16,7 @@ export type NoticeQueryParams = {
 type FetchNoticesResult = {
   notices: typeof DEMO_NOTICES
   totalPages: number
+  totalCount: number
   readNoticeIds: string[]
 }
 
@@ -42,7 +43,7 @@ export async function fetchNotices(
       const diff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       return sortAsc ? -diff : diff
     })
-    return { notices: filtered, totalPages: 1, readNoticeIds: [] }
+    return { notices: filtered, totalPages: 1, totalCount: filtered.length, readNoticeIds: [] }
   }
 
   const offset = (page - 1) * PAGE_SIZE
@@ -71,7 +72,8 @@ export async function fetchNotices(
 
   const { data, error, count } = await query
   const notices = (error ? [] : data) as typeof DEMO_NOTICES
-  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
+  const totalCount = count ?? 0
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   // Fetch read notice IDs for current user
   let readNoticeIds: string[] = []
@@ -83,5 +85,5 @@ export async function fetchNotices(
     readNoticeIds = reads.map((r) => r.notice_id)
   }
 
-  return { notices, totalPages, readNoticeIds }
+  return { notices, totalPages, totalCount, readNoticeIds }
 }

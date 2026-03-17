@@ -16,6 +16,7 @@ type TypeCounts = { all: number; patent: number; design_patent: number; trademar
 type FetchPatentsResult = {
   assets: typeof DEMO_IP_ASSETS | null
   totalPages: number
+  totalCount: number
   typeCounts: TypeCounts
 }
 
@@ -39,6 +40,7 @@ export async function fetchPatents(params: PatentQueryParams): Promise<FetchPate
     return {
       assets: filtered,
       totalPages: 1,
+      totalCount: filtered.length,
       typeCounts: {
         all: DEMO_IP_ASSETS.length,
         patent: DEMO_IP_ASSETS.filter((a) => a.ip_type === 'patent').length,
@@ -68,7 +70,8 @@ export async function fetchPatents(params: PatentQueryParams): Promise<FetchPate
 
   const { data, error, count } = await query
   const assets = (error ? [] : data) as typeof DEMO_IP_ASSETS | null
-  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
+  const totalCount = count ?? 0
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
 
   // Type counts
   const { count: allCount } = await supabase.from('ip_assets').select('*', { count: 'exact', head: true })
@@ -80,6 +83,7 @@ export async function fetchPatents(params: PatentQueryParams): Promise<FetchPate
   return {
     assets,
     totalPages,
+    totalCount,
     typeCounts: {
       all: allCount ?? 0,
       patent: patentCount ?? 0,

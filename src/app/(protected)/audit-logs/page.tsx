@@ -20,12 +20,14 @@ const AuditLogsPage = async ({
 
   let logs: typeof DEMO_AUDIT_LOGS | null = null
   let totalPages = 1
+  let totalCount = 0
 
   if (isDemoMode()) {
     let filtered = [...DEMO_AUDIT_LOGS]
     if (params.action) filtered = filtered.filter((l) => l.action === params.action)
     if (params.resource_type) filtered = filtered.filter((l) => l.resource_type === params.resource_type)
     logs = filtered
+    totalCount = filtered.length
     totalPages = 1
   } else {
     const offset = (page - 1) * limit
@@ -46,13 +48,15 @@ const AuditLogsPage = async ({
 
     const { data, error, count } = await query
     logs = (error ? [] : data) as typeof DEMO_AUDIT_LOGS | null
-    totalPages = Math.ceil((count ?? 0) / limit)
+    totalCount = count ?? 0
+    totalPages = Math.ceil(totalCount / limit)
   }
 
   return (
     <AuditLogsContent
       logs={logs as Parameters<typeof AuditLogsContent>[0]['logs']}
       totalPages={totalPages}
+      totalCount={totalCount}
       page={page}
       actionFilter={params.action ?? ''}
     />

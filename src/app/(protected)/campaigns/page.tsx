@@ -20,12 +20,14 @@ const CampaignsPage = async ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let campaigns: any[] | null = null
   let totalPages = 1
+  let totalCount = 0
 
   if (isDemoMode()) {
     let filtered = [...DEMO_CAMPAIGNS]
     if (params.status) filtered = filtered.filter((c) => c.status === params.status)
     if (params.marketplace) filtered = filtered.filter((c) => c.marketplace === params.marketplace)
     campaigns = filtered
+    totalCount = filtered.length
     totalPages = 1
   } else {
     const offset = (page - 1) * limit
@@ -50,6 +52,7 @@ const CampaignsPage = async ({
     }
 
     const { data, error, count } = await query
+    totalCount = count ?? 0
     // 실제 DB listings count 조회 (total_listings 컬럼은 부정확할 수 있음)
     if (data && data.length > 0) {
       const campaignIds = data.map((c) => c.id)
@@ -70,7 +73,7 @@ const CampaignsPage = async ({
     } else {
       campaigns = data
     }
-    totalPages = Math.ceil((count ?? 0) / limit)
+    totalPages = Math.ceil(totalCount / limit)
   }
 
   const effectiveOwner = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
@@ -79,6 +82,7 @@ const CampaignsPage = async ({
     <CampaignsContent
       campaigns={campaigns}
       totalPages={totalPages}
+      totalCount={totalCount}
       page={page}
       statusFilter={params.status ?? ''}
       canCreate={user.role === 'owner' || user.role === 'admin' || user.role === 'editor'}

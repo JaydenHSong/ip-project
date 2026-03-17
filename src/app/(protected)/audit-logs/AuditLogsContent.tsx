@@ -1,6 +1,8 @@
 'use client'
 
+import { useMemo } from 'react'
 import Link from 'next/link'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useI18n } from '@/lib/i18n/context'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -29,12 +31,28 @@ const ACTION_VARIANTS = {
 type AuditLogsContentProps = {
   logs: AuditLog[] | null
   totalPages: number
+  totalCount: number
   page: number
   actionFilter: string
 }
 
-export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: AuditLogsContentProps) => {
+export const AuditLogsContent = ({ logs, totalPages, totalCount, page, actionFilter }: AuditLogsContentProps) => {
   const { t } = useI18n()
+
+  // Infinite scroll
+  const infiniteFilterParams = useMemo(() => {
+    const p: Record<string, string> = {}
+    if (actionFilter) p.action = actionFilter
+    return p
+  }, [actionFilter])
+
+  const { data: infiniteData, isLoading: isLoadingMore, hasMore, sentinelRef } = useInfiniteScroll<AuditLog>({
+    initialData: logs ?? [],
+    totalCount,
+    pageSize: 50,
+    fetchUrl: '/api/audit-logs/list',
+    filterParams: infiniteFilterParams,
+  })
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -60,12 +78,12 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
-        {(!logs || logs.length === 0) ? (
+        {infiniteData.length === 0 ? (
           <div className="rounded-xl border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
             {t('auditLogs.noLogs')}
           </div>
         ) : (
-          logs.map((log) => {
+          infiniteData.map((log) => {
             const variant = ACTION_VARIANTS[log.action as keyof typeof ACTION_VARIANTS] ?? 'default'
             return (
               <div key={log.id} className="rounded-xl border border-th-border bg-surface-card p-4">
@@ -106,14 +124,14 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
               </tr>
             </thead>
             <tbody className="divide-y divide-th-border">
-              {(!logs || logs.length === 0) ? (
+              {infiniteData.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-10 text-center text-sm text-th-text-muted">
                     {t('auditLogs.noLogs')}
                   </td>
                 </tr>
               ) : (
-                logs.map((log) => {
+                infiniteData.map((log) => {
                   const variant = ACTION_VARIANTS[log.action as keyof typeof ACTION_VARIANTS] ?? 'default'
 
                   return (
@@ -149,19 +167,15 @@ export const AuditLogsContent = ({ logs, totalPages, page, actionFilter }: Audit
         </CardContent>
       </Card>
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
-            <Link
-              key={p}
-              href={`/audit-logs?page=${p}${actionFilter ? `&action=${actionFilter}` : ''}`}
-              className={`rounded-md px-3 py-1.5 text-sm ${p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'}`}
-            >
-              {p}
-            </Link>
-          ))}
-        </div>
-      )}
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="flex justify-center py-4">
+        {isLoadingMore && (
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-th-accent border-t-transparent" />
+        )}
+        {!hasMore && infiniteData.length > 0 && (
+          <span className="text-xs text-th-text-muted">{infiniteData.length} / {totalCount}</span>
+        )}
+      </div>
     </div>
   )
 }

@@ -14,12 +14,13 @@ const PatentsPage = async ({
   if (!user) redirect('/login')
 
   const params = await searchParams
-  const { assets, totalPages, typeCounts } = await fetchPatents(params)
+  const { assets, totalPages, totalCount, typeCounts } = await fetchPatents(params)
 
   return (
     <PatentsContent
       assets={assets}
       totalPages={totalPages}
+      totalCount={totalCount}
       page={Number(params.page) || 1}
       typeFilter={(params.type as IpType) ?? ''}
       statusFilter={params.status ?? ''}

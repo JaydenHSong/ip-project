@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
@@ -72,6 +73,25 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   const isSearching = filters.search.length > 0
   const isArchived = statusFilter === 'archived'
   const [unarchiving, setUnarchiving] = useState<string | null>(null)
+
+  // Infinite scroll
+  const infiniteFilterParams = useMemo(() => {
+    const p: Record<string, string> = {}
+    if (statusFilter) p.status = statusFilter
+    if (ownerFilter) p.owner = ownerFilter
+    if (searchQuery) p.search = searchQuery
+    if (sortField) p.sort_field = sortField
+    if (sortDir) p.sort_dir = sortDir
+    return p
+  }, [statusFilter, ownerFilter, searchQuery, sortField, sortDir])
+
+  const { data: infiniteData, isLoading: isLoadingMore, hasMore, sentinelRef } = useInfiniteScroll<ReportRow>({
+    initialData: reports ?? [],
+    totalCount,
+    pageSize,
+    fetchUrl: '/api/reports/completed/list',
+    filterParams: infiniteFilterParams,
+  })
 
   const buildFilterUrl = useCallback((search: string) => {
     return buildTableUrl('/reports/completed', {
@@ -184,7 +204,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
     ...filters,
     search: searchQuery ? '' : filters.search,
   }), [filters, searchQuery])
-  const filteredData = useFilterableTable(reports ?? [], clientFilters, getSearchableText, getViolationType, getMarketplace)
+  const filteredData = useFilterableTable(infiniteData, clientFilters, getSearchableText, getViolationType, getMarketplace)
 
   // Server-side sorting
   const sort = useMemo(() => ({ field: sortField, direction: sortDir }), [sortField, sortDir])
@@ -516,107 +536,17 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         </div>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <PaginationLink
-            page={page - 1}
-            disabled={page <= 1}
-            statusFilter={statusFilter}
-            ownerFilter={ownerFilter}
-            searchQuery={searchQuery}
-            sortField={sortField}
-            sortDir={sortDir}
-            label="<"
-          />
-          {getPaginationRange(page, totalPages).map((p, i) =>
-            p === '...' ? (
-              <span key={`dot-${i}`} className="px-1 text-sm text-th-text-muted">...</span>
-            ) : (
-              <PaginationLink
-                key={p}
-                page={p as number}
-                statusFilter={statusFilter}
-                ownerFilter={ownerFilter}
-                searchQuery={searchQuery}
-                sortField={sortField}
-                sortDir={sortDir}
-                label={String(p)}
-                active={p === page}
-              />
-            ),
-          )}
-          <PaginationLink
-            page={page + 1}
-            disabled={page >= totalPages}
-            statusFilter={statusFilter}
-            ownerFilter={ownerFilter}
-            searchQuery={searchQuery}
-            sortField={sortField}
-            sortDir={sortDir}
-            label=">"
-          />
-        </div>
-      )}
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="flex justify-center py-4">
+        {isLoadingMore && (
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-th-accent border-t-transparent" />
+        )}
+        {!hasMore && infiniteData.length > 0 && (
+          <span className="text-xs text-th-text-muted">{infiniteData.length} / {totalCount}</span>
+        )}
+      </div>
 
       <ReportPreviewPanel reportId={previewReportId} onClose={() => { setPreviewReportId(null); router.refresh() }} userRole={userRole} />
     </div>
   )
-}
-
-const PaginationLink = ({ page, disabled, statusFilter, ownerFilter, searchQuery, sortField, sortDir, label, active }: {
-  page: number
-  disabled?: boolean
-  statusFilter: string
-  ownerFilter: string
-  searchQuery?: string
-  sortField?: string
-  sortDir?: string
-  label: string
-  active?: boolean
-}) => {
-  const href = buildTableUrl('/reports/completed', {
-    page,
-    status: statusFilter,
-    owner: ownerFilter,
-    search: searchQuery,
-    sort_field: sortField,
-    sort_dir: sortDir,
-  })
-
-  if (disabled) {
-    return (
-      <span className="rounded-md px-3 py-1.5 text-sm text-th-text-muted/40">{label}</span>
-    )
-  }
-
-  return (
-    <Link
-      href={href}
-      className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
-        active
-          ? 'bg-th-accent text-white'
-          : 'text-th-text-secondary hover:bg-th-bg-hover'
-      }`}
-    >
-      {label}
-    </Link>
-  )
-}
-
-const getPaginationRange = (current: number, total: number): (number | '...')[] => {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
-
-  const pages: (number | '...')[] = [1]
-
-  if (current > 3) pages.push('...')
-
-  const start = Math.max(2, current - 1)
-  const end = Math.min(total - 1, current + 1)
-  for (let i = start; i <= end; i++) pages.push(i)
-
-  if (current < total - 2) pages.push('...')
-
-  pages.push(total)
-  return pages
 }

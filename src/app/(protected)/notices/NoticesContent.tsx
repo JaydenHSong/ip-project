@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { Pin, MoreHorizontal, Pencil, Trash2, Plus, Search, ArrowUpDown, Calendar } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { Badge } from '@/components/ui/Badge'
@@ -24,6 +25,7 @@ const CATEGORY_VARIANTS: Record<NoticeCategory, 'success' | 'info' | 'warning' |
 type NoticesContentProps = {
   notices: Notice[]
   totalPages: number
+  totalCount: number
   page: number
   categoryFilter: string
   userRole: Role
@@ -46,6 +48,7 @@ const buildUrl = (params: Record<string, string>): string => {
 export const NoticesContent = ({
   notices,
   totalPages,
+  totalCount,
   page,
   categoryFilter,
   userRole,
@@ -57,6 +60,26 @@ export const NoticesContent = ({
 }: NoticesContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
+
+  // Infinite scroll
+  const infiniteFilterParams = useMemo(() => {
+    const p: Record<string, string> = {}
+    if (categoryFilter) p.category = categoryFilter
+    if (searchQuery) p.search = searchQuery
+    if (sortOrder && sortOrder !== 'desc') p.sort = sortOrder
+    if (dateFrom) p.from = dateFrom
+    if (dateTo) p.to = dateTo
+    return p
+  }, [categoryFilter, searchQuery, sortOrder, dateFrom, dateTo])
+
+  const { data: infiniteData, isLoading: isLoadingMore, hasMore, sentinelRef } = useInfiniteScroll<Notice>({
+    initialData: notices,
+    totalCount,
+    pageSize: 20,
+    fetchUrl: '/api/notices/list',
+    filterParams: infiniteFilterParams,
+  })
+
   const [showForm, setShowForm] = useState(false)
   const [editNotice, setEditNotice] = useState<Notice | null>(null)
   const [detailNotice, setDetailNotice] = useState<Notice | null>(null)
@@ -262,12 +285,12 @@ export const NoticesContent = ({
 
       {/* Mobile: Card List */}
       <div className="space-y-3 md:hidden">
-        {notices.length === 0 ? (
+        {infiniteData.length === 0 ? (
           <div className="rounded-xl border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
             {tNotices('noNotices')}
           </div>
         ) : (
-          notices.map((notice) => (
+          infiniteData.map((notice) => (
             <div
               key={notice.id}
               className="cursor-pointer rounded-xl border border-th-border bg-surface-card p-4 transition-colors hover:bg-th-bg-hover"
@@ -326,14 +349,14 @@ export const NoticesContent = ({
               ))}
             </colgroup>
             <tbody className="divide-y divide-th-border">
-              {notices.length === 0 ? (
+              {infiniteData.length === 0 ? (
                 <tr>
                   <td colSpan={canManage ? 6 : 5} className="px-4 py-10 text-center text-sm text-th-text-muted">
                     {tNotices('noNotices')}
                   </td>
                 </tr>
               ) : (
-                notices.map((notice) => (
+                infiniteData.map((notice) => (
                   <tr
                     key={notice.id}
                     className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
@@ -415,20 +438,15 @@ export const NoticesContent = ({
         </CardContent>
       </Card>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
-            <Link
-              key={p}
-              href={buildUrl({ ...baseParams(), page: String(p) })}
-              className={`rounded-md px-3 py-1.5 text-sm ${p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'}`}
-            >
-              {p}
-            </Link>
-          ))}
-        </div>
-      )}
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="flex justify-center py-4">
+        {isLoadingMore && (
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-th-accent border-t-transparent" />
+        )}
+        {!hasMore && infiniteData.length > 0 && (
+          <span className="text-xs text-th-text-muted">{infiniteData.length} / {totalCount}</span>
+        )}
+      </div>
 
       {/* Form Modal */}
       {showForm && (

@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/Button'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
@@ -40,6 +41,7 @@ type Campaign = {
 type CampaignsContentProps = {
   campaigns: Campaign[] | null
   totalPages: number
+  totalCount: number
   page: number
   statusFilter: string
   canCreate: boolean
@@ -47,10 +49,27 @@ type CampaignsContentProps = {
   ownerFilter: 'my' | 'all'
 }
 
-export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, canCreate, userRole, ownerFilter }: CampaignsContentProps) => {
+export const CampaignsContent = ({ campaigns, totalPages, totalCount, page, statusFilter, canCreate, userRole, ownerFilter }: CampaignsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
   const { addToast } = useToast()
+
+  // Infinite scroll
+  const infiniteFilterParams = useMemo(() => {
+    const p: Record<string, string> = {}
+    if (statusFilter) p.status = statusFilter
+    if (ownerFilter) p.owner = ownerFilter
+    return p
+  }, [statusFilter, ownerFilter])
+
+  const { data: infiniteData, isLoading: isLoadingMore, hasMore, sentinelRef } = useInfiniteScroll<Campaign>({
+    initialData: campaigns ?? [],
+    totalCount,
+    pageSize: 20,
+    fetchUrl: '/api/campaigns/list',
+    filterParams: infiniteFilterParams,
+  })
+
   const [showNewCampaign, setShowNewCampaign] = useState(false)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -83,11 +102,11 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
   }
 
   const toggleAll = () => {
-    if (!campaigns) return
-    if (selectedIds.size === campaigns.length) {
+    if (infiniteData.length === 0) return
+    if (selectedIds.size === infiniteData.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(campaigns.map((c) => c.id)))
+      setSelectedIds(new Set(infiniteData.map((c) => c.id)))
     }
   }
 
@@ -171,12 +190,12 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
-        {(!campaigns || campaigns.length === 0) ? (
+        {infiniteData.length === 0 ? (
           <div className="rounded-xl border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
             {t('campaigns.noCampaigns')}
           </div>
         ) : (
-          campaigns.map((campaign) => (
+          infiniteData.map((campaign) => (
             <Link
               key={campaign.id}
               href={`/campaigns/${campaign.id}`}
@@ -237,7 +256,7 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
                 <th className="w-10 px-3 py-3">
                   <input
                     type="checkbox"
-                    checked={campaigns !== null && campaigns.length > 0 && selectedIds.size === campaigns.length}
+                    checked={infiniteData.length > 0 && selectedIds.size === infiniteData.length}
                     onChange={toggleAll}
                     className="h-4 w-4 rounded border-th-border accent-th-accent"
                   />
@@ -256,12 +275,12 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
-            {(!campaigns || campaigns.length === 0) ? (
+            {infiniteData.length === 0 ? (
               <tr>
                 <td colSpan={canDelete ? 9 : 8} className="px-4 py-10 text-center text-sm text-th-text-muted">{t('campaigns.noCampaigns')}</td>
               </tr>
             ) : (
-              campaigns.map((campaign) => (
+              infiniteData.map((campaign) => (
                 <tr
                   key={campaign.id}
                   className={`cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover ${selectedIds.has(campaign.id) ? 'bg-th-bg-hover' : ''}`}
@@ -303,21 +322,15 @@ export const CampaignsContent = ({ campaigns, totalPages, page, statusFilter, ca
         </div>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <Link
-              key={p}
-              href={`/campaigns?page=${p}${statusFilter ? `&status=${statusFilter}` : ''}`}
-              className={`rounded-md px-3 py-1.5 text-sm ${
-                p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'
-              }`}
-            >
-              {p}
-            </Link>
-          ))}
-        </div>
-      )}
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="flex justify-center py-4">
+        {isLoadingMore && (
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-th-accent border-t-transparent" />
+        )}
+        {!hasMore && infiniteData.length > 0 && (
+          <span className="text-xs text-th-text-muted">{infiniteData.length} / {totalCount}</span>
+        )}
+      </div>
 
       {/* New Campaign SlidePanel */}
       <SlidePanel

@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { RefreshCw, Search, X, Pencil, Trash2, Shield, PenTool, Tag, Copyright, ExternalLink } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
@@ -61,6 +62,7 @@ const IP_TYPE_CONFIG: Record<IpType, { icon: typeof Shield; color: string }> = {
 type PatentsContentProps = {
   assets: IpAsset[] | null
   totalPages: number
+  totalCount: number
   page: number
   typeFilter: string
   statusFilter: string
@@ -113,6 +115,7 @@ const emptyForm: AssetFormData = {
 export const PatentsContent = ({
   assets,
   totalPages,
+  totalCount,
   page,
   typeFilter,
   statusFilter,
@@ -123,6 +126,24 @@ export const PatentsContent = ({
 }: PatentsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
+
+  // Infinite scroll
+  const infiniteFilterParams = useMemo(() => {
+    const p: Record<string, string> = {}
+    if (typeFilter) p.type = typeFilter
+    if (statusFilter) p.status = statusFilter
+    if (countryFilter) p.country = countryFilter
+    if (searchQuery) p.search = searchQuery
+    return p
+  }, [typeFilter, statusFilter, countryFilter, searchQuery])
+
+  const { data: infiniteData, isLoading: isLoadingMore, hasMore, sentinelRef } = useInfiniteScroll<IpAsset>({
+    initialData: assets ?? [],
+    totalCount,
+    pageSize: 20,
+    fetchUrl: '/api/patents/list',
+    filterParams: infiniteFilterParams,
+  })
 
   const [selectedAsset, setSelectedAsset] = useState<IpAsset | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -467,12 +488,12 @@ export const PatentsContent = ({
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
-        {(!assets || assets.length === 0) ? (
+        {infiniteData.length === 0 ? (
           <div className="rounded-xl border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
             {t('patents.noAssets')}
           </div>
         ) : (
-          assets.map((asset) => (
+          infiniteData.map((asset) => (
             <button
               key={asset.id}
               type="button"
@@ -528,12 +549,12 @@ export const PatentsContent = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
-            {(!assets || assets.length === 0) ? (
+            {infiniteData.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-10 text-center text-sm text-th-text-muted">{t('patents.noAssets')}</td>
               </tr>
             ) : (
-              assets.map((asset) => (
+              infiniteData.map((asset) => (
                 <tr
                   key={asset.id}
                   className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
@@ -566,50 +587,15 @@ export const PatentsContent = ({
         </div>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-1">
-          {page > 1 && (
-            <Link href={buildHref({ page: String(page - 1) })} className="rounded-md px-3 py-1.5 text-sm text-th-text-secondary hover:bg-th-bg-hover">
-              ‹
-            </Link>
-          )}
-          {(() => {
-            const pages: (number | '...')[] = []
-            if (totalPages <= 7) {
-              for (let i = 1; i <= totalPages; i++) pages.push(i)
-            } else {
-              pages.push(1)
-              if (page > 3) pages.push('...')
-              const start = Math.max(2, page - 1)
-              const end = Math.min(totalPages - 1, page + 1)
-              for (let i = start; i <= end; i++) pages.push(i)
-              if (page < totalPages - 2) pages.push('...')
-              pages.push(totalPages)
-            }
-            return pages.map((p, idx) =>
-              p === '...' ? (
-                <span key={`ellipsis-${idx}`} className="px-2 py-1.5 text-sm text-th-text-muted">...</span>
-              ) : (
-                <Link
-                  key={p}
-                  href={buildHref({ page: String(p) })}
-                  className={`rounded-md px-3 py-1.5 text-sm ${
-                    p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'
-                  }`}
-                >
-                  {p}
-                </Link>
-              ),
-            )
-          })()}
-          {page < totalPages && (
-            <Link href={buildHref({ page: String(page + 1) })} className="rounded-md px-3 py-1.5 text-sm text-th-text-secondary hover:bg-th-bg-hover">
-              ›
-            </Link>
-          )}
-        </div>
-      )}
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="flex justify-center py-4">
+        {isLoadingMore && (
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-th-accent border-t-transparent" />
+        )}
+        {!hasMore && infiniteData.length > 0 && (
+          <span className="text-xs text-th-text-muted">{infiniteData.length} / {totalCount}</span>
+        )}
+      </div>
 
       {/* Quick View SlidePanel */}
       <SlidePanel
