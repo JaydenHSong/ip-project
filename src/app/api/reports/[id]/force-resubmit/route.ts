@@ -6,9 +6,8 @@ import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
 // POST /api/reports/:id/force-resubmit — 강제 재제출 (BR)
 // query param: ?track=br (default: br)
-export const POST = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const POST = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

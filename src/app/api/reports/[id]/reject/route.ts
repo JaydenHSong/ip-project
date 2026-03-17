@@ -5,9 +5,8 @@ import { notifyRejected } from '@/lib/notifications/google-chat'
 import type { RejectReportRequest } from '@/types/api'
 
 // POST /api/reports/:id/reject — 반려
-export const POST = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const POST = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

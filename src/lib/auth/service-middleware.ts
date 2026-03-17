@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 type ServiceAuthContext = {
   service: 'crawler'
+  params: Record<string, string>
 }
 
 type ServiceApiHandler = (
@@ -13,8 +14,9 @@ type ServiceApiHandler = (
 // Supabase 세션이 아닌 환경변수 토큰으로 인증
 const withServiceAuth = (
   handler: ServiceApiHandler,
-): ((req: NextRequest) => Promise<NextResponse>) => {
-  return async (req: NextRequest) => {
+): ((req: NextRequest, routeContext?: { params: Promise<Record<string, string>> }) => Promise<NextResponse>) => {
+  return async (req: NextRequest, routeContext?: { params: Promise<Record<string, string>> }) => {
+    const params = await routeContext?.params ?? {}
     const token = req.headers.get('Authorization')?.replace('Bearer ', '')
 
     if (!token || token !== process.env.CRAWLER_SERVICE_TOKEN) {
@@ -24,7 +26,7 @@ const withServiceAuth = (
       )
     }
 
-    return handler(req, { service: 'crawler' })
+    return handler(req, { service: 'crawler', params })
   }
 }
 

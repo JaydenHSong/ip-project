@@ -6,9 +6,8 @@ import { RESOLUTION_TYPES } from '@/types/reports'
 
 // POST /api/reports/:id/resolve
 // 신고 해결/미해결 확정
-export const POST = withAuth(async (req, { user }) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const POST = withAuth(async (req, { user, params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

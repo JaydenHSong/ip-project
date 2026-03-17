@@ -3,10 +3,8 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // PATCH /api/reports/[id]/case-notes/[noteId] — 메모 수정
-export const PATCH = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const noteId = segments[segments.length - 1]
-  const id = segments[segments.indexOf('reports') + 1]
+export const PATCH = withAuth(async (req, { params }) => {
+  const { id, noteId } = params
 
   if (!id || !noteId) {
     return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'ID required' } }, { status: 400 })
@@ -47,10 +45,8 @@ export const PATCH = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor'])
 
 // DELETE /api/reports/[id]/case-notes/[noteId] — 메모 삭제
-export const DELETE = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const noteId = segments[segments.length - 1]
-  const id = segments[segments.indexOf('reports') + 1]
+export const DELETE = withAuth(async (req, { params }) => {
+  const { id, noteId } = params
 
   if (!id || !noteId) {
     return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'ID required' } }, { status: 400 })

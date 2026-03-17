@@ -4,9 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { notifyDraftReady } from '@/lib/notifications/google-chat'
 
 // POST /api/reports/:id/submit-review — draft/rejected → pending_review
-export const POST = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const POST = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

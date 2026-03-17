@@ -5,9 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 // POST /api/reports/:id/start-monitoring
 // submitted → monitoring 전환 + 초기 스냅샷 생성
-export const POST = withAuth(async (req, { user }) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const POST = withAuth(async (req, { user, params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

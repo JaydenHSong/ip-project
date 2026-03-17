@@ -6,9 +6,8 @@ import { DEMO_REPORTS } from '@/lib/demo/data'
 import { DEMO_MONITORING_REPORTS } from '@/lib/demo/monitoring'
 
 // GET /api/reports/:id — 신고 상세
-export const GET = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 1]
+export const GET = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(
@@ -64,9 +63,8 @@ export const GET = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PATCH /api/reports/:id — 신고 수정 (드래프트 편집)
-export const PATCH = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 1]
+export const PATCH = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(
@@ -137,9 +135,8 @@ export const PATCH = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor'])
 
 // DELETE /api/reports/:id — 신고 삭제
-export const DELETE = withAuth(async (req, { user }) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 1]
+export const DELETE = withAuth(async (req, { user, params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

@@ -8,9 +8,8 @@ type CaseReplyRequest = {
 }
 
 // POST /api/reports/[id]/case-reply — 답장 텍스트 + 첨부파일 등록 (pending 상태)
-export const POST = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.indexOf('reports') + 1]
+export const POST = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'ID required' } }, { status: 400 })

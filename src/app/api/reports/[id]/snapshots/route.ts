@@ -4,9 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 
 // GET /api/reports/:id/snapshots
 // 특정 신고의 스냅샷 목록 조회
-export const GET = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const GET = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

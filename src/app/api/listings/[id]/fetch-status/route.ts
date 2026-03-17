@@ -3,9 +3,8 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // GET /api/listings/{id}/fetch-status — polling용
-export const GET = withAuth(async (req: NextRequest) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const GET = withAuth(async (req: NextRequest, { params }) => {
+  const { id } = params
 
   const supabase = await createClient()
 

@@ -5,11 +5,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAiQueue } from '@/lib/ai/queue'
 
-export const GET = withAuth(async (req: NextRequest) => {
-  // URL에서 job ID 추출: /api/ai/jobs/:id
-  const url = new URL(req.url)
-  const segments = url.pathname.split('/')
-  const id = segments[segments.length - 1]
+export const GET = withAuth(async (req: NextRequest, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

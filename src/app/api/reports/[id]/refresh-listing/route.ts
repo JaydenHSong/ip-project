@@ -5,9 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 const COOLDOWN_MINUTES = 5
 
 // POST /api/reports/{id}/refresh-listing — 크롤러 리프레시
-export const POST = withAuth(async (req: NextRequest) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const POST = withAuth(async (req: NextRequest, { params }) => {
+  const { id } = params
 
   const supabase = await createClient()
 

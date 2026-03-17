@@ -2,14 +2,9 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
-const extractId = (pathname: string): string => {
-  const segments = pathname.split('/')
-  return segments[segments.length - 1]
-}
-
 // GET /api/patents/:id — IP 자산 상세
-export const GET = withAuth(async (req) => {
-  const id = extractId(req.nextUrl.pathname)
+export const GET = withAuth(async (req, { params }) => {
+  const { id } = params
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -29,8 +24,8 @@ export const GET = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PUT /api/patents/:id — IP 자산 수정 (Admin 전용)
-export const PUT = withAuth(async (req) => {
-  const id = extractId(req.nextUrl.pathname)
+export const PUT = withAuth(async (req, { params }) => {
+  const { id } = params
   const body = await req.json() as Record<string, unknown>
 
   const supabase = await createClient()
@@ -67,8 +62,8 @@ export const PUT = withAuth(async (req) => {
 }, ['owner', 'admin'])
 
 // DELETE /api/patents/:id — IP 자산 삭제 (Admin 전용)
-export const DELETE = withAuth(async (req) => {
-  const id = extractId(req.nextUrl.pathname)
+export const DELETE = withAuth(async (req, { params }) => {
+  const { id } = params
   const supabase = await createClient()
 
   const { error } = await supabase

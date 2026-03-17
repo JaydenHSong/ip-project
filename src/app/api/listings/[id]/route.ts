@@ -3,8 +3,8 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // GET /api/listings/:id — 리스팅 상세 조회
-export const GET = withAuth(async (req) => {
-  const id = req.nextUrl.pathname.split('/').pop()
+export const GET = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

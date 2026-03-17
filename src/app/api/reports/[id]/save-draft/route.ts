@@ -4,9 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo'
 
 // POST /api/reports/:id/save-draft — sendBeacon 호환 (PATCH 대신 POST)
-export const POST = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const POST = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

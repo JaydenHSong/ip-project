@@ -9,9 +9,8 @@ import type { BrFormType } from '@/types/reports'
 import { isBrSubmittable, BR_FORM_TYPE_CODES, type BrFormTypeCode } from '@/constants/br-form-types'
 
 // POST /api/reports/:id/approve — 승인 → BR 대상이면 br_submitting, 아니면 monitoring
-export const POST = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const POST = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

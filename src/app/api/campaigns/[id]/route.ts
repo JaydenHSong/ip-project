@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import type { UpdateCampaignRequest } from '@/types/api'
 
 // GET /api/campaigns/:id — 캠페인 상세 (수집 현황 포함)
-export const GET = withAuth(async (req) => {
-  const id = req.nextUrl.pathname.split('/').pop()
+export const GET = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(
@@ -57,8 +57,8 @@ export const GET = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PATCH /api/campaigns/:id — 캠페인 수정
-export const PATCH = withAuth(async (req) => {
-  const id = req.nextUrl.pathname.split('/').pop()
+export const PATCH = withAuth(async (req, { params }) => {
+  const { id } = params
   const body = (await req.json()) as UpdateCampaignRequest
 
   if (!id) {
@@ -110,8 +110,8 @@ export const PATCH = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor'])
 
 // DELETE /api/campaigns/:id — 캠페인 삭제 (Admin만)
-export const DELETE = withAuth(async (req) => {
-  const id = req.nextUrl.pathname.split('/').pop()
+export const DELETE = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json(

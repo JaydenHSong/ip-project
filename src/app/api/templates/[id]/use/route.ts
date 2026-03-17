@@ -4,14 +4,8 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo'
 
-const extractId = (req: NextRequest): string | null => {
-  // Path: /api/templates/{id}/use → id is second-to-last segment
-  const segments = req.nextUrl.pathname.split('/')
-  return segments[segments.length - 2] || null
-}
-
-export const POST = withAuth(async (req) => {
-  const id = extractId(req)
+export const POST = withAuth(async (req, { params }) => {
+  const id = params.id || null
   if (!id) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'Template ID is required.' } },

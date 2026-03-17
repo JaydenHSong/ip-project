@@ -3,9 +3,8 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // PATCH /api/reports/{id}/case-id — 수동 Case ID 입력
-export const PATCH = withAuth(async (req: NextRequest) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 2]
+export const PATCH = withAuth(async (req: NextRequest, { params }) => {
+  const { id } = params
 
   const body = (await req.json()) as { br_case_id: string }
 

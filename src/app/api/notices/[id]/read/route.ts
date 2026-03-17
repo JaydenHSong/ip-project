@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-export const POST = withAuth(async (req, { user }) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const noticeId = segments[segments.length - 2] // /api/notices/[id]/read
+export const POST = withAuth(async (req, { user, params }) => {
+  const noticeId = params.id
   if (!noticeId) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'Notice ID is required.' } },

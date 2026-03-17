@@ -4,14 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_TEMPLATES } from '@/lib/demo/data'
 
-const extractId = (req: NextRequest): string | null => {
-  const segments = req.nextUrl.pathname.split('/')
-  return segments[segments.length - 1] || null
-}
-
 // GET /api/templates/:id
-export const GET = withAuth(async (req) => {
-  const id = extractId(req)
+export const GET = withAuth(async (req, { params }) => {
+  const id = params.id || null
   if (!id) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'ID is required.' } },
@@ -48,8 +43,8 @@ export const GET = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PATCH /api/templates/:id
-export const PATCH = withAuth(async (req) => {
-  const id = extractId(req)
+export const PATCH = withAuth(async (req, { params }) => {
+  const id = params.id || null
   if (!id) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'ID is required.' } },
@@ -101,8 +96,8 @@ export const PATCH = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor'])
 
 // DELETE /api/templates/:id
-export const DELETE = withAuth(async (req) => {
-  const id = extractId(req)
+export const DELETE = withAuth(async (req, { params }) => {
+  const id = params.id || null
   if (!id) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'ID is required.' } },

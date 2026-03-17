@@ -5,6 +5,7 @@ import type { Role, User } from '@/types/users'
 
 type AuthContext = {
   user: User
+  params: Record<string, string>
 }
 
 type ApiHandler = (
@@ -14,8 +15,10 @@ type ApiHandler = (
 
 // RBAC 미들웨어: 인증 + 권한 체크
 // 쿠키 인증 (Web) + Bearer 토큰 인증 (Extension) 모두 지원
-export const withAuth = (handler: ApiHandler, allowedRoles: Role[]): ((req: NextRequest) => Promise<NextResponse>) => {
-  return async (req: NextRequest) => {
+export const withAuth = (handler: ApiHandler, allowedRoles: Role[]): ((req: NextRequest, routeContext?: { params: Promise<Record<string, string>> }) => Promise<NextResponse>) => {
+  return async (req: NextRequest, routeContext?: { params: Promise<Record<string, string>> }) => {
+    const params = await routeContext?.params ?? {}
+
     // Extension Bearer 토큰 우선, 없으면 쿠키 기반 클라이언트
     const authHeader = req.headers.get('authorization')
     const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
@@ -66,6 +69,6 @@ export const withAuth = (handler: ApiHandler, allowedRoles: Role[]): ((req: Next
       )
     }
 
-    return handler(req, { user: dbUser as User })
+    return handler(req, { user: dbUser as User, params })
   }
 }

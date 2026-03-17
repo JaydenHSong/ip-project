@@ -3,9 +3,8 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 // PATCH /api/br-templates/:id — 수정
-export const PATCH = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 1]
+export const PATCH = withAuth(async (req, { params }) => {
+  const { id } = params
 
   const supabase = createAdminClient()
   const body = await req.json() as Record<string, unknown>
@@ -41,9 +40,8 @@ export const PATCH = withAuth(async (req) => {
 }, ['owner', 'admin'])
 
 // DELETE /api/br-templates/:id — 삭제
-export const DELETE = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.length - 1]
+export const DELETE = withAuth(async (req, { params }) => {
+  const { id } = params
 
   const supabase = createAdminClient()
 

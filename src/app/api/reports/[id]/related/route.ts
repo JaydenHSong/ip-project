@@ -4,9 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo'
 
 // GET /api/reports/[id]/related — 관련 리포트 (parent chain + children + same listing)
-export const GET = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.indexOf('reports') + 1]
+export const GET = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'ID required' } }, { status: 400 })

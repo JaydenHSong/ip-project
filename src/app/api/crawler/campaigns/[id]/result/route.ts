@@ -16,8 +16,8 @@ type CampaignResultUpdate = {
 }
 
 // PATCH /api/crawler/campaigns/:id/result
-export const PATCH = withServiceAuth(async (req: NextRequest) => {
-  const id = req.nextUrl.pathname.split('/').at(-2)
+export const PATCH = withServiceAuth(async (req: NextRequest, { params }) => {
+  const { id } = params
   if (!id) {
     return NextResponse.json(
       { error: { code: 'BAD_REQUEST', message: 'Missing campaign ID' } },

@@ -7,9 +7,8 @@ import { ROLES } from '@/types/users'
 import type { Role } from '@/types/users'
 
 // PATCH /api/users/[id] — 역할/상태 변경 (Admin only)
-export const PATCH = withAuth(async (req, { user: currentUser }) => {
-  const url = new URL(req.url)
-  const targetId = url.pathname.split('/').pop()!
+export const PATCH = withAuth(async (req, { user: currentUser, params }) => {
+  const targetId = params.id
 
   const body = (await req.json()) as { role?: string; is_active?: boolean }
 

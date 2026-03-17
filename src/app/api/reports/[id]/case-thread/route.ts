@@ -10,9 +10,8 @@ type ThreadItem = {
 }
 
 // GET /api/reports/[id]/case-thread — 메시지 + 노트 + 이벤트 통합 타임라인
-export const GET = withAuth(async (req) => {
-  const segments = req.nextUrl.pathname.split('/')
-  const id = segments[segments.indexOf('reports') + 1]
+export const GET = withAuth(async (req, { params }) => {
+  const { id } = params
 
   if (!id) {
     return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: 'ID required' } }, { status: 400 })

@@ -4,9 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo'
 
 // POST /api/campaigns/[id]/force-run — Trigger immediate crawl (admin+)
-export const POST = withAuth(async (req: NextRequest) => {
-  const url = new URL(req.url)
-  const campaignId = url.pathname.split('/').at(-2)!
+export const POST = withAuth(async (req: NextRequest, { params }) => {
+  const campaignId = params.id
 
   if (isDemoMode()) {
     return NextResponse.json({ success: true, jobId: 'demo-job-001' })

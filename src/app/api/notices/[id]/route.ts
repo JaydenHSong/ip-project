@@ -3,8 +3,8 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { NOTICE_CATEGORIES } from '@/types/notices'
 
-export const PUT = withAuth(async (req) => {
-  const id = req.nextUrl.pathname.split('/').pop()
+export const PUT = withAuth(async (req, { params }) => {
+  const { id } = params
   if (!id) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'Notice ID is required.' } },
@@ -91,8 +91,8 @@ export const PUT = withAuth(async (req) => {
   return NextResponse.json(data)
 }, ['owner', 'admin', 'editor'])
 
-export const DELETE = withAuth(async (req) => {
-  const id = req.nextUrl.pathname.split('/').pop()
+export const DELETE = withAuth(async (req, { params }) => {
+  const { id } = params
   if (!id) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'Notice ID is required.' } },
