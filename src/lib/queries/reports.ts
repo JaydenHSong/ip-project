@@ -102,21 +102,34 @@ export async function fetchReports(
       query = query.eq('report_number', Number(searchTerm))
     } else {
       const safe = sanitizeSearchTerm(searchTerm)
+
+      // listings 테이블에서 ASIN/title/seller 매칭
       const { data: matchedListings } = await supabase
         .from('listings')
         .select('id')
         .or(`asin.ilike.%${safe}%,title.ilike.%${safe}%,seller_name.ilike.%${safe}%`)
-      const matchedIds = matchedListings?.map((l) => l.id) ?? []
+      const matchedListingIds = matchedListings?.map((l) => l.id) ?? []
 
-      if (matchedIds.length > 0) {
-        query = query.or(
-          `listing_snapshot->>asin.ilike.%${safe}%,listing_snapshot->>title.ilike.%${safe}%,listing_snapshot->>seller_name.ilike.%${safe}%,listing_id.in.(${matchedIds.join(',')})`,
-        )
-      } else {
-        query = query.or(
-          `listing_snapshot->>asin.ilike.%${safe}%,listing_snapshot->>title.ilike.%${safe}%,listing_snapshot->>seller_name.ilike.%${safe}%`,
-        )
+      // users 테이블에서 Created by 이름 매칭
+      const { data: matchedUsers } = await supabase
+        .from('users')
+        .select('id')
+        .ilike('name', `%${safe}%`)
+      const matchedUserIds = matchedUsers?.map((u) => u.id) ?? []
+
+      const orParts = [
+        `listing_snapshot->>asin.ilike.%${safe}%`,
+        `listing_snapshot->>title.ilike.%${safe}%`,
+        `listing_snapshot->>seller_name.ilike.%${safe}%`,
+      ]
+      if (matchedListingIds.length > 0) {
+        orParts.push(`listing_id.in.(${matchedListingIds.join(',')})`)
       }
+      if (matchedUserIds.length > 0) {
+        orParts.push(`created_by.in.(${matchedUserIds.join(',')})`)
+      }
+
+      query = query.or(orParts.join(','))
     }
   }
 
