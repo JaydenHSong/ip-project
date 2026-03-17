@@ -16,13 +16,15 @@ export const GET = async (req: Request) => {
 
   const supabase = createAdminClient()
 
+  // Bug3 fix: br_submitted_at이 null인 건 제외 (오래된 레거시 데이터)
   const { data: reports, error } = await supabase
     .from('reports')
     .select('id, draft_title, br_submitted_at, br_case_id_retry_count, listings!reports_listing_id_fkey(asin)')
     .eq('status', 'monitoring')
     .is('br_case_id', null)
+    .not('br_submitted_at', 'is', null)
     .lt('br_case_id_retry_count', 3)
-    .order('br_submitted_at', { ascending: true })
+    .order('br_submitted_at', { ascending: false, nullsFirst: false })
     .limit(10)
 
   if (error) {
@@ -31,6 +33,18 @@ export const GET = async (req: Request) => {
       { status: 500 },
     )
   }
+
+  // Bug4 fix: 이미 매칭된 case_id 목록도 반환 (중복 매칭 방지)
+  const { data: existingCases } = await supabase
+    .from('reports')
+    .select('br_case_id')
+    .eq('status', 'monitoring')
+    .not('br_case_id', 'is', null)
+    .limit(200)
+
+  const usedCaseIds = (existingCases ?? [])
+    .map((r) => r.br_case_id as string)
+    .filter(Boolean)
 
   const mapped = (reports ?? []).map((r) => {
     const listing = r.listings as unknown as { asin: string } | null
@@ -43,5 +57,5 @@ export const GET = async (req: Request) => {
     }
   })
 
-  return NextResponse.json({ reports: mapped })
+  return NextResponse.json({ reports: mapped, used_case_ids: usedCaseIds })
 }

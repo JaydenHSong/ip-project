@@ -64,7 +64,7 @@ type SentinelClient = {
   reportBrMonitorResult: (data: BrMonitorResultData) => Promise<void>
   getPendingBrReplies: () => Promise<unknown[]>
   reportBrReplyResult: (data: BrReplyResultData) => Promise<void>
-  getCaseIdMissing: () => Promise<CaseIdMissingReport[]>
+  getCaseIdMissing: () => Promise<CaseIdMissingResponse>
   reportCaseIdRecovery: (data: { report_id: string; br_case_id: string | null }) => Promise<void>
 }
 
@@ -74,6 +74,11 @@ type CaseIdMissingReport = {
   asin: string | null
   submitted_at: string | null
   retry_count: number
+}
+
+type CaseIdMissingResponse = {
+  reports: CaseIdMissingReport[]
+  used_case_ids: string[]
 }
 
 const API_RETRY_MAX = 3
@@ -344,14 +349,14 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       }
     },
 
-    getCaseIdMissing: async (): Promise<CaseIdMissingReport[]> => {
+    getCaseIdMissing: async (): Promise<CaseIdMissingResponse> => {
       const response = await fetchWithRetry(
         `${baseUrl}/api/crawler/br-case-id-missing`,
         { method: 'GET', headers },
       )
-      if (!response.ok) return []
-      const data = (await response.json()) as { reports?: CaseIdMissingReport[] }
-      return data.reports ?? []
+      if (!response.ok) return { reports: [], used_case_ids: [] }
+      const data = (await response.json()) as CaseIdMissingResponse
+      return { reports: data.reports ?? [], used_case_ids: data.used_case_ids ?? [] }
     },
 
     reportCaseIdRecovery: async (data: { report_id: string; br_case_id: string | null }): Promise<void> => {
