@@ -51,6 +51,15 @@ export const GET = withAuth(async (req) => {
     (data as Record<string, unknown>).listings = data.listing_snapshot
   }
 
+  // 아마존 답변이 있는 모니터링 건 → 읽음 처리 (fire-and-forget)
+  if (data.status === 'monitoring' && data.br_last_amazon_reply_at) {
+    supabase
+      .from('reports')
+      .update({ br_reply_read_at: new Date().toISOString() })
+      .eq('id', id)
+      .then(() => {})
+  }
+
   return NextResponse.json(data)
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 

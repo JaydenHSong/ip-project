@@ -65,7 +65,7 @@ export const BrCaseQueueBar = () => {
         )
       })}
       <span className="text-xs text-th-text-muted">
-        Total: {summary.total} monitoring
+        Total: {summary.total} cases
       </span>
     </div>
   )
