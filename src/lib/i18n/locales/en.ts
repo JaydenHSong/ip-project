@@ -166,7 +166,7 @@ export const en = {
       pending: 'Pending',
       approved: 'Approved',
       monitoring: 'Monitoring',
-      answered: 'Answered',
+      answered: 'Amazon Replied',
       resolved: 'Resolved',
       unresolved: 'Unresolved',
     },

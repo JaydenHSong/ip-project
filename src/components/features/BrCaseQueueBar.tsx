@@ -46,8 +46,9 @@ export const BrCaseQueueBar = () => {
               const url = new URL(window.location.href)
               if (isActive) {
                 url.searchParams.delete('smart_queue')
+                if (item.key === 'new_reply') url.searchParams.delete('status')
               } else {
-                url.searchParams.set('status', 'monitoring')
+                url.searchParams.set('status', item.key === 'new_reply' ? 'answered' : 'monitoring')
                 url.searchParams.set('smart_queue', item.param)
               }
               router.push(url.pathname + url.search)

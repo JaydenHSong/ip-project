@@ -166,7 +166,7 @@ export const ko = {
       pending: '검토 대기',
       approved: '승인됨',
       monitoring: '모니터링',
-      answered: '답변 도착',
+      answered: '아마존 답변',
       resolved: '해결됨',
       unresolved: '미해결',
     },
