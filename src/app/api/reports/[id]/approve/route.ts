@@ -68,6 +68,7 @@ export const POST = withAuth(async (req) => {
           br_form_type: brFormType,
           draft_body: body.edited_draft_body ?? report.draft_body,
           draft_title: body.edited_draft_title ?? report.draft_title,
+          draft_subject: body.edited_draft_subject ?? report.draft_subject,
         },
         listing: { asin: listing.asin, url: null, marketplace: listing.marketplace, seller_storefront_url: null },
         extraFields: body.br_extra_fields,

@@ -65,6 +65,7 @@ type BuildBrDataInput = {
     br_form_type: BrFormTypeCode
     draft_body: string | null
     draft_title: string | null
+    draft_subject: string | null
   }
   listing: {
     asin: string
@@ -87,7 +88,7 @@ export const buildBrSubmitData = ({ report, listing, extraFields }: BuildBrDataI
 
   const data: BrSubmitData = {
     form_type: report.br_form_type,
-    subject: buildSubjectWithAsin(report.draft_title, listing.asin),
+    subject: buildSubjectWithAsin(report.draft_subject ?? report.draft_title, listing.asin),
     description: report.draft_body ?? '',
     product_urls: productUrls,
     prepared_at: new Date().toISOString(),
