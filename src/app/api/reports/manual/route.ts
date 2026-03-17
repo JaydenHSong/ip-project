@@ -126,7 +126,24 @@ export const POST = withAuth(async (req: NextRequest) => {
     )
   }
 
-  // 6. AI 분석 트리거 (fire-and-forget)
+  // 6. sentinel-fetch 트리거 (정보 누락 시 백그라운드 크롤링)
+  let fetchRequested = false
+  const needsFetch = !listingData?.title || listingData.title === body.asin || !listingData?.seller_name
+  const fetchUrl = process.env['SENTINEL_FETCH_URL']
+
+  if (needsFetch && fetchUrl) {
+    fetch(`${fetchUrl}/fetch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-service-token': process.env['SENTINEL_SERVICE_TOKEN'] ?? '',
+      },
+      body: JSON.stringify({ listing_id: listingId, asin: body.asin, marketplace }),
+    }).catch(() => {})
+    fetchRequested = true
+  }
+
+  // 7. AI 분석 트리거 (fire-and-forget)
   const baseUrl = req.nextUrl.origin
   fetch(`${baseUrl}/api/ai/analyze`, {
     method: 'POST',
@@ -142,7 +159,7 @@ export const POST = withAuth(async (req: NextRequest) => {
       report_id: report.id,
       listing_id: listingId,
       is_new_listing: isNewListing,
-      is_duplicate: false,
+      fetch_requested: fetchRequested,
     },
     { status: 201 },
   )
