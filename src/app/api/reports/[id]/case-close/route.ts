@@ -31,13 +31,6 @@ export const POST = withAuth(async (req) => {
   const body = await req.json().catch(() => ({})) as { resolution?: string }
   const resolvedStatus = body.resolution === 'unresolved' ? 'unresolved' : 'resolved'
 
-  if (!report.br_case_id) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'No BR case ID' } },
-      { status: 400 },
-    )
-  }
-
   if (report.br_case_status === 'closed') {
     return NextResponse.json(
       { error: { code: 'CONFLICT', message: 'Case is already closed' } },
