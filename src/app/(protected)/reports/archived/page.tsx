@@ -45,8 +45,6 @@ export default async function ArchivedReportsPage() {
       .eq('status', 'archived')
       .order('archived_at', { ascending: false, nullsFirst: false })
 
-    if (error) console.error('Archived reports query error:', error.message)
-
     if (data) {
       reports = data.map((r) => ({
         ...r,

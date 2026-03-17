@@ -50,8 +50,6 @@ const CampaignsPage = async ({
     }
 
     const { data, error, count } = await query
-    if (error) console.error('Campaigns query error:', error.message)
-
     // 실제 DB listings count 조회 (total_listings 컬럼은 부정확할 수 있음)
     if (data && data.length > 0) {
       const campaignIds = data.map((c) => c.id)

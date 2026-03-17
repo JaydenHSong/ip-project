@@ -45,8 +45,7 @@ const AuditLogsPage = async ({
     }
 
     const { data, error, count } = await query
-    if (error) console.error('Audit logs query error:', error.message)
-    logs = data as typeof DEMO_AUDIT_LOGS | null
+    logs = (error ? [] : data) as typeof DEMO_AUDIT_LOGS | null
     totalPages = Math.ceil((count ?? 0) / limit)
   }
 

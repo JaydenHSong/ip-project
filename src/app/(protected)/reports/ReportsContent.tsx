@@ -24,6 +24,7 @@ import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 import { useToast } from '@/hooks/useToast'
+import { useBulkActions } from '@/hooks/useBulkActions'
 import { ReportPreviewPanel } from '@/components/features/ReportPreviewPanel'
 import { getAmazonUrl } from '@/lib/utils/amazon-url'
 import { formatDate } from '@/lib/utils/date'
@@ -143,7 +144,8 @@ export const ReportsContent = ({
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [bulkLoading, setBulkLoading] = useState<string | null>(null)
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
+  const bulkActions = useBulkActions(selectedIds, clearSelection)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
   const [previewReportId, setPreviewReportId] = useState<string | null>(null)
 
@@ -223,78 +225,7 @@ export const ReportsContent = ({
   const isAdmin = userRole === 'owner' || userRole === 'admin'
   const canEdit = isAdmin || userRole === 'editor'
 
-  const handleBulkApprove = useCallback(async () => {
-    if (selectedIds.size === 0) return
-    setBulkLoading('approve')
-    try {
-      const res = await fetch('/api/reports/bulk-approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ report_ids: [...selectedIds] }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Bulk approve failed')
-      }
-      const result = await res.json() as { approved: number; failed: number; skipped: number }
-      setSelectedIds(new Set())
-      addToast({ type: result.failed > 0 ? 'warning' : 'success', title: result.failed > 0 ? 'Partially approved' : 'Approved', message: `Approved: ${result.approved}, Failed: ${result.failed}, Skipped: ${result.skipped}` })
-      router.refresh()
-    } catch (e) {
-      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
-    } finally {
-      setBulkLoading(null)
-    }
-  }, [selectedIds, router])
-
-  const handleBulkSubmit = useCallback(async (action: 'submit_review' | 'submit_sc') => {
-    if (selectedIds.size === 0) return
-    setBulkLoading(action)
-    try {
-      const res = await fetch('/api/reports/bulk-submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ report_ids: [...selectedIds], action }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Bulk submit failed')
-      }
-      const result = await res.json() as { submitted: number; failed: number; skipped: number }
-      setSelectedIds(new Set())
-      addToast({ type: result.failed > 0 ? 'warning' : 'success', title: result.failed > 0 ? 'Partially submitted' : 'Submitted', message: `Submitted: ${result.submitted}, Failed: ${result.failed}, Skipped: ${result.skipped}` })
-      router.refresh()
-    } catch (e) {
-      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
-    } finally {
-      setBulkLoading(null)
-    }
-  }, [selectedIds, router])
-
-  const handleBulkDelete = useCallback(async () => {
-    if (selectedIds.size === 0) return
-    setBulkLoading('delete')
-    try {
-      const res = await fetch('/api/reports/bulk-delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ report_ids: [...selectedIds] }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error?.message ?? 'Bulk delete failed')
-      }
-      const result = await res.json() as { deleted: number; failed: number }
-      setSelectedIds(new Set())
-      setShowBulkDeleteConfirm(false)
-      addToast({ type: result.failed > 0 ? 'warning' : 'success', title: result.failed > 0 ? 'Partially deleted' : 'Deleted', message: `Deleted: ${result.deleted}${result.failed > 0 ? `, Failed: ${result.failed}` : ''}` })
-      router.refresh()
-    } catch (e) {
-      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
-    } finally {
-      setBulkLoading(null)
-    }
-  }, [selectedIds, router])
+  // Bulk actions are handled by useBulkActions hook
 
   const STATUS_TABS = [
     { value: '', label: t('common.all') },
@@ -370,8 +301,8 @@ export const ReportsContent = ({
             <Button
               size="sm"
               variant="outline"
-              loading={bulkLoading === 'submit_review'}
-              onClick={() => handleBulkSubmit('submit_review')}
+              loading={bulkActions.loading === 'bulk-submit'}
+              onClick={() => bulkActions.submit('submit_review')}
             >
               {t('reports.bulk.submitReview' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['draft']))}
             </Button>
@@ -379,8 +310,8 @@ export const ReportsContent = ({
           {(selectedStatuses['pending_review'] ?? 0) > 0 && canEdit && (
             <Button
               size="sm"
-              loading={bulkLoading === 'approve'}
-              onClick={handleBulkApprove}
+              loading={bulkActions.loading === 'bulk-approve'}
+              onClick={bulkActions.approve}
             >
               {t('reports.bulk.approve' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['pending_review']))}
             </Button>
@@ -389,8 +320,8 @@ export const ReportsContent = ({
             <Button
               size="sm"
               variant="outline"
-              loading={bulkLoading === 'submit_sc'}
-              onClick={() => handleBulkSubmit('submit_sc')}
+              loading={bulkActions.loading === 'bulk-submit'}
+              onClick={() => bulkActions.submit('submit_sc')}
             >
               {t('reports.bulk.submitSc' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['approved']))}
             </Button>
@@ -636,8 +567,8 @@ export const ReportsContent = ({
           <Button
             size="sm"
             className="bg-st-danger-text hover:bg-st-danger-text/90"
-            loading={bulkLoading === 'delete'}
-            onClick={handleBulkDelete}
+            loading={bulkActions.loading === 'bulk-delete'}
+            onClick={() => bulkActions.deleteBulk(() => setShowBulkDeleteConfirm(false))}
           >
             {t('common.delete')}
           </Button>

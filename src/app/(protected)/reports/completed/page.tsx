@@ -1,19 +1,13 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/session'
-import { isDemoMode } from '@/lib/demo'
-import { DEMO_REPORTS } from '@/lib/demo/data'
-import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
+import { fetchCompletedReports, COMPLETED_PAGE_SIZE } from '@/lib/queries/completed-reports'
+import type { CompletedReportQueryParams } from '@/lib/queries/completed-reports'
 import { CompletedReportsContent } from './CompletedReportsContent'
-
-const COMPLETED_STATUSES = ['resolved', 'unresolved', 'resubmitted', 'escalated']
-const PAGE_SIZE = 100
-const ARCHIVED_SELECT = '*, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name), users!reports_created_by_fkey(name)'
 
 const CompletedReportsPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; status?: string; owner?: string; search?: string; sort_field?: string; sort_dir?: string }>
+  searchParams: Promise<CompletedReportQueryParams>
 }) => {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
@@ -21,121 +15,19 @@ const CompletedReportsPage = async ({
   const params = await searchParams
   const page = Math.max(1, parseInt(params.page ?? '1', 10) || 1)
 
-  let reports: typeof DEMO_REPORTS | null = null
-  let totalCount = 0
-
-  if (isDemoMode()) {
-    let filtered = DEMO_REPORTS.filter((r) => COMPLETED_STATUSES.includes(r.status))
-    if (params.status) filtered = filtered.filter((r) => r.status === params.status)
-    totalCount = filtered.length
-    reports = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  } else {
-    const supabase = await createClient()
-
-    const ownerFilter = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
-    const searchTerm = params.search?.trim()
-    const isArchived = params.status === 'archived'
-    const statusFilter = isArchived ? ['archived'] : params.status ? [params.status] : COMPLETED_STATUSES
-
-    // Pre-fetch matching listing IDs for search (covers reports without listing_snapshot)
-    let matchedListingIds: string[] = []
-    const safeSearch = searchTerm ? sanitizeSearchTerm(searchTerm) : ''
-    if (searchTerm && !/^\d+$/.test(searchTerm)) {
-      const { data: matchedListings } = await supabase
-        .from('listings')
-        .select('id')
-        .or(`asin.ilike.%${safeSearch}%,title.ilike.%${safeSearch}%,seller_name.ilike.%${safeSearch}%`)
-      matchedListingIds = matchedListings?.map((l) => l.id) ?? []
-    }
-
-    const buildSearchFilter = () => {
-      const snapshotFilter = `listing_snapshot->>asin.ilike.%${safeSearch}%,listing_snapshot->>title.ilike.%${safeSearch}%,listing_snapshot->>seller_name.ilike.%${safeSearch}%`
-      if (matchedListingIds.length > 0) {
-        return `${snapshotFilter},listing_id.in.(${matchedListingIds.join(',')})`
-      }
-      return snapshotFilter
-    }
-
-    // Count query — always apply status filter
-    let countQuery = supabase
-      .from('reports')
-      .select('id', { count: 'exact', head: true })
-      .in('status', statusFilter)
-    if (searchTerm) {
-      const isNumber = /^\d+$/.test(searchTerm)
-      if (isNumber) {
-        countQuery = countQuery.eq('report_number', Number(searchTerm))
-      } else {
-        countQuery = countQuery.or(buildSearchFilter())
-      }
-    }
-    if (ownerFilter === 'my') {
-      countQuery = countQuery.eq('created_by', user.id)
-    }
-    const { count } = await countQuery
-    totalCount = count ?? 0
-
-    // Data query with pagination
-    const from = (page - 1) * PAGE_SIZE
-    const to = from + PAGE_SIZE - 1
-
-    const SORT_MAP: Record<string, string> = {
-      status: 'status',
-      channel: 'listing_snapshot->>marketplace',
-      asin: 'listing_snapshot->>asin',
-      violation: 'br_form_type',
-      seller: 'listing_snapshot->>seller_name',
-      date: 'created_at',
-      updated: 'updated_at',
-      resolved: 'resolved_at',
-    }
-    const defaultSort = isArchived ? 'archived_at' : 'created_at'
-    const sortField = params.sort_field && SORT_MAP[params.sort_field] ? SORT_MAP[params.sort_field] : defaultSort
-    const sortAsc = params.sort_dir === 'asc'
-
-    let query = supabase
-      .from('reports')
-      .select(ARCHIVED_SELECT)
-      .order(sortField, { ascending: sortAsc, nullsFirst: false })
-      .range(from, to)
-
-    // Always apply status filter + search on top
-    query = query.in('status', statusFilter)
-    if (searchTerm) {
-      const isNumber = /^\d+$/.test(searchTerm)
-      if (isNumber) {
-        query = query.eq('report_number', Number(searchTerm))
-      } else {
-        query = query.or(buildSearchFilter())
-      }
-    }
-
-    if (ownerFilter === 'my') {
-      query = query.eq('created_by', user.id)
-    }
-
-    const { data, error: queryError } = await query
-
-    if (queryError) console.error('Completed reports query error:', queryError.message)
-    reports = (data ?? []).map((r: Record<string, unknown>) => {
-      if (!r.listings && r.listing_snapshot) return { ...r, listings: r.listing_snapshot }
-      return r
-    }) as typeof DEMO_REPORTS | null
-  }
-
-  const effectiveOwner = params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const { reports, totalCount, effectiveOwner } = await fetchCompletedReports(params, user)
+  const totalPages = Math.ceil(totalCount / COMPLETED_PAGE_SIZE)
 
   return (
     <CompletedReportsContent
       reports={reports as Parameters<typeof CompletedReportsContent>[0]['reports']}
       statusFilter={params.status ?? ''}
       userRole={user.role}
-      ownerFilter={effectiveOwner as 'my' | 'all'}
+      ownerFilter={effectiveOwner}
       page={page}
       totalPages={totalPages}
       totalCount={totalCount}
-      pageSize={PAGE_SIZE}
+      pageSize={COMPLETED_PAGE_SIZE}
       searchQuery={params.search ?? ''}
       sortField={params.sort_field ?? 'date'}
       sortDir={(params.sort_dir ?? 'desc') as 'asc' | 'desc'}
