@@ -76,6 +76,14 @@ type ReportDetailContentProps = {
     escalation_level?: number | null
     pd_followup_interval_days?: number | null
     admin_memo?: string | null
+    br_submit_data?: {
+      product_urls?: string[]
+      review_urls?: string[]
+      seller_storefront_url?: string
+      policy_url?: string
+      asins?: string[]
+      order_id?: string
+    } | null
   }
   listing: {
     asin: string
@@ -126,12 +134,26 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
     toBrFormType(initialViolationType)
   )
   const [brFields, setBrFields] = useState(() => {
-    // Parse extra_fields from note (Extension stores them as JSON in note column)
+    const arrToLines = (v: unknown) => Array.isArray(v) ? v.join('\n') : (typeof v === 'string' ? v : '')
+
+    // 1순위: br_submit_data (approve 후 저장된 확정 데이터)
+    const bsd = report.br_submit_data
+    if (bsd) {
+      return {
+        product_urls: arrToLines(bsd.product_urls) || (listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : ''),
+        seller_storefront_url: bsd.seller_storefront_url ?? '',
+        policy_url: bsd.policy_url ?? '',
+        asins: arrToLines(bsd.asins) || (listing?.asin ?? ''),
+        review_urls: arrToLines(bsd.review_urls),
+        order_id: bsd.order_id ?? '',
+      }
+    }
+
+    // 2순위: note (Extension이 JSON으로 저장한 초기 데이터)
     let extra: Record<string, unknown> = {}
     if (report.note) {
       try { extra = JSON.parse(report.note) as Record<string, unknown> } catch { /* not JSON, ignore */ }
     }
-    const arrToLines = (v: unknown) => Array.isArray(v) ? v.join('\n') : (typeof v === 'string' ? v : '')
     return {
       product_urls: arrToLines(extra.product_urls) || (listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : ''),
       seller_storefront_url: (extra.seller_storefront_url as string) ?? '',
@@ -1509,6 +1531,36 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                     <div className="mt-1 rounded-lg bg-th-bg-tertiary p-4 text-sm text-th-text-secondary whitespace-pre-wrap">
                       {report.draft_body}
                     </div>
+                  </div>
+                )}
+                {/* BR Extra Fields — 읽기 전용 (Completed/Monitoring 등) */}
+                {(brFields.review_urls || brFields.product_urls || brFields.seller_storefront_url || brFields.order_id) && (
+                  <div className="space-y-3 border-t border-th-border pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-th-text-tertiary">BR Fields</p>
+                    {brFields.product_urls && (
+                      <div>
+                        <p className="text-sm text-th-text-tertiary">Product URLs</p>
+                        <div className="mt-1 whitespace-pre-wrap text-sm text-th-text-secondary">{brFields.product_urls}</div>
+                      </div>
+                    )}
+                    {brFields.review_urls && (
+                      <div>
+                        <p className="text-sm text-th-text-tertiary">Review URLs</p>
+                        <div className="mt-1 whitespace-pre-wrap text-sm text-th-text-secondary">{brFields.review_urls}</div>
+                      </div>
+                    )}
+                    {brFields.seller_storefront_url && (
+                      <div>
+                        <p className="text-sm text-th-text-tertiary">Seller Storefront URL</p>
+                        <div className="mt-1 text-sm text-th-text-secondary">{brFields.seller_storefront_url}</div>
+                      </div>
+                    )}
+                    {brFields.order_id && (
+                      <div>
+                        <p className="text-sm text-th-text-tertiary">Order ID</p>
+                        <div className="mt-1 text-sm text-th-text-secondary">{brFields.order_id}</div>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
