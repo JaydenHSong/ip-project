@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { X } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -75,6 +76,8 @@ type ReportsContentProps = {
   sortDir: 'asc' | 'desc'
 }
 
+// totalPages와 page는 하위호환 위해 유지하되 무한스크롤에서는 미사용
+
 export const ReportsContent = ({
   reports,
   totalPages,
@@ -97,6 +100,28 @@ export const ReportsContent = ({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [, startTransition] = useTransition()
   const isSearching = filters.search.length > 0
+
+  // 무한 스크롤
+  const infiniteFilterParams = useMemo(() => {
+    const p: Record<string, string> = {}
+    if (statusFilter) p.status = statusFilter
+    if (brFormTypeFilter) p.br_form_type = brFormTypeFilter
+    if (ownerFilter) p.owner = ownerFilter
+    if (searchQuery) p.search = searchQuery
+    if (dateFrom) p.date_from = dateFrom
+    if (dateTo) p.date_to = dateTo
+    if (sortField) p.sort_field = sortField
+    if (sortDir) p.sort_dir = sortDir
+    return p
+  }, [statusFilter, brFormTypeFilter, ownerFilter, searchQuery, dateFrom, dateTo, sortField, sortDir])
+
+  const { data: infiniteData, isLoading: isLoadingMore, hasMore, sentinelRef } = useInfiniteScroll<ReportRow>({
+    initialData: reports ?? [],
+    totalCount,
+    pageSize: 20,
+    fetchUrl: '/api/reports/list',
+    filterParams: infiniteFilterParams,
+  })
 
   const buildFilterUrl = useCallback((f: TableFiltersType) => {
     return buildTableUrl('/reports', {
@@ -166,7 +191,7 @@ export const ReportsContent = ({
     ...filters,
     search: serverHasSearch ? '' : filters.search,
   }), [filters, serverHasSearch])
-  const filteredData = useFilterableTable(reports ?? [], clientFilters, getSearchableText, getViolationType, getMarketplace)
+  const filteredData = useFilterableTable(infiniteData, clientFilters, getSearchableText, getViolationType, getMarketplace)
 
   // Server-side sorting — push sort params to URL
   const sort = useMemo(() => ({ field: sortField, direction: sortDir }), [sortField, sortDir])
@@ -433,31 +458,15 @@ export const ReportsContent = ({
         </div>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
-            <Link
-              key={p}
-              href={buildTableUrl('/reports', {
-                page: p,
-                search: filters.search,
-                status: statusFilter,
-                br_form_type: brFormTypeFilter,
-                owner: ownerFilter,
-                date_from: dateFrom,
-                date_to: dateTo,
-                sort_field: sortField,
-                sort_dir: sortDir,
-              })}
-              className={`rounded-md px-3 py-1.5 text-sm ${
-                p === page ? 'bg-th-accent text-white' : 'text-th-text-secondary hover:bg-th-bg-hover'
-              }`}
-            >
-              {p}
-            </Link>
-          ))}
-        </div>
-      )}
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} className="flex justify-center py-4">
+        {isLoadingMore && (
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-th-accent border-t-transparent" />
+        )}
+        {!hasMore && infiniteData.length > 0 && (
+          <span className="text-xs text-th-text-muted">{infiniteData.length} / {totalCount}</span>
+        )}
+      </div>
 
       {/* New Report Modal */}
       <NewReportModal
