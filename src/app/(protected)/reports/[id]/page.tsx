@@ -169,6 +169,7 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
     <ReportDetailContent
       report={report}
       listing={listing}
+      listingId={report.listing_id}
       creatorName={creator?.name ?? null}
       canEdit={canEdit}
       userRole={user.role}

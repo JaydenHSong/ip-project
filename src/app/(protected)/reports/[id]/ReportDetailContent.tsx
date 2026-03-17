@@ -29,6 +29,7 @@ import type { BrCaseStatus } from '@/types/br-case'
 import { useToast } from '@/hooks/useToast'
 import { formatDateTime } from '@/lib/utils/date'
 import type { ReportSnapshot } from '@/types/monitoring'
+import { FetchStatusBar } from '@/components/features/FetchStatusBar'
 
 type ReportDetailContentProps = {
   report: {
@@ -87,6 +88,7 @@ type ReportDetailContentProps = {
     price_amount: number | null
     price_currency: string
   } | null
+  listingId?: string
   creatorName: string | null
   canEdit: boolean
   userRole: string
@@ -100,7 +102,7 @@ type ReportDetailContentProps = {
 
 import { getAmazonUrl } from '@/lib/utils/amazon-url'
 
-export const ReportDetailContent = ({ report, listing, creatorName, canEdit, userRole, currentUserId, timeline, snapshots, monitoringStartedAt, embedded, onNavigate }: ReportDetailContentProps) => {
+export const ReportDetailContent = ({ report, listing, listingId, creatorName, canEdit, userRole, currentUserId, timeline, snapshots, monitoringStartedAt, embedded, onNavigate }: ReportDetailContentProps) => {
   const { t } = useI18n()
   const { addToast } = useToast()
   const router = useRouter()
@@ -532,6 +534,15 @@ export const ReportDetailContent = ({ report, listing, creatorName, canEdit, use
               />
           </div>
         </div>
+      )}
+
+      {/* Fetch Status Bar — 크롤링 상태 + 리프레시 */}
+      {listingId && currentStatus === 'draft' && (
+        <FetchStatusBar
+          listingId={listingId}
+          reportId={report.id}
+          onDataUpdated={() => window.location.reload()}
+        />
       )}
 
       {/* BR Submitting Banner */}
