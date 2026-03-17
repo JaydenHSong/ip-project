@@ -47,7 +47,7 @@ export const POST = withAuth(async (req) => {
       br_case_status: 'closed',
       status: resolvedStatus,
       resolved_at: now,
-      resolution_type: resolvedStatus === 'resolved' ? 'seller_action_taken' : 'no_change',
+      resolution_type: resolvedStatus === 'resolved' ? 'content_modified' : 'no_change',
     })
     .eq('id', id)
 
