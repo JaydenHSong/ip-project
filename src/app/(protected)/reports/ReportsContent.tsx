@@ -237,7 +237,7 @@ export const ReportsContent = ({
   ]
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6">
+    <div className="flex flex-col gap-4 md:gap-6 flex-none">
       <div className="shrink-0 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -292,7 +292,7 @@ export const ReportsContent = ({
 
       <BrCaseQueueBar />
 
-      <TableFilters filters={filters} onFiltersChange={handleFiltersChange} />
+      <TableFilters filters={filters} onFiltersChange={handleFiltersChange} showMarketplace={false} />
 
       <BulkActionBar
         selectedCount={selectedIds.size}

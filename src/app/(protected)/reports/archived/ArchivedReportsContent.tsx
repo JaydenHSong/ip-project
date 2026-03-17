@@ -107,7 +107,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
         </h1>
       </div>
 
-      <TableFilters filters={filters} onFiltersChange={setFilters} />
+      <TableFilters filters={filters} onFiltersChange={setFilters} showMarketplace={false} />
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">

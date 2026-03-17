@@ -273,7 +273,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         ))}
       </ScrollTabs>
 
-      <TableFilters filters={filters} onFiltersChange={handleFiltersChange} />
+      <TableFilters filters={filters} onFiltersChange={handleFiltersChange} showMarketplace={false} />
 
       {/* Bulk Actions Bar */}
       {!isArchived && canBulk && selectedIds.size > 0 && (
