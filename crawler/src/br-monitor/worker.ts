@@ -350,7 +350,7 @@ const processBrMonitorJob = async (
   job: Job<BrMonitorJobData>,
   reportResult: (result: BrMonitorResult) => Promise<void>,
   verifyReportExists?: (id: string) => Promise<boolean>,
-  sentinelClient?: { getCaseIdMissing: () => Promise<unknown[]>; reportCaseIdRecovery: (data: { report_id: string; br_case_id: string | null }) => Promise<void> },
+  sentinelClient?: import('../api/sentinel-client.js').SentinelClient,
 ): Promise<void> => {
   const { reports } = job.data
 
@@ -374,7 +374,7 @@ const processBrMonitorJob = async (
   // Phase 0: Case ID 복구 (case_id가 null인 리포트)
   if (sentinelClient) {
     try {
-      const recovered = await recoverMissingCaseIds(page, sentinelClient as Parameters<typeof recoverMissingCaseIds>[1])
+      const recovered = await recoverMissingCaseIds(page, sentinelClient)
       if (recovered > 0) {
         log('info', 'br-monitor', `Phase 0: Recovered ${recovered} missing case IDs`)
       }
