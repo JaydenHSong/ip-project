@@ -25,6 +25,8 @@ import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 import { useToast } from '@/hooks/useToast'
 import { useBulkActions } from '@/hooks/useBulkActions'
+import { BulkActionBar } from './BulkActionBar'
+import { ReportMobileCard } from './ReportMobileCard'
 import { ReportPreviewPanel } from '@/components/features/ReportPreviewPanel'
 import { getAmazonUrl } from '@/lib/utils/amazon-url'
 import { formatDate } from '@/lib/utils/date'
@@ -292,59 +294,16 @@ export const ReportsContent = ({
 
       <TableFilters filters={filters} onFiltersChange={handleFiltersChange} />
 
-      {/* Bulk Action Bar */}
-      {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-th-accent/30 bg-th-accent/5 px-4 py-2.5">
-          <span className="text-sm font-medium text-th-text">{t('reports.bulk.selected' as Parameters<typeof t>[0]).replace('{count}', String(selectedIds.size))}</span>
-          <div className="h-4 w-px bg-th-border" />
-          {(selectedStatuses['draft'] ?? 0) > 0 && canEdit && (
-            <Button
-              size="sm"
-              variant="outline"
-              loading={bulkActions.loading === 'bulk-submit'}
-              onClick={() => bulkActions.submit('submit_review')}
-            >
-              {t('reports.bulk.submitReview' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['draft']))}
-            </Button>
-          )}
-          {(selectedStatuses['pending_review'] ?? 0) > 0 && canEdit && (
-            <Button
-              size="sm"
-              loading={bulkActions.loading === 'bulk-approve'}
-              onClick={bulkActions.approve}
-            >
-              {t('reports.bulk.approve' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['pending_review']))}
-            </Button>
-          )}
-          {(selectedStatuses['approved'] ?? 0) > 0 && canEdit && (
-            <Button
-              size="sm"
-              variant="outline"
-              loading={bulkActions.loading === 'bulk-submit'}
-              onClick={() => bulkActions.submit('submit_sc')}
-            >
-              {t('reports.bulk.submitSc' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['approved']))}
-            </Button>
-          )}
-          {canEdit && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-st-danger-text/30 text-st-danger-text hover:bg-st-danger-text/10"
-              onClick={() => setShowBulkDeleteConfirm(true)}
-            >
-              {t('reports.bulk.delete' as Parameters<typeof t>[0]).replace('{count}', String(selectedIds.size))}
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedIds(new Set())}
-          >
-            {t('reports.bulk.deselect' as Parameters<typeof t>[0])}
-          </Button>
-        </div>
-      )}
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        selectedStatuses={selectedStatuses}
+        canEdit={canEdit}
+        bulkLoading={bulkActions.loading}
+        onApprove={bulkActions.approve}
+        onSubmit={bulkActions.submit}
+        onDelete={() => setShowBulkDeleteConfirm(true)}
+        onDeselect={() => setSelectedIds(new Set())}
+      />
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
@@ -356,54 +315,11 @@ export const ReportsContent = ({
           </div>
         ) : (
           sortedData.map((report) => (
-            <button
+            <ReportMobileCard
               key={report.id}
-              type="button"
+              report={report}
               onClick={() => router.push(`/reports/${report.id}`)}
-              className="w-full text-left"
-            >
-              <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} size="md" />
-                    {report.disagreement_flag && <Badge variant="warning" size="md">!</Badge>}
-                  </div>
-                  <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
-                </div>
-                <p className="mt-2 font-mono text-sm text-th-text">
-                  {report.listings?.asin ? (
-                    <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline">{report.listings.asin}</a>
-                  ) : '—'}
-                  {(report.related_asins?.length ?? 0) > 0 && (
-                    <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
-                      +{report.related_asins!.length}
-                    </span>
-                  )}
-                </p>
-                <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
-                <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
-                  <span>{report.listings?.seller_name ?? '—'}</span>
-                  <div className="flex items-center gap-2">
-                    {report.br_case_id && report.br_case_id !== 'submitted' && (
-                      <a
-                        href={`https://brandregistry.amazon.com/cu/case-dashboard/view-case?caseID=${report.br_case_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono text-[10px] text-th-accent"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        BR#{report.br_case_id}
-                      </a>
-                    )}
-                    {report.br_case_status && (
-                      <StatusBadge status={report.br_case_status as Parameters<typeof StatusBadge>[0]['status']} type="br_case" size="sm" />
-                    )}
-                    {report.ai_confidence_score !== null && <span>AI: {report.ai_confidence_score}%</span>}
-                    <span>{formatDate(report.created_at)}</span>
-                  </div>
-                </div>
-              </div>
-            </button>
+            />
           ))
         )}
       </div>

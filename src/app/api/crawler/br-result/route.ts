@@ -57,7 +57,6 @@ export const POST = async (req: Request) => {
         br_case_id: body.br_case_id ?? null,
         br_submitted_at: now,
         br_submission_error: null,
-        br_submit_data: null,
         monitoring_started_at: now,
       })
       .eq('id', body.report_id)
@@ -108,8 +107,7 @@ export const POST = async (req: Request) => {
       .update({
         status: exceededMax ? 'approved' : 'br_submitting',
         br_submit_attempts: attempts,
-        br_submission_error: body.error ?? 'Unknown error',
-        ...(exceededMax ? { br_submit_data: null } : {}),
+        br_submission_error: exceededMax ? `Max ${MAX_BR_ATTEMPTS} attempts exceeded` : (body.error ?? 'Unknown error'),
       })
       .eq('id', body.report_id)
 
