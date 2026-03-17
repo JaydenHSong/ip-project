@@ -6,6 +6,11 @@
 
 # Claude Code
 .claude/
+.agent/
+.agents/
+.mcp.json
+skills-lock.json
+SuperClaude_Framework/
 
 # Screenshots (reference only)
 Screenshot/

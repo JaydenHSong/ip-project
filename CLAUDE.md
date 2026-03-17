@@ -47,6 +47,7 @@ npx vercel --prod       # Production 배포 (확인 후)
 
 ## Restrictions
 
+- 큐 샤인 없이 코딩 금지
 - console.log 금지 (디버깅 후 제거), inline styles 금지 (Tailwind), `var` 금지
 - 하드코딩된 위반 유형 금지 → `constants/violations.ts`
 - API 키/시크릿 코드 직접 작성 금지 → 환경변수
