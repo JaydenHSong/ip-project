@@ -21,7 +21,7 @@ export const POST = withAuth(async (req) => {
 
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_evidence, listing_id, resubmit_count')
+    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, draft_evidence, listing_id, resubmit_count')
     .eq('id', id)
     .single()
 
@@ -62,6 +62,7 @@ export const POST = withAuth(async (req) => {
             br_form_type: brFormType,
             draft_body: report.draft_body,
             draft_title: report.draft_title,
+            draft_subject: report.draft_subject,
           },
           listing: {
             asin: listing.asin,
