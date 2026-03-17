@@ -64,6 +64,16 @@ type SentinelClient = {
   reportBrMonitorResult: (data: BrMonitorResultData) => Promise<void>
   getPendingBrReplies: () => Promise<unknown[]>
   reportBrReplyResult: (data: BrReplyResultData) => Promise<void>
+  getCaseIdMissing: () => Promise<CaseIdMissingReport[]>
+  reportCaseIdRecovery: (data: { report_id: string; br_case_id: string | null }) => Promise<void>
+}
+
+type CaseIdMissingReport = {
+  report_id: string
+  draft_title: string | null
+  asin: string | null
+  submitted_at: string | null
+  retry_count: number
 }
 
 const API_RETRY_MAX = 3
@@ -334,8 +344,29 @@ const createSentinelClient = (apiUrl: string, serviceToken: string): SentinelCli
       }
     },
 
+    getCaseIdMissing: async (): Promise<CaseIdMissingReport[]> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/br-case-id-missing`,
+        { method: 'GET', headers },
+      )
+      if (!response.ok) return []
+      const data = (await response.json()) as { reports?: CaseIdMissingReport[] }
+      return data.reports ?? []
+    },
+
+    reportCaseIdRecovery: async (data: { report_id: string; br_case_id: string | null }): Promise<void> => {
+      const response = await fetchWithRetry(
+        `${baseUrl}/api/crawler/br-case-id-recovery`,
+        { method: 'POST', headers, body: JSON.stringify(data) },
+      )
+      if (!response.ok) {
+        const body = await response.text()
+        throw new Error(`Failed to report case ID recovery: ${response.status} ${body}`)
+      }
+    },
+
   }
 }
 
 export { createSentinelClient }
-export type { SentinelClient }
+export type { SentinelClient, CaseIdMissingReport }

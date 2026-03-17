@@ -71,7 +71,7 @@ const init = async (): Promise<void> => {
       await sentinelClient.reportBrMonitorResult(result).catch((err) => {
         log('error', 'main', `Failed to report BR monitor result: ${err instanceof Error ? err.message : String(err)}`)
       })
-    }, sentinelClient.verifyReportExists)
+    }, sentinelClient.verifyReportExists, sentinelClient)
   })
   const brMonitorSchedulerInterval = startBrMonitorScheduler(brMonitorQueue, sentinelClient)
   log('info', 'main', 'BR monitor queue + worker + scheduler started')

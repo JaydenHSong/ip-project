@@ -68,6 +68,7 @@ type ReportDetailContentProps = {
     created_by?: string
     br_case_id?: string | null
     br_case_status?: string | null
+    br_case_id_retry_count?: number | null
     br_last_amazon_reply_at?: string | null
     br_last_our_reply_at?: string | null
     br_submitted_at?: string | null
@@ -109,6 +110,69 @@ type ReportDetailContentProps = {
 }
 
 import { getAmazonUrl } from '@/lib/utils/amazon-url'
+
+// Case ID 수동 입력 컴포넌트
+const CaseIdManualInput = ({ reportId, onSaved }: { reportId: string; onSaved: (caseId: string) => void }) => {
+  const [value, setValue] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSave = async () => {
+    if (!/^\d{5,}$/.test(value)) {
+      setError('5자리 이상 숫자를 입력하세요')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/reports/${reportId}/case-id`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ br_case_id: value }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setError(data.error ?? 'Failed')
+        return
+      }
+      onSaved(value)
+    } catch {
+      setError('저장 실패')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Case ID 입력"
+          className="w-36 rounded border border-th-border bg-th-bg px-2 py-1 text-xs font-mono text-th-text"
+        />
+        <button
+          onClick={handleSave}
+          disabled={saving || !value}
+          className="rounded bg-th-accent px-2 py-1 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {saving ? '...' : '저장'}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <a
+        href="https://brandregistry.amazon.com/gp/case-dashboard/lobby.html"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block text-xs text-th-accent hover:underline"
+      >
+        BR Dashboard에서 확인
+      </a>
+    </div>
+  )
+}
 
 export const ReportDetailContent = ({ report, listing, listingId, creatorName, canEdit, userRole, currentUserId, timeline, snapshots, monitoringStartedAt, embedded, onNavigate }: ReportDetailContentProps) => {
   const { t } = useI18n()
@@ -646,6 +710,14 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                     >
                       {report.br_case_id}
                     </a>
+                  ) : report.br_case_status === 'case_id_missing' ? (
+                    <CaseIdManualInput reportId={report.id} onSaved={(caseId) => {
+                      report.br_case_id = caseId
+                      report.br_case_status = null
+                      router.refresh()
+                    }} />
+                  ) : (report.br_case_id_retry_count ?? 0) > 0 ? (
+                    <span className="text-th-text-muted text-xs">자동 복구 중... ({report.br_case_id_retry_count}/3)</span>
                   ) : (
                     <span className="text-th-text-muted">Pending</span>
                   )}

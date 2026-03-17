@@ -42,6 +42,14 @@ const getBrFormContext = (formType: BrFormTypeCode): string | null => {
   ].join('\n')
 }
 
+// Subject에 ASIN suffix 추가 (중복 방지)
+const buildSubjectWithAsin = (draftTitle: string | null, asin: string): string | undefined => {
+  if (!draftTitle) return undefined
+  if (!asin) return draftTitle
+  if (draftTitle.includes(asin)) return draftTitle
+  return `${draftTitle} [${asin}]`
+}
+
 export type BrExtraFields = {
   product_urls?: string[]
   seller_storefront_url?: string
@@ -79,7 +87,7 @@ export const buildBrSubmitData = ({ report, listing, extraFields }: BuildBrDataI
 
   const data: BrSubmitData = {
     form_type: report.br_form_type,
-    subject: report.draft_title ?? undefined,
+    subject: buildSubjectWithAsin(report.draft_title, listing.asin),
     description: report.draft_body ?? '',
     product_urls: productUrls,
     prepared_at: new Date().toISOString(),

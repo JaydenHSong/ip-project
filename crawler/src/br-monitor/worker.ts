@@ -11,6 +11,7 @@ import type {
 } from './types.js'
 import { log } from '../logger.js'
 import { validateMessages, detectCycleAnomaly } from './validate.js'
+import { recoverMissingCaseIds } from './case-id-recovery.js'
 
 const CASE_DETAIL_URL = 'https://brandregistry.amazon.com/cu/case-dashboard/view-case'
 const USER_DATA_DIR = process.env['BR_MONITOR_DATA_DIR'] || '/tmp/br-monitor-data'
@@ -349,6 +350,7 @@ const processBrMonitorJob = async (
   job: Job<BrMonitorJobData>,
   reportResult: (result: BrMonitorResult) => Promise<void>,
   verifyReportExists?: (id: string) => Promise<boolean>,
+  sentinelClient?: { getCaseIdMissing: () => Promise<unknown[]>; reportCaseIdRecovery: (data: { report_id: string; br_case_id: string | null }) => Promise<void> },
 ): Promise<void> => {
   const { reports } = job.data
 
@@ -367,6 +369,18 @@ const processBrMonitorJob = async (
     log('warn', 'br-monitor', 'Not logged in — skipping entire cycle')
     await notifyOperator('⚠️ *[BR Monitor]* 세션 만료 — BR Case Dashboard 로그인이 필요합니다.')
     return
+  }
+
+  // Phase 0: Case ID 복구 (case_id가 null인 리포트)
+  if (sentinelClient) {
+    try {
+      const recovered = await recoverMissingCaseIds(page, sentinelClient as Parameters<typeof recoverMissingCaseIds>[1])
+      if (recovered > 0) {
+        log('info', 'br-monitor', `Phase 0: Recovered ${recovered} missing case IDs`)
+      }
+    } catch (error) {
+      log('warn', 'br-monitor', `Phase 0 case ID recovery error: ${error instanceof Error ? error.message : String(error)}`)
+    }
   }
 
   let processed = 0
