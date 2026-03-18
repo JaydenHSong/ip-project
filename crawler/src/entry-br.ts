@@ -5,10 +5,10 @@ import { loadConfig } from './config.js'
 import { createSentinelClient } from './api/sentinel-client.js'
 import { createChatNotifier } from './notifications/google-chat.js'
 import { createBrSubmitQueue, createBrSubmitWorker } from './br-submit/queue.js'
-import { processBrSubmitJob, closeBrBrowser } from './br-submit/worker.js'
+import { processBrSubmitJob, closeBrBrowser, submitSessionManager, setSubmitNotifier } from './br-submit/worker.js'
 import { startBrScheduler } from './br-submit/scheduler.js'
 import { createBrMonitorQueue, createBrMonitorWorker } from './br-monitor/queue.js'
-import { processBrMonitorJob, closeMonitorBrowser, setMonitorNotifier } from './br-monitor/worker.js'
+import { processBrMonitorJob, closeMonitorBrowser, setMonitorNotifier, checkAndKeepalive, monitorSessionManager, setMonitorSessionNotifier } from './br-monitor/worker.js'
 import { startBrMonitorScheduler } from './br-monitor/scheduler.js'
 import { createBrReplyQueue, createBrReplyWorker } from './br-reply/queue.js'
 import { processBrReplyJob, setBrowserPageAccessor } from './br-reply/worker.js'
@@ -32,6 +32,10 @@ const healthServer = createHealthServer({
     redis: redisConnected,
     worker: workerRunning,
     timestamp: new Date().toISOString(),
+    brSession: {
+      submit: submitSessionManager.getStatus(),
+      monitor: monitorSessionManager.getStatus(),
+    },
     ...(initError ? { error: initError } : {}),
   }),
   serviceToken: process.env['CRAWLER_SERVICE_TOKEN'],
@@ -45,6 +49,13 @@ const init = async (): Promise<void> => {
   const chatNotifier = createChatNotifier(config.googleChatWebhookUrl)
 
   const redisUrl = config.redis.url
+
+  // Session notifiers (CAPTCHA/세션 만료 알림용)
+  if (config.googleChatWebhookUrl) {
+    const sessionNotify = async (msg: string) => { await chatNotifier.notifyMessage(msg).catch(() => {}) }
+    setSubmitNotifier(sessionNotify)
+    setMonitorSessionNotifier(sessionNotify)
+  }
 
   // BR Submit
   const brQueue = createBrSubmitQueue(redisUrl)
@@ -75,6 +86,17 @@ const init = async (): Promise<void> => {
   })
   const brMonitorSchedulerInterval = startBrMonitorScheduler(brMonitorQueue, sentinelClient)
   log('info', 'main', 'BR monitor queue + worker + scheduler started')
+
+  // Session keepalive — monitor 주기 완료 후 체크
+  brMonitorWorker.on('completed', async () => {
+    try {
+      const { ensureMonitorBrowser: getMonBrowser } = await import('./br-monitor/worker.js')
+      const { page } = await getMonBrowser()
+      await checkAndKeepalive(page)
+    } catch (err) {
+      log('warn', 'main', `Keepalive check failed: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  })
 
   // BR Reply (Monitor 브라우저 공유)
   const { ensureMonitorBrowser, ensureLoggedIn: monitorEnsureLoggedIn } = await import('./br-monitor/worker.js')

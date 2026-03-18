@@ -2,6 +2,8 @@
 // Browser 3: /tmp/br-monitor-data/ (독립 세션)
 import { chromium, type BrowserContext, type Page } from 'playwright'
 import { getRandomUA } from '../br-auth/ua-pool.js'
+import { ensureLoggedIn as sharedEnsureLoggedIn, performKeepalive } from '../br-auth/login.js'
+import { SessionManager } from '../br-auth/session-manager.js'
 import type { Job } from 'bullmq'
 import type {
   BrMonitorJobData,
@@ -63,68 +65,30 @@ const ensureMonitorBrowser = async (): Promise<{ context: BrowserContext; page: 
   return { context: browserContext, page: browserPage }
 }
 
-// ─── Login Check ─────────────────────────────────────────────
-const ensureLoggedIn = async (page: Page): Promise<boolean> => {
-  const url = page.url()
+// ─── Login Check (shared module) ─────────────────────────────
+const monitorSessionManager = new SessionManager('monitor')
+let monitorNotifyFn: ((msg: string) => Promise<void>) | undefined
 
-  // 이미 BR 페이지에 있고 로그인 됨
-  if (url.includes('brandregistry.amazon.com') && !url.includes('/ap/') && !url.includes('signin')) {
-    return true
-  }
-
-  // BR 케이스 대시보드로 이동 시도
-  await page.goto(`${CASE_DETAIL_URL}?caseID=test`, {
-    waitUntil: 'networkidle',
-    timeout: PAGE_LOAD_TIMEOUT,
-  }).catch(() => {})
-
-  // 로그인 페이지로 리다이렉트됨 = 세션 만료 → 자동 로그인 시도
-  if (page.url().includes('signin') || page.url().includes('/ap/')) {
-    log('warn', 'br-monitor', 'Session expired — attempting auto-login')
-
-    const email = process.env['BR_EMAIL']
-    const password = process.env['BR_PASSWORD']
-
-    if (!email || !password) {
-      log('warn', 'br-monitor', 'BR_EMAIL/BR_PASSWORD not set — skipping this cycle')
-      return false
-    }
-
-    try {
-      await page.fill('#ap_email', email, { timeout: 10_000 }).catch(() => {})
-      await page.click('#continue').catch(() => {})
-      await page.fill('#ap_password', password, { timeout: 10_000 }).catch(() => {})
-      await page.click('#signInSubmit').catch(() => {})
-
-      // OTP 처리
-      const otpInput = await page.waitForSelector('#auth-mfa-otpcode', { timeout: 5_000 }).catch(() => null)
-      if (otpInput) {
-        const secret = process.env['BR_OTP_SECRET']
-        if (secret) {
-          const { TOTP } = await import('otpauth')
-          const totp = new TOTP({ secret, digits: 6, period: 30 })
-          await otpInput.fill(totp.generate())
-          await page.click('#auth-signin-button').catch(() => {})
-        } else {
-          log('warn', 'br-monitor', 'OTP required but BR_OTP_SECRET not set — skipping')
-          return false
-        }
-      }
-
-      await page.waitForURL(
-        (u) => u.toString().includes('brandregistry.amazon.com') && !u.toString().includes('/ap/'),
-        { timeout: 30_000 },
-      )
-      log('info', 'br-monitor', 'BR login successful (auto)')
-      return true
-    } catch (err) {
-      log('warn', 'br-monitor', `Auto-login failed: ${err instanceof Error ? err.message : String(err)}`)
-      return false
-    }
-  }
-
-  return true
+export const setMonitorSessionNotifier = (fn: (msg: string) => Promise<void>): void => {
+  monitorNotifyFn = fn
 }
+
+const ensureLoggedIn = async (page: Page): Promise<boolean> => {
+  const result = await sharedEnsureLoggedIn(page, 'br-monitor', monitorSessionManager, monitorNotifyFn)
+  return result.success
+}
+
+// 킵얼라이브 — monitor 주기에 편승 (6시간 이상 무작업 시 실행)
+export const checkAndKeepalive = async (page: Page): Promise<void> => {
+  if (monitorSessionManager.shouldKeepalive()) {
+    log('info', 'br-monitor', 'Triggering session keepalive (6h+ idle)')
+    await performKeepalive(page, monitorSessionManager)
+  } else {
+    monitorSessionManager.recordActivity()
+  }
+}
+
+export { monitorSessionManager }
 
 // ─── Case Detail Scraping ────────────────────────────────────
 const scrapeCaseDetail = async (page: Page, caseId: string): Promise<CaseDetailScraped | null> => {

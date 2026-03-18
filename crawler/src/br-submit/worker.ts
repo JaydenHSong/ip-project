@@ -11,6 +11,8 @@
 
 import { chromium, type BrowserContext, type Page, type Frame } from 'playwright'
 import { getRandomUA } from '../br-auth/ua-pool.js'
+import { ensureLoggedIn as sharedEnsureLoggedIn } from '../br-auth/login.js'
+import { SessionManager } from '../br-auth/session-manager.js'
 import type { Job } from 'bullmq'
 import type { BrSubmitJobData, BrSubmitResult, BrFormType } from './types.js'
 import { BR_FORM_CONFIG, PARENT_MENU_TEXT } from './form-config.js'
@@ -46,54 +48,18 @@ const ensureBrowser = async (): Promise<{ context: BrowserContext; page: Page }>
   return { context: browserContext, page: browserPage }
 }
 
-// ─── Login Check ─────────────────────────────────────────────
+// ─── Login Check (shared module) ─────────────────────────────
+const submitSessionManager = new SessionManager('submit')
+let submitNotifyFn: ((msg: string) => Promise<void>) | undefined
+
+export const setSubmitNotifier = (fn: (msg: string) => Promise<void>): void => {
+  submitNotifyFn = fn
+}
+
 const ensureLoggedIn = async (page: Page): Promise<void> => {
-  const url = page.url()
-  log('info', 'br-worker', `Current URL before login check: ${url}`)
-
-  // 이미 BR 페이지에 있으면 스킵
-  if (url.includes('brandregistry.amazon.com') && !url.includes('/ap/') && !url.includes('signin')) {
-    log('info', 'br-worker', 'Already on BR page, skipping login')
-    return
-  }
-
-  await page.goto(BR_URL, { waitUntil: 'networkidle', timeout: 30_000 })
-  log('info', 'br-worker', `After goto: ${page.url()}`)
-
-  if (page.url().includes('signin') || page.url().includes('/ap/')) {
-    const email = process.env['BR_EMAIL']
-    const password = process.env['BR_PASSWORD']
-
-    if (email && password) {
-      await page.fill('#ap_email', email, { timeout: 10_000 }).catch(() => {})
-      await page.click('#continue').catch(() => {})
-      await page.fill('#ap_password', password, { timeout: 10_000 }).catch(() => {})
-      await page.click('#signInSubmit').catch(() => {})
-
-      const otpInput = await page.waitForSelector('#auth-mfa-otpcode', { timeout: 5_000 }).catch(() => null)
-      if (otpInput) {
-        const secret = process.env['BR_OTP_SECRET']
-        if (secret) {
-          const { TOTP } = await import('otpauth')
-          const totp = new TOTP({ secret, digits: 6, period: 30 })
-          await otpInput.fill(totp.generate())
-          await page.click('#auth-signin-button').catch(() => {})
-        } else {
-          log('warn', 'br-worker', 'OTP required but BR_OTP_SECRET not set — waiting for manual input')
-          await page.waitForURL((u) => !u.toString().includes('/ap/'), { timeout: 300_000 })
-        }
-      }
-
-      await page.waitForURL((u) => u.toString().includes('brandregistry.amazon.com'), { timeout: 30_000 })
-      log('info', 'br-worker', 'BR login successful (auto)')
-    } else {
-      log('warn', 'br-worker', 'Please log in manually in the browser window (5min timeout)...')
-      await page.waitForURL(
-        (u) => u.toString().includes('brandregistry.amazon.com') && !u.toString().includes('/ap/') && !u.toString().includes('signin'),
-        { timeout: 300_000 },
-      )
-      log('info', 'br-worker', 'BR login successful (manual)')
-    }
+  const result = await sharedEnsureLoggedIn(page, 'br-worker', submitSessionManager, submitNotifyFn)
+  if (!result.success) {
+    throw new Error(`Login failed: ${result.reason} — ${result.detail}`)
   }
 
   // 로그인 후 contact-us 페이지로 이동 확인
@@ -104,6 +70,8 @@ const ensureLoggedIn = async (page: Page): Promise<void> => {
     log('info', 'br-worker', `Now on: ${page.url()}`)
   }
 }
+
+export { submitSessionManager }
 
 // ─── Menu Navigation (Playwright 물리 클릭 사용) ─────────────
 const navigateToFormType = async (page: Page, formType: BrFormType): Promise<void> => {
