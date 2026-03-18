@@ -1,6 +1,7 @@
 // BR Monitor Worker — BR Case Dashboard 자동 스크래핑 (Playwright)
 // Browser 3: /tmp/br-monitor-data/ (독립 세션)
 import { chromium, type BrowserContext, type Page } from 'playwright'
+import { getRandomUA } from '../br-auth/ua-pool.js'
 import type { Job } from 'bullmq'
 import type {
   BrMonitorJobData,
@@ -53,7 +54,7 @@ const ensureMonitorBrowser = async (): Promise<{ context: BrowserContext; page: 
     headless: process.env['BR_MONITOR_HEADLESS'] !== 'false',
     args: ['--no-sandbox', '--disable-dev-shm-usage'],
     viewport: { width: 1280, height: 720 },
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    userAgent: getRandomUA().userAgent,
   })
 
   browserPage = browserContext.pages()[0] || await browserContext.newPage()

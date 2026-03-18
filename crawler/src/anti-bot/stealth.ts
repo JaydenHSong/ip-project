@@ -1,5 +1,6 @@
 import type { Browser, BrowserContext } from 'playwright'
 import type { BrowserFingerprint, ProxyConfig } from '../types/index.js'
+import { getRandomUA } from '../br-auth/ua-pool.js'
 
 // Playwright 브라우저 Stealth 설정
 // webdriver 프로퍼티 숨기기, navigator.plugins 위장 등
@@ -119,7 +120,7 @@ const createStealthContext = async (
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
       'Accept-Language': `${fingerprint.locale},en;q=0.9`,
       'Accept-Encoding': 'gzip, deflate, br',
-      'Sec-Ch-Ua': '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+      'Sec-Ch-Ua': getRandomUA().secChUa,
       'Sec-Ch-Ua-Mobile': '?0',
       'Sec-Ch-Ua-Platform': '"Windows"',
       'Sec-Fetch-Dest': 'document',

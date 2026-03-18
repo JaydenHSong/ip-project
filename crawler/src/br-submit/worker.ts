@@ -10,6 +10,7 @@
 // 필드 찾기: kat-label 텍스트 기반 (인덱스 아님, 폼 타입별 필드 순서가 다름)
 
 import { chromium, type BrowserContext, type Page, type Frame } from 'playwright'
+import { getRandomUA } from '../br-auth/ua-pool.js'
 import type { Job } from 'bullmq'
 import type { BrSubmitJobData, BrSubmitResult, BrFormType } from './types.js'
 import { BR_FORM_CONFIG, PARENT_MENU_TEXT } from './form-config.js'
@@ -36,7 +37,7 @@ const ensureBrowser = async (): Promise<{ context: BrowserContext; page: Page }>
     headless: process.env['BR_HEADLESS'] !== 'false',
     args: ['--no-sandbox', '--disable-dev-shm-usage'],
     viewport: { width: 1280, height: 720 },
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    userAgent: getRandomUA().userAgent,
   })
 
   browserPage = browserContext.pages()[0] || await browserContext.newPage()
