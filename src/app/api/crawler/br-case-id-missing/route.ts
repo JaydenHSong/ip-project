@@ -19,7 +19,7 @@ export const GET = async (req: Request) => {
   // Bug3 fix: br_submitted_at이 null인 건 제외 (오래된 레거시 데이터)
   const { data: reports, error } = await supabase
     .from('reports')
-    .select('id, draft_title, br_submitted_at, br_case_id_retry_count, listings!reports_listing_id_fkey(asin)')
+    .select('id, draft_title, draft_subject, br_submitted_at, br_case_id_retry_count, listings!reports_listing_id_fkey(asin)')
     .eq('status', 'monitoring')
     .is('br_case_id', null)
     .not('br_submitted_at', 'is', null)
@@ -52,6 +52,7 @@ export const GET = async (req: Request) => {
     return {
       report_id: r.id,
       draft_title: r.draft_title,
+      draft_subject: r.draft_subject,
       asin: listing?.asin ?? null,
       submitted_at: r.br_submitted_at,
       retry_count: r.br_case_id_retry_count ?? 0,

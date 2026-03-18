@@ -11,6 +11,7 @@ type CaseIdMissingResponse = {
   reports: Array<{
     report_id: string
     draft_title: string | null
+    draft_subject: string | null
     asin: string | null
     submitted_at: string | null
     retry_count: number
@@ -98,10 +99,13 @@ const matchCaseToReport = (
     if (asinTextMatch) return asinTextMatch
   }
 
-  // 2순위: Subject === draft_title 매칭
-  if (target.draft_title) {
+  // 2순위: Subject === draft_subject 또는 draft_title 매칭
+  // BR 제출 시 subject = buildSubjectWithAsin(draft_subject ?? draft_title, asin)
+  // Amazon 대시보드에서 보이는 Subject와 매칭
+  const subjectCandidates = [target.draft_subject, target.draft_title].filter(Boolean) as string[]
+  for (const candidate of subjectCandidates) {
     const titleMatches = availableCases.filter((c) =>
-      c.subject === target.draft_title || c.subject.startsWith(target.draft_title!)
+      c.subject === candidate || c.subject.startsWith(candidate)
     )
 
     if (titleMatches.length === 1) return titleMatches[0]
