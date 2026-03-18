@@ -139,6 +139,8 @@ export const MARKETPLACE_MAP: Record<string, string> = {
   'www.amazon.it': 'IT',
   'www.amazon.es': 'ES',
   'www.amazon.ca': 'CA',
+  'www.amazon.com.mx': 'MX',
+  'www.amazon.com.au': 'AU',
 }
 
 export const WEB_BASE = 'https://ip-project-khaki.vercel.app'

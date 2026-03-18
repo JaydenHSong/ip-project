@@ -7,6 +7,8 @@ const MARKETPLACE_DOMAINS: Record<string, string> = {
   IT: 'amazon.it',
   ES: 'amazon.es',
   CA: 'amazon.ca',
+  MX: 'amazon.com.mx',
+  AU: 'amazon.com.au',
 }
 
 export const getAmazonUrl = (asin: string, marketplace: string): string => {
