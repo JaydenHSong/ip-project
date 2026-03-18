@@ -43,7 +43,11 @@ export async function fetchReports(
   user: User,
 ): Promise<FetchReportsResult> {
   const page = Number(params.page) || 1
-  const effectiveOwner = (params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')) as 'my' | 'all'
+  // viewer는 본인 리포트만 볼 수 있음 (URL 조작 방지)
+  const canSeeAll = user.role !== 'viewer'
+  const effectiveOwner = canSeeAll
+    ? (params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')) as 'my' | 'all'
+    : 'my'
 
   if (isDemoMode()) {
     let filtered = [...DEMO_REPORTS]

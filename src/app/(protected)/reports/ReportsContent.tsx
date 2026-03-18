@@ -275,14 +275,16 @@ export const ReportsContent = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="truncate text-2xl font-bold text-th-text md:text-3xl">{t('reports.queueTitle')}</h1>
-            <OwnerToggle
-              value={ownerFilter}
-              onChange={(v) => {
-                const url = new URL(window.location.href)
-                url.searchParams.set('owner', v)
-                router.push(url.pathname + url.search)
-              }}
-            />
+            {userRole !== 'viewer' && (
+              <OwnerToggle
+                value={ownerFilter}
+                onChange={(v) => {
+                  const url = new URL(window.location.href)
+                  url.searchParams.set('owner', v)
+                  router.push(url.pathname + url.search)
+                }}
+              />
+            )}
           </div>
           <Button size="sm" onClick={() => setShowNewReport(true)}>
             {t('reports.new.title')}

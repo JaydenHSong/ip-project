@@ -267,14 +267,16 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
               <span className="ml-2 text-base font-normal text-th-text-muted">({totalCount.toLocaleString()})</span>
             )}
           </h1>
-          <OwnerToggle
-            value={ownerFilter}
-            onChange={(v) => {
-              const url = new URL(window.location.href)
-              url.searchParams.set('owner', v)
-              router.push(url.pathname + url.search)
-            }}
-          />
+          {userRole !== 'viewer' && (
+            <OwnerToggle
+              value={ownerFilter}
+              onChange={(v) => {
+                const url = new URL(window.location.href)
+                url.searchParams.set('owner', v)
+                router.push(url.pathname + url.search)
+              }}
+            />
+          )}
         </div>
       </div>
 

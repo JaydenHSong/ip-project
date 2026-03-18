@@ -41,7 +41,11 @@ export async function fetchCompletedReports(
   user: User,
 ): Promise<FetchCompletedResult> {
   const page = Math.max(1, parseInt(params.page ?? '1', 10) || 1)
-  const effectiveOwner = (params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')) as 'my' | 'all'
+  // viewer는 본인 리포트만 볼 수 있음 (URL 조작 방지)
+  const canSeeAll = user.role !== 'viewer'
+  const effectiveOwner = canSeeAll
+    ? (params.owner ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')) as 'my' | 'all'
+    : 'my'
 
   if (isDemoMode()) {
     let filtered = DEMO_REPORTS.filter((r) => COMPLETED_STATUSES.includes(r.status))
