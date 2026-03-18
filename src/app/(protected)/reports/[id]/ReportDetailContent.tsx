@@ -29,6 +29,7 @@ import type { BrCaseStatus } from '@/types/br-case'
 import { useToast } from '@/hooks/useToast'
 import { formatDateTime } from '@/lib/utils/date'
 import type { ReportSnapshot } from '@/types/monitoring'
+import { MARKETPLACES } from '@/constants/marketplaces'
 import { FetchStatusBar } from '@/components/features/FetchStatusBar'
 
 type ReportDetailContentProps = {
@@ -199,12 +200,15 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
   )
   const [brFields, setBrFields] = useState(() => {
     const arrToLines = (v: unknown) => Array.isArray(v) ? v.join('\n') : (typeof v === 'string' ? v : '')
+    const mpKey = listing?.marketplace?.toUpperCase() as keyof typeof MARKETPLACES | undefined
+    const domain = (mpKey && MARKETPLACES[mpKey]?.domain) || 'amazon.com'
+    const defaultProductUrl = listing?.asin ? `https://www.${domain}/dp/${listing.asin}` : ''
 
     // 1순위: br_submit_data (approve 후 저장된 확정 데이터)
     const bsd = report.br_submit_data
     if (bsd) {
       return {
-        product_urls: arrToLines(bsd.product_urls) || (listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : ''),
+        product_urls: arrToLines(bsd.product_urls) || (defaultProductUrl),
         seller_storefront_url: bsd.seller_storefront_url ?? '',
         policy_url: bsd.policy_url ?? '',
         asins: arrToLines(bsd.asins) || (listing?.asin ?? ''),
@@ -219,7 +223,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
       try { extra = JSON.parse(report.note) as Record<string, unknown> } catch { /* not JSON, ignore */ }
     }
     return {
-      product_urls: arrToLines(extra.product_urls) || (listing?.asin ? `https://www.amazon.com/dp/${listing.asin}` : ''),
+      product_urls: arrToLines(extra.product_urls) || (defaultProductUrl),
       seller_storefront_url: (extra.seller_storefront_url as string) ?? '',
       policy_url: (extra.policy_url as string) ?? '',
       asins: arrToLines(extra.asins) || (listing?.asin ?? ''),
