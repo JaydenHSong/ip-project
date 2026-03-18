@@ -435,7 +435,16 @@ export const ReportsContent = ({
                     </td>
                   ),
                   no: <td key="no" className="px-4 py-3.5"><span className="text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</span></td>,
-                  status: <td key="status" className="px-4 py-3.5"><StatusBadge status={report.status as ReportStatus} type="report" /></td>,
+                  status: (
+                    <td key="status" className="px-4 py-3.5">
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={report.status as ReportStatus} type="report" />
+                        {report.status === 'monitoring' && report.created_at && Date.now() - new Date(report.created_at).getTime() > 14 * 24 * 60 * 60 * 1000 && (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Clone</span>
+                        )}
+                      </div>
+                    </td>
+                  ),
                   br_case_id: (
                     <td key="br_case_id" className="px-4 py-3.5">
                       {report.br_case_id && report.br_case_id !== 'submitted' ? (

@@ -96,6 +96,9 @@ export async function fetchReports(
   } else if (params.smart_queue === 'stale') {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
     query = query.or(`br_last_scraped_at.lt.${sevenDaysAgo},br_last_scraped_at.is.null`)
+  } else if (params.smart_queue === 'clone_suggested') {
+    const thresholdDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+    query = query.lt('created_at', thresholdDaysAgo)
   }
 
   // Search filter

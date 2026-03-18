@@ -8,6 +8,7 @@ type QueueSummary = {
   action_required: number
   new_reply: number
   stale: number
+  clone_suggested: number
   total: number
 }
 
@@ -15,6 +16,7 @@ const QUEUE_ITEMS = [
   { key: 'action_required', label: 'Action Required', variant: 'danger' as const, param: 'needs_attention' },
   { key: 'new_reply', label: 'New Reply', variant: 'info' as const, param: 'new_reply' },
   { key: 'stale', label: 'Stale (7d+)', variant: 'default' as const, param: 'stale' },
+  { key: 'clone_suggested', label: 'Clone Suggested (14d+)', variant: 'warning' as const, param: 'clone_suggested' },
 ] as const
 
 export const BrCaseQueueBar = () => {

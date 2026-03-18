@@ -6,20 +6,30 @@ import { createClient } from '@/lib/supabase/server'
 export const GET = withAuth(async () => {
   const supabase = await createClient()
 
+  // Clone threshold 설정값 조회
+  const { data: configRow } = await supabase
+    .from('system_configs')
+    .select('value')
+    .eq('key', 'monitoring')
+    .maybeSingle()
+  const cloneThresholdDays = (configRow?.value as { clone_threshold_days?: number } | null)?.clone_threshold_days ?? 14
+
   // 모니터링 중인 리포트만 대상
   const { data: reports } = await supabase
     .from('reports')
-    .select('id, br_case_status, br_last_amazon_reply_at, br_last_our_reply_at, br_last_scraped_at, br_reply_read_at')
+    .select('id, br_case_status, br_last_amazon_reply_at, br_last_our_reply_at, br_last_scraped_at, br_reply_read_at, created_at')
     .eq('status', 'monitoring')
     .not('br_case_id', 'is', null)
 
   const rows = reports ?? []
   const now = Date.now()
   const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
+  const cloneThresholdMs = cloneThresholdDays * 24 * 60 * 60 * 1000
 
   let actionRequired = 0
   let newReply = 0
   let stale = 0
+  let cloneSuggested = 0
 
   for (const r of rows) {
     if (r.br_case_status === 'needs_attention') actionRequired++
@@ -35,12 +45,17 @@ export const GET = withAuth(async () => {
     if (lastActivity) {
       if (now - new Date(lastActivity).getTime() > sevenDaysMs) stale++
     }
+
+    if (r.created_at && now - new Date(r.created_at).getTime() > cloneThresholdMs) {
+      cloneSuggested++
+    }
   }
 
   return NextResponse.json({
     action_required: actionRequired,
     new_reply: newReply,
     stale,
+    clone_suggested: cloneSuggested,
     total: rows.length,
   })
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
