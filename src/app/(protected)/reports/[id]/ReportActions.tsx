@@ -19,6 +19,7 @@ type ReportActionsProps = {
   currentUserId?: string | null
   resubmitCount?: number
   nextResubmitAt?: string | null
+  backHref?: string
 }
 
 export const ReportActions = ({
@@ -30,6 +31,7 @@ export const ReportActions = ({
   currentUserId,
   resubmitCount,
   nextResubmitAt,
+  backHref = '/reports',
 }: ReportActionsProps) => {
   const router = useRouter()
   const { t } = useI18n()
@@ -223,7 +225,7 @@ export const ReportActions = ({
       addToast({ type: 'success', title: t('reports.detail.deleted'), message: t('reports.detail.deletedDesc') })
       setShowDeleteConfirm(false)
       setLoading(null)
-      router.replace('/reports')
+      router.replace(backHref)
     } catch (e) {
       addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
       setLoading(null)

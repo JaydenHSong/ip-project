@@ -181,6 +181,8 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
   const router = useRouter()
 
   const [currentStatus, setCurrentStatus] = useState(report.status)
+  const COMPLETED_STATUSES = ['resolved', 'unresolved', 'resubmitted', 'escalated', 'archived']
+  const backHref = COMPLETED_STATUSES.includes(report.status) ? '/reports/completed' : '/reports'
   const isDraftEditable = canEdit && (currentStatus === 'draft' || currentStatus === 'pending_review')
 
   const [editTitle, setEditTitle] = useState(report.draft_title ?? '')
@@ -581,7 +583,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
       {/* Header with back, title, status, and actions */}
       {!embedded && (
         <div className="flex flex-wrap items-center gap-3">
-          <BackButton href="/reports" />
+          <BackButton href={backHref} />
           <span className="font-mono text-4xl font-bold leading-none text-th-accent">#{String(report.report_number).padStart(5, '0')}</span>
           <StatusBadge status={currentStatus as ReportStatus} type="report" size="md" />
           {isDraftEditable && (
@@ -599,6 +601,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                 currentUserId={currentUserId}
                 resubmitCount={report.resubmit_count}
                 nextResubmitAt={report.next_resubmit_at}
+                backHref={backHref}
               />
           </div>
         </div>
@@ -622,6 +625,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                 currentUserId={currentUserId}
                 resubmitCount={report.resubmit_count}
                 nextResubmitAt={report.next_resubmit_at}
+                backHref={backHref}
               />
           </div>
         </div>
