@@ -177,15 +177,16 @@ export const ReportsContent = ({
   const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
   const bulkActions = useBulkActions(selectedIds, clearSelection)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
-  const [previewReportId, setPreviewReportId] = useState<string | null>(() => {
+  const [highlightedId, setHighlightedId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') return sessionStorage.getItem('sentinel-highlight-report')
     return null
   })
+  const [previewReportId, setPreviewReportId] = useState<string | null>(null)
 
-  const updatePreviewReportId = useCallback((id: string | null) => {
+  const handleSelectReport = useCallback((id: string) => {
     setPreviewReportId(id)
-    if (id) sessionStorage.setItem('sentinel-highlight-report', id)
-    else sessionStorage.removeItem('sentinel-highlight-report')
+    setHighlightedId(id)
+    sessionStorage.setItem('sentinel-highlight-report', id)
   }, [])
 
   const getSearchableText = useCallback(
@@ -470,7 +471,7 @@ export const ReportsContent = ({
                   resolved: <td key="resolved" className="px-4 py-3.5 text-th-text-muted">{formatDate(row.resolved_at as string)}</td>,
                 }
                 return (
-                  <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => updatePreviewReportId(report.id)}>
+                  <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${highlightedId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => handleSelectReport(report.id)}>
                     {visibleColumns.map((col) => cellMap[col.id])}
                   </tr>
                 )
@@ -526,7 +527,7 @@ export const ReportsContent = ({
       {/* Report Preview Panel */}
       <ReportPreviewPanel
         reportId={previewReportId}
-        onClose={() => { updatePreviewReportId(null); router.refresh() }}
+        onClose={() => { setPreviewReportId(null); router.refresh() }}
         userRole={userRole}
       />
     </div>
