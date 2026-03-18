@@ -177,7 +177,16 @@ export const ReportsContent = ({
   const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
   const bulkActions = useBulkActions(selectedIds, clearSelection)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
-  const [previewReportId, setPreviewReportId] = useState<string | null>(null)
+  const [previewReportId, setPreviewReportId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') return sessionStorage.getItem('sentinel-highlight-report')
+    return null
+  })
+
+  const updatePreviewReportId = useCallback((id: string | null) => {
+    setPreviewReportId(id)
+    if (id) sessionStorage.setItem('sentinel-highlight-report', id)
+    else sessionStorage.removeItem('sentinel-highlight-report')
+  }, [])
 
   const getSearchableText = useCallback(
     (item: ReportRow) =>
@@ -461,7 +470,7 @@ export const ReportsContent = ({
                   resolved: <td key="resolved" className="px-4 py-3.5 text-th-text-muted">{formatDate(row.resolved_at as string)}</td>,
                 }
                 return (
-                  <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => setPreviewReportId(report.id)}>
+                  <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => updatePreviewReportId(report.id)}>
                     {visibleColumns.map((col) => cellMap[col.id])}
                   </tr>
                 )
@@ -517,7 +526,7 @@ export const ReportsContent = ({
       {/* Report Preview Panel */}
       <ReportPreviewPanel
         reportId={previewReportId}
-        onClose={() => { setPreviewReportId(null); router.refresh() }}
+        onClose={() => { updatePreviewReportId(null); router.refresh() }}
         userRole={userRole}
       />
     </div>
