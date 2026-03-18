@@ -3,6 +3,7 @@
 
 import type { BrSubmitData } from '@/types/reports'
 import { type BrFormTypeCode, isBrSubmittable, BR_FORM_TYPES, BR_FORM_TYPE_OPTIONS } from '@/constants/br-form-types'
+import { MARKETPLACES } from '@/constants/marketplaces'
 
 // BR 폼 타입별 description 필드 가이드 — AI 프롬프트 주입용
 const BR_FORM_DESCRIPTION_GUIDE: Record<string, string> = {
@@ -83,7 +84,10 @@ export const buildBrSubmitData = ({ report, listing, extraFields }: BuildBrDataI
   if (listing.url) {
     productUrls.push(listing.url)
   } else if (listing.asin) {
-    productUrls.push(`https://www.amazon.com/dp/${listing.asin}`)
+    // marketplace에 맞는 도메인 사용 (CA → amazon.ca, JP → amazon.co.jp 등)
+    const mp = listing.marketplace?.toUpperCase() as keyof typeof MARKETPLACES | undefined
+    const domain = (mp && MARKETPLACES[mp]?.domain) || 'amazon.com'
+    productUrls.push(`https://www.${domain}/dp/${listing.asin}`)
   }
 
   const data: BrSubmitData = {
