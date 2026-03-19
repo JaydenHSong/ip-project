@@ -8,7 +8,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { I18nProvider } from '@/lib/i18n/context'
 import { SpigenLogo } from '@/components/ui/SpigenLogo'
 
-const SPLINE_URL = 'https://prod.spline.design/NUEUll98ColmQjOL/scene.splinecode'
+const SPLINE_URL = 'https://prod.spline.design/Rd0xLPNbcDHXmezX/scene.splinecode'
 
 const LoginContent = () => {
   const { t } = useI18n()
@@ -33,7 +33,7 @@ const LoginContent = () => {
     <div className="relative flex min-h-screen">
       {/* Spline Viewer Script */}
       <Script
-        src="https://unpkg.com/@splinetool/viewer@1.12.68/build/spline-viewer.js"
+        src="https://unpkg.com/@splinetool/viewer@1.12.69/build/spline-viewer.js"
         type="module"
         strategy="afterInteractive"
       />
