@@ -18,6 +18,7 @@ import type { ReportStatus } from '@/types/reports'
 import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
 import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 import { ReportPreviewPanel } from '@/components/features/ReportPreviewPanel'
@@ -172,6 +173,24 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
         body: JSON.stringify({ report_ids: [...selectedIds] }),
       })
       setSelectedIds(new Set())
+      router.refresh()
+    } finally {
+      setBulkLoading(null)
+    }
+  }, [selectedIds, router])
+
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setBulkLoading('delete')
+    try {
+      await fetch('/api/reports/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ report_ids: [...selectedIds] }),
+      })
+      setSelectedIds(new Set())
+      setShowBulkDeleteConfirm(false)
       router.refresh()
     } finally {
       setBulkLoading(null)
@@ -333,6 +352,14 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             onClick={handleBulkArchive}
           >
             {t('reports.bulk.archive' as Parameters<typeof t>[0])}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-st-danger-text/30 text-st-danger-text hover:bg-st-danger-text/10"
+            onClick={() => setShowBulkDeleteConfirm(true)}
+          >
+            Delete ({selectedIds.size})
           </Button>
         </div>
       )}
@@ -542,6 +569,24 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       </div>
 
       <ReportPreviewPanel reportId={previewReportId} onClose={() => { setPreviewReportId(null); router.refresh() }} userRole={userRole} />
+
+      {/* Bulk Delete Confirmation */}
+      <Modal open={showBulkDeleteConfirm} onClose={() => setShowBulkDeleteConfirm(false)} title="Delete Reports">
+        <p className="text-sm text-th-text-secondary">
+          {selectedIds.size}건의 리포트를 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+        </p>
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowBulkDeleteConfirm(false)}>Cancel</Button>
+          <Button
+            size="sm"
+            className="bg-st-danger-text hover:bg-st-danger-text/90"
+            loading={bulkLoading === 'delete'}
+            onClick={handleBulkDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }
