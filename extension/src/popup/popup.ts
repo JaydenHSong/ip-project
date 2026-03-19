@@ -3,6 +3,7 @@
 import type { BackgroundResponse, AuthStatusResponse, PageDataResponse } from '@shared/messages'
 import type { AuthUser, SubmitReportResponse } from '@shared/types'
 import { initLocale, initTheme, t } from '@shared/i18n'
+import { WEB_BASE } from '@shared/constants'
 import { renderLoadingView } from './views/LoadingView'
 import { renderLoginView } from './views/LoginView'
 import { renderReportFormView } from './views/ReportFormView'
@@ -299,5 +300,47 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes['bgfetch.status']) updateBgFetchBanner()
 })
 
+// ─── Update Check Banner ─────────────────────────────────────
+const checkForUpdate = async (): Promise<void> => {
+  const banner = document.getElementById('update-banner')
+  const versionEl = document.getElementById('update-version')
+  const changesEl = document.getElementById('update-changes')
+  const downloadBtn = document.getElementById('update-download') as HTMLAnchorElement | null
+  const dismissBtn = document.getElementById('update-dismiss')
+  if (!banner || !versionEl || !changesEl || !downloadBtn || !dismissBtn) return
+
+  try {
+    const currentVersion = chrome.runtime.getManifest().version
+    const res = await fetch(`${WEB_BASE}/api/extension/latest`)
+    if (!res.ok) return
+    const data = await res.json() as { latest: { version: string; download_url: string; changes: string[] } | null }
+    if (!data.latest) return
+
+    const latestVersion = data.latest.version
+    if (latestVersion === currentVersion) return
+
+    // 이미 dismiss한 버전인지 확인
+    const dismissed = await chrome.storage.local.get('update.dismissed_version')
+    if (dismissed['update.dismissed_version'] === latestVersion) return
+
+    // 배너 표시
+    versionEl.textContent = `v${latestVersion} available!`
+    changesEl.textContent = data.latest.changes?.join(', ') ?? ''
+    downloadBtn.href = data.latest.download_url
+    banner.classList.remove('hidden')
+
+    // Dismiss 버튼
+    dismissBtn.addEventListener('click', () => {
+      banner.classList.add('hidden')
+      chrome.storage.local.set({ 'update.dismissed_version': latestVersion })
+    })
+  } catch {
+    // 네트워크 실패 시 무시
+  }
+}
+
 // 팝업 오픈 시 초기화 — locale + theme 먼저 로드
-Promise.all([initLocale(), initTheme()]).then(() => init())
+Promise.all([initLocale(), initTheme()]).then(() => {
+  init()
+  checkForUpdate()
+})
