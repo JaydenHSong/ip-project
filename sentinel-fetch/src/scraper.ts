@@ -73,6 +73,10 @@ export const fetchProductInfo = async (asin: string, marketplace: string): Promi
     const context = browser.contexts()[0] ?? await browser.newContext()
     const page = await context.newPage()
 
+    // Bandwidth 최적화: 이미지/CSS/폰트 차단 (텍스트 데이터만 필요, 이미지 URL은 DOM src에서 추출)
+    await page.route('**/*.{png,jpg,jpeg,webp,gif,svg,ico,woff,woff2,ttf,eot,css}', (route) => route.abort())
+    await page.route('**/{images,media,fonts}/**', (route) => route.abort())
+
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: config.gotoTimeout })
 
     // CAPTCHA 감지
