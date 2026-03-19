@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { Button } from '@/components/ui/Button'
+import { SortableHeader } from '@/components/ui/SortableHeader'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import type { IpAsset, IpAssetStatus, IpType } from '@/types/ip-assets'
@@ -144,6 +145,30 @@ export const PatentsContent = ({
     fetchUrl: '/api/patents/list',
     filterParams: infiniteFilterParams,
   })
+
+  // 클라이언트 사이드 정렬
+  const [sort, setSort] = useState<{ field: string; direction: 'asc' | 'desc' }>({ field: 'synced_at', direction: 'desc' })
+  const toggleSort = useCallback((field: string) => {
+    setSort((prev) => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc',
+    }))
+  }, [])
+
+  const sortedData = useMemo(() => {
+    const data = [...infiniteData]
+    const { field, direction } = sort
+    data.sort((a, b) => {
+      const av = (a as Record<string, unknown>)[field]
+      const bv = (b as Record<string, unknown>)[field]
+      if (av == null && bv == null) return 0
+      if (av == null) return 1
+      if (bv == null) return -1
+      const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true })
+      return direction === 'asc' ? cmp : -cmp
+    })
+    return data
+  }, [infiniteData, sort])
 
   const [selectedAsset, setSelectedAsset] = useState<IpAsset | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -488,12 +513,12 @@ export const PatentsContent = ({
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
-        {infiniteData.length === 0 ? (
+        {sortedData.length === 0 ? (
           <div className="rounded-xl border border-th-border bg-surface-card p-8 text-center text-th-text-muted">
             {t('patents.noAssets')}
           </div>
         ) : (
-          infiniteData.map((asset) => (
+          sortedData.map((asset) => (
             <button
               key={asset.id}
               type="button"
@@ -538,24 +563,24 @@ export const PatentsContent = ({
           </colgroup>
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-th-border bg-th-bg-tertiary">
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.ipType')}<div {...getPatentResizeProps(0)} /></th>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.managementNumber')}<div {...getPatentResizeProps(1)} /></th>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.name')}<div {...getPatentResizeProps(2)} /></th>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.country')}<div {...getPatentResizeProps(3)} /></th>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('common.status')}<div {...getPatentResizeProps(4)} /></th>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.registrationNumber')}<div {...getPatentResizeProps(5)} /></th>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.expiryDate')}<div {...getPatentResizeProps(6)} /></th>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.assignee')}<div {...getPatentResizeProps(7)} /></th>
-              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">Synced<div {...getPatentResizeProps(8)} /></th>
+              <SortableHeader label={t('patents.ipType')} field="ip_type" currentSort={sort} onSort={toggleSort}><div {...getPatentResizeProps(0)} /></SortableHeader>
+              <SortableHeader label={t('patents.managementNumber')} field="management_number" currentSort={sort} onSort={toggleSort}><div {...getPatentResizeProps(1)} /></SortableHeader>
+              <SortableHeader label={t('patents.name')} field="name" currentSort={sort} onSort={toggleSort}><div {...getPatentResizeProps(2)} /></SortableHeader>
+              <SortableHeader label={t('patents.country')} field="country" currentSort={sort} onSort={toggleSort}><div {...getPatentResizeProps(3)} /></SortableHeader>
+              <SortableHeader label={t('common.status')} field="status" currentSort={sort} onSort={toggleSort}><div {...getPatentResizeProps(4)} /></SortableHeader>
+              <SortableHeader label={t('patents.registrationNumber')} field="registration_number" currentSort={sort} onSort={toggleSort}><div {...getPatentResizeProps(5)} /></SortableHeader>
+              <SortableHeader label={t('patents.expiryDate')} field="expiry_date" currentSort={sort} onSort={toggleSort}><div {...getPatentResizeProps(6)} /></SortableHeader>
+              <SortableHeader label={t('patents.assignee')} field="assignee" currentSort={sort} onSort={toggleSort}><div {...getPatentResizeProps(7)} /></SortableHeader>
+              <SortableHeader label="Synced" field="synced_at" currentSort={sort} onSort={toggleSort}><div {...getPatentResizeProps(8)} /></SortableHeader>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
-            {infiniteData.length === 0 ? (
+            {sortedData.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-4 py-10 text-center text-sm text-th-text-muted">{t('patents.noAssets')}</td>
               </tr>
             ) : (
-              infiniteData.map((asset) => (
+              sortedData.map((asset) => (
                 <tr
                   key={asset.id}
                   className="cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover"
@@ -596,8 +621,8 @@ export const PatentsContent = ({
         {isLoadingMore && (
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-th-accent border-t-transparent" />
         )}
-        {!hasMore && infiniteData.length > 0 && (
-          <span className="text-xs text-th-text-muted">{infiniteData.length} / {totalCount}</span>
+        {!hasMore && sortedData.length > 0 && (
+          <span className="text-xs text-th-text-muted">{sortedData.length} / {totalCount}</span>
         )}
       </div>
 
