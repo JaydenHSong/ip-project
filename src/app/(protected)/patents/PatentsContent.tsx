@@ -157,9 +157,9 @@ export const PatentsContent = ({
   const [newIds, setNewIds] = useState<Set<string>>(new Set())
   const { addToast } = useToast()
 
-  // ipType(100) + mgmtNo(150) + name(200) + country(80) + status(100) + regNo(150) + expiry(100) + assignee(120)
-  const defaultPatentColWidths = useMemo(() => [110, 170, 280, 90, 110, 170, 110, 140], [])
-  const minPatentColWidths = useMemo(() => [80, 120, 150, 60, 80, 120, 80, 100], [])
+  // ipType + mgmtNo + name + country + status + regNo + expiry + assignee + synced
+  const defaultPatentColWidths = useMemo(() => [130, 170, 260, 80, 100, 160, 110, 140, 100], [])
+  const minPatentColWidths = useMemo(() => [100, 120, 150, 60, 80, 120, 80, 100, 80], [])
   const { containerRef: patentContainerRef, tableStyle: patentTableStyle, getColStyle: getPatentColStyle, getResizeHandleProps: getPatentResizeProps } = useResizableColumns({
     storageKey: 'patents',
     defaultWidths: defaultPatentColWidths,
@@ -580,7 +580,7 @@ export const PatentsContent = ({
                     {asset.expiry_date ? new Date(asset.expiry_date).toLocaleDateString('en-CA') : '-'}
                   </td>
                   <td className="px-4 py-3.5 text-th-text-muted">{asset.assignee ?? '-'}</td>
-                  <td className="px-4 py-3.5 text-xs text-th-text-muted">
+                  <td className="whitespace-nowrap px-4 py-3.5 text-xs text-th-text-muted">
                     {asset.synced_at ? new Date(asset.synced_at).toLocaleDateString('en-CA') : '-'}
                   </td>
                 </tr>
