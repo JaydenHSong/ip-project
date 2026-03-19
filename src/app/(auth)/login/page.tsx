@@ -38,7 +38,7 @@ const LoginContent = () => {
         strategy="afterInteractive"
       />
 
-      {/* Left Panel — Spline 3D Scene (flipped so character faces right) */}
+      {/* Left Panel — Spline 3D Scene with dark overlay */}
       <div className="hidden flex-1 lg:block">
         <div className="relative h-full w-full overflow-hidden">
           <spline-viewer
@@ -50,11 +50,11 @@ const LoginContent = () => {
               transform: 'scaleX(-1)',
             }}
           />
+          {/* 어두운 오버레이 — 오른쪽으로 갈수록 진해짐 */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-th-bg" />
+          <div className="pointer-events-none absolute inset-0 bg-th-bg/30" />
         </div>
       </div>
-
-      {/* Gradient Fade — right edge of 3D into login */}
-      <div className="pointer-events-none absolute right-[480px] top-0 z-[5] hidden h-full w-32 bg-gradient-to-l from-th-bg to-transparent lg:block" />
 
       {/* Right Panel — Login Form */}
       <div className="relative z-10 flex w-full flex-col items-center justify-center px-8 lg:w-[480px] lg:min-w-[480px]">
