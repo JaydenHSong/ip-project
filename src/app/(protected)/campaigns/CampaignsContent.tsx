@@ -152,7 +152,7 @@ export const CampaignsContent = ({ campaigns, totalPages, totalCount, page, stat
   ]
 
   return (
-    <div className="flex min-h-full flex-col gap-4 md:gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       <div className="shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('campaigns.title')}</h1>
@@ -242,7 +242,7 @@ export const CampaignsContent = ({ campaigns, totalPages, totalCount, page, stat
       )}
 
       {/* Desktop: table — single table with sticky header */}
-      <div className="hidden flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+      <div className="hidden flex-col overflow-hidden rounded-lg border border-th-border md:flex">
         <div ref={campaignContainerRef} className="overflow-auto">
           <table className="table-fixed text-left text-sm" style={campaignTableStyle}>
           <colgroup>

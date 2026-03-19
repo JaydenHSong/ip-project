@@ -194,7 +194,7 @@ export const NoticesContent = ({
   }
 
   return (
-    <div className="flex min-h-full flex-col gap-4 md:gap-6">
+    <div className="flex flex-col gap-4 md:gap-6">
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between">
         <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{tNotices('title')}</h1>
@@ -320,7 +320,7 @@ export const NoticesContent = ({
       </div>
 
       {/* Desktop: Table — pocket scroll */}
-      <Card className="hidden flex-1 flex-col overflow-x-auto overflow-y-hidden md:flex">
+      <Card className="hidden flex-col overflow-x-auto overflow-y-hidden md:flex">
         <CardContent ref={noticeContainerRef} className="flex flex-col p-0">
           <table className="shrink-0 table-fixed text-left text-sm" style={noticeTableStyle}>
             <colgroup>
