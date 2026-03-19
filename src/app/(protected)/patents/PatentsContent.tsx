@@ -546,12 +546,13 @@ export const PatentsContent = ({
               <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.registrationNumber')}<div {...getPatentResizeProps(5)} /></th>
               <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.expiryDate')}<div {...getPatentResizeProps(6)} /></th>
               <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">{t('patents.assignee')}<div {...getPatentResizeProps(7)} /></th>
+              <th className="relative px-4 py-3 text-xs font-semibold text-th-text-tertiary">Synced<div {...getPatentResizeProps(8)} /></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
             {infiniteData.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-sm text-th-text-muted">{t('patents.noAssets')}</td>
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-th-text-muted">{t('patents.noAssets')}</td>
               </tr>
             ) : (
               infiniteData.map((asset) => (
@@ -579,6 +580,9 @@ export const PatentsContent = ({
                     {asset.expiry_date ? new Date(asset.expiry_date).toLocaleDateString('en-CA') : '-'}
                   </td>
                   <td className="px-4 py-3.5 text-th-text-muted">{asset.assignee ?? '-'}</td>
+                  <td className="px-4 py-3.5 text-xs text-th-text-muted">
+                    {asset.synced_at ? new Date(asset.synced_at).toLocaleDateString('en-CA') : '-'}
+                  </td>
                 </tr>
               ))
             )}
