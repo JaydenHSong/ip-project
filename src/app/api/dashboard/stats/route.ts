@@ -96,13 +96,13 @@ export const GET = async (request: Request): Promise<NextResponse> => {
       .from('listings')
       .select('*, campaigns!inner(created_by)', { count: 'exact', head: true })
       .eq('campaigns.created_by', userId)
-      .in('source', ['crawler', 'extension', 'extension_passive'])
+      .eq('source', 'crawler')
     listingsCount = count ?? 0
   } else {
     const { count } = await supabase
       .from('listings')
       .select('*', { count: 'exact', head: true })
-      .in('source', ['crawler', 'extension', 'extension_passive'])
+      .eq('source', 'crawler')
     listingsCount = count ?? 0
   }
 
@@ -112,14 +112,14 @@ export const GET = async (request: Request): Promise<NextResponse> => {
       .from('listings')
       .select('*, campaigns!inner(created_by)', { count: 'exact', head: true })
       .eq('campaigns.created_by', userId)
-      .in('source', ['crawler', 'extension', 'extension_passive'])
+      .eq('source', 'crawler')
       .eq('is_suspect', true)
     suspectCount = count ?? 0
   } else {
     const { count } = await supabase
       .from('listings')
       .select('*', { count: 'exact', head: true })
-      .in('source', ['crawler', 'extension', 'extension_passive'])
+      .eq('source', 'crawler')
       .eq('is_suspect', true)
     suspectCount = count ?? 0
   }
