@@ -336,14 +336,16 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
       {!isArchived && canBulk && selectedIds.size > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-th-border bg-surface-card px-4 py-2">
           <span className="text-sm font-medium text-th-text">{t('reports.bulk.selected' as Parameters<typeof t>[0]).replace('{count}', String(selectedIds.size))}</span>
-          <Button
-            size="sm"
-            variant="outline"
-            loading={bulkLoading === 'brResubmit'}
-            onClick={handleBulkBrResubmit}
-          >
-            {t('reports.bulk.brResubmit' as Parameters<typeof t>[0])} ({selectedIds.size})
-          </Button>
+          {statusFilter !== 'resolved' && (
+            <Button
+              size="sm"
+              variant="outline"
+              loading={bulkLoading === 'brResubmit'}
+              onClick={handleBulkBrResubmit}
+            >
+              {t('reports.bulk.brResubmit' as Parameters<typeof t>[0])} ({selectedIds.size})
+            </Button>
+          )}
           <Button
             size="sm"
             variant="outline"

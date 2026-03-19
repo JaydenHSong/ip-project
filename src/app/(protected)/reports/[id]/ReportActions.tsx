@@ -318,17 +318,7 @@ export const ReportActions = ({
           </div>
         )}
 
-        {/* Resolved: BR 재신고 */}
-        {status === 'resolved' && (
-          <Button
-            variant="outline"
-            size="sm"
-            loading={loading === 'brResubmit'}
-            onClick={handleForceResubmit}
-          >
-            BR 재신고
-          </Button>
-        )}
+        {/* Resolved: 재신고 없음 (해결된 케이스에서 재신고 시 프로세스 꼬임 방지) */}
 
         {/* Clone as New — for monitoring/resolved/unresolved/archived */}
         {['monitoring', 'resolved', 'unresolved', 'archived'].includes(status) && (
