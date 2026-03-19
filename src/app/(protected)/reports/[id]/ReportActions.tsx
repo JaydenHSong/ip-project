@@ -287,19 +287,16 @@ export const ReportActions = ({
           </div>
         )}
 
-        {/* Monitoring: Status + BR 재신고 */}
+        {/* Monitoring: BR 재신고 */}
         {status === 'monitoring' && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-th-text-muted">모니터링 중...</span>
-            <Button
-              variant="outline"
-              size="sm"
-              loading={loading === 'brResubmit'}
-              onClick={handleForceResubmit}
-            >
-              BR 재신고
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            loading={loading === 'brResubmit'}
+            onClick={handleForceResubmit}
+          >
+            BR 재신고
+          </Button>
         )}
 
         {/* Unresolved: Resubmit info + Force resubmit */}
@@ -321,19 +318,16 @@ export const ReportActions = ({
           </div>
         )}
 
-        {/* Resolved: Done + BR 재신고 */}
+        {/* Resolved: BR 재신고 */}
         {status === 'resolved' && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-st-success-text">해결 완료</span>
-            <Button
-              variant="outline"
-              size="sm"
-              loading={loading === 'brResubmit'}
-              onClick={handleForceResubmit}
-            >
-              BR 재신고
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            loading={loading === 'brResubmit'}
+            onClick={handleForceResubmit}
+          >
+            BR 재신고
+          </Button>
         )}
 
         {/* Clone as New — for monitoring/resolved/unresolved/archived */}

@@ -92,7 +92,6 @@ export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId 
       status={
         data ? (
           <div className="flex items-center gap-2">
-            <StatusBadge status={data.status as ReportStatus} type="report" />
             {(canEdit && data.status === 'monitoring' && (data.br_case_status as string) !== 'closed') ? (
               <CaseCloseButton reportId={data.id as string} onClosed={() => { setData(null); onClose(); router.refresh() }} />
             ) : null}
