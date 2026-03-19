@@ -185,8 +185,8 @@ export const ReportActions = ({
       const result = await res.json()
       const newId = result?.data?.id
       if (!newId) throw new Error('Clone succeeded but no ID returned')
-      // Full page navigation — router.push unreliable inside SlidePanel
-      window.location.href = `/reports/${newId}`
+      // Report Queue로 이동 → SlidePanel에서 draft 열기
+      window.location.href = `/reports?preview=${newId}`
     } catch (e) {
       addToast({ type: 'error', title: 'Clone failed', message: e instanceof Error ? e.message : 'Unknown error' })
       setLoading(null)

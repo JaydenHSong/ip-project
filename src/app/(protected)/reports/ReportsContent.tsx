@@ -165,12 +165,16 @@ export const ReportsContent = ({
   const [prefillMarketplace, setPrefillMarketplace] = useState('')
   const searchParamsHook = useSearchParams()
 
-  // Auto-open modal from URL params (e.g. /reports?new=1&asin=B0XXX)
+  // Auto-open modal/panel from URL params
   useEffect(() => {
     if (searchParamsHook.get('new') === '1') {
       setPrefillAsin(searchParamsHook.get('asin') ?? '')
       setPrefillMarketplace(searchParamsHook.get('marketplace') ?? '')
       setShowNewReport(true)
+    }
+    const previewId = searchParamsHook.get('preview')
+    if (previewId) {
+      setPreviewReportId(previewId)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
