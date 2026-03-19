@@ -64,7 +64,7 @@ export const useInfiniteScroll = <T>({
     }
   }, [isLoading, hasMore, offset, pageSize, fetchUrl, filterParams])
 
-  // Intersection Observer
+  // Intersection Observer + 초기 뷰포트 내 sentinel 처리
   useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel) return
@@ -81,6 +81,19 @@ export const useInfiniteScroll = <T>({
     observer.observe(sentinel)
     return () => observer.disconnect()
   }, [loadMore])
+
+  // sentinel이 처음부터 뷰포트 안에 있을 때 연속 로드
+  useEffect(() => {
+    if (isLoading || !hasMore) return
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const rect = sentinel.getBoundingClientRect()
+    const inViewport = rect.top < window.innerHeight + 200
+    if (inViewport) {
+      loadMore()
+    }
+  }, [data.length]) // data가 추가될 때마다 체크 // eslint-disable-line react-hooks/exhaustive-deps
 
   return { data, isLoading, hasMore, sentinelRef }
 }
