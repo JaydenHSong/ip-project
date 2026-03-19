@@ -342,7 +342,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             loading={bulkLoading === 'brResubmit'}
             onClick={handleBulkBrResubmit}
           >
-            {t('reports.bulk.brResubmit' as Parameters<typeof t>[0])}
+            {t('reports.bulk.brResubmit' as Parameters<typeof t>[0])} ({selectedIds.size})
           </Button>
           <Button
             size="sm"
@@ -351,7 +351,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             loading={bulkLoading === 'archive'}
             onClick={handleBulkArchive}
           >
-            {t('reports.bulk.archive' as Parameters<typeof t>[0])}
+            {t('reports.bulk.archive' as Parameters<typeof t>[0])} ({selectedIds.size})
           </Button>
           <Button
             size="sm"
