@@ -38,9 +38,9 @@ const LoginContent = () => {
         strategy="afterInteractive"
       />
 
-      {/* Left Panel — Spline 3D Scene with dark overlay */}
+      {/* Left Panel — Spline 3D Scene */}
       <div className="hidden flex-1 lg:block">
-        <div className="relative h-full w-full overflow-hidden">
+        <div className="h-full w-full overflow-hidden">
           <spline-viewer
             url={SPLINE_URL}
             style={{
@@ -50,9 +50,6 @@ const LoginContent = () => {
               transform: 'scaleX(-1)',
             }}
           />
-          {/* 어두운 오버레이 — 오른쪽으로 갈수록 진해짐 */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-th-bg" />
-          <div className="pointer-events-none absolute inset-0 bg-th-bg/30" />
         </div>
       </div>
 
