@@ -55,7 +55,7 @@ export const AuditLogsContent = ({ logs, totalPages, totalCount, page, actionFil
   })
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="min-h-full space-y-4 md:space-y-6">
       <h1 className="text-xl font-bold text-th-text md:text-2xl">{t('auditLogs.title')}</h1>
 
       <ScrollTabs>

@@ -413,7 +413,7 @@ export const PatentsContent = ({
   const inputClass = 'w-full rounded-xl border border-th-border bg-surface-card px-4 py-2.5 text-sm text-th-text placeholder:text-th-text-muted focus:border-th-accent focus:outline-none focus:ring-2 focus:ring-th-accent/20'
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6">
+    <div className="flex min-h-full flex-col gap-4 md:gap-6">
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between">
         <h1 className="truncate text-xl font-bold text-th-text md:text-2xl">{t('patents.title')}</h1>
@@ -553,7 +553,7 @@ export const PatentsContent = ({
       </div>
 
       {/* Desktop: table — single table with sticky header */}
-      <div className="hidden flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+      <div className="hidden flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
         <div ref={patentContainerRef} className="overflow-auto">
           <table className="table-fixed text-left text-sm" style={patentTableStyle}>
           <colgroup>

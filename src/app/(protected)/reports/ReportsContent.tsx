@@ -284,7 +284,7 @@ export const ReportsContent = ({
   ]
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6 flex-none">
+    <div className="flex min-h-full flex-col gap-4 md:gap-6">
       <div className="shrink-0 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -381,7 +381,7 @@ export const ReportsContent = ({
       </div>
 
       {/* Desktop: table — single table with sticky header */}
-      <div className="hidden flex-col overflow-hidden rounded-lg border border-th-border md:flex">
+      <div className="hidden flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
         <div ref={containerRef} className="overflow-auto">
           <table className="table-fixed text-left text-sm" style={tableStyle}>
           <colgroup>
