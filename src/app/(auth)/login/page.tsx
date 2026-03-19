@@ -54,7 +54,7 @@ const LoginContent = () => {
       </div>
 
       {/* Right Panel — Login Form */}
-      <div className="relative z-10 flex w-full flex-col items-center justify-center px-8 lg:w-[480px] lg:min-w-[480px]">
+      <div className="relative z-10 flex w-full flex-col items-center justify-center px-8 lg:w-[552px] lg:min-w-[552px]">
         <div className="absolute inset-0 bg-th-bg" />
 
         <div className="relative z-10 w-full max-w-sm animate-fade-in">
