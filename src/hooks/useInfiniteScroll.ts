@@ -88,12 +88,16 @@ export const useInfiniteScroll = <T>({
     const sentinel = sentinelRef.current
     if (!sentinel) return
 
-    const rect = sentinel.getBoundingClientRect()
-    const inViewport = rect.top < window.innerHeight + 200
-    if (inViewport) {
-      loadMore()
-    }
-  }, [data.length]) // data가 추가될 때마다 체크 // eslint-disable-line react-hooks/exhaustive-deps
+    // 다음 렌더 사이클에서 체크 (중복 호출 방지)
+    const timer = setTimeout(() => {
+      const rect = sentinel.getBoundingClientRect()
+      const inViewport = rect.top < window.innerHeight + 200
+      if (inViewport) {
+        loadMore()
+      }
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [data.length, isLoading, hasMore]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return { data, isLoading, hasMore, sentinelRef }
 }

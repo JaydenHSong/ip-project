@@ -500,8 +500,8 @@ export const ReportsContent = ({
         {isLoadingMore && (
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-th-accent border-t-transparent" />
         )}
-        {!hasMore && infiniteData.length > 0 && (
-          <span className="text-xs text-th-text-muted">{infiniteData.length} / {totalCount}</span>
+        {!hasMore && infiniteData.length > 0 && !isLoadingMore && (
+          <span className="text-xs text-th-text-muted">All loaded</span>
         )}
       </div>
 
