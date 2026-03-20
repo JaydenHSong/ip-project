@@ -58,5 +58,45 @@ playwright/.cache/
 # Crawl output (local test data)
 crawl-results/
 
-# Supabase CLI temp
-supabase/.temp/
+# Playwright MCP cache
+.playwright-mcp/
+
+# Non-web components (별도 관리)
+crawler/
+extension/
+sentinel-fetch/
+
+# PDCA archive + old docs
+docs/archive/
+docs/03-analysis/
+docs/04-report/
+docs/01-plan/tasks/
+docs/migrations/
+docs/guides/
+
+# Design exports
+docs/design-exports/
+
+# Pencil design files
+*.pen
+
+# Supabase (migrations already applied)
+supabase/
+
+# Tests (local only)
+e2e/
+tests/
+playwright.config.ts
+
+# Scripts (local only)
+scripts/
+
+# Skills reference (local only)
+skills/
+
+# Railway config (crawler)
+railway.toml
+
+# Old spec docs
+Sentinel_Project_Context.md
+Sentinel_Spec_Overview.html
