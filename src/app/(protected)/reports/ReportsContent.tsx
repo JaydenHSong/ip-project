@@ -381,8 +381,8 @@ export const ReportsContent = ({
       </div>
 
       {/* Desktop: table — single table with sticky header */}
-      <div className="hidden flex-1 flex-col overflow-hidden rounded-lg border border-th-border md:flex">
-        <div ref={containerRef} className="overflow-auto">
+      <div className="hidden flex-1 flex-col overflow-hidden rounded-lg border border-th-border bg-surface-card md:flex">
+        <div ref={containerRef} className="flex-1 overflow-auto">
           <table className="table-fixed text-left text-sm" style={tableStyle}>
           <colgroup>
             {visibleColumns.map((_, i) => (
