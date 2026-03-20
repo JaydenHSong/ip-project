@@ -61,8 +61,7 @@ crawl-results/
 # Playwright MCP cache
 .playwright-mcp/
 
-# Non-web components (별도 관리)
-crawler/
+# Non-web components (extension/sentinel-fetch는 별도 관리, crawler는 Railway 배포에 필요)
 extension/
 sentinel-fetch/
 

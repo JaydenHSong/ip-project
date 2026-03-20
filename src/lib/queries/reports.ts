@@ -88,16 +88,19 @@ export async function fetchReports(
     query = query.eq('br_case_status', params.br_case_status)
   }
 
-  // Smart queue
+  // Smart queue — threshold는 system_configs에서 읽음
   if (params.smart_queue === 'needs_attention') {
     query = query.eq('br_case_status', 'needs_attention')
   } else if (params.smart_queue === 'new_reply') {
     query = query.not('br_last_amazon_reply_at', 'is', null)
-  } else if (params.smart_queue === 'stale') {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    query = query.or(`br_last_scraped_at.lt.${sevenDaysAgo},br_last_scraped_at.is.null`)
   } else if (params.smart_queue === 'clone_suggested') {
-    const thresholdDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: configRow } = await supabase
+      .from('system_configs')
+      .select('value')
+      .eq('key', 'monitoring')
+      .maybeSingle()
+    const cloneThresholdDays = (configRow?.value as { clone_threshold_days?: number } | null)?.clone_threshold_days ?? 14
+    const thresholdDaysAgo = new Date(Date.now() - cloneThresholdDays * 24 * 60 * 60 * 1000).toISOString()
     query = query.lt('created_at', thresholdDaysAgo)
   }
 

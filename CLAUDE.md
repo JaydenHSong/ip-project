@@ -50,6 +50,7 @@ npx vercel --prod       # Production 배포 (확인 후)
 - 큐 샤인 없이 코딩 금지
 - console.log 금지 (디버깅 후 제거), inline styles 금지 (Tailwind), `var` 금지
 - 하드코딩된 위반 유형 금지 → `constants/violations.ts`
+- **관리자 설정값이 있는 항목 하드코딩 금지** → Settings 페이지(`system_configs` 테이블)에 설정이 있으면 반드시 해당 값을 읽어서 사용. 라벨/쿼리/임계값 등에 매직 넘버 금지
 - API 키/시크릿 코드 직접 작성 금지 → 환경변수
 - **스크린샷 캡처 설정 변경 금지** → `bg-fetch.ts`의 `BOT_WINDOW_*`, `CAPTURE_*`, `MAX_CAPTURE_BYTES` 확정값
 

@@ -17,18 +17,16 @@ export const GET = withAuth(async () => {
   // 모니터링 중인 리포트만 대상
   const { data: reports } = await supabase
     .from('reports')
-    .select('id, br_case_status, br_last_amazon_reply_at, br_last_our_reply_at, br_last_scraped_at, br_reply_read_at, created_at')
+    .select('id, br_case_status, br_last_amazon_reply_at, br_last_our_reply_at, br_reply_read_at, created_at')
     .eq('status', 'monitoring')
     .not('br_case_id', 'is', null)
 
   const rows = reports ?? []
   const now = Date.now()
-  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000
   const cloneThresholdMs = cloneThresholdDays * 24 * 60 * 60 * 1000
 
   let actionRequired = 0
   let newReply = 0
-  let stale = 0
   let cloneSuggested = 0
 
   for (const r of rows) {
@@ -41,11 +39,6 @@ export const GET = withAuth(async () => {
       if (amazonReply > ourReply && amazonReply > readAt) newReply++
     }
 
-    const lastActivity = r.br_last_scraped_at ?? r.br_last_amazon_reply_at
-    if (lastActivity) {
-      if (now - new Date(lastActivity).getTime() > sevenDaysMs) stale++
-    }
-
     if (r.created_at && now - new Date(r.created_at).getTime() > cloneThresholdMs) {
       cloneSuggested++
     }
@@ -54,8 +47,8 @@ export const GET = withAuth(async () => {
   return NextResponse.json({
     action_required: actionRequired,
     new_reply: newReply,
-    stale,
     clone_suggested: cloneSuggested,
     total: rows.length,
+    clone_threshold_days: cloneThresholdDays,
   })
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
