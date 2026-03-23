@@ -33,7 +33,7 @@ export const Header = ({ user }: HeaderProps) => {
 
   return (
     <header className="glass relative z-40 flex h-14 shrink-0 items-center justify-between border-b px-4 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.15)] md:h-16 md:px-6">
-      <Link href="/dashboard" className="flex h-9 w-9 items-center justify-center md:hidden">
+      <Link href="/ip/dashboard" className="flex h-9 w-9 items-center justify-center md:hidden">
         <SpigenLogo className="h-7 w-6 text-th-accent" />
       </Link>
       <div className="hidden md:block" />

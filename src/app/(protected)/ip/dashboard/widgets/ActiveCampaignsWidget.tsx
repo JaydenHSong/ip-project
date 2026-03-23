@@ -63,7 +63,7 @@ export const ActiveCampaignsWidget = () => {
         <h3 className="text-sm font-semibold text-th-text">
           {isAdmin ? t('dashboard.activeCampaignsList') : t('dashboard.myActiveCampaignsList' as Parameters<typeof t>[0])}
         </h3>
-        <Link href="/campaigns" className="text-xs font-medium text-th-accent-text hover:underline">
+        <Link href="/ip/campaigns" className="text-xs font-medium text-th-accent-text hover:underline">
           {t('dashboard.viewAll')}
         </Link>
       </div>

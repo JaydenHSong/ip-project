@@ -18,15 +18,15 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
   const [showMore, setShowMore] = useState(false)
 
   const tabs = [
-    { labelKey: 'nav.dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { labelKey: 'nav.reportQueue', href: '/reports', icon: FileWarning },
-    { labelKey: 'nav.campaigns', href: '/campaigns', icon: Search },
-    { labelKey: 'nav.notices', href: '/notices', icon: Megaphone },
+    { labelKey: 'nav.dashboard', href: '/ip/dashboard', icon: LayoutDashboard },
+    { labelKey: 'nav.reportQueue', href: '/ip/reports', icon: FileWarning },
+    { labelKey: 'nav.campaigns', href: '/ip/campaigns', icon: Search },
+    { labelKey: 'nav.notices', href: '/ip/notices', icon: Megaphone },
   ]
 
   const moreItems = [
-    { labelKey: 'nav.patents', href: '/patents', icon: Shield },
-    { labelKey: 'nav.completedReports', href: '/reports/completed', icon: CheckCircle2 },
+    { labelKey: 'nav.patents', href: '/ip/patents', icon: Shield },
+    { labelKey: 'nav.completedReports', href: '/ip/reports/completed', icon: CheckCircle2 },
     { labelKey: 'nav.settings', href: '/settings', icon: Settings },
   ]
 
@@ -34,7 +34,7 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
 
   // Reports tab: exact match or /reports/[id], but NOT /reports/completed
   const isReportsTabActive = (href: string) => {
-    if (href !== '/reports') return pathname === href || pathname.startsWith(`${href}/`)
+    if (href !== '/ip/reports') return pathname === href || pathname.startsWith(`${href}/`)
     return pathname === '/reports' || (pathname.startsWith('/reports/') && !pathname.startsWith('/reports/completed'))
   }
 

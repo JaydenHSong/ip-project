@@ -98,7 +98,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   })
 
   const buildFilterUrl = useCallback((search: string) => {
-    return buildTableUrl('/reports/completed', {
+    return buildTableUrl('/ip/reports/completed', {
       search: search.trim(),
       status: statusFilter,
       owner: ownerFilter,

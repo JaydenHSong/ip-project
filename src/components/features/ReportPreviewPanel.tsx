@@ -7,7 +7,7 @@ import { SlidePanel } from '@/components/ui/SlidePanel'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { CaseCloseButton } from '@/components/features/case-thread/CaseCloseButton'
 import { buildTimelineEvents } from '@/lib/timeline'
-import { ReportDetailContent } from '@/app/(protected)/reports/[id]/ReportDetailContent'
+import { ReportDetailContent } from '@/app/(protected)/ip/reports/[id]/ReportDetailContent'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
 
 type ReportPreviewPanelProps = {

@@ -75,7 +75,7 @@ export const RecentReportsWidget = () => {
         <h3 className="text-sm font-semibold text-th-text">
           {isAdmin ? t('dashboard.recentReports') : t('dashboard.myRecentReports' as Parameters<typeof t>[0])}
         </h3>
-        <Link href="/reports" className="text-xs font-medium text-th-accent-text hover:underline">
+        <Link href="/ip/reports" className="text-xs font-medium text-th-accent-text hover:underline">
           {t('dashboard.viewAll')}
         </Link>
       </div>

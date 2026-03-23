@@ -50,13 +50,18 @@ export const GET = withAuth(async (req, { params }) => {
     (data as Record<string, unknown>).listings = data.listing_snapshot
   }
 
-  // 아마존 답변이 있는 모니터링 건 → 읽음 처리 (fire-and-forget)
+  // 아마존 답변이 있는 모니터링 건 → 개인별 읽음 처리 (fire-and-forget)
   if (data.status === 'monitoring' && data.br_last_amazon_reply_at) {
-    supabase
-      .from('reports')
-      .update({ br_reply_read_at: new Date().toISOString() })
-      .eq('id', id)
-      .then(() => {})
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (authUser) {
+      supabase
+        .from('report_read_status')
+        .upsert(
+          { report_id: id, user_id: authUser.id, read_at: new Date().toISOString() },
+          { onConflict: 'report_id,user_id' },
+        )
+        .then(() => {})
+    }
   }
 
   return NextResponse.json(data)

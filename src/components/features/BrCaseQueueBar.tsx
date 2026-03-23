@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Badge } from '@/components/ui/Badge'
 
 type QueueSummary = {
@@ -28,15 +28,28 @@ const buildQueueItems = (summary: QueueSummary): QueueItem[] => [
 export const BrCaseQueueBar = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [summary, setSummary] = useState<QueueSummary | null>(null)
   const activeQueue = searchParams.get('smart_queue')
 
-  useEffect(() => {
+  const fetchSummary = useCallback(() => {
     fetch('/api/dashboard/br-case-summary')
       .then((res) => res.json())
       .then((data: QueueSummary) => setSummary(data))
       .catch(() => {})
   }, [])
+
+  // 마운트 + 페이지 이동 시 (리포트 상세에서 돌아올 때) 갱신
+  useEffect(() => {
+    fetchSummary()
+  }, [fetchSummary, pathname])
+
+  // 탭 포커스 시 갱신
+  useEffect(() => {
+    const handleFocus = () => fetchSummary()
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [fetchSummary])
 
   if (!summary) return null
 

@@ -51,7 +51,7 @@ export const CampaignActions = ({ campaignId, status, userRole }: CampaignAction
           throw new Error(err.error?.message ?? 'Delete failed')
         }
         addToast({ type: 'success', title: 'Campaign deleted' })
-        router.push('/campaigns')
+        router.push('/ip/campaigns')
         router.refresh()
       } catch (e) {
         addToast({ type: 'error', title: 'Delete failed', message: e instanceof Error ? e.message : 'Unknown error' })

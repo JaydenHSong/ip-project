@@ -239,7 +239,7 @@ const NoticeDropdownPanel = ({ notices, tNotices, formatTimeAgo, onClose, onSele
       <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
         <h3 className="text-sm font-semibold text-th-text">{tNotices('title')}</h3>
         <Link
-          href="/notices"
+          href="/ip/notices"
           onClick={onClose}
           className="flex items-center gap-1 text-xs text-th-accent-text hover:underline"
         >

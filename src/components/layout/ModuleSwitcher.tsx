@@ -44,7 +44,7 @@ export const ModuleSwitcher = ({ currentModule, collapsed }: ModuleSwitcherProps
     if (mod.status !== 'active') return
     // IP 모듈은 기존 URL 유지
     if (mod.key === 'ip') {
-      router.push('/dashboard')
+      router.push('/ip/dashboard')
     } else {
       router.push(mod.path + '/dashboard')
     }

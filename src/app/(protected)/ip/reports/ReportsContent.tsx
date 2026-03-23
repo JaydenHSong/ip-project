@@ -127,7 +127,7 @@ export const ReportsContent = ({
   })
 
   const buildFilterUrl = useCallback((f: TableFiltersType) => {
-    return buildTableUrl('/reports', {
+    return buildTableUrl('/ip/reports', {
       search: f.search.trim(),
       status: statusFilter,
       br_form_type: brFormTypeFilter,
@@ -307,7 +307,7 @@ export const ReportsContent = ({
         {brFormTypeFilter && (
           <div className="flex items-center gap-2">
             <Link
-              href="/reports"
+              href="/ip/reports"
               className="flex items-center gap-1 rounded-xl border border-th-accent/30 bg-th-accent/10 px-3 py-1.5 text-xs font-medium text-th-accent-text"
             >
               {getBrFormTypeLabel(brFormTypeFilter)}

@@ -16,7 +16,7 @@ import { Modal } from '@/components/ui/Modal'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { CampaignStats } from '@/components/features/CampaignStats'
 import { CampaignActions } from './CampaignActions'
-import { ReportActions } from '@/app/(protected)/reports/[id]/ReportActions'
+import { ReportActions } from '@/app/(protected)/ip/reports/[id]/ReportActions'
 import type { ReportStatus } from '@/types/reports'
 import type { Role } from '@/types/users'
 
@@ -155,7 +155,7 @@ export const CampaignDetailContent = ({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <BackButton href="/campaigns" />
+          <BackButton href="/ip/campaigns" />
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold leading-none text-th-text">{campaign.keyword}</h1>
             <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />

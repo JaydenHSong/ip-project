@@ -33,12 +33,12 @@ type NavItem = {
 }
 
 const MAIN_NAV: NavItem[] = [
-  { labelKey: 'nav.dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { labelKey: 'nav.campaigns', href: '/campaigns', icon: Search },
-  { labelKey: 'nav.reportQueue', href: '/reports', icon: FileWarning },
-  { labelKey: 'nav.completedReports', href: '/reports/completed', icon: CheckCircle2 },
-  { labelKey: 'nav.patents', href: '/patents', icon: Shield },
-  { labelKey: 'nav.notices', href: '/notices', icon: Megaphone },
+  { labelKey: 'nav.dashboard', href: '/ip/dashboard', icon: LayoutDashboard },
+  { labelKey: 'nav.campaigns', href: '/ip/campaigns', icon: Search },
+  { labelKey: 'nav.reportQueue', href: '/ip/reports', icon: FileWarning },
+  { labelKey: 'nav.completedReports', href: '/ip/reports/completed', icon: CheckCircle2 },
+  { labelKey: 'nav.patents', href: '/ip/patents', icon: Shield },
+  { labelKey: 'nav.notices', href: '/ip/notices', icon: Megaphone },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
