@@ -39,7 +39,7 @@ export const en = {
   },
   login: {
     title: 'Welcome back',
-    subtitle: 'Sign in to continue to Sentinel',
+    subtitle: 'Sign in to continue to A.R.C.',
     signIn: 'Sign in with Google (@spigen.com)',
     restriction: 'Only Spigen internal accounts can access',
     deactivatedTitle: 'Account Deactivated',
@@ -57,7 +57,7 @@ export const en = {
   },
   dashboard: {
     title: 'Dashboard',
-    greeting: 'Hello, {name}. Welcome to Spigen Sentinel.',
+    greeting: 'Hello, {name}. Welcome to A.R.C.',
     activeCampaigns: 'Active Campaigns',
     pendingReports: 'Pending Reports',
     collectedListings: 'Collected Listings',

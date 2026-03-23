@@ -39,7 +39,7 @@ export const ko = {
   },
   login: {
     title: '다시 오셨군요',
-    subtitle: 'Sentinel을 이용하려면 로그인하세요',
+    subtitle: 'A.R.C.를 이용하려면 로그인하세요',
     signIn: 'Google로 로그인 (@spigen.com)',
     restriction: 'Spigen 사내 계정만 접속 가능합니다',
     deactivatedTitle: '계정이 비활성화되었습니다',
@@ -57,7 +57,7 @@ export const ko = {
   },
   dashboard: {
     title: '대시보드',
-    greeting: '안녕하세요, {name}님. Spigen Sentinel에 오신 것을 환영합니다.',
+    greeting: '안녕하세요, {name}님. A.R.C.에 오신 것을 환영합니다.',
     activeCampaigns: '활성 캠페인',
     pendingReports: '대기 중 신고',
     collectedListings: '수집 리스팅',

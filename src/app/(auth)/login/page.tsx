@@ -58,13 +58,14 @@ const LoginContent = () => {
         <div className="absolute inset-0 bg-th-bg" />
 
         <div className="relative z-10 w-full max-w-sm animate-fade-in">
-          {/* Sentinel Branding */}
+          {/* A.R.C. Branding */}
           <div className="flex items-center gap-2.5">
             <SpigenLogo className="h-8 w-7 text-th-accent" />
-            <span className="text-xl font-bold text-th-text">Sentinel</span>
+            <span className="text-xl font-bold text-th-text">A.R.C.</span>
           </div>
-          <p className="mt-2 text-sm text-th-text-secondary">
-            {t('login.hero.subtitle' as Parameters<typeof t>[0])}
+          <p className="mt-1 text-xs font-medium uppercase tracking-wider text-th-accent-text">Amazon Resource Controller</p>
+          <p className="mt-3 text-sm text-th-text-secondary">
+            IP protection, ad optimization, listing management, product planning, finance, and logistics — Spigen&apos;s all-in-one Amazon operations platform powered by AI.
           </p>
 
           {/* Sign In */}
