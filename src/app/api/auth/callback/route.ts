@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const GET = async (req: NextRequest): Promise<NextResponse> => {
   const { searchParams } = new URL(req.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const next = searchParams.get('next') ?? '/ip/dashboard'
 
   if (!code) {
     return NextResponse.redirect(new URL('/login?error=no_code', req.url))
