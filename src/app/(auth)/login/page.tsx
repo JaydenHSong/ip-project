@@ -59,18 +59,18 @@ const LoginContent = () => {
 
         <div className="relative z-10 w-full max-w-sm animate-fade-in">
           {/* A.R.C. Branding */}
-          <div className="flex items-center gap-2.5">
-            <SpigenLogo className="h-8 w-7 text-th-accent" />
-            <span className="text-xl font-bold text-th-text">A.R.C.</span>
+          <div className="flex items-center gap-3">
+            <SpigenLogo className="h-10 w-9 text-th-accent" />
+            <span className="text-2xl font-bold text-th-text">A.R.C.</span>
           </div>
-          <p className="mt-1 text-xs font-medium uppercase tracking-wider text-th-accent-text">Amazon Resource Controller</p>
-          <p className="mt-3 text-sm text-th-text-secondary">
+          <p className="mt-1.5 text-sm font-medium uppercase tracking-wider text-th-accent-text">Amazon Resource Controller</p>
+          <p className="mt-4 text-base leading-relaxed text-th-text-secondary">
             IP protection, ad optimization, listing management, product planning, finance, and logistics — Spigen&apos;s all-in-one Amazon operations platform powered by AI.
           </p>
 
           {/* Sign In */}
-          <h1 className="mt-10 text-2xl font-bold text-th-text">{t('login.title')}</h1>
-          <p className="mt-1 text-sm text-th-text-secondary">
+          <h1 className="mt-12 text-3xl font-bold text-th-text">{t('login.title')}</h1>
+          <p className="mt-1.5 text-base text-th-text-secondary">
             {t('login.subtitle')}
           </p>
 
@@ -87,7 +87,7 @@ const LoginContent = () => {
           {/* Google Sign In */}
           <button
             onClick={handleGoogleLogin}
-            className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl border border-th-border bg-surface-card px-4 py-3.5 text-sm font-medium text-th-text shadow-sm transition-all duration-200 hover:shadow-md hover:border-th-border-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-th-accent focus-visible:ring-offset-2 active:scale-[0.98]"
+            className="mt-10 flex w-full items-center justify-center gap-3 rounded-xl border border-th-border bg-surface-card px-4 py-4 text-base font-medium text-th-text shadow-sm transition-all duration-200 hover:shadow-md hover:border-th-border-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-th-accent focus-visible:ring-offset-2 active:scale-[0.98]"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -110,7 +110,7 @@ const LoginContent = () => {
             {t('login.signIn')}
           </button>
 
-          <p className="mt-4 text-xs text-th-text-secondary">
+          <p className="mt-4 text-sm text-th-text-secondary">
             {t('login.restriction')}
           </p>
         </div>
