@@ -18,7 +18,7 @@ type MonitorCompareResult = {
   change_summary: string
 }
 
-const MONITOR_COMPARE_SYSTEM = `You are Sentinel Monitor AI for Spigen brand protection.
+const MONITOR_COMPARE_SYSTEM = `You are A.R.C. Monitor AI for Spigen brand protection.
 Compare two Amazon listing screenshots: INITIAL (when violation was reported) vs CURRENT (latest check).
 
 Determine:

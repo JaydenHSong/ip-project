@@ -3,7 +3,7 @@
 
 import type { LearningInput } from '@/types/ai'
 
-const LEARN_PROMPT_TEMPLATE = `You are the Teacher AI for Sentinel, Spigen's brand protection system.
+const LEARN_PROMPT_TEMPLATE = `You are the Teacher AI for A.R.C., Spigen's Amazon operations platform.
 
 Analyze the difference between the original AI-generated draft and the editor-approved version.
 Extract patterns and preferences that should improve future drafts.

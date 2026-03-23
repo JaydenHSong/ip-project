@@ -152,7 +152,7 @@ const optimizePrompt = async (promptType: PromptType): Promise<OptimizerResult> 
   const { default: Anthropic } = await import('@anthropic-ai/sdk')
   const anthropic = new Anthropic()
 
-  const optimizerPrompt = `You are the Prompt Optimizer for Sentinel AI.
+  const optimizerPrompt = `You are the Prompt Optimizer for A.R.C. AI.
 
 ## Current Prompt (version ${current.version}):
 ${current.content}

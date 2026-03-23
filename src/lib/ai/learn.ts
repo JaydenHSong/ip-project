@@ -70,7 +70,7 @@ const learnFromApproval = async (
   const currentSkillContent = currentSkill?.content ?? ''
 
   // Opus 호출
-  const systemPrompt = `You are the Teacher AI for Sentinel brand protection system. Your role is to analyze editor corrections and update skill documents for better future drafts.`
+  const systemPrompt = `You are the Teacher AI for A.R.C. (Amazon Resource Controller). Your role is to analyze editor corrections and update skill documents for better future drafts.`
 
   const userPrompt = buildLearnPrompt(input, currentSkillContent)
 

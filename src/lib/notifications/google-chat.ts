@@ -20,7 +20,7 @@ const sendGoogleChatMessage = async (text: string): Promise<void> => {
 // 새 리스팅 제보 접수 알림
 const notifyNewSubmission = async (asin: string, title: string, source: string): Promise<void> => {
   const text = [
-    `📋 *[Sentinel]* 새 리스팅 접수 (${source})`,
+    `📋 *[A.R.C.]* 새 리스팅 접수 (${source})`,
     `ASIN: ${asin} — "${title.slice(0, 60)}${title.length > 60 ? '...' : ''}"`,
   ].join('\n')
   await sendGoogleChatMessage(text)
@@ -33,7 +33,7 @@ const notifyDraftReady = async (
   violationType: string,
 ): Promise<void> => {
   const text = [
-    `🔔 *[Sentinel]* 신고서 검토 필요`,
+    `🔔 *[A.R.C.]* 신고서 검토 필요`,
     `Report: ${reportId} | ASIN: ${asin} | 위반: ${violationType}`,
     `→ 검토/승인이 필요합니다.`,
   ].join('\n')
@@ -48,7 +48,7 @@ const notifyApproved = async (
 ): Promise<void> => {
   const label = reportNumber ? `#${String(reportNumber).padStart(5, '0')}` : reportId.slice(0, 8)
   const text = [
-    `✅ *[Sentinel]* 신고서 승인됨`,
+    `✅ *[A.R.C.]* 신고서 승인됨`,
     `Report: ${label} | ASIN: ${asin}`,
     `→ BR 제출 큐에 등록되었습니다.`,
   ].join('\n')
@@ -62,7 +62,7 @@ const notifyRejected = async (
   reason: string,
 ): Promise<void> => {
   const text = [
-    `❌ *[Sentinel]* 신고서 반려됨`,
+    `❌ *[A.R.C.]* 신고서 반려됨`,
     `Report: ${reportId} | ASIN: ${asin}`,
     `사유: ${reason.slice(0, 100)}${reason.length > 100 ? '...' : ''}`,
   ].join('\n')
@@ -75,7 +75,7 @@ const notifySubmittedToPD = async (
   asin: string,
 ): Promise<void> => {
   const text = [
-    `📮 *[Sentinel]* PD Report 접수됨`,
+    `📮 *[A.R.C.]* PD Report 접수됨`,
     `Report: ${reportId} | ASIN: ${asin}`,
     `→ Product Detail 페이지에서 신고가 접수되었습니다.`,
   ].join('\n')
@@ -88,7 +88,7 @@ const notifyPdFailed = async (
   error: string,
 ): Promise<void> => {
   const text = [
-    `🚨 *[Sentinel]* SC 자동 제출 실패 (3회 초과)`,
+    `🚨 *[A.R.C.]* SC 자동 제출 실패 (3회 초과)`,
     `Report: ${reportId}`,
     `오류: ${error.slice(0, 150)}${error.length > 150 ? '...' : ''}`,
     `→ 수동 재시도가 필요합니다.`,
@@ -103,7 +103,7 @@ const notifyResubmitMaxExceeded = async (
   count: number,
 ): Promise<void> => {
   const text = [
-    `⚠️ *[Sentinel]* 재제출 최대 횟수 도달`,
+    `⚠️ *[A.R.C.]* 재제출 최대 횟수 도달`,
     `Report: ${reportId} | ASIN: ${asin} | 재제출: ${count}회`,
     `→ 수동 확인이 필요합니다.`,
   ].join('\n')
