@@ -136,7 +136,7 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
         collapsed && 'justify-center px-2',
       )}>
         <SpigenLogo className="h-7 w-6 shrink-0 text-th-accent" />
-        {!collapsed && <span className="text-sm font-bold text-th-text">A.R.C.</span>}
+        {!collapsed && <span className="text-sm font-semibold text-th-text">Amazon Resource Controller</span>}
       </div>
 
       {/* Module Switcher */}

@@ -56,8 +56,8 @@ export const ModuleSwitcher = ({ currentModule, collapsed }: ModuleSwitcherProps
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
-          'bg-th-accent/8 text-th-accent-text hover:bg-th-accent/12',
+          'flex w-full items-center gap-2.5 rounded-lg border border-th-sidebar-border px-3 py-2 text-xs font-medium transition-colors',
+          'text-th-sidebar-text hover:bg-th-sidebar-hover',
           collapsed && 'justify-center px-2',
         )}
       >
