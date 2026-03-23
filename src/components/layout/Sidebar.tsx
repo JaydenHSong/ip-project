@@ -19,6 +19,8 @@ import {
 import { cn } from '@/lib/utils/cn'
 import { createClient } from '@/lib/supabase/client'
 import { useI18n } from '@/lib/i18n/context'
+import { getCurrentModule } from '@/lib/modules'
+import { ModuleSwitcher } from './ModuleSwitcher'
 import type { Role } from '@/types/users'
 import type { User } from '@/types/users'
 
@@ -76,6 +78,7 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
   const pathname = usePathname()
   const { t } = useI18n()
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const currentModule = getCurrentModule(pathname)
 
   const mainItems = filterItems(MAIN_NAV, user.role)
   const bottomItems = filterItems(BOTTOM_NAV, user.role)
@@ -133,7 +136,11 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
         collapsed && 'justify-center px-2',
       )}>
         <SpigenLogo className="h-7 w-6 shrink-0 text-th-accent" />
+        {!collapsed && <span className="text-sm font-bold text-th-text">A.R.C.</span>}
       </div>
+
+      {/* Module Switcher */}
+      <ModuleSwitcher currentModule={currentModule} collapsed={collapsed} />
 
       {/* Main Nav */}
       <nav className="flex-1 space-y-1 px-2 py-4">
