@@ -1,0 +1,31 @@
+# A.R.C. Platform — Code Owners
+# 모듈별 코드 오너 지정. PR 시 자동으로 리뷰어 배정됨.
+
+# ─── 전체 기본 오너 (PM) ───
+*                                       @JaydenHSong
+
+# ─── IP Protection 모듈 ───
+/src/app/(protected)/ip/                @JaydenHSong
+/src/modules/ip/                        @JaydenHSong
+/src/app/api/ip/                        @JaydenHSong
+
+# ─── AD Optimizer 모듈 ───
+# /src/app/(protected)/ads/             @JaydenHSong  # AD 개발 시작하면 활성화
+# /src/modules/ads/                     @JaydenHSong
+# /src/app/api/ads/                     @JaydenHSong
+
+# ─── OMS 모듈 (개발자 합류 시 추가) ───
+# /src/app/(protected)/oms/             @OMS-DEV
+# /src/modules/oms/                     @OMS-DEV
+# /src/app/api/oms/                     @OMS-DEV
+
+# ─── 보호 영역 (PM 리뷰 필수) ───
+/src/components/ui/                     @JaydenHSong
+/src/components/layout/                 @JaydenHSong
+/src/lib/auth/                          @JaydenHSong
+/src/types/                             @JaydenHSong
+/src/constants/modules.ts               @JaydenHSong
+
+# ─── 인프라/설정 ───
+/.github/                               @JaydenHSong
+/vercel.json                            @JaydenHSong
