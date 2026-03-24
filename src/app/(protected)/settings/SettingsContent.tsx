@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
 import {
-  Activity, Puzzle, Search, Wand2, FileText, Brain, Sparkles, Users, ChevronDown,
+  Activity, Puzzle, Search, Wand2, FileText, Brain, Sparkles, Users, ChevronDown, Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { MonitoringSettings } from './MonitoringSettings'
@@ -15,6 +15,7 @@ import { UserManagement } from './UserManagement'
 import { AiLearningTab } from './AiLearningTab'
 import { AiPromptsTab } from './AiPromptsTab'
 import { BrTemplateSettings } from './BrTemplateSettings'
+import { OrganizationSettings } from './OrganizationSettings'
 
 type SettingsContentProps = {
   isOwner: boolean
@@ -23,7 +24,7 @@ type SettingsContentProps = {
   currentUserId: string
 }
 
-type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'auto-draft' | 'br-templates' | 'ai-learning' | 'ai-prompts' | 'users'
+type SettingsTab = 'monitoring' | 'extension' | 'crawler' | 'auto-draft' | 'br-templates' | 'ai-learning' | 'ai-prompts' | 'users' | 'organization'
 
 type NavItem = {
   key: SettingsTab
@@ -62,6 +63,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     labelKey: 'settings.navGroups.admin',
     items: [
+      { key: 'organization', icon: Building2, minRole: 'owner' },
       { key: 'users', icon: Users, minRole: 'owner' },
     ],
   },
@@ -103,6 +105,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
       case 'br-templates': return t('settings.brTemplates.title' as Parameters<typeof t>[0])
       case 'ai-learning': return t('settings.aiLearning.title' as Parameters<typeof t>[0])
       case 'ai-prompts': return t('settings.aiPrompts.title' as Parameters<typeof t>[0])
+      case 'organization': return 'Organization'
       case 'users': return t('settings.users.title')
     }
   }
@@ -203,6 +206,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
           {activeTab === 'br-templates' && <BrTemplateSettings />}
           {activeTab === 'ai-learning' && <AiLearningTab />}
           {activeTab === 'ai-prompts' && <AiPromptsTab />}
+          {activeTab === 'organization' && isOwner && <OrganizationSettings isOwner={isOwner} />}
           {activeTab === 'users' && isOwner && <UserManagement currentUserId={currentUserId} />}
         </div>
       </div>
@@ -216,6 +220,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
         {activeTab === 'br-templates' && <BrTemplateSettings />}
         {activeTab === 'ai-learning' && <AiLearningTab />}
         {activeTab === 'ai-prompts' && <AiPromptsTab />}
+        {activeTab === 'organization' && isOwner && <OrganizationSettings isOwner={isOwner} />}
         {activeTab === 'users' && isOwner && <UserManagement currentUserId={currentUserId} />}
       </div>
     </div>
