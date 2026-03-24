@@ -35,7 +35,7 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
   // Reports tab: exact match or /reports/[id], but NOT /reports/completed
   const isReportsTabActive = (href: string) => {
     if (href !== '/ip/reports') return pathname === href || pathname.startsWith(`${href}/`)
-    return pathname === '/reports' || (pathname.startsWith('/reports/') && !pathname.startsWith('/reports/completed'))
+    return pathname === '/ip/reports' || (pathname.startsWith('/ip/reports/') && !pathname.startsWith('/ip/reports/completed'))
   }
 
   return (

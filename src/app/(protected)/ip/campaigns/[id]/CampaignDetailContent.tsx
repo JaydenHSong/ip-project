@@ -556,7 +556,7 @@ export const CampaignDetailContent = ({
                     <p className="mt-1 text-xs leading-relaxed text-th-text-muted">
                       This listing was flagged as suspect. Create a violation report to start the review process.
                     </p>
-                    <Link href={`/reports?new=1&asin=${selectedListing.asin}&marketplace=${campaign.marketplace}`}>
+                    <Link href={`/ip/reports?new=1&asin=${selectedListing.asin}&marketplace=${campaign.marketplace}`}>
                       <Button className="mt-4">
                         <ClipboardList className="mr-1.5 h-4 w-4" />
                         Create Report
@@ -573,7 +573,7 @@ export const CampaignDetailContent = ({
                       No violations detected by the crawler.
                     </p>
                     <Link
-                      href={`/reports?new=1&asin=${selectedListing.asin}&marketplace=${campaign.marketplace}`}
+                      href={`/ip/reports?new=1&asin=${selectedListing.asin}&marketplace=${campaign.marketplace}`}
                       className="mt-3 inline-block text-xs text-th-accent-text hover:underline"
                     >
                       Create report manually →
@@ -589,7 +589,7 @@ export const CampaignDetailContent = ({
                 {selectedReports.map((report) => (
                   <Link
                     key={report.id}
-                    href={`/reports/${report.id}`}
+                    href={`/ip/reports/${report.id}`}
                     className="block rounded-xl border border-th-border bg-surface-card p-4 transition-colors hover:bg-th-bg-hover"
                   >
                     <div className="flex items-center justify-between">

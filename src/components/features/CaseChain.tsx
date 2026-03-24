@@ -42,7 +42,7 @@ export const CaseChain = ({ currentId, parentChain, children }: CaseChainProps) 
             )}
             <button
               type="button"
-              onClick={() => { if (!isCurrent) router.push(`/reports/${node.id}`) }}
+              onClick={() => { if (!isCurrent) router.push(`/ip/reports/${node.id}`) }}
               disabled={isCurrent}
               className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${
                 isCurrent

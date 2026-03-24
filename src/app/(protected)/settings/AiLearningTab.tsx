@@ -269,7 +269,7 @@ export const AiLearningTab = () => {
 
                     {record.report_id && (
                       <a
-                        href={`/reports/${record.report_id}`}
+                        href={`/ip/reports/${record.report_id}`}
                         className="inline-flex items-center gap-1 text-xs text-th-accent-text hover:underline"
                       >
                         <ExternalLink className="h-3 w-3" />

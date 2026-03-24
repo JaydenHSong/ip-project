@@ -37,6 +37,19 @@ export const POST = withAuth(async (req, { params }) => {
     )
   }
 
+  // 이미 이 원본에서 만들어진 draft clone이 있으면 중복 생성 방지
+  const { data: existingClone } = await supabase
+    .from('reports')
+    .select('id')
+    .eq('parent_report_id', id)
+    .eq('status', 'draft')
+    .limit(1)
+    .maybeSingle()
+
+  if (existingClone) {
+    return NextResponse.json({ data: { id: existingClone.id, existing: true } })
+  }
+
   // 새 draft 생성 (parent_report_id로 원본 연결)
   const { data: newReport, error: insertError } = await supabase
     .from('reports')

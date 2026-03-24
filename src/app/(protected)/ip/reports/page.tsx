@@ -14,7 +14,7 @@ const ReportsPage = async ({
 
   const params = await searchParams
 
-  const { reports, totalPages, totalCount, effectiveOwner } = await fetchReports(params, user)
+  const { reports, totalPages, totalCount, effectiveOwner, cloneThresholdDays, maxMonitoringDays } = await fetchReports(params, user)
 
   return (
     <ReportsContent
@@ -31,6 +31,8 @@ const ReportsPage = async ({
       dateTo={params.date_to ?? ''}
       sortField={params.sort_field ?? 'date'}
       sortDir={(params.sort_dir ?? 'desc') as 'asc' | 'desc'}
+      cloneThresholdDays={cloneThresholdDays}
+      maxMonitoringDays={maxMonitoringDays}
     />
   )
 }

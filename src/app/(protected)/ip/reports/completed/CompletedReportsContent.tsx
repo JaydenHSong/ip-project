@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -70,6 +70,7 @@ type CompletedReportsContentProps = {
 export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, page, totalPages, totalCount, pageSize, searchQuery, sortField, sortDir }: CompletedReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
+  const pathname = usePathname()
   const { addToast } = useToast()
   const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '', dateFrom: '', dateTo: '' })
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -128,6 +129,11 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState<string | null>(null)
   const [previewReportId, setPreviewReportId] = useState<string | null>(null)
+
+  // 디테일 페이지에서 돌아올 때 하이라이트 초기화
+  useEffect(() => {
+    setPreviewReportId(null)
+  }, [pathname])
 
   const canBulk = userRole === 'owner' || userRole === 'admin'
 
@@ -308,7 +314,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
               if (tab.value) p.set('status', tab.value)
               if (ownerFilter !== 'all') p.set('owner', ownerFilter)
               const qs = p.toString()
-              return qs ? `/reports/completed?${qs}` : '/reports/completed'
+              return qs ? `/ip/reports/completed?${qs}` : '/ip/reports/completed'
             })()}
             className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               !isSearching && statusFilter === tab.value
@@ -415,7 +421,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
           ))
         ) : (
           sortedData.map((report) => (
-            <Link key={report.id} href={`/reports/${report.id}`}>
+            <Link key={report.id} href={`/ip/reports/${report.id}`}>
               <div className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
                 <div className="flex items-start justify-between">
                   <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />

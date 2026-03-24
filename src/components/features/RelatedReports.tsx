@@ -72,7 +72,7 @@ export const RelatedReports = ({ reports, currentReportId, onNavigate }: Related
             <button
               key={r.id}
               type="button"
-              onClick={() => !isCurrent && (onNavigate ? onNavigate(r.id) : router.push(`/reports/${r.id}`))}
+              onClick={() => !isCurrent && (onNavigate ? onNavigate(r.id) : router.push(`/ip/reports/${r.id}`))}
               disabled={isCurrent}
               className={`relative flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                 isCurrent

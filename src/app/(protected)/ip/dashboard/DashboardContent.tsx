@@ -189,7 +189,7 @@ export const DashboardContent = ({
 
   const navigateToReports = useCallback((params: Record<string, string>) => {
     const search = new URLSearchParams(params).toString()
-    router.push(`/reports?${search}`)
+    router.push(`/ip/reports?${search}`)
   }, [router])
 
   // Build widget map for quick lookup

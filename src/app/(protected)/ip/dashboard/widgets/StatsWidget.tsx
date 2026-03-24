@@ -53,7 +53,7 @@ export const StatsWidget = () => {
       prevValue: prev?.pendingReports ?? 0,
       icon: AlertTriangle,
       color: 'text-amber-400',
-      href: '/reports',
+      href: '/ip/reports',
     },
     {
       label: t('dashboard.collectedListings'),
@@ -78,7 +78,7 @@ export const StatsWidget = () => {
       prevValue: prev?.resolvedRate ?? 0,
       icon: BarChart3,
       color: 'text-violet-400',
-      href: '/reports/completed',
+      href: '/ip/reports/completed',
     },
     {
       label: t('dashboard.charts.aiAccuracy' as Parameters<typeof t>[0]),
@@ -87,7 +87,7 @@ export const StatsWidget = () => {
       prevValue: prev?.aiAccuracy ?? 0,
       icon: Brain,
       color: 'text-cyan-400',
-      href: '/reports',
+      href: '/ip/reports',
     },
     {
       label: t('dashboard.charts.monitoring' as Parameters<typeof t>[0]),
@@ -96,7 +96,7 @@ export const StatsWidget = () => {
       prevValue: prev?.monitoringCount ?? 0,
       icon: Eye,
       color: 'text-orange-400',
-      href: '/reports',
+      href: '/ip/reports',
     },
   ]
 

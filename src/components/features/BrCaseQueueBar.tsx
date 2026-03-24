@@ -8,8 +8,10 @@ type QueueSummary = {
   action_required: number
   new_reply: number
   clone_suggested: number
+  expired: number
   total: number
   clone_threshold_days: number
+  max_monitoring_days: number
 }
 
 type QueueItem = {
@@ -23,6 +25,7 @@ const buildQueueItems = (summary: QueueSummary): QueueItem[] => [
   { key: 'action_required', label: 'Action Required', variant: 'danger', param: 'needs_attention' },
   { key: 'new_reply', label: 'New Reply', variant: 'info', param: 'new_reply' },
   { key: 'clone_suggested', label: `Clone Suggested (${summary.clone_threshold_days}d+)`, variant: 'warning', param: 'clone_suggested' },
+  { key: 'expired', label: `Expired (${summary.max_monitoring_days}d+)`, variant: 'danger', param: 'expired' },
 ]
 
 export const BrCaseQueueBar = () => {

@@ -23,6 +23,8 @@ type FetchReportsResult = {
   totalPages: number
   totalCount: number
   effectiveOwner: 'my' | 'all'
+  cloneThresholdDays: number
+  maxMonitoringDays: number
 }
 
 const SORT_MAP: Record<string, string> = {
@@ -53,11 +55,20 @@ export async function fetchReports(
     let filtered = [...DEMO_REPORTS]
     if (params.status) filtered = filtered.filter((r) => r.status === params.status)
     if (params.br_form_type) filtered = filtered.filter((r) => r.br_form_type === params.br_form_type)
-    return { reports: filtered, totalPages: 1, totalCount: filtered.length, effectiveOwner }
+    return { reports: filtered, totalPages: 1, totalCount: filtered.length, effectiveOwner, cloneThresholdDays: 14, maxMonitoringDays: 90 }
   }
 
   const offset = (page - 1) * PAGE_SIZE
   const supabase = await createClient()
+
+  // 모니터링 설정값 조회
+  const { data: configRows } = await supabase
+    .from('system_configs')
+    .select('key, value')
+    .in('key', ['clone_threshold_days', 'br_max_monitoring_days'])
+  const configMap = Object.fromEntries((configRows ?? []).map(r => [r.key, Number(r.value)]))
+  const cloneThresholdDays = configMap.clone_threshold_days ?? 14
+  const maxMonitoringDays = configMap.br_max_monitoring_days ?? 90
 
   const sortField = params.sort_field && SORT_MAP[params.sort_field] ? SORT_MAP[params.sort_field] : 'created_at'
   const sortAsc = params.sort_dir === 'asc'
@@ -93,15 +104,8 @@ export async function fetchReports(
     query = query.eq('br_case_status', 'needs_attention')
   } else if (params.smart_queue === 'new_reply') {
     query = query.not('br_last_amazon_reply_at', 'is', null)
-  } else if (params.smart_queue === 'clone_suggested') {
-    const { data: configRow } = await supabase
-      .from('system_configs')
-      .select('value')
-      .eq('key', 'monitoring')
-      .maybeSingle()
-    const cloneThresholdDays = (configRow?.value as { clone_threshold_days?: number } | null)?.clone_threshold_days ?? 14
-    const thresholdDaysAgo = new Date(Date.now() - cloneThresholdDays * 24 * 60 * 60 * 1000).toISOString()
-    query = query.lt('created_at', thresholdDaysAgo)
+  } else if (params.smart_queue === 'clone_suggested' || params.smart_queue === 'expired') {
+    // 마지막 활동일 기준 필터는 쿼리 후 처리 (아래 postFilter)
   }
 
   // Search filter
@@ -158,18 +162,38 @@ export async function fetchReports(
 
   const { data, error, count } = await query
   if (error) {
-    return { reports: [], totalPages: 1, totalCount: 0, effectiveOwner }
+    return { reports: [], totalPages: 1, totalCount: 0, effectiveOwner, cloneThresholdDays, maxMonitoringDays }
   }
 
-  const reports = (data ?? []).map((r: Record<string, unknown>) => {
+  let reports = (data ?? []).map((r: Record<string, unknown>) => {
     if (!r.listings && r.listing_snapshot) return { ...r, listings: r.listing_snapshot }
     return r
-  }) as typeof DEMO_REPORTS | null
+  }) as typeof DEMO_REPORTS
+
+  // 마지막 활동일 기준 post-filter (clone_suggested, expired)
+  if (params.smart_queue === 'clone_suggested' || params.smart_queue === 'expired') {
+    const now = Date.now()
+    const cloneMs = cloneThresholdDays * 24 * 60 * 60 * 1000
+    const expireMs = maxMonitoringDays * 24 * 60 * 60 * 1000
+    reports = reports.filter((r: Record<string, unknown>) => {
+      const lastActivity = Math.max(
+        r.br_last_amazon_reply_at ? new Date(r.br_last_amazon_reply_at as string).getTime() : 0,
+        r.br_last_our_reply_at ? new Date(r.br_last_our_reply_at as string).getTime() : 0,
+        r.br_submitted_at ? new Date(r.br_submitted_at as string).getTime() : 0,
+        r.created_at ? new Date(r.created_at as string).getTime() : 0,
+      )
+      const idle = now - lastActivity
+      if (params.smart_queue === 'expired') return idle > expireMs
+      return idle > cloneMs && idle <= expireMs
+    })
+  }
 
   return {
     reports,
     totalPages: Math.ceil((count ?? 0) / PAGE_SIZE),
-    totalCount: count ?? 0,
+    totalCount: params.smart_queue === 'clone_suggested' || params.smart_queue === 'expired' ? reports.length : (count ?? 0),
     effectiveOwner,
+    cloneThresholdDays,
+    maxMonitoringDays,
   }
 }

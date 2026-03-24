@@ -113,7 +113,7 @@ export const NewReportModal = ({ open, onClose, prefillAsin, prefillMarketplace 
 
       const data = await res.json() as { report_id: string }
       onClose()
-      router.push(`/reports/${data.report_id}`)
+      router.push(`/ip/reports/${data.report_id}`)
       router.refresh()
     } catch (e) {
       addToast({ type: 'error', title: 'Error', message: e instanceof Error ? e.message : 'Unknown error' })
@@ -149,7 +149,7 @@ export const NewReportModal = ({ open, onClose, prefillAsin, prefillMarketplace 
                 </p>
                 <button
                   type="button"
-                  onClick={() => { onClose(); router.push(`/reports/${dup.report_id}`) }}
+                  onClick={() => { onClose(); router.push(`/ip/reports/${dup.report_id}`) }}
                   className="shrink-0 text-xs text-th-accent underline"
                 >
                   보기

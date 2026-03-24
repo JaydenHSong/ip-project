@@ -128,7 +128,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                 <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                 <StatusBadge status={report.status as ReportStatus} type="report" />
               </div>
-              <Link href={`/reports/${report.id}`}>
+              <Link href={`/ip/reports/${report.id}`}>
                 <p className="mt-2 font-mono text-sm text-th-text hover:text-th-accent-text">
                   {report.listings?.asin ?? '—'}
                 </p>
@@ -213,7 +213,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                     <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                   </td>
                   <td className="px-4 py-3.5">
-                    <Link href={`/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text">
+                    <Link href={`/ip/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text">
                       {report.listings?.asin ?? '—'}
                     </Link>
                   </td>
@@ -310,7 +310,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                   : ''}
               </span>
               <Link
-                href={`/reports/${previewReport.id}`}
+                href={`/ip/reports/${previewReport.id}`}
                 className="text-th-accent-text hover:underline"
               >
                 {t('common.details')} →

@@ -31,7 +31,7 @@ export const ReportActions = ({
   currentUserId,
   resubmitCount,
   nextResubmitAt,
-  backHref = '/reports',
+  backHref = '/ip/reports',
 }: ReportActionsProps) => {
   const router = useRouter()
   const { t } = useI18n()

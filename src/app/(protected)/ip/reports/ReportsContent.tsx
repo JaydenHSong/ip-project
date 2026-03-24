@@ -77,6 +77,8 @@ type ReportsContentProps = {
   dateTo: string
   sortField: string
   sortDir: 'asc' | 'desc'
+  cloneThresholdDays: number
+  maxMonitoringDays: number
 }
 
 // totalPages와 page는 하위호환 위해 유지하되 무한스크롤에서는 미사용
@@ -95,6 +97,8 @@ export const ReportsContent = ({
   dateTo,
   sortField,
   sortDir,
+  cloneThresholdDays,
+  maxMonitoringDays,
 }: ReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
@@ -326,7 +330,7 @@ export const ReportsContent = ({
               if (tab.value) p.set('status', tab.value)
               if (ownerFilter !== 'all') p.set('owner', ownerFilter)
               const qs = p.toString()
-              return qs ? `/reports?${qs}` : '/reports'
+              return qs ? `/ip/reports?${qs}` : '/ip/reports'
             })()}
             className={`snap-start whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
               !isSearching && statusFilter === tab.value
@@ -374,7 +378,7 @@ export const ReportsContent = ({
             <ReportMobileCard
               key={report.id}
               report={report}
-              onClick={() => router.push(`/reports/${report.id}`)}
+              onClick={() => router.push(`/ip/reports/${report.id}`)}
             />
           ))
         )}
@@ -439,16 +443,26 @@ export const ReportsContent = ({
                     </td>
                   ),
                   no: <td key="no" className="px-4 py-3.5"><span className="text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</span></td>,
-                  status: (
-                    <td key="status" className="px-4 py-3.5">
-                      <div className="flex items-center gap-1.5">
-                        <StatusBadge status={report.status as ReportStatus} type="report" />
-                        {report.status === 'monitoring' && report.created_at && Date.now() - new Date(report.created_at).getTime() > 14 * 24 * 60 * 60 * 1000 && (
-                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Clone</span>
-                        )}
-                      </div>
-                    </td>
-                  ),
+                  status: (() => {
+                    const lastActivity = report.status === 'monitoring' ? Math.max(
+                      row.br_last_amazon_reply_at ? new Date(row.br_last_amazon_reply_at as string).getTime() : 0,
+                      row.br_last_our_reply_at ? new Date(row.br_last_our_reply_at as string).getTime() : 0,
+                      row.br_submitted_at ? new Date(row.br_submitted_at as string).getTime() : 0,
+                      report.created_at ? new Date(report.created_at).getTime() : 0,
+                    ) : 0
+                    const idle = lastActivity > 0 ? Date.now() - lastActivity : 0
+                    const isExpired = idle > maxMonitoringDays * 86400000
+                    const isClone = !isExpired && idle > cloneThresholdDays * 86400000
+                    return (
+                      <td key="status" className="px-4 py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge status={report.status as ReportStatus} type="report" />
+                          {isExpired && <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-400">Expired</span>}
+                          {isClone && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Clone</span>}
+                        </div>
+                      </td>
+                    )
+                  })(),
                   br_case_id: (
                     <td key="br_case_id" className="px-4 py-3.5">
                       {report.br_case_id && report.br_case_id !== 'submitted' ? (

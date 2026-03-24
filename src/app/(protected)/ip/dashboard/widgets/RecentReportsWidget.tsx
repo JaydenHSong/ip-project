@@ -86,7 +86,7 @@ export const RecentReportsWidget = () => {
       ) : (
         <div className="divide-y divide-th-border rounded-lg border border-th-border">
           {reports.map((report) => (
-            <Link key={report.id} href={`/reports/${report.id}`}>
+            <Link key={report.id} href={`/ip/reports/${report.id}`}>
               <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
