@@ -56,10 +56,11 @@ owner(5) > admin(4) > editor(3) > viewer_plus(2) > viewer(1)
 
 ```
 Level 1: 회사 (Company)          — Spigen
-Level 2: 부문 (Division)         — 글로벌사업부문, 국내사업부문
-Level 3: 사업부 (Business Unit)  — 북미사업부, 유럽사업부, 일본사업부
-Level 4: 팀 (Team)              — 아마존팀, 자사몰팀
-Level 5: 파트 (Part)            — 광고파트, 운영파트
+Level 2: 부문 (Division)         — iBD, WBD 등
+Level 3: 사업부 (Business Unit)  — Smart Electronics 등 (Sub-Division)
+Level 4: 부서 (Department)       — Phone Case US, Screen Protector 등
+Level 5: 팀 (Team)              — 아마존팀, 자사몰팀
+Level 6: 유닛 (Unit)            — Flagship, Budget, Mobile 등
 ```
 
 > 현재 모든 5단계를 채울 필요 없음. 필요한 만큼만 넣고, 나중에 확장.

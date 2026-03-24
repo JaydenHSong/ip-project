@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
 import { Input } from '@/components/ui/Input'
@@ -39,6 +39,9 @@ const formatRelativeTime = (dateStr: string | null): string => {
   return `${Math.floor(days / 30)}mo`
 }
 
+type OrgUnitOption = { id: string; name: string; level: string }
+type UserOrgMapping = { user_id: string; org_unit_id: string; is_primary: boolean; org_units: OrgUnitOption }
+
 export const UserManagement = ({ currentUserId }: UserManagementProps) => {
   const { t } = useI18n()
   const { addToast } = useToast()
@@ -46,6 +49,8 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [orgUnits, setOrgUnits] = useState<OrgUnitOption[]>([])
+  const [userOrgMap, setUserOrgMap] = useState<Record<string, string>>({}) // userId → orgUnitId
   const [confirmModal, setConfirmModal] = useState<{
     userId: string
     userName: string
@@ -54,14 +59,53 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
     newValue: string | boolean
   } | null>(null)
 
+  const fetchOrgData = useCallback(async () => {
+    const [orgRes, mappingRes] = await Promise.all([
+      fetch('/api/settings/org-units'),
+      fetch('/api/settings/user-org-units'),
+    ])
+    if (orgRes.ok) {
+      const data = await orgRes.json() as OrgUnitOption[]
+      setOrgUnits(data.filter((u) => u.level !== 'company'))
+    }
+    if (mappingRes.ok) {
+      const data = await mappingRes.json() as UserOrgMapping[]
+      const map: Record<string, string> = {}
+      for (const m of data) {
+        if (m.is_primary) map[m.user_id] = m.org_unit_id
+      }
+      setUserOrgMap(map)
+    }
+  }, [])
+
   useEffect(() => {
     setLoading(true)
-    fetch('/api/users')
-      .then((res) => res.json())
-      .then((data) => setUsers(data.users ?? []))
+    Promise.all([
+      fetch('/api/users').then((res) => res.json()).then((data) => setUsers(data.users ?? [])),
+      fetchOrgData(),
+    ])
       .catch(() => setUsers([]))
       .finally(() => setLoading(false))
-  }, [])
+  }, [fetchOrgData])
+
+  const handleOrgChange = async (userId: string, orgUnitId: string) => {
+    if (!orgUnitId) return
+    setUpdating(userId)
+    try {
+      const res = await fetch('/api/settings/user-org-units', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, org_unit_id: orgUnitId, is_primary: true }),
+      })
+      if (res.ok) {
+        setUserOrgMap((prev) => ({ ...prev, [userId]: orgUnitId }))
+      }
+    } catch {
+      addToast({ type: 'error', title: '소속 변경 실패' })
+    } finally {
+      setUpdating(null)
+    }
+  }
 
   const filtered = users.filter((u) => {
     if (!search) return true
@@ -169,6 +213,9 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-th-text-tertiary">
                     {t('settings.users.role')}
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-th-text-tertiary">
+                    Organization
+                  </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-th-text-tertiary">
                     {t('settings.users.activeStatus')}
                   </th>
@@ -227,6 +274,21 @@ export const UserManagement = ({ currentUserId }: UserManagementProps) => {
                             ))}
                           </select>
                         )}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <select
+                          value={userOrgMap[user.id] ?? ''}
+                          onChange={(e) => handleOrgChange(user.id, e.target.value)}
+                          disabled={updating === user.id}
+                          className="rounded-md border border-th-border bg-th-bg-secondary px-2 py-1 text-xs text-th-text focus:border-th-accent focus:outline-none"
+                        >
+                          <option value="">미지정</option>
+                          {orgUnits.map((org) => (
+                            <option key={org.id} value={org.id}>
+                              {org.name}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-4 py-3.5 text-center">
                         {isSelf ? (
