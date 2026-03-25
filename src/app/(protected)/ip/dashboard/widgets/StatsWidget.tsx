@@ -108,20 +108,20 @@ export const StatsWidget = () => {
           <Link
             key={stat.label}
             href={stat.href}
-            className="group rounded-xl border border-th-border bg-surface-card p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:border-th-border-secondary active:scale-[0.98] md:p-4"
+            className="group overflow-hidden rounded-xl border border-th-border bg-surface-card p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:border-th-border-secondary active:scale-[0.98] md:p-4"
           >
             <div className="flex items-center justify-between">
               <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${stat.color.replace('text-', 'bg-').replace('-400', '-500/10')}`}>
                 <Icon className={`h-4 w-4 ${stat.color}`} />
               </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-1.5">
-              <p className="text-xl font-bold text-th-text md:text-2xl">{stat.value}</p>
+            <div className="mt-2 flex items-baseline gap-1.5 overflow-hidden">
+              <p className="truncate text-xl font-bold text-th-text md:text-2xl">{stat.value}</p>
               {prev && <TrendIndicator current={stat.numericValue} previous={stat.prevValue} />}
             </div>
-            <p className="mt-1 text-xs font-medium text-th-text-muted">{stat.label}</p>
+            <p className="mt-1 truncate text-xs font-medium text-th-text-muted">{stat.label}</p>
             {'subtitle' in stat && stat.subtitle && (
-              <p className="text-[10px] text-th-text-tertiary">{stat.subtitle}</p>
+              <p className="truncate text-[10px] text-th-text-tertiary">{stat.subtitle}</p>
             )}
           </Link>
         )
