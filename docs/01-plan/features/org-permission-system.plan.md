@@ -237,8 +237,9 @@ AD 같은 새 모듈부터:
 
 ```
 Settings > Organization
-├── 조직 트리 (트리뷰 + 추가/수정/삭제)
-│   Spigen
+│
+├── [Tab 1] 조직 트리 (트리뷰 + 추가/수정/삭제)
+│   Spigen Inc.
 │   ├── 글로벌사업부문
 │   │   ├── 북미사업부
 │   │   │   ├── 아마존팀
@@ -248,14 +249,38 @@ Settings > Organization
 │   │   └── 유럽사업부
 │   └── 국내사업부문
 │
-├── 모듈 접근 설정
-│   IP Protection:  [Company ▼]        ← 전사 공통
-│   AD Optimizer:   [Business Unit ▼]  ← 사업부 단위
-│   OMS:            [Business Unit ▼]
-│   Finance:        [Team ▼]           ← 팀 단위
+├── [Tab 2] 브랜드 & 마켓 (트리 형태 — 브랜드 > 마켓)
+│   Spigen
+│   ├── US (amazon.com)          [설정]
+│   ├── JP (amazon.co.jp)        [설정]
+│   └── DE (amazon.de)           [설정]
+│   Legato
+│   ├── US (amazon.com)          [설정]
+│   └── JP (amazon.co.jp)        [설정]
+│   + 브랜드 추가
+│   ※ credentials는 환경변수/Vault로 관리, UI에는 계정명만 표시
+│
+│   브랜드×마켓 접근 권한 (조직별)
+│   ┌──────────────┬───────────────┬──────────┐
+│   │ 조직         │ 브랜드×마켓   │ 권한     │
+│   ├──────────────┼───────────────┼──────────┤
+│   │ 북미사업부    │ Spigen US     │ edit     │
+│   │ 국내사업부    │ Spigen US     │ view     │
+│   │ 북미사업부    │ Legato US     │ edit     │
+│   │ 유럽사업부    │ Spigen DE     │ edit     │
+│   └──────────────┴───────────────┴──────────┘
+│
+├── [Tab 3] 모듈 접근 설정
+│   IP Protection:  조직 범위 [Company ▼]        브랜드 분리 [ ]
+│   AD Optimizer:   조직 범위 [Business Unit ▼]  브랜드 분리 [✓]
+│   Listings:       조직 범위 [Business Unit ▼]  브랜드 분리 [✓]
+│   Products:       조직 범위 [Business Unit ▼]  브랜드 분리 [✓]
+│   Planning:       조직 범위 [Company ▼]        브랜드 분리 [ ]
+│   Finance:        조직 범위 [Team ▼]           브랜드 분리 [✓]
+│   OMS:            조직 범위 [Business Unit ▼]  브랜드 분리 [✓]
 │
 └── 사용자 소속 관리 (Settings > Users에서 통합)
-    사용자별 소속 org_unit 지정/변경
+    사용자별 소속 org_unit + 담당 브랜드/마켓 + 담당 SKU 지정
 ```
 
 ### 5.2 접근 범위 필요
@@ -273,15 +298,20 @@ Settings > Organization
 | 단계 | 작업 | 선행 조건 |
 |:--:|------|----------|
 | S1 | DB: `org_units`, `user_org_units`, `module_access_configs` 테이블 생성 | - |
-| S2 | DB: `get_accessible_org_units()` 함수 생성 | S1 |
-| S3 | DB: 초기 데이터 (Spigen 조직 트리 기본 구조) | S1 |
-| S4 | API: `/api/settings/org-units` CRUD | S1 |
-| S5 | API: `/api/settings/module-access` 조회/수정 | S1 |
-| S6 | UI: Settings > Organization 페이지 (트리뷰 + 모듈 접근 설정) | S4, S5 |
-| S7 | UI: Settings > Users에 소속 org_unit 선택 추가 | S4 |
-| S8 | 공통 라이브러리: `getAccessibleOrgUnits(userId, moduleKey)` 헬퍼 | S2 |
+| S2 | DB: `brands`, `brand_markets`, `brand_market_permissions` 테이블 생성 | - |
+| S3 | DB: `get_accessible_org_units()` + `get_accessible_brand_markets()` 함수 생성 | S1, S2 |
+| S4 | DB: 초기 데이터 (Spigen 조직 트리 + 브랜드/마켓 기본 구조) | S1, S2 |
+| S5 | API: `/api/settings/org-units` CRUD | S1 |
+| S6 | API: `/api/settings/brands` + `/api/settings/brand-markets` CRUD | S2 |
+| S7 | API: `/api/settings/module-access` 조회/수정 | S1 |
+| S8 | UI: Settings > Organization [Tab 1] 조직 트리 | S5 |
+| S9 | UI: Settings > Organization [Tab 2] 브랜드 & 마켓 + 권한 매핑 | S6 |
+| S10 | UI: Settings > Organization [Tab 3] 모듈 접근 설정 | S7 |
+| S11 | UI: Settings > Users에 소속 org_unit + 담당 브랜드/마켓 추가 | S5, S6 |
+| S12 | 공통 라이브러리: `getAccessibleOrgUnits()` + `getAccessibleBrandMarkets()` 헬퍼 | S3 |
 
-> AD/OMS/Finance 모듈 시작 시 각 모듈 테이블에 `org_unit_id` 컬럼 추가 + RLS 적용은 해당 모듈 개발 시점에 진행.
+> **레이어 3 (SKU 담당)**: Product Library 모듈 개발 시점에 `product_assignments` 테이블 + UI 추가.
+> **모듈별 RLS**: AD/OMS/Finance 시작 시 각 모듈 테이블에 `org_unit_id` + `brand_market_id` 컬럼 추가.
 
 ---
 
@@ -305,11 +335,119 @@ Google Sheets: https://docs.google.com/spreadsheets/d/1Z6m2ez4ITpjeQVr4zeLmLFyr-
 
 ---
 
-## 9. 레이어 2: 마켓 × SKU 담당 필터 (향후 — Product Library 모듈)
+## 9. 브랜드 × 국가별 분리 요구사항 (2026-03-25 확정)
+
+### 9.1 배경
+
+Spigen Inc. 산하 복수 브랜드 운영:
+- **Spigen** — 폰케이스/보호필름
+- **Legato** — 골프공
+- **화장품 브랜드** (이름 미정)
+
+Amazon 계정이 국가(마켓플레이스)별로 다름. 모듈에 따라 브랜드/국가 분리 수준이 다름.
+
+### 9.2 모듈별 브랜드/국가 분리 정책
+
+| 모듈 | 브랜드 분리 | 국가별 계정 분리 | 비고 |
+|------|:---------:|:------------:|------|
+| IP | ❌ | ❌ | 전체 통합 운영, 브랜드 구분 불필요 |
+| AD | ✅ | ✅ | 브랜드별 광고 예산/캠페인 분리 |
+| Listings | ✅ | ✅ | |
+| Products | ✅ | ✅ | |
+| Planning | ❌ | ❌ | 통합 운영 |
+| Finance | ✅ | ✅ | |
+| OMS | ✅ | ✅ | 오퍼레이터: 브랜드별 분리 / 매니저: 전체 통합 뷰 (권한으로 해결) |
+
+### 9.3 DB 스키마
+
+```sql
+-- 브랜드 테이블
+CREATE TABLE public.brands (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,              -- 'Spigen', 'Legato', etc.
+  code text NOT NULL UNIQUE,       -- 'spigen', 'legato'
+  description text,                -- '폰케이스/보호필름'
+  is_active boolean DEFAULT true,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 브랜드 × 마켓 (Amazon 계정 단위)
+CREATE TABLE public.brand_markets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  brand_id uuid NOT NULL REFERENCES brands(id),
+  marketplace text NOT NULL,       -- 'US', 'JP', 'DE', etc.
+  account_name text,               -- 표시용 (amazon.com 등)
+  is_active boolean DEFAULT true,
+  -- credentials는 환경변수/Vault로 관리
+  UNIQUE(brand_id, marketplace)
+);
+
+-- 조직 × 브랜드마켓 권한 (레이어 2 핵심)
+CREATE TABLE public.brand_market_permissions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_unit_id uuid NOT NULL REFERENCES org_units(id) ON DELETE CASCADE,
+  brand_market_id uuid NOT NULL REFERENCES brand_markets(id) ON DELETE CASCADE,
+  permission text NOT NULL DEFAULT 'view',  -- 'edit' | 'view'
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(org_unit_id, brand_market_id)
+);
+
+-- 개인 × SKU 담당 (레이어 3 — Product Library 모듈 이후)
+CREATE TABLE public.product_assignments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sku_id uuid NOT NULL,            -- Product Library의 SKU 테이블 참조
+  brand_market_id uuid NOT NULL REFERENCES brand_markets(id),
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, sku_id, brand_market_id)
+);
+```
+
+### 9.4 3-레이어 접근 제어 모델
+
+```
+레이어 1: 조직 (org_units)                    → "어느 팀/사업부 소속인가"
+  DB: org_units + user_org_units
+  적용: module_access_configs.access_level로 조직 범위 결정
+
+레이어 2: 브랜드×마켓 권한 (brand_market_permissions) → "어느 브랜드×국가에 edit/view인가"
+  DB: brands + brand_markets + brand_market_permissions
+  적용: 조직 단위로 할당 (북미사업부 → Spigen US = edit)
+
+레이어 3: SKU 담당 (product_assignments)       → "마켓 안에서 어느 SKU 담당인가"
+  DB: product_assignments
+  적용: 개인 단위로 할당, Product Library 모듈 의존
+```
+
+**예시: 김철수 (북미사업부 > 아마존팀)**
+```
+레이어 1: 북미사업부 소속
+레이어 2: Spigen US → edit (사업부 레벨로 받음)
+레이어 3: SKU-001, SKU-002 담당 → 내 SKU만 필터
+
+→ AD 모듈 접속: 북미사업부 범위 + Spigen US edit + 담당 SKU 광고만
+→ IP 모듈 접속: 전사 데이터 전부 (레이어 1 company, 레이어 2/3 불필요)
+```
+
+### 9.5 모듈별 레이어 적용
+
+| 모듈 | 레이어 1 (조직) | 레이어 2 (브랜드×마켓) | 레이어 3 (SKU) |
+|------|:-:|:-:|:-:|
+| IP | company (무제한) | ❌ | ❌ |
+| AD | business_unit | ✅ edit/view | ✅ (향후) |
+| Listings | business_unit | ✅ edit/view | ✅ (향후) |
+| Products | business_unit | ✅ edit/view | ✅ (향후) |
+| Planning | company (무제한) | ❌ | ❌ |
+| Finance | team | ✅ edit/view | ✅ (향후) |
+| OMS | business_unit | ✅ edit/view | ✅ (향후) |
+
+---
+
+## 10. 레이어 3: 마켓 × SKU 담당 필터 (향후 — Product Library 모듈)
 
 > 이 섹션은 현재 구현 범위가 아님. 향후 설계 시 참고용으로 기록.
 
-### 9.1 문제
+### 10.1 문제
 
 조직 단위(레이어 1)만으로는 부족한 경우가 있다:
 
@@ -325,7 +463,7 @@ Google Sheets: https://docs.google.com/spreadsheets/d/1Z6m2ez4ITpjeQVr4zeLmLFyr-
 - AD에서 "내 담당 카테고리 광고만 보기" 필요
 - OMS에서 "내 담당 SKU 주문만 보기" 필요
 
-### 9.2 필요 구조
+### 10.2 필요 구조
 
 ```
 레이어 1: org_units (조직)     → "어느 팀/사업부 데이터" — 이 Plan 범위
@@ -338,7 +476,7 @@ product_assignments (
 )
 ```
 
-### 9.3 의존 관계
+### 10.3 의존 관계
 
 ```
 Product Library 모듈 (먼저 필요)
@@ -350,7 +488,7 @@ Product Library 모듈 (먼저 필요)
 Finance / AD / OMS 에서 레이어 2 필터 적용
 ```
 
-### 9.4 영향 받는 모듈
+### 10.4 영향 받는 모듈
 
 | 모듈 | 레이어 1 (org_units) | 레이어 2 (SKU × 마켓) |
 |------|---------------------|----------------------|
