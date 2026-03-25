@@ -32,11 +32,7 @@ export const AiPerformanceCard = ({ data, onClickDisagreement }: AiPerformanceCa
   const { t } = useI18n()
 
   return (
-    <div className="rounded-lg border border-th-border bg-surface-card p-4">
-      <h3 className="mb-4 text-sm font-semibold text-th-text">
-        {t('dashboard.charts.aiPerformance' as Parameters<typeof t>[0])}
-      </h3>
-
+    <div>
       <div className="space-y-4">
         <ProgressBar
           value={data.avgConfidence}

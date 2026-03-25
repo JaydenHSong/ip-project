@@ -20,11 +20,8 @@ export const TopViolationsChart = ({ data, onClickItem }: TopViolationsChartProp
   const { t } = useI18n()
 
   return (
-    <div className="rounded-lg border border-th-border bg-surface-card p-4">
-      <h3 className="mb-4 text-sm font-semibold text-th-text">
-        {t('dashboard.charts.topViolations' as Parameters<typeof t>[0])}
-      </h3>
-      <div role="img" aria-label="Top violation types chart" className="h-[250px] md:h-[350px]">
+    <div>
+      <div role="img" aria-label="Top violation types chart" className="h-[200px] md:h-[240px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-th-border, #374151)" horizontal={false} />
