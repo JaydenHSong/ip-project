@@ -40,7 +40,7 @@ export const WidgetWrapper = ({ title, widgetId, size, onHide, children }: Widge
 
   return (
     <div className={cn(
-      'group flex flex-col rounded-xl border border-th-border bg-surface-card shadow-sm',
+      'group flex flex-col overflow-hidden rounded-xl border border-th-border bg-surface-card shadow-sm',
       hasFixedHeight && 'h-[320px]',
     )}>
       <div className="flex shrink-0 items-center justify-between border-b border-th-border px-4 py-2.5 rounded-t-xl">
