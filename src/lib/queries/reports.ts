@@ -73,6 +73,8 @@ export async function fetchReports(
   const sortField = params.sort_field && SORT_MAP[params.sort_field] ? SORT_MAP[params.sort_field] : 'created_at'
   const sortAsc = params.sort_dir === 'asc'
 
+  const isPostFiltered = params.smart_queue === 'clone_suggested' || params.smart_queue === 'expired'
+
   let query = supabase
     .from('reports')
     .select(
@@ -80,7 +82,11 @@ export async function fetchReports(
       { count: 'exact' },
     )
     .order(sortField, { ascending: sortAsc, nullsFirst: false })
-    .range(offset, offset + PAGE_SIZE - 1)
+
+  // post-filter 시에는 페이지네이션 제거 (전체 가져와서 필터 후 슬라이스)
+  if (!isPostFiltered) {
+    query = query.range(offset, offset + PAGE_SIZE - 1)
+  }
 
   // Status filter
   if (params.status === 'answered') {
@@ -171,7 +177,8 @@ export async function fetchReports(
   }) as typeof DEMO_REPORTS
 
   // 마지막 활동일 기준 post-filter (clone_suggested, expired)
-  if (params.smart_queue === 'clone_suggested' || params.smart_queue === 'expired') {
+  let filteredTotal = count ?? 0
+  if (isPostFiltered) {
     const now = Date.now()
     const cloneMs = cloneThresholdDays * 24 * 60 * 60 * 1000
     const expireMs = maxMonitoringDays * 24 * 60 * 60 * 1000
@@ -186,12 +193,15 @@ export async function fetchReports(
       if (params.smart_queue === 'expired') return idle > expireMs
       return idle > cloneMs && idle <= expireMs
     })
+    filteredTotal = reports.length
+    // post-filter 후 페이지네이션 적용
+    reports = reports.slice(offset, offset + PAGE_SIZE) as typeof reports
   }
 
   return {
     reports,
-    totalPages: Math.ceil((count ?? 0) / PAGE_SIZE),
-    totalCount: params.smart_queue === 'clone_suggested' || params.smart_queue === 'expired' ? reports.length : (count ?? 0),
+    totalPages: Math.ceil(filteredTotal / PAGE_SIZE),
+    totalCount: filteredTotal,
     effectiveOwner,
     cloneThresholdDays,
     maxMonitoringDays,

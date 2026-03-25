@@ -129,11 +129,12 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState<string | null>(null)
   const [previewReportId, setPreviewReportId] = useState<string | null>(null)
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
 
-  // 디테일 페이지에서 돌아올 때 하이라이트 초기화
-  useEffect(() => {
-    setPreviewReportId(null)
-  }, [pathname])
+  const handleSelectReport = useCallback((id: string) => {
+    setPreviewReportId(id)
+    setHighlightedId(id)
+  }, [])
 
   const canBulk = userRole === 'owner' || userRole === 'admin'
 
@@ -387,7 +388,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
             <div
               key={report.id}
               className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover"
-              onClick={() => setPreviewReportId(report.id)}
+              onClick={() => handleSelectReport(report.id)}
             >
               <div className="flex items-start justify-between">
                 <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
@@ -503,7 +504,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
               </tr>
             ) : isArchived ? (
               sortedData.map((report) => (
-                <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => setPreviewReportId(report.id)}>
+                <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${highlightedId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => handleSelectReport(report.id)}>
                   <td className="px-4 py-3.5">
                     <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                   </td>
@@ -555,7 +556,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
                   resolved: <td key="resolved" className="px-4 py-3.5 text-th-text-muted">{formatDate(row.resolved_at as string)}</td>,
                 }
                 return (
-                  <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${previewReportId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => setPreviewReportId(report.id)}>
+                  <tr key={report.id} className={`cursor-pointer transition-colors hover:bg-th-bg-hover ${highlightedId === report.id ? 'bg-th-accent/10' : 'bg-surface-card'}`} onClick={() => handleSelectReport(report.id)}>
                     {visibleColumns.map((col) => cellMap[col.id])}
                   </tr>
                 )

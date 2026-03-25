@@ -19,7 +19,7 @@ export const GET = withAuth(async (_req, { user }) => {
   const { data: reports } = await supabase
     .from('reports')
     .select('id, br_case_status, br_last_amazon_reply_at, br_last_our_reply_at, br_submitted_at, created_at')
-    .eq('status', 'monitoring')
+    .in('status', ['monitoring', 'br_submitting'])
     .not('br_case_id', 'is', null)
 
   // 현재 유저의 읽음 상태 조회

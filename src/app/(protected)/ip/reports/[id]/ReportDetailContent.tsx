@@ -183,7 +183,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
   const [currentStatus, setCurrentStatus] = useState(report.status)
   const COMPLETED_STATUSES = ['resolved', 'unresolved', 'resubmitted', 'escalated', 'archived']
   const backHref = COMPLETED_STATUSES.includes(report.status) ? '/ip/reports/completed' : '/ip/reports'
-  const isDraftEditable = canEdit && (currentStatus === 'draft' || currentStatus === 'pending_review')
+  const isDraftEditable = canEdit && (currentStatus === 'draft' || currentStatus === 'pending_review' || currentStatus === 'monitoring' || currentStatus === 'unresolved')
 
   const [editTitle, setEditTitle] = useState(report.draft_title ?? '')
   const [editSubject, setEditSubject] = useState(report.draft_subject ?? '')
