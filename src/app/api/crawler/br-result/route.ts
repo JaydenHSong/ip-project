@@ -37,7 +37,7 @@ export const POST = async (req: Request) => {
 
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, br_submit_attempts, listing_id')
+    .select('id, status, br_submit_attempts, listing_id, report_number, listing_snapshot')
     .eq('id', body.report_id)
     .single()
 
@@ -92,8 +92,9 @@ export const POST = async (req: Request) => {
 
     // Case ID 없이 성공한 경우 알림
     if (!body.br_case_id) {
+      const asin = (report.listing_snapshot as Record<string, unknown> | null)?.asin as string | undefined
       const { notifyPdFailed } = await import('@/lib/notifications/google-chat')
-      notifyPdFailed(body.report_id, '[BR] Submitted successfully but case ID not extracted').catch(() => {})
+      notifyPdFailed(body.report_id, '[BR] Submitted successfully but case ID not extracted', { reportNumber: report.report_number, asin }).catch(() => {})
     }
 
     return NextResponse.json({ status: 'monitoring', br_case_id: body.br_case_id })
@@ -119,8 +120,9 @@ export const POST = async (req: Request) => {
     }
 
     if (exceededMax) {
+      const asin = (report.listing_snapshot as Record<string, unknown> | null)?.asin as string | undefined
       const { notifyPdFailed } = await import('@/lib/notifications/google-chat')
-      notifyPdFailed(body.report_id, `[BR] ${body.error ?? 'Max attempts exceeded'}`).catch(() => {})
+      notifyPdFailed(body.report_id, `[BR] ${body.error ?? 'Max attempts exceeded'}`, { reportNumber: report.report_number, asin }).catch(() => {})
     }
 
     return NextResponse.json({

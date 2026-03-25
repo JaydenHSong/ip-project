@@ -86,10 +86,13 @@ const notifySubmittedToPD = async (
 const notifyPdFailed = async (
   reportId: string,
   error: string,
+  extra?: { reportNumber?: number; asin?: string },
 ): Promise<void> => {
+  const label = extra?.reportNumber ? `#${String(extra.reportNumber).padStart(5, '0')}` : reportId.slice(0, 8)
+  const asinInfo = extra?.asin ? ` | ASIN: ${extra.asin}` : ''
   const text = [
     `🚨 *[A.R.C.]* SC 자동 제출 실패 (3회 초과)`,
-    `Report: ${reportId}`,
+    `Report: ${label}${asinInfo}`,
     `오류: ${error.slice(0, 150)}${error.length > 150 ? '...' : ''}`,
     `→ 수동 재시도가 필요합니다.`,
   ].join('\n')

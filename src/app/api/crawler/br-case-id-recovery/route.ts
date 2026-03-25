@@ -32,7 +32,7 @@ export const POST = async (req: Request) => {
 
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, br_case_id_retry_count, report_number')
+    .select('id, br_case_id_retry_count, report_number, listing_snapshot')
     .eq('id', body.report_id)
     .single()
 
@@ -85,9 +85,11 @@ export const POST = async (req: Request) => {
     // 3회 실패 → Google Chat 알림
     if (maxReached) {
       const { notifyPdFailed } = await import('@/lib/notifications/google-chat')
+      const asin = (report.listing_snapshot as Record<string, unknown> | null)?.asin as string | undefined
       notifyPdFailed(
         body.report_id,
-        `[BR] Report #${report.report_number} Case ID 자동 복구 실패 (3/3). 수동 입력 필요`,
+        `[BR] Case ID 자동 복구 실패 (3/3). 수동 입력 필요`,
+        { reportNumber: report.report_number, asin },
       ).catch(() => {})
     }
 
