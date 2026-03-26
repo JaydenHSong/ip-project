@@ -299,26 +299,7 @@ export const ReportActions = ({
           </Button>
         )}
 
-        {/* Unresolved: Resubmit info + Force resubmit */}
-        {status === 'unresolved' && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-th-text-muted">
-              {nextResubmitAt
-                ? `재제출 예정: ${formatDate(nextResubmitAt)} (${resubmitCount ?? 0}회 완료)`
-                : `미해결 (${resubmitCount ?? 0}회 재제출)`}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              loading={loading === 'forceResubmit'}
-              onClick={handleForceResubmit}
-            >
-              강제 재제출
-            </Button>
-          </div>
-        )}
-
-        {/* Resolved: 재신고 없음 (해결된 케이스에서 재신고 시 프로세스 꼬임 방지) */}
+        {/* Resolved/Unresolved: 재신고 없음 (Clone as New 사용) */}
 
         {/* Clone as New — for monitoring/resolved/unresolved/archived */}
         {['monitoring', 'resolved', 'unresolved', 'archived'].includes(status) && (

@@ -451,13 +451,11 @@ export const ReportsContent = ({
                       report.created_at ? new Date(report.created_at).getTime() : 0,
                     ) : 0
                     const idle = lastActivity > 0 ? Date.now() - lastActivity : 0
-                    const isExpired = idle > maxMonitoringDays * 86400000
-                    const isClone = !isExpired && idle > cloneThresholdDays * 86400000
+                    const isClone = idle > cloneThresholdDays * 86400000
                     return (
                       <td key="status" className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
                           <StatusBadge status={report.status as ReportStatus} type="report" />
-                          {isExpired && <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-400">Expired</span>}
                           {isClone && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Clone</span>}
                         </div>
                       </td>
