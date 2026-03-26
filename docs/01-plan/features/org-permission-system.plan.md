@@ -357,6 +357,7 @@ Amazon 계정이 국가(마켓플레이스)별로 다름. 모듈에 따라 브�
 | Planning | ❌ | ❌ | 통합 운영 |
 | Finance | ✅ | ✅ | |
 | OMS | ✅ | ✅ | 오퍼레이터: 브랜드별 분리 / 매니저: 전체 통합 뷰 (권한으로 해결) |
+| Reimbursement | ✅ | ✅ | FBA 분실/파손 케이스, 환급 추적 |
 
 ### 9.3 DB 스키마
 
@@ -440,6 +441,7 @@ CREATE TABLE public.product_assignments (
 | Planning | company (무제한) | ❌ | ❌ |
 | Finance | team | ✅ edit/view | ✅ (향후) |
 | OMS | business_unit | ✅ edit/view | ✅ (향후) |
+| Reimbursement | business_unit | ✅ edit/view | ✅ (향후) |
 
 ---
 
