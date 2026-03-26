@@ -5,6 +5,9 @@ import { ChevronRight, Plus, Pencil, Trash2, Building2, ChevronDown } from 'luci
 import { cn } from '@/lib/utils/cn'
 import { ORG_LEVEL_LABELS, ORG_LEVEL_ORDER } from '@/lib/org-units'
 import type { OrgLevel } from '@/lib/org-units'
+import { BrandMarketSettings } from './BrandMarketSettings'
+
+type OrgTab = 'tree' | 'brands' | 'modules'
 
 type OrgUnit = {
   id: string
@@ -136,7 +139,14 @@ function TreeNodeItem({
 }
 
 // ── 메인 컴포넌트 ──
+const ORG_TABS: { key: OrgTab; label: string }[] = [
+  { key: 'tree', label: '조직 구조' },
+  { key: 'brands', label: '브랜드 & 마켓' },
+  { key: 'modules', label: '모듈 접근 설정' },
+]
+
 export const OrganizationSettings = ({ isOwner }: { isOwner: boolean }) => {
+  const [activeTab, setActiveTab] = useState<OrgTab>('tree')
   const [units, setUnits] = useState<OrgUnit[]>([])
   const [moduleAccess, setModuleAccess] = useState<ModuleAccess[]>([])
   const [loading, setLoading] = useState(true)
@@ -233,8 +243,30 @@ export const OrganizationSettings = ({ isOwner }: { isOwner: boolean }) => {
 
   return (
     <div className="space-y-6">
-      {/* 조직 트리 */}
-      <div className="rounded-xl border border-th-border bg-surface-card">
+      {/* 탭 네비게이션 */}
+      <div className="flex gap-1 rounded-xl border border-th-border bg-th-bg-subtle p-1">
+        {ORG_TABS.filter(tab => tab.key !== 'modules' || isOwner).map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              'flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all',
+              activeTab === tab.key
+                ? 'bg-surface-card text-th-text shadow-sm'
+                : 'text-th-text-muted hover:text-th-text-secondary',
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 브랜드 & 마켓 탭 */}
+      {activeTab === 'brands' && <BrandMarketSettings isOwner={isOwner} />}
+
+      {/* 조직 트리 탭 */}
+      {activeTab === 'tree' && <div className="rounded-xl border border-th-border bg-surface-card">
         <div className="flex items-center justify-between border-b border-th-border px-4 py-3">
           <h2 className="text-sm font-semibold text-th-text">조직 구조</h2>
           {isOwner && tree.length === 0 && (
@@ -264,10 +296,10 @@ export const OrganizationSettings = ({ isOwner }: { isOwner: boolean }) => {
             ))
           )}
         </div>
-      </div>
+      </div>}
 
-      {/* 모듈별 접근 설정 */}
-      {isOwner && (
+      {/* 모듈별 접근 설정 탭 */}
+      {activeTab === 'modules' && isOwner && (
         <div className="rounded-xl border border-th-border bg-surface-card">
           <div className="border-b border-th-border px-4 py-3">
             <h2 className="text-sm font-semibold text-th-text">모듈별 데이터 접근 레벨</h2>

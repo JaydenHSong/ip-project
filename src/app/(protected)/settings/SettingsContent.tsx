@@ -220,7 +220,7 @@ export const SettingsContent = ({ isOwner, isAdmin, isEditor, currentUserId }: S
         {activeTab === 'br-templates' && <BrTemplateSettings />}
         {activeTab === 'ai-learning' && <AiLearningTab />}
         {activeTab === 'ai-prompts' && <AiPromptsTab />}
-        {activeTab === 'organization' && isOwner && <OrganizationSettings isOwner={isOwner} />}
+        {activeTab === 'organization' && <OrganizationSettings isOwner={isOwner} />}
         {activeTab === 'users' && isOwner && <UserManagement currentUserId={currentUserId} />}
       </div>
     </div>
