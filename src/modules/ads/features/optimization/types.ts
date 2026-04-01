@@ -128,7 +128,35 @@ type AlertDetailData = {
   campaign_name: string
   data: Record<string, unknown> | null
   created_at: string
-  quick_actions: { key: string; label: string; variant: 'default' | 'danger' }[]
+  quick_actions: { key: string; label: string; variant: 'default' | 'danger'; recommended?: boolean }[]
+  hero_number?: string
+  hero_label?: string
+  hero_progress?: number
+  kpi_cards?: { label: string; value: string; delta?: string; delta_type?: 'positive' | 'negative' }[]
+  hourly_spend?: { hour: number; spend: number }[]
+}
+
+// ─── M05 Underspend ───
+
+type SpendDiagnosticCause = {
+  id: string
+  cause: string
+  contribution_pct: number
+  description: string
+  fix_action: string
+  fix_label: string
+}
+
+// ─── S07 Group Status ───
+
+type DaypartingGroupStatus = {
+  id: string
+  group_name: string
+  campaign_count: number
+  is_enabled: boolean
+  active_hours: number
+  total_hours: number
+  last_updated: string
 }
 
 // ─── S11 AI Recommendations ───
@@ -157,8 +185,10 @@ export type {
   KeywordStatsStrip,
   HeatmapCell,
   DaypartingGroup,
+  DaypartingGroupStatus,
   RuleFormData,
   AlertDetailData,
+  SpendDiagnosticCause,
   ApproveRequest,
   ApproveResponse,
 }

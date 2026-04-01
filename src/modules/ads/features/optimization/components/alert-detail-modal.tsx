@@ -1,5 +1,5 @@
 // M04 — Alert Detail Modal
-// Design Ref: §2.1 optimization/components/alert-detail-modal.tsx
+// Design Ref: §5.3 M04
 'use client'
 
 import type { AlertDetailData } from '../types'
@@ -17,58 +17,149 @@ const SEV_STYLES: Record<string, string> = {
   info: 'bg-gray-50 text-gray-600 border-gray-200',
 }
 
+const SEV_DOT: Record<string, string> = {
+  critical: 'bg-red-500',
+  warning: 'bg-orange-500',
+  info: 'bg-gray-400',
+}
+
+const SEV_PROGRESS_BG: Record<string, string> = {
+  critical: 'bg-red-500',
+  warning: 'bg-orange-500',
+  info: 'bg-gray-400',
+}
+
 const AlertDetailModal = ({ alert, isOpen, onClose, onAction }: AlertDetailModalProps) => {
   if (!isOpen || !alert) return null
+
+  const hourlySpend = alert.hourly_spend ?? []
+  const kpiCards = alert.kpi_cards ?? []
+  const heroProgress = alert.hero_progress ?? 0
+
+  // Compute max for mini line chart
+  const maxSpend = hourlySpend.length > 0 ? Math.max(...hourlySpend.map((h) => h.spend), 1) : 1
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-xl bg-white shadow-xl">
+      <div className="relative w-full max-w-md rounded-xl bg-white shadow-xl">
+        {/* Header — Design M04: "Alert type dot + 캠페인명 + 메시지" */}
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <div className="flex items-center gap-2">
+            <span className={`h-2 w-2 rounded-full ${SEV_DOT[alert.severity]}`} />
             <span className={`rounded border px-2 py-0.5 text-xs font-medium ${SEV_STYLES[alert.severity]}`}>
               {alert.severity}
             </span>
             <h2 className="text-sm font-semibold text-gray-900">{alert.alert_type}</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
         </div>
 
-        <div className="px-6 py-5 space-y-4">
+        <div className="px-6 py-5 space-y-5">
+          {/* Campaign + message */}
           <div>
-            <h3 className="text-base font-medium text-gray-900">{alert.title}</h3>
-            <p className="mt-1 text-sm text-gray-600">{alert.message}</p>
+            <p className="text-xs text-gray-500">{alert.campaign_name}</p>
+            <p className="mt-0.5 text-sm text-gray-600">{alert.message}</p>
+            <p className="text-[10px] text-gray-400 mt-1">{new Date(alert.created_at).toLocaleString()}</p>
           </div>
 
-          <div className="rounded bg-gray-50 px-3 py-2">
-            <p className="text-xs text-gray-500">Campaign: <span className="font-medium text-gray-700">{alert.campaign_name}</span></p>
-            <p className="text-xs text-gray-400 mt-0.5">{new Date(alert.created_at).toLocaleString()}</p>
-          </div>
-
-          {alert.data && Object.keys(alert.data).length > 0 && (
-            <div className="rounded bg-gray-50 px-3 py-2">
-              <p className="text-xs text-gray-500 mb-1">Details</p>
-              <pre className="text-[11px] text-gray-600 font-mono whitespace-pre-wrap">
-                {JSON.stringify(alert.data, null, 2)}
-              </pre>
+          {/* Hero Number + Critical Progress Bar — Design M04 */}
+          {alert.hero_number && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
+              <p className="text-3xl font-bold text-gray-900">{alert.hero_number}</p>
+              {alert.hero_label && (
+                <p className="text-xs text-gray-500 mt-1">{alert.hero_label}</p>
+              )}
+              <div className="mt-3 h-2 w-full rounded-full bg-gray-200">
+                <div
+                  className={`h-2 rounded-full transition-all ${SEV_PROGRESS_BG[alert.severity]}`}
+                  style={{ width: `${Math.min(heroProgress, 100)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">{heroProgress.toFixed(0)}% of budget consumed</p>
             </div>
           )}
 
-          {/* Quick Actions */}
+          {/* KPI 3 Cards — Design M04: "Run Rate / Orders / ACoS" */}
+          {kpiCards.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {kpiCards.map((kpi, idx) => (
+                <div key={idx} className="rounded-lg border border-gray-200 bg-white p-3 text-center">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wide">{kpi.label}</p>
+                  <p className="text-lg font-bold text-gray-900 mt-1">{kpi.value}</p>
+                  {kpi.delta && (
+                    <p className={`text-[10px] font-medium mt-0.5 ${
+                      kpi.delta_type === 'positive' ? 'text-emerald-600' : 'text-red-600'
+                    }`}>
+                      {kpi.delta}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Spend Today 24h Mini Line Chart — Design M04 */}
+          {hourlySpend.length > 0 && (
+            <div className="rounded-lg border border-gray-200 bg-white p-3">
+              <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide mb-2">Spend Today (24h)</p>
+              <div className="relative h-16">
+                {/* SVG line chart */}
+                <svg className="h-full w-full" viewBox={`0 0 ${hourlySpend.length * 10} 64`} preserveAspectRatio="none">
+                  {/* Grid lines */}
+                  <line x1="0" y1="16" x2={hourlySpend.length * 10} y2="16" stroke="#E5E7EB" strokeWidth="0.5" />
+                  <line x1="0" y1="32" x2={hourlySpend.length * 10} y2="32" stroke="#E5E7EB" strokeWidth="0.5" />
+                  <line x1="0" y1="48" x2={hourlySpend.length * 10} y2="48" stroke="#E5E7EB" strokeWidth="0.5" />
+                  {/* Area fill */}
+                  <path
+                    d={`M0,64 ${hourlySpend.map((h, i) => `L${i * 10},${64 - (h.spend / maxSpend) * 56}`).join(' ')} L${(hourlySpend.length - 1) * 10},64 Z`}
+                    fill="#F3F4F6"
+                  />
+                  {/* Line */}
+                  <polyline
+                    points={hourlySpend.map((h, i) => `${i * 10},${64 - (h.spend / maxSpend) * 56}`).join(' ')}
+                    fill="none"
+                    stroke="#18181B"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+                {/* Hour labels */}
+                <div className="absolute bottom-0 left-0 right-0 flex justify-between translate-y-4">
+                  <span className="text-[8px] text-gray-400">0h</span>
+                  <span className="text-[8px] text-gray-400">6h</span>
+                  <span className="text-[8px] text-gray-400">12h</span>
+                  <span className="text-[8px] text-gray-400">18h</span>
+                  <span className="text-[8px] text-gray-400">24h</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Actions — Design M04: "RECOMMENDED 강조" */}
           <div className="flex gap-2">
-            {alert.quick_actions.map((action) => (
-              <button
-                key={action.key}
-                onClick={() => onAction(alert.id, action.key)}
-                className={`flex-1 rounded-md px-3 py-2 text-sm font-medium ${
-                  action.variant === 'danger'
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : 'bg-gray-900 text-white hover:bg-gray-800'
-                }`}
-              >
-                {action.label}
-              </button>
-            ))}
+            {alert.quick_actions.map((action) => {
+              const isRecommended = action.recommended === true
+              return (
+                <button
+                  key={action.key}
+                  onClick={() => onAction(alert.id, action.key)}
+                  className={`relative flex-1 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isRecommended
+                      ? 'bg-orange-500 text-white hover:bg-orange-600 ring-2 ring-orange-300 ring-offset-1'
+                      : action.variant === 'danger'
+                        ? 'bg-red-500 text-white hover:bg-red-600'
+                        : 'bg-gray-900 text-white hover:bg-gray-800'
+                  }`}
+                >
+                  {isRecommended && (
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded bg-orange-600 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
+                      Recommended
+                    </span>
+                  )}
+                  {action.label}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
