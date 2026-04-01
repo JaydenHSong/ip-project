@@ -42,12 +42,23 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
         // Get campaign strategy
         const campRes = await fetch(`/api/ads/campaigns/${campaignId}`)
         if (campRes.ok) {
-          const campJson = await campRes.json() as { data: { target_acos: number | null; max_bid_cap: number | null; daily_budget: number | null } }
+          const campJson = await campRes.json() as { data: { target_acos: number | null; max_bid_cap: number | null; daily_budget: number | null; brand_market_id: string } }
+
+          // Get active rules count
+          let rulesCount = 0
+          try {
+            const rulesRes = await fetch(`/api/ads/rules?brand_market_id=${campJson.data.brand_market_id}&is_active=true`)
+            if (rulesRes.ok) {
+              const rulesJson = await rulesRes.json() as { data: unknown[] }
+              rulesCount = rulesJson.data?.length ?? 0
+            }
+          } catch { /* silent */ }
+
           setStrategy({
             target_acos: campJson.data.target_acos,
             max_bid: campJson.data.max_bid_cap,
             daily_limit: campJson.data.daily_budget,
-            active_rules: 0,
+            active_rules: rulesCount,
           })
         }
       } catch {

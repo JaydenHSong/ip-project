@@ -35,6 +35,12 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
     run_frequency: 'daily',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSimulating, setIsSimulating] = useState(false)
+  const [simulateResult, setSimulateResult] = useState<{
+    affected_campaigns: number
+    matched_keywords: number
+    estimated_impact: string
+  } | null>(null)
 
   if (!isOpen) return null
 
@@ -46,6 +52,31 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleSimulate = async () => {
+    setIsSimulating(true)
+    setSimulateResult(null)
+    try {
+      const res = await fetch('/api/ads/rules/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          template: form.template,
+          condition_metric: form.condition_metric,
+          condition_operator: form.condition_operator,
+          condition_value: form.condition_value,
+          scope: form.scope,
+          scope_campaign_ids: form.scope_campaign_ids,
+          look_back_days: form.look_back_days,
+        }),
+      })
+      if (res.ok) {
+        const json = await res.json() as { data: { affected_campaigns: number; matched_keywords: number; estimated_impact: string } }
+        setSimulateResult(json.data)
+      }
+    } catch { /* silent */ }
+    finally { setIsSimulating(false) }
   }
 
   return (
@@ -153,11 +184,42 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
           </div>
         </div>
 
+        {/* Simulate Result */}
+        {simulateResult && (
+          <div className="mx-6 mb-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+            <p className="text-xs font-medium text-gray-700 mb-1">Simulation Result</p>
+            <div className="flex gap-4 text-xs">
+              <div>
+                <span className="text-gray-500">Campaigns affected: </span>
+                <span className="font-semibold text-gray-900">{simulateResult.affected_campaigns}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Keywords matched: </span>
+                <span className="font-semibold text-gray-900">{simulateResult.matched_keywords}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Est. impact: </span>
+                <span className="font-semibold text-orange-600">{simulateResult.estimated_impact}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4">
           <button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={!form.name || isSubmitting} className="rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50">
-            {isSubmitting ? 'Creating...' : 'Create Rule'}
-          </button>
+          <div className="flex gap-2">
+            {/* Simulate — Design M03: "[Simulate] 버튼 + results" */}
+            <button
+              onClick={handleSimulate}
+              disabled={!form.name || isSimulating}
+              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              {isSimulating ? 'Simulating...' : 'Simulate'}
+            </button>
+            <button onClick={handleSubmit} disabled={!form.name || isSubmitting} className="rounded-md bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50">
+              {isSubmitting ? 'Creating...' : 'Create Rule'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
