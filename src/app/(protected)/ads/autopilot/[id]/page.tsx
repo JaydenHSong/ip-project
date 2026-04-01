@@ -1,11 +1,90 @@
 // /ads/autopilot/[id] → S09 Auto Pilot Detail
-// Design Ref: §2.2 — Track C (PM2)
+// Design Ref: §2.2 — Track C
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { use } from 'react'
+import { AutopilotDetail } from '@/modules/ads/features/autopilot/components/autopilot-detail'
+import type { AutopilotCampaignItem, ActivityLogEntry } from '@/modules/ads/features/autopilot/types'
 
 const AutopilotDetailPage = ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = use(params)
+  const router = useRouter()
+  const [campaign, setCampaign] = useState<AutopilotCampaignItem | null>(null)
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      // Fetch campaign detail
+      const campRes = await fetch(`/api/ads/campaigns/${id}`)
+      if (campRes.ok) {
+        const campJson = await campRes.json() as { data: AutopilotCampaignItem }
+        setCampaign(campJson.data)
+      }
+
+      // Fetch activity log
+      const logRes = await fetch(`/api/ads/autopilot/${id}`)
+      if (logRes.ok) {
+        const logJson = await logRes.json() as { data: { activity_log: ActivityLogEntry[] } }
+        setActivityLog(logJson.data.activity_log)
+      }
+    } catch { /* silent */ }
+    finally { setIsLoading(false) }
+  }, [id])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const handlePause = async () => {
+    await fetch(`/api/ads/campaigns/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'paused' }),
+    })
+    await fetchData()
+  }
+
+  const handleRollback = async (logIds: string[]) => {
+    await fetch(`/api/ads/autopilot/${id}/rollback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ log_ids: logIds }),
+    })
+    await fetchData()
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-24 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
+        ))}
+      </div>
+    )
+  }
+
+  if (!campaign) {
+    return (
+      <div className="p-6 text-center py-12">
+        <p className="text-sm text-gray-500">Campaign not found</p>
+        <button onClick={() => router.push('/ads/autopilot')} className="mt-2 text-sm text-orange-500 hover:text-orange-600">
+          Back to Auto Pilot
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6">
-      <h1 className="text-lg font-semibold text-gray-900">Auto Pilot Detail</h1>
-      <p className="mt-2 text-sm text-gray-500">Coming soon — Track C</p>
+      <AutopilotDetail
+        campaign={campaign}
+        activityLog={activityLog}
+        onPause={handlePause}
+        onRollback={handleRollback}
+        onBack={() => router.push('/ads/autopilot')}
+      />
     </div>
   )
 }
