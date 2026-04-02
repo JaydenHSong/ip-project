@@ -459,7 +459,7 @@ export const ReportsContent = ({
                       <td key="status" className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
                           <StatusBadge status={report.status as ReportStatus} type="report" />
-                          {isClone && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Clone</span>}
+                          {isClone && <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">Clone</span>}
                         </div>
                       </td>
                     )
