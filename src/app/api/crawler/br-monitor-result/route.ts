@@ -188,6 +188,13 @@ export const POST = async (req: Request) => {
     br_last_scraped_at: now,
   }
 
+  // BR case가 closed로 변경되면 report status도 resolved로 전환
+  if (body.br_case_status === 'closed' && report.status === 'monitoring') {
+    updateData.status = 'resolved'
+    updateData.resolved_at = now
+    updateData.resolution_type = 'case_closed'
+  }
+
   if (body.last_amazon_reply_at) {
     updateData.br_last_amazon_reply_at = body.last_amazon_reply_at
   }
