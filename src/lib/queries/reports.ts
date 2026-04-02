@@ -183,6 +183,7 @@ export async function fetchReports(
     const cloneMs = cloneThresholdDays * 24 * 60 * 60 * 1000
     const expireMs = maxMonitoringDays * 24 * 60 * 60 * 1000
     reports = reports.filter((r: Record<string, unknown>) => {
+      if (r.br_case_status === 'closed') return false
       const lastActivity = Math.max(
         r.br_last_amazon_reply_at ? new Date(r.br_last_amazon_reply_at as string).getTime() : 0,
         r.br_last_our_reply_at ? new Date(r.br_last_our_reply_at as string).getTime() : 0,

@@ -299,10 +299,8 @@ export const ReportActions = ({
           </Button>
         )}
 
-        {/* Resolved/Unresolved: 재신고 없음 (Clone as New 사용) */}
-
-        {/* Clone as New — for monitoring/resolved/unresolved/archived */}
-        {['monitoring', 'resolved', 'unresolved', 'archived'].includes(status) && (
+        {/* Clone as New — for resolved/unresolved/archived (Completed Reports) */}
+        {['resolved', 'unresolved', 'archived'].includes(status) && (
           <Button
             variant="outline"
             size="sm"

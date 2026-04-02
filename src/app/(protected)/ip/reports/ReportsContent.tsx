@@ -70,6 +70,7 @@ type ReportsContentProps = {
   page: number
   statusFilter: string
   brFormTypeFilter: string
+  smartQueue: string
   userRole: Role
   ownerFilter: 'my' | 'all'
   searchQuery: string
@@ -90,6 +91,7 @@ export const ReportsContent = ({
   page,
   statusFilter,
   brFormTypeFilter,
+  smartQueue,
   userRole,
   ownerFilter,
   searchQuery,
@@ -113,6 +115,7 @@ export const ReportsContent = ({
     const p: Record<string, string> = {}
     if (statusFilter) p.status = statusFilter
     if (brFormTypeFilter) p.br_form_type = brFormTypeFilter
+    if (smartQueue) p.smart_queue = smartQueue
     if (ownerFilter) p.owner = ownerFilter
     if (searchQuery) p.search = searchQuery
     if (dateFrom) p.date_from = dateFrom
@@ -120,7 +123,7 @@ export const ReportsContent = ({
     if (sortField) p.sort_field = sortField
     if (sortDir) p.sort_dir = sortDir
     return p
-  }, [statusFilter, brFormTypeFilter, ownerFilter, searchQuery, dateFrom, dateTo, sortField, sortDir])
+  }, [statusFilter, brFormTypeFilter, smartQueue, ownerFilter, searchQuery, dateFrom, dateTo, sortField, sortDir])
 
   const { data: infiniteData, isLoading: isLoadingMore, hasMore, sentinelRef } = useInfiniteScroll<ReportRow>({
     initialData: reports ?? [],
@@ -451,7 +454,7 @@ export const ReportsContent = ({
                       report.created_at ? new Date(report.created_at).getTime() : 0,
                     ) : 0
                     const idle = lastActivity > 0 ? Date.now() - lastActivity : 0
-                    const isClone = idle > cloneThresholdDays * 86400000
+                    const isClone = idle > cloneThresholdDays * 86400000 && row.br_case_status !== 'closed'
                     return (
                       <td key="status" className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">

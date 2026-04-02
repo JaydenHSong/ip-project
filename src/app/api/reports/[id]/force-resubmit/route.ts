@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildBrSubmitData } from '@/lib/reports/br-data'
+import { buildBrSubmitData, type BrExtraFields } from '@/lib/reports/br-data'
 import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
 // POST /api/reports/:id/force-resubmit — 강제 재제출 (BR)
@@ -20,7 +20,7 @@ export const POST = withAuth(async (req, { params }) => {
 
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, draft_evidence, listing_id, resubmit_count')
+    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, draft_evidence, listing_id, resubmit_count, br_submit_data')
     .eq('id', id)
     .single()
 
@@ -54,6 +54,16 @@ export const POST = withAuth(async (req, { params }) => {
   // BR track
   const brFormType = (report.br_form_type ?? 'other_policy') as BrFormTypeCode
   if (isBrSubmittable(brFormType)) {
+    // 기존 br_submit_data에서 사용자 입력 extraFields 복원 (review_urls, asins 등)
+    const prev = report.br_submit_data as Record<string, unknown> | null
+    const extraFields: Record<string, unknown> = {}
+    if (prev?.review_urls) extraFields.review_urls = prev.review_urls
+    if (prev?.asins) extraFields.asins = prev.asins
+    if (prev?.order_id) extraFields.order_id = prev.order_id
+    if (prev?.seller_storefront_url) extraFields.seller_storefront_url = prev.seller_storefront_url
+    if (prev?.policy_url) extraFields.policy_url = prev.policy_url
+    if (prev?.product_urls) extraFields.product_urls = prev.product_urls
+
     const brSubmitData = listing
       ? buildBrSubmitData({
           report: {
@@ -69,6 +79,7 @@ export const POST = withAuth(async (req, { params }) => {
             marketplace: listing.marketplace,
             seller_storefront_url: null,
           },
+          extraFields: Object.keys(extraFields).length > 0 ? extraFields as BrExtraFields : undefined,
         })
       : null
 

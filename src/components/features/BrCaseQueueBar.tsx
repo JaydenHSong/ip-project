@@ -23,7 +23,6 @@ type QueueItem = {
 
 const buildQueueItems = (summary: QueueSummary): QueueItem[] => [
   { key: 'action_required', label: 'Action Required', variant: 'danger', param: 'needs_attention' },
-  { key: 'new_reply', label: 'New Reply', variant: 'info', param: 'new_reply' },
   { key: 'clone_suggested', label: `Clone Suggested (${summary.clone_threshold_days}d+)`, variant: 'warning', param: 'clone_suggested' },
 ]
 
@@ -73,9 +72,8 @@ export const BrCaseQueueBar = () => {
               const url = new URL(window.location.href)
               if (isActive) {
                 url.searchParams.delete('smart_queue')
-                if (item.key === 'new_reply') url.searchParams.delete('status')
               } else {
-                url.searchParams.set('status', item.key === 'new_reply' ? 'answered' : 'monitoring')
+                url.searchParams.set('status', 'monitoring')
                 url.searchParams.set('smart_queue', item.param)
               }
               router.push(url.pathname + url.search)

@@ -63,7 +63,7 @@ export const GET = withAuth(async (_req, { user }) => {
       r.br_submitted_at ? new Date(r.br_submitted_at).getTime() : 0,
       r.created_at ? new Date(r.created_at).getTime() : 0,
     )
-    if (lastActivity > 0) {
+    if (lastActivity > 0 && r.br_case_status !== 'closed') {
       const idle = now - lastActivity
       if (idle > maxMonitoringMs) {
         expired++
