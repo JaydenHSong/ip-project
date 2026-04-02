@@ -1,7 +1,7 @@
 // Design Ref: §5.1 — Sync Service (business orchestration)
 // module-2: Brand Analytics + Orders only. Campaign/Report sync added in module-4
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SpApiPort } from '../ports/sp-api-port'
 import type { AdsPort } from '../ports/ads-port'
 
@@ -23,12 +23,13 @@ export class SyncService {
   constructor(
     private adsPort: AdsPort,
     private spApiPort: SpApiPort,
+    private db: SupabaseClient,
   ) {}
 
   // ─── SP-API: Brand Analytics → ads.brand_analytics (module-2) ───
 
   async syncBrandAnalytics(profileId: string, reportDate: string): Promise<SyncResult> {
-    const supabase = createAdminClient()
+    const supabase = this.db
     const result: SyncResult = { synced: 0, created: 0, updated: 0, errors: 0 }
 
     try {
@@ -80,7 +81,7 @@ export class SyncService {
   // ─── SP-API: Orders → dayparting patterns (module-2) ───
 
   async syncOrderPatterns(profileId: string): Promise<SyncResult> {
-    const supabase = createAdminClient()
+    const supabase = this.db
     const result: SyncResult = { synced: 0, created: 0, updated: 0, errors: 0 }
 
     try {

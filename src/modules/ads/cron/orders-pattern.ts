@@ -1,9 +1,8 @@
 // Cron: Orders → dayparting patterns (daily)
-// Design Ref: §9 — Cron rewrite: delegate to SyncService
+// Design Ref: §9 — Cron rewrite: delegate to SyncService via factory
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createAdsPort, createSpApiPort } from '../api/factory'
-import { SyncService } from '../api/services/sync-service'
+import { createSyncService } from '../api/factory'
 
 type PatternResult = {
   markets_analyzed: number
@@ -31,10 +30,7 @@ export async function analyzeOrdersPattern(): Promise<PatternResult> {
 
   for (const profile of profiles ?? []) {
     try {
-      const syncService = new SyncService(
-        createAdsPort(profile.profile_id),
-        createSpApiPort(profile.profile_id),
-      )
+      const syncService = createSyncService(profile.profile_id)
       const syncResult = await syncService.syncOrderPatterns(profile.profile_id)
       result.markets_analyzed += 1
       result.weights_updated += syncResult.synced

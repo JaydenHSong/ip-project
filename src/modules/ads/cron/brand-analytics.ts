@@ -1,9 +1,8 @@
 // Cron: Brand Analytics → report_snapshots (daily)
-// Design Ref: §9 — Cron rewrite: delegate to SyncService
+// Design Ref: §9 — Cron rewrite: delegate to SyncService via factory
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createAdsPort, createSpApiPort } from '../api/factory'
-import { SyncService } from '../api/services/sync-service'
+import { createSyncService } from '../api/factory'
 
 type SyncResult = {
   markets_processed: number
@@ -35,10 +34,7 @@ export async function syncBrandAnalytics(): Promise<SyncResult> {
 
   for (const profile of profiles ?? []) {
     try {
-      const syncService = new SyncService(
-        createAdsPort(profile.profile_id),
-        createSpApiPort(profile.profile_id),
-      )
+      const syncService = createSyncService(profile.profile_id)
       const syncResult = await syncService.syncBrandAnalytics(profile.profile_id, reportDate)
       result.markets_processed += 1
       result.keywords_synced += syncResult.synced
