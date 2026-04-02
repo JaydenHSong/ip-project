@@ -149,6 +149,18 @@ const ReportDetailPage = async ({ params }: { params: Promise<{ id: string }> })
       },
     )
 
+    // Fetch canceller name for declined reports
+    if (report.status === 'cancelled' && report.cancelled_by) {
+      const { data: canceller } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', report.cancelled_by)
+        .single()
+      if (canceller) {
+        ;(report as Record<string, unknown>).cancelled_by_name = canceller.name
+      }
+    }
+
     // Fetch snapshots for monitoring reports
     if (['monitoring', 'resolved', 'unresolved'].includes(report.status)) {
       const { data: snapshotData } = await supabase

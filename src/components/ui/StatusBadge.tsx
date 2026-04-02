@@ -31,7 +31,7 @@ const REPORT_STATUS_MAP = {
   pending_review: { label: 'Pending', variant: 'warning' },
   approved: { label: 'Approved', variant: 'success' },
   rejected: { label: 'Rejected', variant: 'danger' },
-  cancelled: { label: 'Cancelled', variant: 'default' },
+  cancelled: { label: 'Declined', variant: 'warning' },
   br_submitting: { label: 'BR Submitting', variant: 'info' },
   monitoring: { label: 'Monitoring', variant: 'violet' },
   resolved: { label: 'Resolved', variant: 'success' },

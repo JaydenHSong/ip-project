@@ -280,6 +280,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
     { value: '', label: t('common.all') },
     { value: 'resolved', label: t('reports.tabs.resolved') },
     { value: 'unresolved', label: t('reports.tabs.unresolved') },
+    { value: 'cancelled', label: 'Declined' },
     { value: 'archived', label: t('reports.archivedTitle' as Parameters<typeof t>[0]) },
   ]
 

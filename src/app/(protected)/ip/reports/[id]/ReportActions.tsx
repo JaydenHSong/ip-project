@@ -39,6 +39,8 @@ export const ReportActions = ({
   const [loading, setLoading] = useState<string | null>(null)
   const [showRewriteModal, setShowRewriteModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDeclineModal, setShowDeclineModal] = useState(false)
+  const [declineReason, setDeclineReason] = useState('')
   const [rewriteStep, setRewriteStep] = useState<1 | 2>(1)
   const [feedback, setFeedback] = useState('')
   const [rewritePreview, setRewritePreview] = useState<{ draft_title: string; draft_body: string } | null>(null)
@@ -214,6 +216,30 @@ export const ReportActions = ({
     }
   }
 
+  const handleDecline = async () => {
+    if (!declineReason.trim()) return
+    setLoading('decline')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cancellation_reason: declineReason.trim() }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error?.message ?? 'Decline failed')
+      }
+      addToast({ type: 'success', title: 'Declined', message: '신고가 거절되었습니다.' })
+      setShowDeclineModal(false)
+      setDeclineReason('')
+      setLoading(null)
+      router.replace('/ip/reports/completed?status=cancelled')
+    } catch (e) {
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
+      setLoading(null)
+    }
+  }
+
   const handleDelete = async () => {
     setLoading('delete')
     try {
@@ -334,6 +360,18 @@ export const ReportActions = ({
           )
         )}
 
+        {/* Decline — admin only, draft status */}
+        {status === 'draft' && isAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-amber-500/30 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+            onClick={() => setShowDeclineModal(true)}
+          >
+            Decline
+          </Button>
+        )}
+
         {/* Delete */}
         {canDelete && (
           <Button
@@ -367,6 +405,38 @@ export const ReportActions = ({
             onClick={handleDelete}
           >
             Delete
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Decline Modal */}
+      <Modal
+        open={showDeclineModal}
+        onClose={() => { setShowDeclineModal(false); setDeclineReason('') }}
+        title="Decline Report"
+      >
+        <p className="text-sm text-th-text-secondary">
+          이 신고를 거절하시겠습니까? 사유를 입력해 주세요.
+        </p>
+        <Textarea
+          className="mt-3"
+          value={declineReason}
+          onChange={(e) => setDeclineReason(e.target.value)}
+          placeholder="거절 사유를 입력하세요"
+          rows={3}
+        />
+        <div className="mt-4 flex justify-end gap-3">
+          <Button variant="ghost" size="sm" onClick={() => { setShowDeclineModal(false); setDeclineReason('') }}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            className="bg-amber-500 hover:bg-amber-600 text-white"
+            loading={loading === 'decline'}
+            disabled={!declineReason.trim()}
+            onClick={handleDecline}
+          >
+            Decline
           </Button>
         </div>
       </Modal>

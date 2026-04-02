@@ -55,6 +55,9 @@ type ReportDetailContentProps = {
     draft_subject: string | null
     draft_body: string | null
     rejection_reason: string | null
+    cancellation_reason?: string | null
+    cancelled_at?: string | null
+    cancelled_by_name?: string | null
     violation_category: string | null
     note: string | null
     resubmit_count: number
@@ -181,7 +184,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
   const router = useRouter()
 
   const [currentStatus, setCurrentStatus] = useState(report.status)
-  const COMPLETED_STATUSES = ['resolved', 'unresolved', 'resubmitted', 'escalated', 'archived']
+  const COMPLETED_STATUSES = ['resolved', 'unresolved', 'resubmitted', 'escalated', 'archived', 'cancelled']
   const backHref = COMPLETED_STATUSES.includes(report.status) ? '/ip/reports/completed' : '/ip/reports'
   const isDraftEditable = canEdit && (currentStatus === 'draft' || currentStatus === 'pending_review' || currentStatus === 'monitoring' || currentStatus === 'unresolved')
 
@@ -638,6 +641,29 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
           reportId={report.id}
           onDataUpdated={() => window.location.reload()}
         />
+      )}
+
+      {/* Declined Banner */}
+      {currentStatus === 'cancelled' && report.cancellation_reason && (
+        <div className="overflow-hidden rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/30">
+          <div className="px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/20">
+                <svg className="h-5 w-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Declined</p>
+                <p className="mt-0.5 text-xs text-th-text-secondary">
+                  {report.cancelled_by_name && <span>{report.cancelled_by_name} · </span>}
+                  {report.cancelled_at && formatDateTime(report.cancelled_at)}
+                </p>
+              </div>
+            </div>
+            <p className="mt-3 rounded-lg bg-amber-100/50 px-3 py-2 text-sm text-th-text dark:bg-amber-900/20">
+              {report.cancellation_reason}
+            </p>
+          </div>
+        </div>
       )}
 
       {/* BR Submitting Banner */}
