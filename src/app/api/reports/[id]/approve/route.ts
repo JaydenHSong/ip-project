@@ -28,7 +28,7 @@ export const POST = withAuth(async (req, { params }) => {
   // 현재 상태 확인
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('status, report_number, draft_body, draft_title, draft_subject, draft_evidence, original_draft_body, listing_id, user_violation_type, br_form_type')
+    .select('status, report_number, draft_body, draft_title, draft_subject, draft_evidence, original_draft_body, listing_id, user_violation_type, br_form_type, note')
     .eq('id', id)
     .single()
 
@@ -60,6 +60,28 @@ export const POST = withAuth(async (req, { params }) => {
   const rawFormType = body.br_form_type ?? report.br_form_type ?? 'other_policy'
   const brFormType = (BR_FORM_TYPE_CODES.includes(rawFormType as BrFormTypeCode) ? rawFormType : 'other_policy') as BrFormTypeCode
   const brReportable = isBrSubmittable(brFormType)
+  // extraFields: 프론트 전달값 우선, 없으면 note(Extension 데이터)에서 자동 추출
+  let extraFields: BrExtraFields | undefined = body.br_extra_fields
+  if (!extraFields && report.note) {
+    try {
+      const noteData = JSON.parse(report.note) as Record<string, unknown>
+      const noteExtra: Record<string, unknown> = {}
+      if (noteData.review_urls && typeof noteData.review_urls === 'string') {
+        noteExtra.review_urls = noteData.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
+      }
+      if (noteData.product_urls && typeof noteData.product_urls === 'string') {
+        noteExtra.product_urls = noteData.product_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
+      }
+      if (noteData.asins && typeof noteData.asins === 'string') {
+        noteExtra.asins = noteData.asins.split(/[,;\n]/).map((a: string) => a.trim()).filter(Boolean)
+      }
+      if (noteData.seller_storefront_url) noteExtra.seller_storefront_url = noteData.seller_storefront_url
+      if (noteData.policy_url) noteExtra.policy_url = noteData.policy_url
+      if (noteData.order_id) noteExtra.order_id = noteData.order_id
+      if (Object.keys(noteExtra).length > 0) extraFields = noteExtra as BrExtraFields
+    } catch { /* note is not JSON, skip */ }
+  }
+
   const brSubmitData = listing && brReportable
     ? buildBrSubmitData({
         report: {
@@ -70,7 +92,7 @@ export const POST = withAuth(async (req, { params }) => {
           draft_subject: body.edited_draft_subject ?? report.draft_subject,
         },
         listing: { asin: listing.asin, url: null, marketplace: listing.marketplace, seller_storefront_url: null },
-        extraFields: body.br_extra_fields,
+        extraFields,
       })
     : null
 

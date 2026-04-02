@@ -20,7 +20,7 @@ export const POST = withAuth(async (req, { params }) => {
 
   const { data: report, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, draft_evidence, listing_id, resubmit_count, br_submit_data')
+    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, draft_evidence, listing_id, resubmit_count, br_submit_data, note')
     .eq('id', id)
     .single()
 
@@ -54,7 +54,7 @@ export const POST = withAuth(async (req, { params }) => {
   // BR track
   const brFormType = (report.br_form_type ?? 'other_policy') as BrFormTypeCode
   if (isBrSubmittable(brFormType)) {
-    // 기존 br_submit_data에서 사용자 입력 extraFields 복원 (review_urls, asins 등)
+    // extraFields 복원: 1순위 br_submit_data, 2순위 note(Extension 데이터)
     const prev = report.br_submit_data as Record<string, unknown> | null
     const extraFields: Record<string, unknown> = {}
     if (prev?.review_urls) extraFields.review_urls = prev.review_urls
@@ -63,6 +63,20 @@ export const POST = withAuth(async (req, { params }) => {
     if (prev?.seller_storefront_url) extraFields.seller_storefront_url = prev.seller_storefront_url
     if (prev?.policy_url) extraFields.policy_url = prev.policy_url
     if (prev?.product_urls) extraFields.product_urls = prev.product_urls
+
+    // note fallback: br_submit_data에 review_urls가 없거나 상품 URL만 있으면 note에서 보충
+    if (!extraFields.review_urls && report.note) {
+      try {
+        const noteData = JSON.parse(report.note) as Record<string, unknown>
+        if (noteData.review_urls && typeof noteData.review_urls === 'string') {
+          extraFields.review_urls = noteData.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
+        }
+        if (!extraFields.asins && noteData.asins && typeof noteData.asins === 'string') {
+          extraFields.asins = noteData.asins.split(/[,;\n]/).map((a: string) => a.trim()).filter(Boolean)
+        }
+        if (!extraFields.order_id && noteData.order_id) extraFields.order_id = noteData.order_id
+      } catch { /* note is not JSON, skip */ }
+    }
 
     const brSubmitData = listing
       ? buildBrSubmitData({
