@@ -1,7 +1,8 @@
-// Amazon Ads API wrapper (stub)
-// TODO: Implement when Amazon Ads API authorization is granted
+// Amazon Ads API — Thin wrapper delegating to Port/Adapter via Factory
+// Design Ref: §2.1 — Rewrite: stub → factory delegation
+// Original stub methods now route through createAdsPort()
 
-import { tokenManager } from './token-manager'
+import { createAdsPort } from './factory'
 import type {
   AmazonCampaign,
   AmazonAdGroup,
@@ -10,8 +11,7 @@ import type {
   AmazonPaginatedResponse,
   AmazonProfile,
 } from './types'
-
-const ADS_API_BASE = 'https://advertising-api.amazon.com'
+import type { DateRange, SearchTermRow } from './ports/ads-port'
 
 export class AmazonAdsApi {
   private profileId: string
@@ -20,72 +20,51 @@ export class AmazonAdsApi {
     this.profileId = profileId
   }
 
-  // ─── Auth header helper ───
-
-  private async getHeaders(): Promise<Record<string, string>> {
-    const accessToken = await tokenManager.getAccessToken(this.profileId)
-    return {
-      'Authorization': `Bearer ${accessToken}`,
-      'Amazon-Advertising-API-ClientId': process.env.AMAZON_ADS_CLIENT_ID ?? '',
-      'Amazon-Advertising-API-Scope': this.profileId,
-      'Content-Type': 'application/json',
-    }
+  private get port() {
+    return createAdsPort(this.profileId)
   }
 
-  // ─── Profiles ───
-
-  // TODO: Implement profile listing
   async listProfiles(): Promise<AmazonProfile[]> {
-    void ADS_API_BASE
-    void this.getHeaders
-    throw new Error('Not implemented: Waiting for Amazon Ads API authorization')
+    return this.port.listProfiles()
   }
 
-  // ─── Campaigns ───
-
-  // TODO: Implement campaign listing with pagination
-  async listCampaigns(_nextToken?: string): Promise<AmazonPaginatedResponse<AmazonCampaign>> {
-    throw new Error('Not implemented: Waiting for Amazon Ads API authorization')
+  async listCampaigns(nextToken?: string): Promise<AmazonPaginatedResponse<AmazonCampaign>> {
+    return this.port.listCampaigns(nextToken)
   }
 
-  // TODO: Implement campaign update (bid, budget, state)
-  async updateCampaign(_campaignId: string, _updates: Partial<AmazonCampaign>): Promise<AmazonCampaign> {
-    throw new Error('Not implemented: Waiting for Amazon Ads API authorization')
+  async listAdGroups(campaignId: string): Promise<AmazonPaginatedResponse<AmazonAdGroup>> {
+    return this.port.listAdGroups(campaignId)
   }
 
-  // ─── Ad Groups ───
-
-  // TODO: Implement ad group listing
-  async listAdGroups(_campaignId: string): Promise<AmazonPaginatedResponse<AmazonAdGroup>> {
-    throw new Error('Not implemented: Waiting for Amazon Ads API authorization')
+  async listKeywords(adGroupId: string): Promise<AmazonPaginatedResponse<AmazonKeyword>> {
+    return this.port.listKeywords(adGroupId)
   }
 
-  // ─── Keywords ───
-
-  // TODO: Implement keyword listing
-  async listKeywords(_adGroupId: string): Promise<AmazonPaginatedResponse<AmazonKeyword>> {
-    throw new Error('Not implemented: Waiting for Amazon Ads API authorization')
+  async updateCampaign(campaignId: string, updates: Partial<AmazonCampaign>): Promise<AmazonCampaign> {
+    return this.port.updateCampaign(campaignId, updates)
   }
 
-  // TODO: Implement keyword bid update
-  async updateKeywordBid(_keywordId: string, _bid: number): Promise<AmazonKeyword> {
-    throw new Error('Not implemented: Waiting for Amazon Ads API authorization')
+  async updateKeywordBid(keywordId: string, bid: number): Promise<AmazonKeyword> {
+    return this.port.updateKeywordBid(keywordId, bid)
   }
 
-  // TODO: Implement bulk keyword creation
-  async createKeywords(_keywords: Partial<AmazonKeyword>[]): Promise<AmazonKeyword[]> {
-    throw new Error('Not implemented: Waiting for Amazon Ads API authorization')
+  async createKeywords(keywords: Partial<AmazonKeyword>[]): Promise<AmazonKeyword[]> {
+    return this.port.createKeywords(keywords)
   }
 
-  // ─── Reporting ───
-
-  // TODO: Implement report request
-  async requestReport(_reportType: string, _dateRange: { start: string; end: string }): Promise<string> {
-    throw new Error('Not implemented: Waiting for Amazon Ads API authorization')
+  async archiveKeyword(keywordId: string): Promise<void> {
+    return this.port.archiveKeyword(keywordId)
   }
 
-  // TODO: Implement report download
-  async downloadReport(_reportId: string): Promise<AmazonReportMetrics[]> {
-    throw new Error('Not implemented: Waiting for Amazon Ads API authorization')
+  async requestReport(reportType: string, dateRange: DateRange): Promise<string> {
+    return this.port.requestReport(reportType, dateRange)
+  }
+
+  async downloadReport(reportId: string): Promise<AmazonReportMetrics[]> {
+    return this.port.downloadReport(reportId)
+  }
+
+  async getSearchTermReport(campaignId: string, dateRange: DateRange): Promise<SearchTermRow[]> {
+    return this.port.getSearchTermReport(campaignId, dateRange)
   }
 }

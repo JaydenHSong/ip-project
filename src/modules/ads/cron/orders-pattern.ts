@@ -1,7 +1,9 @@
-// Cron: Orders DB → dayparting_hourly_weights (weekly)
-// Analyzes order patterns to generate optimal hourly weights for dayparting
+// Cron: Orders → dayparting patterns (daily)
+// Design Ref: §9 — Cron rewrite: delegate to SyncService
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsPort, createSpApiPort } from '../api/factory'
+import { SyncService } from '../api/services/sync-service'
 
 type PatternResult = {
   markets_analyzed: number
@@ -12,34 +14,35 @@ type PatternResult = {
 export async function analyzeOrdersPattern(): Promise<PatternResult> {
   const supabase = createAdminClient()
 
-  // TODO: When SP-API orders data is available:
-  // 1. Fetch orders from the last 90 days grouped by marketplace
-  // 2. Aggregate order counts by day_of_week + hour
-  // 3. Normalize into 0.0–2.0 weight scale (1.0 = average)
-  // 4. Upsert into ads.dayparting_hourly_weights
-  // 5. Compare with previous weights and flag significant changes
-
-  // Fetch distinct brand_markets that have campaigns
-  const { data: brandMarkets, error } = await supabase
-    .from('ads.campaigns')
-    .select('brand_market_id')
-    .eq('status', 'active')
+  const { data: profiles, error } = await supabase
+    .from('ads.marketplace_profiles')
+    .select('id, profile_id, marketplace_id')
+    .eq('is_active', true)
 
   if (error) {
-    throw new Error(`Failed to fetch brand markets: ${error.message}`)
+    throw new Error(`Failed to fetch marketplace profiles: ${error.message}`)
   }
 
-  // Deduplicate brand_market_ids
-  const uniqueMarkets = [...new Set(brandMarkets?.map((c) => c.brand_market_id) ?? [])]
-
   const result: PatternResult = {
-    markets_analyzed: uniqueMarkets.length,
+    markets_analyzed: 0,
     weights_updated: 0,
     errors: 0,
   }
 
-  // TODO: Analyze order patterns per market and update weights
-  void uniqueMarkets
+  for (const profile of profiles ?? []) {
+    try {
+      const syncService = new SyncService(
+        createAdsPort(profile.profile_id),
+        createSpApiPort(profile.profile_id),
+      )
+      const syncResult = await syncService.syncOrderPatterns(profile.profile_id)
+      result.markets_analyzed += 1
+      result.weights_updated += syncResult.synced
+      result.errors += syncResult.errors
+    } catch {
+      result.errors += 1
+    }
+  }
 
   return result
 }

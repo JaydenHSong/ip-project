@@ -1,7 +1,9 @@
-// Cron: Brand Analytics → keyword_rankings (weekly Monday)
-// Fetches Brand Analytics search term data via SP-API
+// Cron: Brand Analytics → report_snapshots (daily)
+// Design Ref: §9 — Cron rewrite: delegate to SyncService
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsPort, createSpApiPort } from '../api/factory'
+import { SyncService } from '../api/services/sync-service'
 
 type SyncResult = {
   markets_processed: number
@@ -11,13 +13,6 @@ type SyncResult = {
 
 export async function syncBrandAnalytics(): Promise<SyncResult> {
   const supabase = createAdminClient()
-
-  // TODO: When SP-API Brand Analytics is available:
-  // 1. Fetch active marketplace_profiles with brand analytics access
-  // 2. For each profile, call SP-API Brand Analytics search terms report
-  // 3. Parse top search terms, click share, conversion share
-  // 4. Upsert into ads.keyword_rankings
-  // 5. Track rank changes week-over-week
 
   const { data: profiles, error } = await supabase
     .from('ads.marketplace_profiles')
@@ -29,13 +24,29 @@ export async function syncBrandAnalytics(): Promise<SyncResult> {
   }
 
   const result: SyncResult = {
-    markets_processed: profiles?.length ?? 0,
+    markets_processed: 0,
     keywords_synced: 0,
     errors: 0,
   }
 
-  // TODO: Iterate profiles and fetch Brand Analytics data
-  void profiles
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const reportDate = yesterday.toISOString().split('T')[0]
+
+  for (const profile of profiles ?? []) {
+    try {
+      const syncService = new SyncService(
+        createAdsPort(profile.profile_id),
+        createSpApiPort(profile.profile_id),
+      )
+      const syncResult = await syncService.syncBrandAnalytics(profile.profile_id, reportDate)
+      result.markets_processed += 1
+      result.keywords_synced += syncResult.synced
+      result.errors += syncResult.errors
+    } catch {
+      result.errors += 1
+    }
+  }
 
   return result
 }
