@@ -20,7 +20,6 @@ export const GET = withAuth(async (_req, { user }) => {
     .from('reports')
     .select('id, br_case_status, br_last_amazon_reply_at, br_last_our_reply_at, br_submitted_at, created_at')
     .in('status', ['monitoring', 'br_submitting'])
-    .neq('br_case_status', 'answered')
 
   // 현재 유저의 읽음 상태 조회
   const reportIds = (reports ?? []).map(r => r.id)
