@@ -192,7 +192,7 @@ export const POST = async (req: Request) => {
   if (body.br_case_status === 'closed' && report.status === 'monitoring') {
     updateData.status = 'resolved'
     updateData.resolved_at = now
-    updateData.resolution_type = 'case_closed'
+    updateData.resolution_type = 'content_modified'
   }
 
   if (body.last_amazon_reply_at) {
