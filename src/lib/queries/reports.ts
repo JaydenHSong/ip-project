@@ -92,7 +92,11 @@ export async function fetchReports(
   if (params.status === 'answered') {
     query = query.eq('status', 'monitoring').eq('br_case_status', 'answered')
   } else if (params.status === 'monitoring') {
-    query = query.in('status', ['monitoring', 'br_submitting']).neq('br_case_status', 'answered')
+    query = query.in('status', ['monitoring', 'br_submitting'])
+    // smart_queue(clone_suggested/expired)일 때는 answered도 포함해야 카운트와 일치
+    if (!isPostFiltered) {
+      query = query.neq('br_case_status', 'answered')
+    }
   } else if (params.status) {
     query = query.eq('status', params.status)
   } else {
