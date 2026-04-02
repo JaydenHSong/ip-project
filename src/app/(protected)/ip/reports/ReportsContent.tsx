@@ -454,7 +454,7 @@ export const ReportsContent = ({
                       report.created_at ? new Date(report.created_at).getTime() : 0,
                     ) : 0
                     const idle = lastActivity > 0 ? Date.now() - lastActivity : 0
-                    const isClone = idle > cloneThresholdDays * 86400000 && row.br_case_status !== 'closed'
+                    const isClone = idle > cloneThresholdDays * 86400000 && idle <= maxMonitoringDays * 86400000 && row.br_case_status !== 'closed'
                     return (
                       <td key="status" className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
