@@ -2,18 +2,16 @@
 // POST /api/ads/stream/webhook — No auth (signature validated instead)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { AmazonStreamAdapter } from '@/modules/ads/api/adapters/amazon-stream-adapter'
-import { StreamService } from '@/modules/ads/api/services/stream-service'
-import { createAdminClient } from '@/lib/supabase/admin'
-
-const streamAdapter = new AmazonStreamAdapter()
+import { createStreamService } from '@/modules/ads/api/factory'
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('x-amz-firehose-access-key') ?? ''
   const rawBody = await request.text()
 
-  // Validate signature
-  if (!streamAdapter.validateSignature(rawBody, signature)) {
+  const streamService = createStreamService()
+
+  // Validate signature via StreamService (implements StreamPort)
+  if (!streamService.validateSignature(rawBody, signature)) {
     return NextResponse.json(
       { error: { code: 'UNAUTHORIZED', message: 'Invalid signature' } },
       { status: 401 },
@@ -22,7 +20,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload = JSON.parse(rawBody) as unknown
-    const batch = streamAdapter.parseMetrics(payload)
+    const batch = streamService.parseMetrics(payload)
 
     if (!batch.profile_id || !batch.metrics.length) {
       return NextResponse.json(
@@ -31,9 +29,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const streamService = new StreamService(createAdminClient())
     const result = await streamService.processMetrics(batch)
-
     return NextResponse.json({ data: result })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Processing failed'
