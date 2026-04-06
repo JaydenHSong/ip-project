@@ -162,7 +162,7 @@ export class SyncService {
     const result: SyncResult = { synced: 0, created: 0, updated: 0, errors: 0 }
 
     try {
-      // Get marketplace_profile record for FK references
+      // Get marketplace_profile + brand_market for FK references
       const { data: mpProfile } = await supabase
         .from('ads.marketplace_profiles')
         .select('id, brand_market_id')
@@ -173,6 +173,21 @@ export class SyncService {
         result.errors = 1
         return result
       }
+
+      // Resolve org_unit_id from brand_markets for new campaign creation
+      const { data: brandMarket } = await supabase
+        .from('public.brand_markets')
+        .select('org_unit_id')
+        .eq('id', mpProfile.brand_market_id)
+        .single()
+
+      // Get a system admin user for created_by on auto-created campaigns
+      const { data: adminUser } = await supabase
+        .from('public.users')
+        .select('id')
+        .eq('role', 'admin')
+        .limit(1)
+        .single()
 
       // Paginate through all campaigns
       let nextToken: string | undefined
@@ -226,9 +241,32 @@ export class SyncService {
           } else {
             result.updated += 1
           }
+        } else if (brandMarket?.org_unit_id && adminUser?.id) {
+          // Auto-create new campaign discovered from Amazon with defaults
+          const marketingCode = `SYNC-${campaign.campaign_id.slice(-6).toUpperCase()}`
+          const { error } = await supabase
+            .from('ads.campaigns')
+            .insert({
+              org_unit_id: brandMarket.org_unit_id,
+              brand_market_id: mpProfile.brand_market_id,
+              marketplace_profile_id: mpProfile.id,
+              amazon_campaign_id: campaign.campaign_id,
+              amazon_state: campaign.state,
+              marketing_code: marketingCode,
+              name: campaign.name,
+              campaign_type: campaign.campaign_type ?? 'sp',
+              mode: 'manual',
+              status: mapStatus(campaign.state),
+              daily_budget: campaign.budget,
+              created_by: adminUser.id,
+            })
+
+          if (error) {
+            result.errors += 1
+          } else {
+            result.created += 1
+          }
         }
-        // New campaigns from Amazon are logged but not auto-created
-        // (required FKs: org_unit_id, created_by, marketing_code need manual setup)
       }
 
       // Mark campaigns removed from Amazon as archived
