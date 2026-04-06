@@ -1,0 +1,1234 @@
+- generic [ref=e1]:
+  - generic [ref=e6]:
+    - banner [ref=e7]:
+      - generic [ref=e9]:
+        - generic [active]:
+          - link "Jump to Content":
+            - /url: "#content"
+        - link "Doppler" [ref=e11] [cursor=pointer]:
+          - /url: /docs
+          - img "Doppler" [ref=e12]
+        - text:     
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - link "Support" [ref=e15] [cursor=pointer]:
+              - /url: https://support.doppler.com
+            - link "Status" [ref=e16] [cursor=pointer]:
+              - /url: https://status.doppler.com
+            - link "Community" [ref=e17] [cursor=pointer]:
+              - /url: https://community.doppler.com
+            - link "Sign Up" [ref=e18] [cursor=pointer]:
+              - /url: https://dashboard.doppler.com/register
+          - text: 
+      - generic [ref=e20]:
+        - navigation "Primary navigation" [ref=e21]:
+          - link " Documentation" [ref=e22] [cursor=pointer]:
+            - /url: /docs
+            - generic [ref=e23]: 
+            - generic [ref=e24]: Documentation
+          - link " API Reference" [ref=e25] [cursor=pointer]:
+            - /url: /reference
+            - generic [ref=e26]: 
+            - generic [ref=e27]: API Reference
+          - link " Changelog" [ref=e28] [cursor=pointer]:
+            - /url: /changelog
+            - generic [ref=e29]: 
+            - generic [ref=e30]: Changelog
+        - button "Search ⌘k" [ref=e33] [cursor=pointer]:
+          - generic [ref=e34]: 
+          - generic [ref=e35]: Search
+          - generic [ref=e36]: ⌘K
+    - main [ref=e37]:
+      - generic [ref=e38]:
+        - navigation "Secondary navigation" [ref=e39]:
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - heading "Getting Started" [level=2] [ref=e42]
+              - list [ref=e43]:
+                - listitem [ref=e44]:
+                  - link "Welcome 👋" [ref=e45] [cursor=pointer]:
+                    - /url: /docs/start
+                    - generic [ref=e47]: Welcome 👋
+                - listitem [ref=e48]:
+                  - link "Getting Started" [ref=e49] [cursor=pointer]:
+                    - /url: /docs/getting-started
+                    - generic [ref=e51]: Getting Started
+                - listitem [ref=e52]:
+                  - link "Team Management" [ref=e53] [cursor=pointer]:
+                    - /url: /docs/secretops-beginners-series-team-management
+                    - generic [ref=e55]: Team Management
+                - listitem [ref=e56]:
+                  - link "CI/CD & Production" [ref=e57] [cursor=pointer]:
+                    - /url: /docs/secretops-beginners-series-cicd-production
+                    - generic [ref=e59]: CI/CD & Production
+                - listitem [ref=e60]:
+                  - link "Managing Secrets" [ref=e61] [cursor=pointer]:
+                    - /url: /docs/secretops-beginners-series-managing-secrets
+                    - generic [ref=e63]: Managing Secrets
+                - listitem [ref=e64]:
+                  - link "Secrets Rotation" [ref=e65] [cursor=pointer]:
+                    - /url: /docs/secretops-beginners-series-secrets-rotation
+                    - generic [ref=e67]: Secrets Rotation
+            - generic [ref=e68]:
+              - heading "Development" [level=2] [ref=e69]
+              - list [ref=e70]:
+                - listitem [ref=e71]:
+                  - link "API Reference" [ref=e72] [cursor=pointer]:
+                    - /url: https://docs.doppler.com/reference/api
+                    - generic [ref=e74]: API Reference
+                    - img [ref=e76]: 
+                - listitem [ref=e77]:
+                  - link "Command Line Show subpages for Command Line" [ref=e78] [cursor=pointer]:
+                    - /url: /docs/install-cli
+                    - generic [ref=e80]: Command Line
+                    - button "Show subpages for Command Line" [ref=e81]:
+                      - generic [ref=e82]: 
+                  - list:
+                    - listitem [ref=e83]:
+                      - link "Install CLI" [ref=e84] [cursor=pointer]:
+                        - /url: /docs/install-cli
+                        - generic [ref=e86]: Install CLI
+                    - listitem [ref=e87]:
+                      - link "CLI Guide" [ref=e88] [cursor=pointer]:
+                        - /url: /docs/cli
+                        - generic [ref=e90]: CLI Guide
+                    - listitem [ref=e91]:
+                      - link "Automatic Restart" [ref=e92] [cursor=pointer]:
+                        - /url: /docs/automatic-restart
+                        - generic [ref=e94]: Automatic Restart
+                    - listitem [ref=e95]:
+                      - link "Text-based UI (TUI)" [ref=e96] [cursor=pointer]:
+                        - /url: /docs/tui
+                        - generic [ref=e98]: Text-based UI (TUI)
+                    - listitem [ref=e99]:
+                      - link "Secrets Setup Guide" [ref=e100] [cursor=pointer]:
+                        - /url: /docs/secrets-setup-guide
+                        - generic [ref=e102]: Secrets Setup Guide
+                    - listitem [ref=e103]:
+                      - link "Secrets Access Guide" [ref=e104] [cursor=pointer]:
+                        - /url: /docs/accessing-secrets
+                        - generic [ref=e106]: Secrets Access Guide
+                    - listitem [ref=e107]:
+                      - link "Secrets Setting Guide" [ref=e108] [cursor=pointer]:
+                        - /url: /docs/setting-secrets
+                        - generic [ref=e110]: Secrets Setting Guide
+                    - listitem [ref=e111]:
+                      - link "Secret Injection with Templates" [ref=e112] [cursor=pointer]:
+                        - /url: /docs/secret-injection-with-templates
+                        - generic [ref=e114]: Secret Injection with Templates
+                    - listitem [ref=e115]:
+                      - link "Multiple Commands" [ref=e116] [cursor=pointer]:
+                        - /url: /docs/multiple-commands
+                        - generic [ref=e118]: Multiple Commands
+                    - listitem [ref=e119]:
+                      - link "Multiple Workplaces" [ref=e120] [cursor=pointer]:
+                        - /url: /docs/multiple-workplaces
+                        - generic [ref=e122]: Multiple Workplaces
+                    - listitem [ref=e123]:
+                      - link "Secret Fallback Files" [ref=e124] [cursor=pointer]:
+                        - /url: /docs/automatic-fallbacks
+                        - generic [ref=e126]: Secret Fallback Files
+                    - listitem [ref=e127]:
+                      - link "Configure CLI Behavior" [ref=e128] [cursor=pointer]:
+                        - /url: /docs/environment-based-configuration
+                        - generic [ref=e130]: Configure CLI Behavior
+                    - listitem [ref=e131]:
+                      - link "Troubleshooting" [ref=e132] [cursor=pointer]:
+                        - /url: /docs/cli-troubleshooting
+                        - generic [ref=e134]: Troubleshooting
+                    - listitem [ref=e135]:
+                      - link "Changelog Opens in new tab" [ref=e136] [cursor=pointer]:
+                        - /url: https://github.com/DopplerHQ/cli/releases/
+                        - generic [ref=e138]: Changelog
+                        - img "Opens in new tab" [ref=e140]: 
+                - listitem [ref=e141]:
+                  - link "MCP Server" [ref=e142] [cursor=pointer]:
+                    - /url: /docs/mcp
+                    - generic [ref=e144]: MCP Server
+                - listitem [ref=e145]:
+                  - link "Editors Show subpages for Editors" [ref=e146] [cursor=pointer]:
+                    - /url: /docs/editors-vs-code
+                    - generic [ref=e148]: Editors
+                    - button "Show subpages for Editors" [ref=e149]:
+                      - generic [ref=e150]: 
+                  - list:
+                    - listitem [ref=e151]:
+                      - link "Visual Studio Code Show subpages for Visual Studio Code" [ref=e152] [cursor=pointer]:
+                        - /url: /docs/editors-vs-code
+                        - generic [ref=e154]: Visual Studio Code
+                        - button "Show subpages for Visual Studio Code" [ref=e155]:
+                          - generic [ref=e156]: 
+                      - list:
+                        - listitem [ref=e157]:
+                          - link "VSCode Extension" [ref=e158] [cursor=pointer]:
+                            - /url: /docs/vscode-extension
+                            - generic [ref=e160]: VSCode Extension
+                        - listitem [ref=e161]:
+                          - link "Go" [ref=e162] [cursor=pointer]:
+                            - /url: /docs/vscode-go
+                            - generic [ref=e164]: Go
+                        - listitem [ref=e165]:
+                          - link "Node.js" [ref=e166] [cursor=pointer]:
+                            - /url: /docs/vscode-nodejs
+                            - generic [ref=e168]: Node.js
+                        - listitem [ref=e169]:
+                          - link "Python" [ref=e170] [cursor=pointer]:
+                            - /url: /docs/vscode-python
+                            - generic [ref=e172]: Python
+                        - listitem [ref=e173]:
+                          - link "Ruby" [ref=e174] [cursor=pointer]:
+                            - /url: /docs/vscode-ruby
+                            - generic [ref=e176]: Ruby
+                    - listitem [ref=e177]:
+                      - link "PyCharm" [ref=e178] [cursor=pointer]:
+                        - /url: /docs/pycharm
+                        - generic [ref=e180]: PyCharm
+                    - listitem [ref=e181]:
+                      - link "WebStorm" [ref=e182] [cursor=pointer]:
+                        - /url: /docs/webstorm
+                        - generic [ref=e184]: WebStorm
+                - listitem [ref=e185]:
+                  - link "SDKs Show subpages for SDKs" [ref=e186] [cursor=pointer]:
+                    - /url: /docs/sdk-javascript
+                    - generic [ref=e188]: SDKs
+                    - button "Show subpages for SDKs" [ref=e189]:
+                      - generic [ref=e190]: 
+                  - list:
+                    - listitem [ref=e191]:
+                      - link "Node.js" [ref=e192] [cursor=pointer]:
+                        - /url: /docs/sdk-javascript
+                        - generic [ref=e194]: Node.js
+                    - listitem [ref=e195]:
+                      - link "Python" [ref=e196] [cursor=pointer]:
+                        - /url: /docs/sdk-python
+                        - generic [ref=e198]: Python
+                    - listitem [ref=e199]:
+                      - link "Other" [ref=e200] [cursor=pointer]:
+                        - /url: /docs/other
+                        - generic [ref=e202]: Other
+                - listitem [ref=e203]:
+                  - link "Languages Show subpages for Languages" [ref=e204] [cursor=pointer]:
+                    - /url: /docs/asp-net-core-csharp
+                    - generic [ref=e206]: Languages
+                    - button "Show subpages for Languages" [ref=e207]:
+                      - generic [ref=e208]: 
+                  - list:
+                    - listitem [ref=e209]:
+                      - link "C#" [ref=e210] [cursor=pointer]:
+                        - /url: /docs/asp-net-core-csharp
+                        - generic [ref=e212]: C#
+                    - listitem [ref=e213]:
+                      - link "Ruby" [ref=e214] [cursor=pointer]:
+                        - /url: /docs/ruby
+                        - generic [ref=e216]: Ruby
+                - listitem [ref=e217]:
+                  - link "Frameworks Show subpages for Frameworks" [ref=e218] [cursor=pointer]:
+                    - /url: /docs/ecto
+                    - generic [ref=e220]: Frameworks
+                    - button "Show subpages for Frameworks" [ref=e221]:
+                      - generic [ref=e222]: 
+                  - list:
+                    - listitem [ref=e223]:
+                      - link "Ecto" [ref=e224] [cursor=pointer]:
+                        - /url: /docs/ecto
+                        - generic [ref=e226]: Ecto
+                    - listitem [ref=e227]:
+                      - link "PM2" [ref=e228] [cursor=pointer]:
+                        - /url: /docs/pm2
+                        - generic [ref=e230]: PM2
+                    - listitem [ref=e231]:
+                      - link "Vite.js" [ref=e232] [cursor=pointer]:
+                        - /url: /docs/vitejs-and-sveltejs
+                        - generic [ref=e234]: Vite.js
+                - listitem [ref=e235]:
+                  - link "Terraform CDK" [ref=e236] [cursor=pointer]:
+                    - /url: /docs/terraform-cdk
+                    - generic [ref=e238]: Terraform CDK
+                - listitem [ref=e239]:
+                  - link "Universal Import Guide" [ref=e240] [cursor=pointer]:
+                    - /url: /docs/universal-import-guide
+                    - generic [ref=e242]: Universal Import Guide
+            - generic [ref=e243]:
+              - heading "Integrations" [level=2] [ref=e244]
+              - list [ref=e245]:
+                - listitem [ref=e246]:
+                  - link "Integration Access Scoping" [ref=e247] [cursor=pointer]:
+                    - /url: /docs/integration-access-scoping
+                    - generic [ref=e249]: Integration Access Scoping
+                - listitem [ref=e250]:
+                  - link "Automated Syncs Show subpages for Automated Syncs" [ref=e251] [cursor=pointer]:
+                    - /url: /docs/integrations
+                    - generic [ref=e253]: Automated Syncs
+                    - button "Show subpages for Automated Syncs" [ref=e254]:
+                      - generic [ref=e255]: 
+                  - list:
+                    - listitem [ref=e256]:
+                      - link "AWS Show subpages for AWS" [ref=e257] [cursor=pointer]:
+                        - /url: /docs/aws-secrets-manager
+                        - generic [ref=e259]: AWS
+                        - button "Show subpages for AWS" [ref=e260]:
+                          - generic [ref=e261]: 
+                      - list:
+                        - listitem [ref=e262]:
+                          - link "AWS Secrets Manager" [ref=e263] [cursor=pointer]:
+                            - /url: /docs/aws-secrets-manager
+                            - generic [ref=e265]: AWS Secrets Manager
+                        - listitem [ref=e266]:
+                          - link "AWS Parameter Store" [ref=e267] [cursor=pointer]:
+                            - /url: /docs/aws-parameter-store
+                            - generic [ref=e269]: AWS Parameter Store
+                    - listitem [ref=e270]:
+                      - link "Azure Show subpages for Azure" [ref=e271] [cursor=pointer]:
+                        - /url: /docs/azure-app-service
+                        - generic [ref=e273]: Azure
+                        - button "Show subpages for Azure" [ref=e274]:
+                          - generic [ref=e275]: 
+                      - list:
+                        - listitem [ref=e276]:
+                          - link "Azure App Service" [ref=e277] [cursor=pointer]:
+                            - /url: /docs/azure-app-service
+                            - generic [ref=e279]: Azure App Service
+                        - listitem [ref=e280]:
+                          - link "Azure Key Vault" [ref=e281] [cursor=pointer]:
+                            - /url: /docs/azure-key-vault
+                            - generic [ref=e283]: Azure Key Vault
+                        - listitem [ref=e284]:
+                          - link "Azure DevOps Pipelines" [ref=e285] [cursor=pointer]:
+                            - /url: /docs/azure-devops-pipelines
+                            - generic [ref=e287]: Azure DevOps Pipelines
+                    - listitem [ref=e288]:
+                      - link "Bitbucket Pipelines Show subpages for Bitbucket Pipelines" [ref=e289] [cursor=pointer]:
+                        - /url: /docs/bitbucket-pipelines
+                        - generic [ref=e291]: Bitbucket Pipelines
+                        - button "Show subpages for Bitbucket Pipelines" [ref=e292]:
+                          - generic [ref=e293]: 
+                      - list:
+                        - listitem [ref=e294]:
+                          - link "Bitbucket Sync Integration" [ref=e295] [cursor=pointer]:
+                            - /url: /docs/bitbucket-sync-integration
+                            - generic [ref=e297]: Bitbucket Sync Integration
+                        - listitem [ref=e298]:
+                          - link "Bitbucket + Doppler CLI" [ref=e299] [cursor=pointer]:
+                            - /url: /docs/bitbucket-pipelines-doppler-cli
+                            - generic [ref=e301]: Bitbucket + Doppler CLI
+                    - listitem [ref=e302]:
+                      - link "Codefresh" [ref=e303] [cursor=pointer]:
+                        - /url: /docs/codefresh
+                        - generic [ref=e305]: Codefresh
+                    - listitem [ref=e306]:
+                      - link "CircleCI" [ref=e307] [cursor=pointer]:
+                        - /url: /docs/circleci
+                        - generic [ref=e309]: CircleCI
+                    - listitem [ref=e310]:
+                      - link "Cloudflare Pages" [ref=e311] [cursor=pointer]:
+                        - /url: /docs/cloudflare-pages
+                        - generic [ref=e313]: Cloudflare Pages
+                    - listitem [ref=e314]:
+                      - link "Deno Deploy" [ref=e315] [cursor=pointer]:
+                        - /url: /docs/deno-deploy
+                        - generic [ref=e317]: Deno Deploy
+                    - listitem [ref=e318]:
+                      - link "DigitalOcean App Platform" [ref=e319] [cursor=pointer]:
+                        - /url: /docs/digitalocean-app-platform
+                        - generic [ref=e321]: DigitalOcean App Platform
+                    - listitem [ref=e322]:
+                      - link "Fly.io" [ref=e323] [cursor=pointer]:
+                        - /url: /docs/flyio
+                        - generic [ref=e325]: Fly.io
+                    - listitem [ref=e326]:
+                      - link "GCP Secret Manager" [ref=e327] [cursor=pointer]:
+                        - /url: /docs/gcp-secret-manager
+                        - generic [ref=e329]: GCP Secret Manager
+                    - listitem [ref=e330]:
+                      - link "GitHub Show subpages for GitHub" [ref=e331] [cursor=pointer]:
+                        - /url: /docs/github
+                        - generic [ref=e333]: GitHub
+                        - button "Show subpages for GitHub" [ref=e334]:
+                          - generic [ref=e335]: 
+                      - list:
+                        - listitem [ref=e336]:
+                          - link "GitHub Actions" [ref=e337] [cursor=pointer]:
+                            - /url: /docs/github-actions
+                            - generic [ref=e339]: GitHub Actions
+                        - listitem [ref=e340]:
+                          - link "GitHub Codespaces" [ref=e341] [cursor=pointer]:
+                            - /url: /docs/github-codespaces
+                            - generic [ref=e343]: GitHub Codespaces
+                        - listitem [ref=e344]:
+                          - link "GitHub Dependabot" [ref=e345] [cursor=pointer]:
+                            - /url: /docs/github-dependabot
+                            - generic [ref=e347]: GitHub Dependabot
+                    - listitem [ref=e348]:
+                      - link "GitLab Show subpages for GitLab" [ref=e349] [cursor=pointer]:
+                        - /url: /docs/gitlab
+                        - generic [ref=e351]: GitLab
+                        - button "Show subpages for GitLab" [ref=e352]:
+                          - generic [ref=e353]: 
+                      - list:
+                        - listitem [ref=e354]:
+                          - link "GitLab Sync Integration" [ref=e355] [cursor=pointer]:
+                            - /url: /docs/gitlab-sync-integration
+                            - generic [ref=e357]: GitLab Sync Integration
+                        - listitem [ref=e358]:
+                          - link "GitLab + Doppler CLI" [ref=e359] [cursor=pointer]:
+                            - /url: /docs/gitlab-doppler-cli
+                            - generic [ref=e361]: GitLab + Doppler CLI
+                    - listitem [ref=e362]:
+                      - link "Harness" [ref=e363] [cursor=pointer]:
+                        - /url: /docs/harness
+                        - generic [ref=e365]: Harness
+                    - listitem [ref=e366]:
+                      - link "Hasura Cloud" [ref=e367] [cursor=pointer]:
+                        - /url: /docs/hasura-cloud
+                        - generic [ref=e369]: Hasura Cloud
+                    - listitem [ref=e370]:
+                      - link "Heroku" [ref=e371] [cursor=pointer]:
+                        - /url: /docs/heroku
+                        - generic [ref=e373]: Heroku
+                    - listitem [ref=e374]:
+                      - link "Laravel Forge" [ref=e375] [cursor=pointer]:
+                        - /url: /docs/laravel-forge-installation
+                        - generic [ref=e377]: Laravel Forge
+                    - listitem [ref=e378]:
+                      - link "Netlify" [ref=e379] [cursor=pointer]:
+                        - /url: /docs/netlify
+                        - generic [ref=e381]: Netlify
+                    - listitem [ref=e382]:
+                      - link "Postman" [ref=e383] [cursor=pointer]:
+                        - /url: /docs/postman
+                        - generic [ref=e385]: Postman
+                    - listitem [ref=e386]:
+                      - link "Railway" [ref=e387] [cursor=pointer]:
+                        - /url: /docs/railway
+                        - generic [ref=e389]: Railway
+                    - listitem [ref=e390]:
+                      - link "Qovery" [ref=e391] [cursor=pointer]:
+                        - /url: /docs/qovery
+                        - generic [ref=e393]: Qovery
+                    - listitem [ref=e394]:
+                      - link "Render" [ref=e395] [cursor=pointer]:
+                        - /url: /docs/render
+                        - generic [ref=e397]: Render
+                    - listitem [ref=e398]:
+                      - link "Supabase" [ref=e399] [cursor=pointer]:
+                        - /url: /docs/supabase
+                        - generic [ref=e401]: Supabase
+                    - listitem [ref=e402]:
+                      - link "Terraform Cloud" [ref=e403] [cursor=pointer]:
+                        - /url: /docs/terraform-cloud
+                        - generic [ref=e405]: Terraform Cloud
+                    - listitem [ref=e406]:
+                      - link "Vercel" [ref=e407] [cursor=pointer]:
+                        - /url: /docs/vercel
+                        - generic [ref=e409]: Vercel
+                - listitem [ref=e410]:
+                  - link "DIY Syncs Show subpages for DIY Syncs" [ref=e411] [cursor=pointer]:
+                    - /url: /docs/diy-syncs
+                    - generic [ref=e413]: DIY Syncs
+                    - button "Show subpages for DIY Syncs" [ref=e414]:
+                      - generic [ref=e415]: 
+                  - list:
+                    - listitem [ref=e416]:
+                      - link "AWS Show subpages for AWS" [ref=e417] [cursor=pointer]:
+                        - /url: /docs/aws-lambda
+                        - generic [ref=e419]: AWS
+                        - button "Show subpages for AWS" [ref=e420]:
+                          - generic [ref=e421]: 
+                      - list:
+                        - listitem [ref=e422]:
+                          - link "AWS Lambda" [ref=e423] [cursor=pointer]:
+                            - /url: /docs/aws-lambda
+                            - generic [ref=e425]: AWS Lambda
+                        - listitem [ref=e426]:
+                          - link "AWS Beanstalk" [ref=e427] [cursor=pointer]:
+                            - /url: /docs/aws-beanstalk
+                            - generic [ref=e429]: AWS Beanstalk
+                        - listitem [ref=e430]:
+                          - link "AWS ECS" [ref=e431] [cursor=pointer]:
+                            - /url: /docs/aws-ecs
+                            - generic [ref=e433]: AWS ECS
+                    - listitem [ref=e434]:
+                      - link "BuddyCI" [ref=e435] [cursor=pointer]:
+                        - /url: /docs/buddyci
+                        - generic [ref=e437]: BuddyCI
+                    - listitem [ref=e438]:
+                      - link "Cloudflare Workers" [ref=e439] [cursor=pointer]:
+                        - /url: /docs/cloudflare-workers
+                        - generic [ref=e441]: Cloudflare Workers
+                    - listitem [ref=e442]:
+                      - link "Cloud 66" [ref=e443] [cursor=pointer]:
+                        - /url: /docs/cloud-66
+                        - generic [ref=e445]: Cloud 66
+                    - listitem [ref=e446]:
+                      - link "Cron" [ref=e447] [cursor=pointer]:
+                        - /url: /docs/cron
+                        - generic [ref=e449]: Cron
+                    - listitem [ref=e450]:
+                      - link "DigitalOcean Droplets" [ref=e451] [cursor=pointer]:
+                        - /url: /docs/digitalocean
+                        - generic [ref=e453]: DigitalOcean Droplets
+                    - listitem [ref=e454]:
+                      - link "Docker Show subpages for Docker" [ref=e455] [cursor=pointer]:
+                        - /url: /docs/installation-docker
+                        - generic [ref=e457]: Docker
+                        - button "Show subpages for Docker" [ref=e458]:
+                          - generic [ref=e459]: 
+                      - list:
+                        - listitem [ref=e460]:
+                          - link "Dockerfile" [ref=e461] [cursor=pointer]:
+                            - /url: /docs/dockerfile
+                            - generic [ref=e463]: Dockerfile
+                        - listitem [ref=e464]:
+                          - link "Container Env Vars" [ref=e465] [cursor=pointer]:
+                            - /url: /docs/docker-container-env-vars
+                            - generic [ref=e467]: Container Env Vars
+                        - listitem [ref=e468]:
+                          - link "High Availability" [ref=e469] [cursor=pointer]:
+                            - /url: /docs/docker-high-availability
+                            - generic [ref=e471]: High Availability
+                    - listitem [ref=e472]:
+                      - link "Docker Compose" [ref=e473] [cursor=pointer]:
+                        - /url: /docs/docker-compose
+                        - generic [ref=e475]: Docker Compose
+                    - listitem [ref=e476]:
+                      - link "Direnv" [ref=e477] [cursor=pointer]:
+                        - /url: /docs/direnv
+                        - generic [ref=e479]: Direnv
+                    - listitem [ref=e480]:
+                      - link "EAS Build" [ref=e481] [cursor=pointer]:
+                        - /url: /docs/eas-build
+                        - generic [ref=e483]: EAS Build
+                    - listitem [ref=e484]:
+                      - link "Firebase Functions" [ref=e485] [cursor=pointer]:
+                        - /url: /docs/firebase-installation
+                        - generic [ref=e487]: Firebase Functions
+                    - listitem [ref=e488]:
+                      - link "GCP Cloud Build" [ref=e489] [cursor=pointer]:
+                        - /url: /docs/gcp-cloud-build
+                        - generic [ref=e491]: GCP Cloud Build
+                    - listitem [ref=e492]:
+                      - link "GitPod" [ref=e493] [cursor=pointer]:
+                        - /url: /docs/gitpod
+                        - generic [ref=e495]: GitPod
+                    - listitem [ref=e496]:
+                      - link "Jenkins" [ref=e497] [cursor=pointer]:
+                        - /url: /docs/jenkins
+                        - generic [ref=e499]: Jenkins
+                    - listitem [ref=e500]:
+                      - link "Laravel Vapor" [ref=e501] [cursor=pointer]:
+                        - /url: /docs/laravel-vapor
+                        - generic [ref=e503]: Laravel Vapor
+                    - listitem [ref=e504]:
+                      - link "Pipedream" [ref=e505] [cursor=pointer]:
+                        - /url: /docs/pipedream
+                        - generic [ref=e507]: Pipedream
+                    - listitem [ref=e508]:
+                      - link "Serverless" [ref=e509] [cursor=pointer]:
+                        - /url: /docs/serverless
+                        - generic [ref=e511]: Serverless
+                    - listitem [ref=e512]:
+                      - link "Webapp.io" [ref=e513] [cursor=pointer]:
+                        - /url: /docs/webapp-io
+                        - generic [ref=e515]: Webapp.io
+                - listitem [ref=e516]:
+                  - link "Infrastructure as Code (IaC) Show subpages for Infrastructure as Code (IaC)" [ref=e517] [cursor=pointer]:
+                    - /url: /docs/terraform
+                    - generic [ref=e519]: Infrastructure as Code (IaC)
+                    - button "Show subpages for Infrastructure as Code (IaC)" [ref=e520]:
+                      - generic [ref=e521]: 
+                  - list:
+                    - listitem [ref=e522]:
+                      - link "Terraform / OpenTofu" [ref=e523] [cursor=pointer]:
+                        - /url: /docs/terraform
+                        - generic [ref=e525]: Terraform / OpenTofu
+                - listitem [ref=e526]:
+                  - link "Kubernetes Show subpages for Kubernetes" [ref=e527] [cursor=pointer]:
+                    - /url: /docs/kubernetes
+                    - generic [ref=e529]: Kubernetes
+                    - button "Show subpages for Kubernetes" [ref=e530]:
+                      - generic [ref=e531]: 
+                  - list:
+                    - listitem [ref=e532]:
+                      - link "Doppler Kubernetes Operator Show subpages for Doppler Kubernetes Operator" [ref=e533] [cursor=pointer]:
+                        - /url: /docs/kubernetes-operator
+                        - generic [ref=e535]: Doppler Kubernetes Operator
+                        - button "Show subpages for Doppler Kubernetes Operator" [ref=e536]:
+                          - generic [ref=e537]: 
+                      - list:
+                        - listitem [ref=e538]:
+                          - link "Installation & Upgrades" [ref=e539] [cursor=pointer]:
+                            - /url: /docs/doppler-k8s-operator-installation-upgrades
+                            - generic [ref=e541]: Installation & Upgrades
+                        - listitem [ref=e542]:
+                          - link "Syncing Secrets" [ref=e543] [cursor=pointer]:
+                            - /url: /docs/doppler-k8s-operator-syncing-secrets
+                            - generic [ref=e545]: Syncing Secrets
+                        - listitem [ref=e546]:
+                          - link "Using Kubernetes Secrets" [ref=e547] [cursor=pointer]:
+                            - /url: /docs/using-kubernetes-secrets
+                            - generic [ref=e549]: Using Kubernetes Secrets
+                        - listitem [ref=e550]:
+                          - link "Troubleshooting" [ref=e551] [cursor=pointer]:
+                            - /url: /docs/doppler-k8s-operator-troubleshooting
+                            - generic [ref=e553]: Troubleshooting
+                        - listitem [ref=e554]:
+                          - link "Uninstalling" [ref=e555] [cursor=pointer]:
+                            - /url: /docs/doppler-k8s-operator-uninstalling
+                            - generic [ref=e557]: Uninstalling
+                        - listitem [ref=e558]:
+                          - link "Security" [ref=e559] [cursor=pointer]:
+                            - /url: /docs/doppler-k8s-operator-security
+                            - generic [ref=e561]: Security
+                        - listitem [ref=e562]:
+                          - link "Examples" [ref=e563] [cursor=pointer]:
+                            - /url: /docs/doppler-k8s-operator-examples
+                            - generic [ref=e565]: Examples
+                    - listitem [ref=e566]:
+                      - link "External Secrets Operator" [ref=e567] [cursor=pointer]:
+                        - /url: /docs/external-secrets-provider
+                        - generic [ref=e569]: External Secrets Operator
+                    - listitem [ref=e570]:
+                      - link "CI/CD Secrets Sync" [ref=e571] [cursor=pointer]:
+                        - /url: /docs/kubernetes-container-env-vars
+                        - generic [ref=e573]: CI/CD Secrets Sync
+                    - listitem [ref=e574]:
+                      - link "Doppler CLI in Dockerfile" [ref=e575] [cursor=pointer]:
+                        - /url: /docs/kubernetes-doppler-cli-in-docker
+                        - generic [ref=e577]: Doppler CLI in Dockerfile
+                - listitem [ref=e578]:
+                  - link "Rotated Secrets Show subpages for Rotated Secrets" [ref=e579] [cursor=pointer]:
+                    - /url: /docs/secrets-rotation
+                    - generic [ref=e581]: Rotated Secrets
+                    - button "Show subpages for Rotated Secrets" [ref=e582]:
+                      - generic [ref=e583]: 
+                  - list:
+                    - listitem [ref=e584]:
+                      - link "AWS Secrets Rotation" [ref=e585] [cursor=pointer]:
+                        - /url: /docs/aws-secrets-rotation
+                        - generic [ref=e587]: AWS Secrets Rotation
+                    - listitem [ref=e588]:
+                      - link "AWS MySQL" [ref=e589] [cursor=pointer]:
+                        - /url: /docs/aws-mysql
+                        - generic [ref=e591]: AWS MySQL
+                    - listitem [ref=e592]:
+                      - link "AWS MS SQL Server" [ref=e593] [cursor=pointer]:
+                        - /url: /docs/aws-ms-sqlserver
+                        - generic [ref=e595]: AWS MS SQL Server
+                    - listitem [ref=e596]:
+                      - link "AWS Postgres Rotation" [ref=e597] [cursor=pointer]:
+                        - /url: /docs/aws-postgres
+                        - generic [ref=e599]: AWS Postgres Rotation
+                    - listitem [ref=e600]:
+                      - link "AWS IAM User" [ref=e601] [cursor=pointer]:
+                        - /url: /docs/aws-iam-rotation
+                        - generic [ref=e603]: AWS IAM User
+                    - listitem [ref=e604]:
+                      - link "Cloudflare Tokens" [ref=e605] [cursor=pointer]:
+                        - /url: /docs/cloudflare-tokens
+                        - generic [ref=e607]: Cloudflare Tokens
+                    - listitem [ref=e608]:
+                      - link "GCP Cloud SQL" [ref=e609] [cursor=pointer]:
+                        - /url: /docs/gcp_cloudsql
+                        - generic [ref=e611]: GCP Cloud SQL
+                    - listitem [ref=e612]:
+                      - link "GCP Service Account" [ref=e613] [cursor=pointer]:
+                        - /url: /docs/gcp-service-account-keys-rotation
+                        - generic [ref=e615]: GCP Service Account
+                    - listitem [ref=e616]:
+                      - link "MongoDB Atlas" [ref=e617] [cursor=pointer]:
+                        - /url: /docs/mongodb_atlas
+                        - generic [ref=e619]: MongoDB Atlas
+                    - listitem [ref=e620]:
+                      - link "SendGrid" [ref=e621] [cursor=pointer]:
+                        - /url: /docs/sendgrid
+                        - generic [ref=e623]: SendGrid
+                    - listitem [ref=e624]:
+                      - link "Twilio" [ref=e625] [cursor=pointer]:
+                        - /url: /docs/twilio
+                        - generic [ref=e627]: Twilio
+                    - listitem [ref=e628]:
+                      - link "Supporting Rotation in your Product" [ref=e629] [cursor=pointer]:
+                        - /url: /docs/supporting-rotation-in-your-product
+                        - generic [ref=e631]: Supporting Rotation in your Product
+                - listitem [ref=e632]:
+                  - link "Dynamic Secrets Show subpages for Dynamic Secrets" [ref=e633] [cursor=pointer]:
+                    - /url: /docs/dynamic-secrets
+                    - generic [ref=e635]: Dynamic Secrets
+                    - button "Show subpages for Dynamic Secrets" [ref=e636]:
+                      - generic [ref=e637]: 
+                  - list:
+                    - listitem [ref=e638]:
+                      - link "AWS IAM" [ref=e639] [cursor=pointer]:
+                        - /url: /docs/aws-iam
+                        - generic [ref=e641]: AWS IAM
+            - generic [ref=e642]:
+              - heading "Workplace" [level=2] [ref=e643]
+              - list [ref=e644]:
+                - listitem [ref=e645]:
+                  - link "Workplace Structure" [ref=e646] [cursor=pointer]:
+                    - /url: /docs/workplace-structure
+                    - generic [ref=e648]: Workplace Structure
+                - listitem [ref=e649]:
+                  - link "Default Project Environments" [ref=e650] [cursor=pointer]:
+                    - /url: /docs/default-environments
+                    - generic [ref=e652]: Default Project Environments
+                - listitem [ref=e653]:
+                  - link "Domain Verification" [ref=e654] [cursor=pointer]:
+                    - /url: /docs/domain-verification
+                    - generic [ref=e656]: Domain Verification
+                - listitem [ref=e657]:
+                  - link "Activity Logs Show subpages for Activity Logs" [ref=e658] [cursor=pointer]:
+                    - /url: /docs/workplace-logs
+                    - generic [ref=e660]: Activity Logs
+                    - button "Show subpages for Activity Logs" [ref=e661]:
+                      - generic [ref=e662]: 
+                  - list:
+                    - listitem [ref=e663]:
+                      - link "Datadog" [ref=e664] [cursor=pointer]:
+                        - /url: /docs/datadog
+                        - generic [ref=e666]: Datadog
+                    - listitem [ref=e667]:
+                      - link "Discord" [ref=e668] [cursor=pointer]:
+                        - /url: /docs/discord
+                        - generic [ref=e670]: Discord
+                    - listitem [ref=e671]:
+                      - link "Generic HTTPS" [ref=e672] [cursor=pointer]:
+                        - /url: /docs/generic-https
+                        - generic [ref=e674]: Generic HTTPS
+                    - listitem [ref=e675]:
+                      - link "Microsoft Teams" [ref=e676] [cursor=pointer]:
+                        - /url: /docs/microsoft-teams
+                        - generic [ref=e678]: Microsoft Teams
+                    - listitem [ref=e679]:
+                      - link "Slack" [ref=e680] [cursor=pointer]:
+                        - /url: /docs/slack
+                        - generic [ref=e682]: Slack
+                    - listitem [ref=e683]:
+                      - link "Splunk" [ref=e684] [cursor=pointer]:
+                        - /url: /docs/splunk
+                        - generic [ref=e686]: Splunk
+                    - listitem [ref=e687]:
+                      - link "Sumo Logic" [ref=e688] [cursor=pointer]:
+                        - /url: /docs/sumologic
+                        - generic [ref=e690]: Sumo Logic
+                - listitem [ref=e691]:
+                  - link "Access Logs" [ref=e692] [cursor=pointer]:
+                    - /url: /docs/access-logs
+                    - generic [ref=e694]: Access Logs
+                - listitem [ref=e695]:
+                  - link "Enterprise Key Management Show subpages for Enterprise Key Management" [ref=e696] [cursor=pointer]:
+                    - /url: /docs/enterprise-key-management
+                    - generic [ref=e698]: Enterprise Key Management
+                    - button "Show subpages for Enterprise Key Management" [ref=e699]:
+                      - generic [ref=e700]: 
+                  - list:
+                    - listitem [ref=e701]:
+                      - link "AWS EKM" [ref=e702] [cursor=pointer]:
+                        - /url: /docs/ekm-aws
+                        - generic [ref=e704]: AWS EKM
+                    - listitem [ref=e705]:
+                      - link "GCP EKM" [ref=e706] [cursor=pointer]:
+                        - /url: /docs/gcp-ekm
+                        - generic [ref=e708]: GCP EKM
+                - listitem [ref=e709]:
+                  - link "Platform Limits" [ref=e710] [cursor=pointer]:
+                    - /url: /docs/platform-limits
+                    - generic [ref=e712]: Platform Limits
+                - listitem [ref=e713]:
+                  - link "High Availability" [ref=e714] [cursor=pointer]:
+                    - /url: /docs/high-availability
+                    - generic [ref=e716]: High Availability
+                - listitem [ref=e717]:
+                  - link "Analytics Dashboard Show subpages for Analytics Dashboard" [ref=e718] [cursor=pointer]:
+                    - /url: /docs/analytics-dashboard
+                    - generic [ref=e720]: Analytics Dashboard
+                    - button "Show subpages for Analytics Dashboard" [ref=e721]:
+                      - generic [ref=e722]: 
+                  - list:
+                    - listitem [ref=e723]:
+                      - link "Secret Health Dashboard" [ref=e724] [cursor=pointer]:
+                        - /url: /docs/analytics-dashboard-secret-health
+                        - generic [ref=e726]: Secret Health Dashboard
+            - generic [ref=e727]:
+              - heading "User Management" [level=2] [ref=e728]
+              - list [ref=e729]:
+                - listitem [ref=e730]:
+                  - link "User Provisioning Show subpages for User Provisioning" [ref=e731] [cursor=pointer]:
+                    - /url: /docs/setting-up-saml-sso
+                    - generic [ref=e733]: User Provisioning
+                    - button "Show subpages for User Provisioning" [ref=e734]:
+                      - generic [ref=e735]: 
+                  - list:
+                    - listitem [ref=e736]:
+                      - link "SAML SSO Show subpages for SAML SSO" [ref=e737] [cursor=pointer]:
+                        - /url: /docs/saml-sso
+                        - generic [ref=e739]: SAML SSO
+                        - button "Show subpages for SAML SSO" [ref=e740]:
+                          - generic [ref=e741]: 
+                      - list:
+                        - listitem [ref=e742]:
+                          - link "Auth0 SAML SSO" [ref=e743] [cursor=pointer]:
+                            - /url: /docs/auth0-saml
+                            - generic [ref=e745]: Auth0 SAML SSO
+                        - listitem [ref=e746]:
+                          - link "Authentik SAML SSO" [ref=e747] [cursor=pointer]:
+                            - /url: /docs/authentik-saml-sso
+                            - generic [ref=e749]: Authentik SAML SSO
+                        - listitem [ref=e750]:
+                          - link "AWS SAML SSO" [ref=e751] [cursor=pointer]:
+                            - /url: /docs/aws-saml-sso
+                            - generic [ref=e753]: AWS SAML SSO
+                        - listitem [ref=e754]:
+                          - link "Google SAML SSO" [ref=e755] [cursor=pointer]:
+                            - /url: /docs/google-saml
+                            - generic [ref=e757]: Google SAML SSO
+                        - listitem [ref=e758]:
+                          - link "JumpCloud SAML SSO" [ref=e759] [cursor=pointer]:
+                            - /url: /docs/jumpcloud-saml
+                            - generic [ref=e761]: JumpCloud SAML SSO
+                        - listitem [ref=e762]:
+                          - link "Microsoft Entra ID SAML SSO" [ref=e763] [cursor=pointer]:
+                            - /url: /docs/microsoft-entra-id-saml
+                            - generic [ref=e765]: Microsoft Entra ID SAML SSO
+                        - listitem [ref=e766]:
+                          - link "Okta SAML SSO" [ref=e767] [cursor=pointer]:
+                            - /url: /docs/okta-saml
+                            - generic [ref=e769]: Okta SAML SSO
+                        - listitem [ref=e770]:
+                          - link "OneLogin SAML SSO" [ref=e771] [cursor=pointer]:
+                            - /url: /docs/onelogin-saml
+                            - generic [ref=e773]: OneLogin SAML SSO
+                    - listitem [ref=e774]:
+                      - link "SCIM Show subpages for SCIM" [ref=e775] [cursor=pointer]:
+                        - /url: /docs/scim
+                        - generic [ref=e777]: SCIM
+                        - button "Show subpages for SCIM" [ref=e778]:
+                          - generic [ref=e779]: 
+                      - list:
+                        - listitem [ref=e780]:
+                          - link "JumpCloud SCIM" [ref=e781] [cursor=pointer]:
+                            - /url: /docs/jumpcloud-scim
+                            - generic [ref=e783]: JumpCloud SCIM
+                        - listitem [ref=e784]:
+                          - link "Microsoft Entra ID SCIM" [ref=e785] [cursor=pointer]:
+                            - /url: /docs/microsoft-entra-id-scim
+                            - generic [ref=e787]: Microsoft Entra ID SCIM
+                        - listitem [ref=e788]:
+                          - link "Okta SCIM" [ref=e789] [cursor=pointer]:
+                            - /url: /docs/okta-scim
+                            - generic [ref=e791]: Okta SCIM
+                        - listitem [ref=e792]:
+                          - link "OneLogin SCIM" [ref=e793] [cursor=pointer]:
+                            - /url: /docs/onelogin-scim
+                            - generic [ref=e795]: OneLogin SCIM
+                - listitem [ref=e796]:
+                  - link "Team Management" [ref=e797] [cursor=pointer]:
+                    - /url: /docs/workplace-team
+                    - generic [ref=e799]: Team Management
+                - listitem [ref=e800]:
+                  - link "User Groups" [ref=e801] [cursor=pointer]:
+                    - /url: /docs/user-groups
+                    - generic [ref=e803]: User Groups
+                - listitem [ref=e804]:
+                  - link "Custom Roles" [ref=e805] [cursor=pointer]:
+                    - /url: /docs/custom-roles
+                    - generic [ref=e807]: Custom Roles
+                - listitem [ref=e808]:
+                  - link "Advanced Permissions" [ref=e809] [cursor=pointer]:
+                    - /url: /docs/advanced-permissions
+                    - generic [ref=e811]: Advanced Permissions
+                - listitem [ref=e812]:
+                  - link "Service Accounts Show subpages for Service Accounts" [ref=e813] [cursor=pointer]:
+                    - /url: /docs/service-accounts
+                    - generic [ref=e815]: Service Accounts
+                    - button "Show subpages for Service Accounts" [ref=e816]:
+                      - generic [ref=e817]: 
+                  - list:
+                    - listitem [ref=e818]:
+                      - link "Service Account Identities (OIDC) Show subpages for Service Account Identities (OIDC)" [ref=e819] [cursor=pointer]:
+                        - /url: /docs/service-account-identities
+                        - generic [ref=e821]: Service Account Identities (OIDC)
+                        - button "Show subpages for Service Account Identities (OIDC)" [ref=e822]:
+                          - generic [ref=e823]: 
+                      - list:
+                        - listitem [ref=e824]:
+                          - link "Doppler Kubernetes Operator OIDC Setup" [ref=e825] [cursor=pointer]:
+                            - /url: /docs/kubernetes-operator-oidc
+                            - generic [ref=e827]: Doppler Kubernetes Operator OIDC Setup
+                        - listitem [ref=e828]:
+                          - link "GitHub OIDC Examples" [ref=e829] [cursor=pointer]:
+                            - /url: /docs/github-oidc-examples
+                            - generic [ref=e831]: GitHub OIDC Examples
+                - listitem [ref=e832]:
+                  - link "Multi-Factor Authentication (MFA)" [ref=e833] [cursor=pointer]:
+                    - /url: /docs/multi-factor-authentication
+                    - generic [ref=e835]: Multi-Factor Authentication (MFA)
+            - generic [ref=e836]:
+              - heading "Projects" [level=2] [ref=e837]
+              - list [ref=e838]:
+                - listitem [ref=e839]:
+                  - link "Create Project" [ref=e840] [cursor=pointer]:
+                    - /url: /docs/create-project
+                    - generic [ref=e842]: Create Project
+                - listitem [ref=e843]:
+                  - link "Project Permissions" [ref=e844] [cursor=pointer]:
+                    - /url: /docs/project-permissions
+                    - generic [ref=e846]: Project Permissions
+                - listitem [ref=e847]:
+                  - link "Webhooks" [ref=e848] [cursor=pointer]:
+                    - /url: /docs/webhooks
+                    - generic [ref=e850]: Webhooks
+                - listitem [ref=e851]:
+                  - link "Project Templates" [ref=e852] [cursor=pointer]:
+                    - /url: /docs/project-templates
+                    - generic [ref=e854]: Project Templates
+                - listitem [ref=e855]:
+                  - link "Change Requests Show subpages for Change Requests" [ref=e856] [cursor=pointer]:
+                    - /url: /docs/change-requests
+                    - generic [ref=e858]: Change Requests
+                    - button "Show subpages for Change Requests" [ref=e859]:
+                      - generic [ref=e860]: 
+                  - list:
+                    - listitem [ref=e861]:
+                      - link "Change Request Policies" [ref=e862] [cursor=pointer]:
+                        - /url: /docs/change-request-policies
+                        - generic [ref=e864]: Change Request Policies
+            - generic [ref=e865]:
+              - heading "Configs" [level=2] [ref=e866]
+              - list [ref=e867]:
+                - listitem [ref=e868]:
+                  - link "Configs" [ref=e869] [cursor=pointer]:
+                    - /url: /docs/root-configs
+                    - generic [ref=e871]: Configs
+                - listitem [ref=e872]:
+                  - link "Branch Configs" [ref=e873] [cursor=pointer]:
+                    - /url: /docs/branch-configs
+                    - generic [ref=e875]: Branch Configs
+                - listitem [ref=e876]:
+                  - link "Config Inheritance" [ref=e877] [cursor=pointer]:
+                    - /url: /docs/config-inheritance
+                    - generic [ref=e879]: Config Inheritance
+                - listitem [ref=e880]:
+                  - link "Service Tokens" [ref=e881] [cursor=pointer]:
+                    - /url: /docs/service-tokens
+                    - generic [ref=e883]: Service Tokens
+                - listitem [ref=e884]:
+                  - link "Trusted IPs" [ref=e885] [cursor=pointer]:
+                    - /url: /docs/trusted-ips
+                    - generic [ref=e887]: Trusted IPs
+            - generic [ref=e888]:
+              - heading "Secrets" [level=2] [ref=e889]
+              - list [ref=e890]:
+                - listitem [ref=e891]:
+                  - link "Secrets" [ref=e892] [cursor=pointer]:
+                    - /url: /docs/secrets
+                    - generic [ref=e894]: Secrets
+                - listitem [ref=e895]:
+                  - link "Importing Secrets" [ref=e896] [cursor=pointer]:
+                    - /url: /docs/importing-secrets
+                    - generic [ref=e898]: Importing Secrets
+                - listitem [ref=e899]:
+                  - link "Secret Visibility" [ref=e900] [cursor=pointer]:
+                    - /url: /docs/secret-visibility
+                    - generic [ref=e902]: Secret Visibility
+                - listitem [ref=e903]:
+                  - link "Secret Generation" [ref=e904] [cursor=pointer]:
+                    - /url: /docs/secret-generation
+                    - generic [ref=e906]: Secret Generation
+                - listitem [ref=e907]:
+                  - link "Versioning" [ref=e908] [cursor=pointer]:
+                    - /url: /docs/versioning
+                    - generic [ref=e910]: Versioning
+                - listitem [ref=e911]:
+                  - link "Search by Secret Value" [ref=e912] [cursor=pointer]:
+                    - /url: /docs/search-secret-value
+                    - generic [ref=e914]: Search by Secret Value
+            - generic [ref=e915]:
+              - heading "Security" [level=2] [ref=e916]
+              - list [ref=e917]:
+                - listitem [ref=e918]:
+                  - link "Security Fact Sheet" [ref=e919] [cursor=pointer]:
+                    - /url: /docs/security-fact-sheet
+                    - generic [ref=e921]: Security Fact Sheet
+                - listitem [ref=e922]:
+                  - link "Doppler Share Security" [ref=e923] [cursor=pointer]:
+                    - /url: /docs/share-security
+                    - generic [ref=e925]: Doppler Share Security
+            - generic [ref=e926]:
+              - heading "Support" [level=2] [ref=e927]
+              - list [ref=e928]:
+                - listitem [ref=e929]:
+                  - link "Support Portal Opens in new tab" [ref=e930] [cursor=pointer]:
+                    - /url: https://support.doppler.com
+                    - generic [ref=e932]: Support Portal
+                    - img "Opens in new tab" [ref=e934]: 
+                - listitem [ref=e935]:
+                  - link "Status Page Opens in new tab" [ref=e936] [cursor=pointer]:
+                    - /url: https://status.doppler.com
+                    - generic [ref=e938]: Status Page
+                    - img "Opens in new tab" [ref=e940]: 
+                - listitem [ref=e941]:
+                  - link "Common Problems Show subpages for Common Problems" [ref=e942] [cursor=pointer]:
+                    - /url: /docs/windows-support
+                    - generic [ref=e944]: Common Problems
+                    - button "Show subpages for Common Problems" [ref=e945]:
+                      - generic [ref=e946]: 
+                  - list:
+                    - listitem [ref=e947]:
+                      - link "Windows Support" [ref=e948] [cursor=pointer]:
+                        - /url: /docs/windows-support
+                        - generic [ref=e950]: Windows Support
+                    - listitem [ref=e951]:
+                      - link "Doppler CLI GnuPG Requirement" [ref=e952] [cursor=pointer]:
+                        - /url: /docs/doppler-cli-gnupg-requirement
+                        - generic [ref=e954]: Doppler CLI GnuPG Requirement
+                    - listitem [ref=e955]:
+                      - link "Client.Timeout Exceeded Errors" [ref=e956] [cursor=pointer]:
+                        - /url: /docs/client-timeout-exceeded-errors
+                        - generic [ref=e958]: Client.Timeout Exceeded Errors
+                    - listitem [ref=e959]:
+                      - link "Token not found in system keyring" [ref=e960] [cursor=pointer]:
+                        - /url: /docs/token-not-found-in-system-keyring-error
+                        - generic [ref=e962]: Token not found in system keyring
+                    - listitem [ref=e963]:
+                      - link "Removal of Deprecated Clients" [ref=e964] [cursor=pointer]:
+                        - /url: /docs/removal-deprecated-packages-scripts
+                        - generic [ref=e966]: Removal of Deprecated Clients
+                    - listitem [ref=e967]:
+                      - link "Update Package Install Commands" [ref=e968] [cursor=pointer]:
+                        - /url: /docs/update-package-install-commands
+                        - generic [ref=e970]: Update Package Install Commands
+                    - listitem [ref=e971]:
+                      - link "Migrating from @dopplerhq/cli" [ref=e972] [cursor=pointer]:
+                        - /url: /docs/cli-migration
+                        - generic [ref=e974]: Migrating from @dopplerhq/cli
+                    - listitem [ref=e975]:
+                      - link "Cleaning Up AWS EKM keys" [ref=e976] [cursor=pointer]:
+                        - /url: /docs/cleaning-up-aws-ekm-keys
+                        - generic [ref=e978]: Cleaning Up AWS EKM keys
+                - listitem [ref=e979]:
+                  - link "FAQS" [ref=e980] [cursor=pointer]:
+                    - /url: /docs/faqs
+                    - generic [ref=e982]: FAQS
+                - listitem [ref=e983]:
+                  - link "Doppler SLO" [ref=e984] [cursor=pointer]:
+                    - /url: /docs/service-sla
+                    - generic [ref=e986]: Doppler SLO
+                - listitem [ref=e987]:
+                  - link "Artificial Intelligence (AI) Usage" [ref=e988] [cursor=pointer]:
+                    - /url: /docs/artificial-intelligence-usage
+                    - generic [ref=e990]: Artificial Intelligence (AI) Usage
+          - button "Hide sidebar navigation" [ref=e991] [cursor=pointer]
+        - article [ref=e992]:
+          - generic [ref=e995]:
+            - heading "MCP Server" [level=1] [ref=e996]
+            - paragraph [ref=e999]: Give agentic tools the ability to interface with the Doppler API.
+          - generic [ref=e1000]:
+            - generic [ref=e1001]:
+              - generic [ref=e1002]:
+                - paragraph [ref=e1003]:
+                  - text: The Doppler MCP Server implements the
+                  - link "Model Context Protocol" [ref=e1004] [cursor=pointer]:
+                    - /url: https://modelcontextprotocol.io/
+                  - text: ", allowing agentic AI tools to interface with the Doppler API."
+                - blockquote [ref=e1005]:
+                  - generic [ref=e1006]: 🚧
+                  - paragraph [ref=e1007]: The Doppler MCP Server is experimental and intended for development, testing, and evaluation purposes. Because outputs are non-deterministic and vary with the connected model, query, and server configuration, always use a token scoped only to the actions, projects, and environments you intend to allow, and review agentic output for alignment with your security and compliance requirements.
+                - heading "Prerequisites Skip link to Prerequisites" [level=2] [ref=e1008]:
+                  - generic [ref=e1010]: Prerequisites
+                  - link "Skip link to Prerequisites" [ref=e1011] [cursor=pointer]:
+                    - /url: "#prerequisites"
+                    - text: 
+                - list [ref=e1012]:
+                  - listitem [ref=e1013]: Node.js 20 or later
+                  - listitem [ref=e1014]: An MCP-compatible AI client
+                - heading "Setup Skip link to Setup" [level=2] [ref=e1015]:
+                  - generic [ref=e1017]: Setup
+                  - link "Skip link to Setup" [ref=e1018] [cursor=pointer]:
+                    - /url: "#setup"
+                    - text: 
+                - paragraph [ref=e1019]:
+                  - text: The Doppler MCP Server is available as an npm package,  
+                  - code [ref=e1020]: "@dopplerhq/mcp-server"
+                  - text: . For most use cases, using  
+                  - code [ref=e1021]: npx
+                  - text: is the recommended method for running the MCP server so that you always use the latest version.
+                - paragraph [ref=e1022]: If you do wish to install the Doppler MCP Server globally, you may do so using your node package manager of choice.
+                - paragraph [ref=e1023]:
+                  - text: The examples below use  
+                  - code [ref=e1024]: npx
+                  - text: .
+                - heading "1. Authenticate Skip link to 1. Authenticate" [level=3] [ref=e1025]:
+                  - generic [ref=e1027]: 1. Authenticate
+                  - link "Skip link to 1. Authenticate" [ref=e1028] [cursor=pointer]:
+                    - /url: "#1-authenticate"
+                    - text: 
+                - paragraph [ref=e1029]: "Run the login command to authenticate with your Doppler account:"
+                - generic [ref=e1032]:
+                  - button "Copy Code" [ref=e1033]:  
+                  - code [ref=e1034]:
+                    - generic [ref=e1035]: npx @dopplerhq/mcp-server login
+                - paragraph [ref=e1036]: The login command will guide you through authentication. You can either authenticate via your browser to create a CLI token or enter any existing Doppler token. Your credentials are stored in your system keyring for future sessions.
+                - heading "2. Configure Your MCP Client Skip link to 2. Configure Your MCP Client" [level=3] [ref=e1037]:
+                  - generic [ref=e1039]: 2. Configure Your MCP Client
+                  - link "Skip link to 2. Configure Your MCP Client" [ref=e1040] [cursor=pointer]:
+                    - /url: "#2-configure-your-mcp-client"
+                    - text: 
+                - paragraph [ref=e1041]: Add the Doppler server to your MCP client configuration. Refer to your AI client's documentation for the location of its MCP configuration file.
+                - paragraph [ref=e1042]: "Add the following to your configuration:"
+                - generic [ref=e1045]:
+                  - button "Copy Code" [ref=e1046]:  
+                  - code [ref=e1047]:
+                    - generic [ref=e1048]: "{ \"mcpServers\": { \"doppler\": { \"command\": \"npx\", \"args\": [\"-y\", \"@dopplerhq/mcp-server\"] } } }"
+                - paragraph [ref=e1049]: Restart your MCP client to apply the changes.
+                - heading "Automated Environments Skip link to Automated Environments" [level=2] [ref=e1050]:
+                  - generic [ref=e1052]: Automated Environments
+                  - link "Skip link to Automated Environments" [ref=e1053] [cursor=pointer]:
+                    - /url: "#automated-environments"
+                    - text: 
+                - paragraph [ref=e1054]:
+                  - text: In environments where interactive login isn't possible (e.g., CI/CD, shared workstations), you may pass a  
+                  - code [ref=e1055]: DOPPLER_TOKEN
+                  - text: environment variable at runtime. We recommend using the
+                  - link "Doppler CLI" [ref=e1056] [cursor=pointer]:
+                    - /url: /docs/cli
+                  - text: to inject the  
+                  - code [ref=e1057]: DOPPLER_TOKEN
+                  - text: . This keeps tokens out of your configuration files entirely.
+                - paragraph [ref=e1058]:
+                  - text: For example, your  
+                  - code [ref=e1059]: mcp-tokens
+                  - text: Doppler project might have a secret called  
+                  - code [ref=e1060]: MCP_TOKEN
+                  - text: whose value is a
+                  - link "Service Account Token" [ref=e1061] [cursor=pointer]:
+                    - /url: /docs/service-accounts
+                  - text: or
+                  - link "Service Token" [ref=e1062] [cursor=pointer]:
+                    - /url: /docs/service-tokens
+                  - text: . Since the MCP server expects the token in an environment variable called  
+                  - code [ref=e1063]: DOPPLER_TOKEN
+                  - text: ", use the  "
+                  - code [ref=e1064]: "--command"
+                  - text: "flag to map the secret name at runtime:"
+                - generic [ref=e1067]:
+                  - button "Copy Code" [ref=e1068]:  
+                  - code [ref=e1069]:
+                    - generic [ref=e1070]: "{ \"mcpServers\": { \"doppler\": { \"command\": \"doppler\", \"args\": [ \"run\", \"--project\", \"mcp-tokens\", \"--config\", \"dev\", \"--command\", \"DOPPLER_TOKEN=$MCP_TOKEN npx -y @dopplerhq/mcp-server\" ] } } }"
+                - heading "Read-Only Mode Skip link to Read-Only Mode" [level=2] [ref=e1071]:
+                  - generic [ref=e1073]: Read-Only Mode
+                  - link "Skip link to Read-Only Mode" [ref=e1074] [cursor=pointer]:
+                    - /url: "#read-only-mode"
+                    - text: 
+                - paragraph [ref=e1075]: "If you only need to read secrets (not create or modify them), use read-only mode:"
+                - generic [ref=e1078]:
+                  - button "Copy Code" [ref=e1079]:  
+                  - code [ref=e1080]:
+                    - generic [ref=e1081]: "{ \"mcpServers\": { \"doppler\": { \"command\": \"npx\", \"args\": [\"-y\", \"@dopplerhq/mcp-server\", \"--read-only\"] } } }"
+                - paragraph [ref=e1082]: This prevents the MCP server from exposing write tools to the client, so that it's less likely to attempt write operations. Note that this does not prevent agentic AI from attempting writes through other means. You should always use properly scoped tokens if you need to prevent writes.
+                - heading "Restricting Access Skip link to Restricting Access" [level=2] [ref=e1083]:
+                  - generic [ref=e1085]: Restricting Access
+                  - link "Skip link to Restricting Access" [ref=e1086] [cursor=pointer]:
+                    - /url: "#restricting-access"
+                    - text: 
+                - paragraph [ref=e1087]: "You can restrict the server to a specific project or config using CLI flags:"
+                - generic [ref=e1090]:
+                  - button "Copy Code" [ref=e1091]:  
+                  - code [ref=e1092]:
+                    - generic [ref=e1093]: "{ \"mcpServers\": { \"doppler\": { \"command\": \"npx\", \"args\": [ \"-y\", \"@dopplerhq/mcp-server\", \"--project\", \"my-app\", \"--config\", \"dev\" ] } } }"
+                - blockquote [ref=e1094]:
+                  - generic [ref=e1095]: 📘
+                  - paragraph [ref=e1096]:
+                    - text: While CLI flags provide a way to restrict the
+                    - emphasis [ref=e1097]: MCP's
+                    - text: scope, they aren't a guarantee that agentic AI won't attempt to work around them. If you need to enforce access control, always use properly scoped tokens.
+                - heading "Available Operations Skip link to Available Operations" [level=2] [ref=e1098]:
+                  - generic [ref=e1100]: Available Operations
+                  - link "Skip link to Available Operations" [ref=e1101] [cursor=pointer]:
+                    - /url: "#available-operations"
+                    - text: 
+                - paragraph [ref=e1102]: "The MCP server exposes Doppler API operations as tools:"
+                - list [ref=e1103]:
+                  - listitem [ref=e1104]: List projects, configs, and secrets
+                  - listitem [ref=e1105]: Read secret values and download configs
+                  - listitem [ref=e1106]: Create and update secrets
+                  - listitem [ref=e1107]: Manage environments and configs
+                  - listitem [ref=e1108]: View activity logs
+                - paragraph [ref=e1109]: The available tools depend on whether you're using read-only mode and any project/config flags. Token permissions are enforced by the Doppler API when operations are performed.
+                - heading "Logging Out Skip link to Logging Out" [level=2] [ref=e1110]:
+                  - generic [ref=e1112]: Logging Out
+                  - link "Skip link to Logging Out" [ref=e1113] [cursor=pointer]:
+                    - /url: "#logging-out"
+                    - text: 
+                - paragraph [ref=e1114]: "To clear your cached credentials from your system keyring:"
+                - generic [ref=e1117]:
+                  - button "Copy Code" [ref=e1118]:  
+                  - code [ref=e1119]:
+                    - generic [ref=e1120]: npx @dopplerhq/mcp-server logout
+              - paragraph [ref=e1123]:
+                - generic [ref=e1124]: 
+                - text: Updated 26 days ago
+              - separator [ref=e1125]
+              - navigation "Pagination Controls" [ref=e1126]:
+                - 'link "Previous Page: Troubleshooting" [ref=e1127] [cursor=pointer]':
+                  - /url: /docs/cli-troubleshooting
+                  - generic [ref=e1128]: 
+                  - generic [ref=e1129]: Troubleshooting
+                - 'link "Next Page: Editors" [ref=e1130] [cursor=pointer]':
+                  - /url: /docs/editors
+                  - generic [ref=e1131]: Editors
+                  - generic [ref=e1132]: 
+              - generic [ref=e1134]:
+                - text: Did this page help you?
+                - generic [ref=e1135]:
+                  - button "Yes, this page helped me" [ref=e1137] [cursor=pointer]:
+                    - generic [ref=e1138]: 
+                    - generic [ref=e1139]: "Yes"
+                  - button "No, this page did not help me" [ref=e1141] [cursor=pointer]:
+                    - generic [ref=e1142]: 
+                    - generic [ref=e1143]: "No"
+            - generic [ref=e1144]:
+              - button [ref=e1147] [cursor=pointer]:
+                - img [ref=e1148]
+                - img [ref=e1153]
+              - navigation "Table of contents" [ref=e1155]:
+                - list [ref=e1156]:
+                  - listitem [ref=e1157]:
+                    - link "Table of Contents":
+                      - /url: "#"
+                      - text: Table of Contents
+                  - listitem [ref=e1158]:
+                    - list [ref=e1159]:
+                      - listitem [ref=e1160]:
+                        - link "Prerequisites" [ref=e1161] [cursor=pointer]:
+                          - /url: "#prerequisites"
+                      - listitem [ref=e1162]:
+                        - link "Setup" [ref=e1163] [cursor=pointer]:
+                          - /url: "#setup"
+                      - listitem [ref=e1164]:
+                        - list [ref=e1165]:
+                          - listitem [ref=e1166]:
+                            - link "1. Authenticate" [ref=e1167] [cursor=pointer]:
+                              - /url: "#1-authenticate"
+                          - listitem [ref=e1168]:
+                            - link "2. Configure Your MCP Client" [ref=e1169] [cursor=pointer]:
+                              - /url: "#2-configure-your-mcp-client"
+                      - listitem [ref=e1170]:
+                        - link "Automated Environments" [ref=e1171] [cursor=pointer]:
+                          - /url: "#automated-environments"
+                      - listitem [ref=e1172]:
+                        - link "Read-Only Mode" [ref=e1173] [cursor=pointer]:
+                          - /url: "#read-only-mode"
+                      - listitem [ref=e1174]:
+                        - link "Restricting Access" [ref=e1175] [cursor=pointer]:
+                          - /url: "#restricting-access"
+                      - listitem [ref=e1176]:
+                        - link "Available Operations" [ref=e1177] [cursor=pointer]:
+                          - /url: "#available-operations"
+                      - listitem [ref=e1178]:
+                        - link "Logging Out" [ref=e1179] [cursor=pointer]:
+                          - /url: "#logging-out"
+  - button "Project Logo Ask AI" [ref=e1180] [cursor=pointer]:
+    - generic [ref=e1183]:
+      - img "Project Logo" [ref=e1184]
+      - paragraph [ref=e1185]: Ask AI
