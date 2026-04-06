@@ -10,6 +10,8 @@ import { AmazonSpAdapter } from './adapters/amazon-sp-adapter'
 import { MockAdsAdapter } from './adapters/mock-ads-adapter'
 import { MockSpAdapter } from './adapters/mock-sp-adapter'
 import { SyncService } from './services/sync-service'
+import { WriteBackService } from './services/write-back-service'
+import { StreamService } from './services/stream-service'
 import type { AdsPort } from './ports/ads-port'
 import type { SpApiPort } from './ports/sp-api-port'
 
@@ -34,6 +36,18 @@ export function createSyncService(profileId: string): SyncService {
     createSpApiPort(profileId),
     createAdminClient(),
   )
+}
+
+// Design Ref: §7 — WriteBack + Stream factory
+export function createWriteBackService(profileId: string): WriteBackService {
+  return new WriteBackService(
+    createAdsPort(profileId),
+    createAdminClient(),
+  )
+}
+
+export function createStreamService(): StreamService {
+  return new StreamService(createAdminClient())
 }
 
 // Convenience: check if running in mock mode
