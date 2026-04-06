@@ -20,6 +20,9 @@ Screenshot/
 .env.local
 .env.production.local
 
+# Secrets / tokens
+**/doppler-info.txt
+
 # Dependencies
 node_modules/
 
