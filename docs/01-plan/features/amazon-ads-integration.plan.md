@@ -369,7 +369,7 @@ AMAZON_ADS_HEALTH_CHECK_URL=      # /api/ads/health endpoint
 
 기존 변수 (Phase 1에서 정의됨):
 ```env
-AMAZON_CLIENT_ID=amzn1.application-oa2-client.655c21cd...
+AMAZON_CLIENT_ID=amzn1.application-oa2-client.xxxxx
 AMAZON_CLIENT_SECRET=amzn1.oa2-cs.v1.xxxxx
 AMAZON_SP_API_REFRESH_TOKEN_US=Atzr|xxxxx
 # AMAZON_ADS_REFRESH_TOKEN_US=     # 인가 후 추가
