@@ -3,7 +3,14 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SpApiPort } from '../ports/sp-api-port'
-import type { AdsPort } from '../ports/ads-port'
+import type { AdsPort, DateRange } from '../ports/ads-port'
+import type { AmazonCampaign } from '../types'
+
+function daysAgo(n: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return d.toISOString().split('T')[0]
+}
 
 export type SyncResult = {
   synced: number
@@ -148,21 +155,293 @@ export class SyncService {
     return result
   }
 
-  // ─── Stubs for module-4 (Campaign/Report/Keyword sync) ───
+  // ─── Ads API: Campaigns → ads.campaigns (module-4) ───
 
-  async syncCampaigns(_profileId: string): Promise<SyncResult> {
-    // TODO: module-4 — adsPort.listCampaigns() → upsert ads.campaigns
-    void this.adsPort
-    return { synced: 0, created: 0, updated: 0, errors: 0 }
+  async syncCampaigns(profileId: string): Promise<SyncResult> {
+    const supabase = this.db
+    const result: SyncResult = { synced: 0, created: 0, updated: 0, errors: 0 }
+
+    try {
+      // Get marketplace_profile record for FK references
+      const { data: mpProfile } = await supabase
+        .from('ads.marketplace_profiles')
+        .select('id, brand_market_id')
+        .eq('profile_id', profileId)
+        .single()
+
+      if (!mpProfile) {
+        result.errors = 1
+        return result
+      }
+
+      // Paginate through all campaigns
+      let nextToken: string | undefined
+      const allCampaigns: AmazonCampaign[] = []
+
+      do {
+        const page = await this.adsPort.listCampaigns(nextToken)
+        allCampaigns.push(...page.data)
+        nextToken = page.next_token
+      } while (nextToken)
+
+      // Get existing campaigns mapped by amazon_campaign_id
+      const { data: existing } = await supabase
+        .from('ads.campaigns')
+        .select('id, amazon_campaign_id')
+        .eq('marketplace_profile_id', mpProfile.id)
+        .not('amazon_campaign_id', 'is', null)
+
+      const existingMap = new Map(
+        (existing ?? []).map(c => [c.amazon_campaign_id, c.id]),
+      )
+
+      // Track seen amazon IDs (for detecting archived)
+      const seenIds = new Set<string>()
+
+      for (const campaign of allCampaigns) {
+        seenIds.add(campaign.campaign_id)
+        const localId = existingMap.get(campaign.campaign_id)
+
+        const mapStatus = (state: string): string => {
+          if (state === 'enabled') return 'active'
+          if (state === 'paused') return 'paused'
+          return 'archived'
+        }
+
+        if (localId) {
+          // Update existing campaign
+          const { error } = await supabase
+            .from('ads.campaigns')
+            .update({
+              amazon_state: campaign.state,
+              status: mapStatus(campaign.state),
+              daily_budget: campaign.budget,
+              name: campaign.name,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', localId)
+
+          if (error) {
+            result.errors += 1
+          } else {
+            result.updated += 1
+          }
+        }
+        // New campaigns from Amazon are logged but not auto-created
+        // (required FKs: org_unit_id, created_by, marketing_code need manual setup)
+      }
+
+      // Mark campaigns removed from Amazon as archived
+      for (const [amazonId, localId] of existingMap) {
+        if (!seenIds.has(amazonId)) {
+          await supabase
+            .from('ads.campaigns')
+            .update({ amazon_state: 'archived', status: 'archived', updated_at: new Date().toISOString() })
+            .eq('id', localId)
+        }
+      }
+
+      // Update last_sync_at on marketplace_profile
+      await supabase
+        .from('ads.marketplace_profiles')
+        .update({ last_sync_at: new Date().toISOString() })
+        .eq('profile_id', profileId)
+
+      result.synced = allCampaigns.length
+    } catch (err) {
+      result.errors += 1
+      throw err
+    }
+
+    return result
   }
 
-  async syncReports(_profileId: string, _date: string): Promise<SyncResult> {
-    // TODO: module-4 — adsPort.requestReport() + downloadReport() → ads.report_snapshots
-    return { synced: 0, created: 0, updated: 0, errors: 0 }
+  // ─── Ads API: Reports → ads.report_snapshots (module-4) ───
+
+  async syncReports(profileId: string, date: string): Promise<SyncResult> {
+    const supabase = this.db
+    const result: SyncResult = { synced: 0, created: 0, updated: 0, errors: 0 }
+
+    try {
+      const { data: mpProfile } = await supabase
+        .from('ads.marketplace_profiles')
+        .select('id, brand_market_id')
+        .eq('profile_id', profileId)
+        .single()
+
+      if (!mpProfile) {
+        result.errors = 1
+        return result
+      }
+
+      // Get campaigns to associate reports
+      const { data: campaigns } = await supabase
+        .from('ads.campaigns')
+        .select('id, amazon_campaign_id')
+        .eq('marketplace_profile_id', mpProfile.id)
+        .not('amazon_campaign_id', 'is', null)
+
+      const campaignMap = new Map(
+        (campaigns ?? []).map(c => [c.amazon_campaign_id, c.id]),
+      )
+
+      // Request and download SP campaign report
+      const dateRange: DateRange = { start: date, end: date }
+      const reportId = await this.adsPort.requestReport('sp_campaigns', dateRange)
+      const metrics = await this.adsPort.downloadReport(reportId)
+
+      for (const row of metrics) {
+        const localCampaignId = campaignMap.get(row.campaign_id)
+        if (!localCampaignId) continue
+
+        const { error } = await supabase
+          .from('ads.report_snapshots')
+          .upsert({
+            campaign_id: localCampaignId,
+            brand_market_id: mpProfile.brand_market_id,
+            report_date: date,
+            report_level: 'campaign',
+            impressions: row.impressions,
+            clicks: row.clicks,
+            spend: row.cost,
+            sales: row.sales,
+            orders: row.orders,
+            acos: row.acos,
+            cpc: row.cpc,
+            ctr: row.ctr,
+            roas: row.roas,
+            fetched_at: new Date().toISOString(),
+          }, { onConflict: 'campaign_id,ad_group_id,keyword_id,report_date,report_level' })
+
+        if (error) {
+          result.errors += 1
+        } else {
+          result.synced += 1
+          result.created += 1
+        }
+      }
+    } catch (err) {
+      result.errors += 1
+      throw err
+    }
+
+    return result
   }
 
-  async analyzeKeywords(_profileId: string): Promise<AnalysisResult> {
-    // TODO: module-4 — adsPort.getSearchTermReport() → ads.recommendations
-    return { campaigns_analyzed: 0, recommendations_created: 0, negative_keywords_found: 0, errors: 0 }
+  // ─── Ads API: Search Terms → ads.keyword_recommendations (module-4) ───
+
+  async analyzeKeywords(profileId: string): Promise<AnalysisResult> {
+    const supabase = this.db
+    const result: AnalysisResult = {
+      campaigns_analyzed: 0,
+      recommendations_created: 0,
+      negative_keywords_found: 0,
+      errors: 0,
+    }
+
+    try {
+      const { data: mpProfile } = await supabase
+        .from('ads.marketplace_profiles')
+        .select('id, brand_market_id')
+        .eq('profile_id', profileId)
+        .single()
+
+      if (!mpProfile) {
+        result.errors = 1
+        return result
+      }
+
+      // Get active SP campaigns with their target ACoS
+      const { data: campaigns } = await supabase
+        .from('ads.campaigns')
+        .select('id, amazon_campaign_id, target_acos, brand_market_id')
+        .eq('marketplace_profile_id', mpProfile.id)
+        .eq('status', 'active')
+        .in('campaign_type', ['sp'])
+
+      if (!campaigns?.length) return result
+
+      const dateRange: DateRange = {
+        start: daysAgo(14),
+        end: daysAgo(1),
+      }
+
+      for (const campaign of campaigns) {
+        if (!campaign.amazon_campaign_id) continue
+
+        try {
+          const searchTerms = await this.adsPort.getSearchTermReport(
+            campaign.amazon_campaign_id,
+            dateRange,
+          )
+          result.campaigns_analyzed += 1
+
+          const targetAcos = Number(campaign.target_acos) || 30
+          // Expire old pending recommendations for this campaign
+          await supabase
+            .from('ads.keyword_recommendations')
+            .update({ status: 'expired' })
+            .eq('campaign_id', campaign.id)
+            .eq('status', 'pending')
+
+          for (const term of searchTerms) {
+            // High performer: orders > 0, ACoS < target → promote
+            if (term.orders > 0 && term.acos < targetAcos && term.clicks >= 5) {
+              const { error } = await supabase
+                .from('ads.keyword_recommendations')
+                .insert({
+                  campaign_id: campaign.id,
+                  brand_market_id: campaign.brand_market_id,
+                  recommendation_type: 'promote',
+                  keyword_text: term.search_term,
+                  match_type: 'exact',
+                  suggested_bid: Math.round(term.cost / term.clicks * 100) / 100,
+                  estimated_impact: term.sales,
+                  impact_level: term.orders >= 3 ? 'high' : term.orders >= 1 ? 'medium' : 'low',
+                  reason: `ACoS ${term.acos.toFixed(1)}% < target ${targetAcos}%, ${term.orders} orders`,
+                  source: 'search_term_analysis',
+                  look_back_days: 14,
+                  metrics: { impressions: term.impressions, clicks: term.clicks, cost: term.cost, sales: term.sales, orders: term.orders, acos: term.acos },
+                  status: 'pending',
+                })
+
+              if (!error) result.recommendations_created += 1
+            }
+
+            // Waster: clicks > 10, orders = 0, spend > $5 → negate
+            if (term.orders === 0 && term.clicks > 10 && term.cost > 5) {
+              const { error } = await supabase
+                .from('ads.keyword_recommendations')
+                .insert({
+                  campaign_id: campaign.id,
+                  brand_market_id: campaign.brand_market_id,
+                  recommendation_type: 'negate',
+                  keyword_text: term.search_term,
+                  match_type: 'negative',
+                  estimated_impact: term.cost,
+                  impact_level: term.cost > 20 ? 'high' : term.cost > 10 ? 'medium' : 'low',
+                  reason: `${term.clicks} clicks, $${term.cost.toFixed(2)} spend, 0 orders`,
+                  source: 'search_term_analysis',
+                  look_back_days: 14,
+                  metrics: { impressions: term.impressions, clicks: term.clicks, cost: term.cost, sales: 0, orders: 0, acos: 0 },
+                  status: 'pending',
+                })
+
+              if (!error) {
+                result.recommendations_created += 1
+                result.negative_keywords_found += 1
+              }
+            }
+          }
+        } catch {
+          result.errors += 1
+        }
+      }
+    } catch (err) {
+      result.errors += 1
+      throw err
+    }
+
+    return result
   }
 }

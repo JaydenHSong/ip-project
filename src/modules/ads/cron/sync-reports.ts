@@ -1,41 +1,37 @@
 // Cron: Reporting → report_snapshots (daily 2AM)
-// Downloads performance reports from Amazon Ads API and stores snapshots
+// Design Ref: §5.1 — Delegates to SyncService via factory
 
 import { createAdminClient } from '@/lib/supabase/admin'
-
-type SyncResult = {
-  profiles_processed: number
-  snapshots_created: number
-  errors: number
-}
+import { createSyncService } from '@/modules/ads/api/factory'
+import type { SyncResult } from '@/modules/ads/api/services/sync-service'
 
 export async function syncReports(): Promise<SyncResult> {
   const supabase = createAdminClient()
 
-  // TODO: When Amazon Ads API is authorized:
-  // 1. Fetch active marketplace_profiles
-  // 2. For each profile, request SP/SB/SD campaign reports (yesterday)
-  // 3. Download report once ready
-  // 4. Parse metrics and insert into ads.report_snapshots
-  // 5. Calculate derived metrics (ACoS, ROAS, CTR, CPC)
-
   const { data: profiles, error } = await supabase
     .from('ads.marketplace_profiles')
-    .select('id, profile_id, marketplace_id')
+    .select('profile_id')
     .eq('is_active', true)
 
   if (error) {
     throw new Error(`Failed to fetch marketplace profiles: ${error.message}`)
   }
 
-  const result: SyncResult = {
-    profiles_processed: profiles?.length ?? 0,
-    snapshots_created: 0,
-    errors: 0,
+  // Yesterday's date for report
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const reportDate = yesterday.toISOString().split('T')[0]
+
+  const totals: SyncResult = { synced: 0, created: 0, updated: 0, errors: 0 }
+
+  for (const profile of profiles ?? []) {
+    const syncService = createSyncService(profile.profile_id)
+    const result = await syncService.syncReports(profile.profile_id, reportDate)
+    totals.synced += result.synced
+    totals.created += result.created
+    totals.updated += result.updated
+    totals.errors += result.errors
   }
 
-  // TODO: Iterate profiles and sync reports from Amazon Ads API
-  void profiles
-
-  return result
+  return totals
 }
