@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { adsConfig } from './infra/api-config'
 import { rateLimiter } from './infra/rate-limiter'
 import { tokenStore } from './infra/token-store'
+import { AmazonAdsAdapter } from './adapters/amazon-ads-adapter'
+import { AmazonSpAdapter } from './adapters/amazon-sp-adapter'
 import { MockAdsAdapter } from './adapters/mock-ads-adapter'
 import { MockSpAdapter } from './adapters/mock-sp-adapter'
 import { SyncService } from './services/sync-service'
@@ -13,26 +15,14 @@ import type { SpApiPort } from './ports/sp-api-port'
 
 export function createAdsPort(profileId: string): AdsPort {
   if (adsConfig.isEnabled()) {
-    try {
-      // Dynamic import: adapter created in module-3
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { AmazonAdsAdapter } = require('./adapters/amazon-ads-adapter') as { AmazonAdsAdapter: new (profileId: string, rl: typeof rateLimiter, ts: typeof tokenStore) => AdsPort }
-      return new AmazonAdsAdapter(profileId, rateLimiter, tokenStore)
-    } catch {
-      return new MockAdsAdapter(profileId)
-    }
+    return new AmazonAdsAdapter(profileId, rateLimiter, tokenStore)
   }
   return new MockAdsAdapter(profileId)
 }
 
 export function createSpApiPort(profileId: string): SpApiPort {
   if (adsConfig.isSpApiEnabled()) {
-    try {
-      const { AmazonSpAdapter } = require('./adapters/amazon-sp-adapter') as { AmazonSpAdapter: new (profileId: string, ts: typeof tokenStore) => SpApiPort }
-      return new AmazonSpAdapter(profileId, tokenStore)
-    } catch {
-      return new MockSpAdapter(profileId)
-    }
+    return new AmazonSpAdapter(profileId, tokenStore)
   }
   return new MockSpAdapter(profileId)
 }
