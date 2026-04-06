@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S13 — Budget Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sidebar: 220px;
+  --pad: 28px;
+  --gap: 16px;
+  --radius: 12px;
+  --border: #E5E7EB;
+  --bg: #F3F4F6;
+  --card: #fff;
+  --text: #18181B;
+  --text2: #6B7280;
+  --text3: #9CA3AF;
+  --accent: #F97316;
+  --green: #059669;
+  --red: #B91C1C;
+  --indigo: #6366F1;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);display:flex;height:100vh;overflow:hidden}
+
+/* === 12-Column Grid === */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap);padding:0 var(--pad)}
+.col-12{grid-column:span 12}
+.col-8{grid-column:span 8}
+.col-4{grid-column:span 4}
+.col-6{grid-column:span 6}
+.col-3{grid-column:span 3}
+.col-5{grid-column:span 5}
+.col-7{grid-column:span 7}
+
+/* === Sidebar === */
+.sidebar{width:var(--sidebar);background:var(--card);border-right:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:24px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px;padding:0 4px}
+.logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.logo-text{font-size:13px;color:var(--text);font-weight:600}
+.logo-sub{font-size:10px;color:var(--text3)}
+.module{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;font-size:13px;color:var(--accent);font-weight:500}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;color:var(--text2);cursor:pointer}
+.nav-item:hover{background:#F9FAFB}
+.nav-item.active{background:#FFF7ED;color:var(--accent);font-weight:600}
+.nav-bar{width:3px;height:18px;border-radius:2px}
+.nav-item.active .nav-bar{background:var(--accent)}
+
+/* === Main === */
+.main{flex:1;display:flex;flex-direction:column;overflow-y:auto}
+.topbar{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);flex-shrink:0}
+.cmdk{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#F9FAFB;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)}
+.cmdk kbd{background:#E5E7EB;padding:2px 6px;border-radius:4px;font-size:10px;color:var(--text2)}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--text2)}
+.avatar{width:28px;height:28px;background:var(--bg);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--text2)}
+
+/* === Page Header === */
+.page-header{padding:20px var(--pad) 0;display:flex;justify-content:space-between;align-items:flex-start}
+.page-header h1{font-size:22px;font-weight:600;letter-spacing:-0.5px;color:var(--text)}
+.page-header-sub{font-size:12px;color:var(--text2);margin-top:4px;display:flex;align-items:center;gap:8px}
+.page-header-actions{display:flex;gap:8px;align-items:center}
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px}
+.btn-primary{background:var(--accent);color:#fff;border:none}
+.btn-outline{background:var(--card);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost{background:transparent;color:var(--text2);border:none;padding:7px 10px}
+
+/* === Card === */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;display:inline-block}
+.bg-g{background:#ECFDF5;color:var(--green)}
+.bg-r{background:#FFF1F2;color:var(--red)}
+.bg-o{background:#FFF7ED;color:var(--accent)}
+.bg-i{background:#EEF2FF;color:var(--indigo)}
+
+/* =========================================
+   MARKET TABS
+   ========================================= */
+.market-tabs{padding:16px var(--pad) 0;display:flex;gap:4px;align-items:center}
+.mtab{padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);border:1px solid transparent}
+.mtab:hover{background:#F9FAFB}
+.mtab.active{background:var(--card);border-color:var(--border);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.mtab-flag{margin-right:4px}
+.mtab-badge{margin-left:5px;background:var(--bg);color:var(--text3);font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px}
+.mtab.active .mtab-badge{background:#FFF7ED;color:var(--accent)}
+
+/* =========================================
+   ZONE 1 — Annual Summary (col-12)
+   ========================================= */
+.z1{padding:16px var(--pad) 0}
+
+.ann-card{padding:18px 24px;display:flex;gap:24px;align-items:stretch}
+
+.ann-kpis{display:flex;gap:0;flex:0 0 auto}
+.ann-kpi{padding:0 24px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:4px}
+.ann-kpi:first-child{padding-left:0}
+.ann-kpi:last-child{border-right:none}
+.ann-kpi-label{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.ann-kpi-val{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.5px}
+.ann-kpi-sub{font-size:11px;color:var(--text2)}
+.ann-kpi-sub .g{color:var(--green);font-weight:500}
+.ann-kpi-sub .o{color:var(--accent);font-weight:500}
+
+.ann-ytd{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.ann-ytd-hdr{display:flex;justify-content:space-between;align-items:center}
+.ann-ytd-title{font-size:11px;font-weight:600;color:var(--text);text-transform:uppercase;letter-spacing:0.5px}
+.ann-ytd-pct{font-size:11px;font-weight:700;color:var(--accent)}
+
+/* 12-month mini progress strip */
+.month-strip{display:flex;gap:3px;align-items:flex-end;height:36px}
+.month-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1}
+.month-bar-wrap{flex:1;display:flex;align-items:flex-end;width:100%}
+.month-bar-track{width:100%;background:#F3F4F6;border-radius:3px;position:relative;overflow:hidden}
+.month-bar-plan{width:100%;border-radius:3px}
+.month-bar-actual{position:absolute;bottom:0;left:0;width:100%;border-radius:3px}
+.month-label{font-size:8px;color:var(--text3);font-weight:500}
+.month-label.cur{color:var(--accent);font-weight:700}
+
+.ann-channels{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;justify-content:center;min-width:140px}
+.ch-row{display:flex;align-items:center;gap:8px}
+.ch-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.ch-dot.sp{background:var(--accent)}
+.ch-dot.sb{background:var(--indigo)}
+.ch-dot.sd{background:#10B981}
+.ch-label{font-size:11px;color:var(--text2);flex:1}
+.ch-amt{font-size:11px;font-weight:600;color:var(--text)}
+.ch-pct{font-size:9px;color:var(--text3);margin-left:2px}
+
+/* =========================================
+   ZONE 2 — Monthly Input Grid (col-12 → 8+4 split inner)
+   ========================================= */
+.z2{padding:var(--gap) var(--pad) 0}
+
+/* Section label above zone */
+.zone-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.zone-label-line{flex:1;height:1px;background:var(--border)}
+
+/* Input grid card */
+.grid-card{padding:0;overflow:hidden}
+.grid-header{display:flex;padding:12px 16px;background:#F9FAFB;border-bottom:1px solid var(--border);align-items:center;gap:8px}
+.grid-header h2{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.grid-status{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--text2)}
+.save-btn{padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+.save-btn:disabled{background:#E5E7EB;color:var(--text3);cursor:not-allowed}
+.discard-btn{padding:5px 10px;background:transparent;color:var(--text2);border:1px solid var(--border);border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit}
+
+/* channel sub-tabs */
+.ch-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 16px;gap:0}
+.ch-tab{padding:8px 14px;font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.ch-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.ch-tab .tab-sum{margin-left:5px;font-size:10px;color:var(--text3)}
+.ch-tab.active .tab-sum{color:var(--accent)}
+
+/* the actual input table */
+.input-table{width:100%;border-collapse:collapse}
+.input-table th{font-size:10px;font-weight:500;color:var(--text2);padding:8px 10px;text-align:right;background:#FAFAFA;border-bottom:1px solid var(--border)}
+.input-table th:first-child{text-align:left;width:90px}
+.input-table th.cur-month{color:var(--accent);font-weight:700}
+.input-table td{padding:6px 4px;border-bottom:1px solid #F3F4F6;vertical-align:middle}
+.input-table td:first-child{padding:6px 10px;font-size:11px;font-weight:600;color:var(--text2)}
+.input-table tr:last-child td{border-bottom:none;background:#F9FAFB;font-weight:700}
+.input-table tr:last-child td:first-child{color:var(--text);font-size:11px}
+
+/* number input cell */
+.num-input{width:100%;text-align:right;border:1px solid transparent;border-radius:5px;padding:4px 6px;font-size:11px;font-weight:500;color:var(--text);font-family:inherit;background:transparent;outline:none;min-width:56px}
+.num-input:focus{border-color:var(--accent);background:#FFF7ED;color:var(--text)}
+.num-input.dirty{border-color:#FDBA74;background:#FFFBF5}
+.num-input:disabled{color:var(--text3);background:transparent;cursor:default}
+.sum-cell{text-align:right;padding:6px 10px;font-size:11px;font-weight:700;color:var(--text)}
+.sum-cell.total{font-size:12px;color:var(--text)}
+.past-cell{text-align:right;padding:6px 10px;font-size:11px;color:var(--text2)}
+.cur-col{background:#FFF7ED14}
+.cur-month-col{background:#FFF7ED22}
+
+/* row labels */
+.row-channel{display:flex;align-items:center;gap:5px}
+
+/* annual sum column */
+.ann-sum-col{background:#F9FAFB;border-left:1px solid var(--border)}
+
+/* =========================================
+   ZONE 3 — Plan vs Actual Chart (col-8) + Channel Breakdown (col-4)
+   ========================================= */
+.z3{padding:var(--gap) var(--pad) var(--pad)}
+
+/* Chart area */
+.chart-card{padding:16px 20px}
+.chart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.chart-hdr h2{font-size:13px;font-weight:600;color:var(--text)}
+.chart-legend{display:flex;gap:12px;align-items:center}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)}
+.leg-swatch{width:10px;height:10px;border-radius:2px}
+.leg-swatch.plan{background:#E5E7EB}
+.leg-swatch.actual{background:var(--accent)}
+.leg-swatch.proj{background:var(--indigo);opacity:.5}
+.chart-sub{font-size:10px;color:var(--text3);margin-bottom:12px}
+
+/* bar chart — 12 months side by side */
+.bar-chart{display:flex;gap:6px;align-items:flex-end;height:140px;position:relative}
+.bar-chart::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--border);opacity:.5}
+.bar-chart::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);opacity:.3}
+.bc-group{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+.bc-bars{display:flex;gap:2px;align-items:flex-end;height:120px}
+.bc-plan{width:10px;border-radius:3px 3px 0 0;background:#E5E7EB}
+.bc-actual{width:10px;border-radius:3px 3px 0 0;background:var(--accent)}
+.bc-proj{width:10px;border-radius:3px 3px 0 0;background:var(--indigo);opacity:.35}
+.bc-label{font-size:8px;color:var(--text3);font-weight:500}
+.bc-label.cur{color:var(--accent);font-weight:700}
+/* highlight current month group */
+.bc-group.is-cur .bc-plan{background:#F3F4F6;border:1px dashed #D1D5DB}
+.bc-group.is-cur .bc-actual{background:var(--accent);opacity:1}
+
+/* y-axis labels (overlay) */
+.chart-wrap{position:relative;display:flex;gap:8px;align-items:flex-end}
+.y-axis{display:flex;flex-direction:column;justify-content:space-between;height:120px;padding:0 0 3px}
+.y-label{font-size:8px;color:var(--text3);text-align:right;width:28px}
+
+/* delta row below chart */
+.delta-row{display:flex;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid #F3F4F6}
+.delta-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px}
+.delta-pct{font-size:9px;font-weight:700}
+.delta-pct.g{color:var(--green)}.delta-pct.r{color:var(--red)}.delta-pct.o{color:var(--accent)}.delta-pct.nn{color:var(--text3)}
+.delta-col .bc-label{font-size:8px}
+
+/* =========================================
+   ZONE 3 right — Channel Breakdown
+   ========================================= */
+.breakdown-card{padding:16px 18px}
+.breakdown-card h2{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px}
+
+/* donut placeholder (pure CSS) */
+.donut-wrap{display:flex;justify-content:center;margin-bottom:12px;position:relative}
+.donut{width:88px;height:88px;border-radius:50%;background:conic-gradient(
+  var(--accent) 0% 58%,
+  var(--indigo) 58% 82%,
+  #10B981 82% 100%
+);position:relative}
+.donut::after{content:'';position:absolute;inset:18px;background:var(--card);border-radius:50%}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:1}
+.donut-center-val{font-size:13px;font-weight:700;color:var(--text)}
+.donut-center-sub{font-size:9px;color:var(--text3)}
+
+/* channel detail rows */
+.ch-detail-row{padding:7px 0;border-bottom:1px solid #F3F4F6;display:flex;align-items:center;gap:8px}
+.ch-detail-row:last-child{border-bottom:none}
+.ch-color-bar{width:3px;height:28px;border-radius:2px;flex-shrink:0}
+.ch-color-bar.sp{background:var(--accent)}
+.ch-color-bar.sb{background:var(--indigo)}
+.ch-color-bar.sd{background:#10B981}
+.ch-detail-info{flex:1}
+.ch-detail-name{font-size:11px;font-weight:600;color:var(--text)}
+.ch-detail-sub{font-size:10px;color:var(--text2);margin-top:1px}
+.ch-detail-nums{text-align:right}
+.ch-detail-plan{font-size:12px;font-weight:700;color:var(--text)}
+.ch-detail-actual{font-size:10px;color:var(--text2)}
+.ch-mini-bar-wrap{width:100%;margin-top:4px}
+.ch-mini-bar-track{height:3px;background:#F3F4F6;border-radius:2px;position:relative}
+.ch-mini-bar-fill{height:3px;border-radius:2px;position:absolute;top:0;left:0}
+
+/* YTD callout inside breakdown */
+.ytd-callout{margin-top:10px;padding:8px 10px;background:#F9FAFB;border-radius:8px;border:1px solid var(--border)}
+.ytd-callout-label{font-size:10px;color:var(--text3);font-weight:500}
+.ytd-callout-row{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.ytd-bar-track{flex:1;height:6px;background:#E5E7EB;border-radius:3px;margin:0 8px;position:relative}
+.ytd-bar-fill{height:6px;border-radius:3px;background:var(--accent);position:absolute;top:0;left:0}
+.ytd-bar-track::after{content:'';position:absolute;left:25%;top:-3px;width:2px;height:12px;background:var(--indigo);border-radius:1px;opacity:.5}
+.ytd-callout-pct{font-size:11px;font-weight:700;color:var(--accent)}
+
+/* =========================================
+   EDIT STATE INDICATOR (sticky banner)
+   ========================================= */
+.edit-banner{display:flex;align-items:center;gap:10px;padding:8px 16px;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;font-size:11px;color:var(--accent);font-weight:500;margin:0 var(--pad) 0}
+.edit-banner-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* === Responsive === */
+@media(max-width:1200px){
+  .col-8,.col-4{grid-column:span 12}
+  .ann-kpis{flex-wrap:wrap;gap:12px}
+  .month-strip{display:none}
+}
+@media(max-width:1024px){
+  .sidebar{display:none}
+  .col-8,.col-4{grid-column:span 12}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div>
+      <div class="logo-text">Amazon Resource</div>
+      <div class="logo-sub">Controller</div>
+    </div>
+  </div>
+  <div class="module">◯ AD Optimizer</div>
+  <nav class="nav">
+    <div class="nav-item"><div class="nav-bar"></div>Dashboard</div>
+    <div class="nav-item"><div class="nav-bar"></div>Campaigns</div>
+    <div class="nav-item"><div class="nav-bar"></div>Optimization</div>
+    <div class="nav-item"><div class="nav-bar"></div>Auto Pilot</div>
+    <div class="nav-item active"><div class="nav-bar"></div>Budget Hub</div>
+    <div class="nav-item"><div class="nav-bar"></div>Analytics</div>
+    <div class="nav-item"><div class="nav-bar"></div>Reports</div>
+  </nav>
+</div>
+
+<!-- ============================================================
+     MAIN
+     ============================================================ -->
+<div class="main">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="cmdk">🔍 Search budgets, teams... <kbd>⌘K</kbd></div>
+    <div class="topbar-right">
+      <span>v0.1.0</span>
+      <span>Notices</span>
+      <span>EN</span>
+      <div class="avatar">DIR</div>
+    </div>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>Budget Hub</h1>
+      <div class="page-header-sub">
+        <span>FY 2026 · Source of truth for all budget data</span>
+        <span class="badge bg-o">3 brands · 4 markets</span>
+        <span class="badge bg-g">Last saved 2h ago</span>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline">Export CSV</button>
+      <button class="btn btn-outline">Copy from 2025</button>
+      <button class="btn btn-primary">+ Set Next Year</button>
+    </div>
+  </div>
+
+  <!-- Market Tabs -->
+  <div class="market-tabs">
+    <div class="mtab active"><span class="mtab-flag">🇺🇸</span>United States<span class="mtab-badge">$600K/yr</span></div>
+    <div class="mtab"><span class="mtab-flag">🇨🇦</span>Canada<span class="mtab-badge">$180K/yr</span></div>
+    <div class="mtab"><span class="mtab-flag">🇩🇪</span>Germany<span class="mtab-badge">$264K/yr</span></div>
+    <div class="mtab"><span class="mtab-flag">🇯🇵</span>Japan<span class="mtab-badge">$132K/yr</span></div>
+  </div>
+
+  <!-- ============================================================
+       ZONE 1 — Annual Summary
+       ============================================================ -->
+  <div class="z1">
+    <div class="card ann-card">
+
+      <!-- KPI chips -->
+      <div class="ann-kpis">
+        <div class="ann-kpi">
+          <div class="ann-kpi-label">Annual Budget</div>
+          <div class="ann-kpi-val">$600K</div>
+          <div class="ann-kpi-sub">Spigen US · FY 2026</div>
+        </div>
+        <div class="ann-kpi">
+          <div class="ann-kpi-label">YTD Spent</div>
+          <div class="ann-kpi-val">$147K</div>
+          <div class="ann-kpi-sub"><span class="g">On track</span> · 24.5% of year</div>
+        </div>
+        <div class="ann-kpi">
+          <div class="ann-kpi-label">YTD Planned</div>
+          <div class="ann-kpi-val">$150K</div>
+          <div class="ann-kpi-sub"><span class="o">−$3K vs plan</span></div>
+        </div>
+        <div class="ann-kpi">
+          <div class="ann-kpi-label">Remaining</div>
+          <div class="ann-kpi-val">$453K</div>
+          <div class="ann-kpi-sub">9 months left</div>
+        </div>
+      </div>
+
+      <!-- 12-month mini strip -->
+      <div class="ann-ytd">
+        <div class="ann-ytd-hdr">
+          <span class="ann-ytd-title">Monthly Budget Overview — FY 2026</span>
+          <span class="ann-ytd-pct">Plan $600K · Spent $147K (24.5%)</span>
+        </div>
+        <div class="month-strip">
+          <!-- Jan: past, fully spent -->
+          <div class="month-col">
+            <div class="month-bar-wrap" style="height:36px">
+              <div class="month-bar-track" style="height:100%;position:relative">
+                <div class="month-bar-plan" style="height:100%;background:#E5E7EB"></div>
+                <div class="month-bar-actual" style="height:100%;background:var(--green);border-radius:3px;opacity:.85"></div>
+              </div>
+            </div>
+            <div class="month-label">Jan</div>
+          </div>
+          <!-- Feb: past, slightly under -->
+          <div class="month-col">
+            <div class="month-bar-wrap" style="height:32px">
+              <div class="month-bar-track" style="height:100%;position:relative">
+                <div class="month-bar-plan" style="height:100%;background:#E5E7EB"></div>
+                <div class="month-bar-actual" style="height:90%;background:var(--green);border-radius:3px;opacity:.85"></div>
+              </div>
+            </div>
+            <div class="month-label">Feb</div>
+          </div>
+          <!-- Mar: current, partially spent (Day 26) -->
+          <div class="month-col">
+            <div class="month-bar-wrap" style="height:36px">
+              <div class="month-bar-track" style="height:100%;position:relative">
+                <div class="month-bar-plan" style="height:100%;background:#FDE8D8;border:1px dashed #FDBA74;border-radius:3px"></div>
+                <div class="month-bar-actual" style="height:84%;background:var(--accent);border-radius:3px;opacity:.9"></div>
+              </div>
+            </div>
+            <div class="month-label cur">Mar</div>
+          </div>
+          <!-- Apr–Dec: future (plan only) -->
+          <div class="month-col"><div class="month-bar-wrap" style="height:30px"><div class="month-bar-track" style="height:100%;background:#F3F4F6;border-radius:3px"></div></div><div class="month-label">Apr</div></div>
+          <div class="month-col"><div class="month-bar-wrap" style="height:34px"><div class="month-bar-track" style="height:100%;background:#F3F4F6;border-radius:3px"></div></div><div class="month-label">May</div></div>
+          <div class="month-col"><div class="month-bar-wrap" style="height:36px"><div class="month-bar-track" style="height:100%;background:#F3F4F6;border-radius:3px"></div></div><div class="month-label">Jun</div></div>
+          <div class="month-col"><div class="month-bar-wrap" style="height:38px"><div class="month-bar-track" style="height:100%;background:#F3F4F6;border-radius:3px"></div></div><div class="month-label">Jul</div></div>
+          <div class="month-col"><div class="month-bar-wrap" style="height:40px"><div class="month-bar-track" style="height:100%;background:#F3F4F6;border-radius:3px"></div></div><div class="month-label">Aug</div></div>
+          <div class="month-col"><div class="month-bar-wrap" style="height:38px"><div class="month-bar-track" style="height:100%;background:#F3F4F6;border-radius:3px"></div></div><div class="month-label">Sep</div></div>
+          <div class="month-col"><div class="month-bar-wrap" style="height:42px"><div class="month-bar-track" style="height:100%;background:#F3F4F6;border-radius:3px"></div></div><div class="month-label">Oct</div></div>
+          <div class="month-col"><div class="month-bar-wrap" style="height:46px"><div class="month-bar-track" style="height:100%;background:#F3F4F6;border-radius:3px"></div></div><div class="month-label">Nov</div></div>
+          <div class="month-col"><div class="month-bar-wrap" style="height:44px"><div class="month-bar-track" style="height:100%;background:#F3F4F6;border-radius:3px"></div></div><div class="month-label">Dec</div></div>
+        </div>
+      </div>
+
+      <!-- Channel split -->
+      <div class="ann-channels">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Channel Split</div>
+        <div class="ch-row">
+          <div class="ch-dot sp"></div>
+          <span class="ch-label">SP</span>
+          <span class="ch-amt">$360K</span>
+          <span class="ch-pct">60%</span>
+        </div>
+        <div class="ch-row">
+          <div class="ch-dot sb"></div>
+          <span class="ch-label">SB</span>
+          <span class="ch-amt">$144K</span>
+          <span class="ch-pct">24%</span>
+        </div>
+        <div class="ch-row">
+          <div class="ch-dot sd"></div>
+          <span class="ch-label">SD</span>
+          <span class="ch-amt">$96K</span>
+          <span class="ch-pct">16%</span>
+        </div>
+        <!-- stacked mini bar -->
+        <div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-top:4px">
+          <div style="width:60%;background:var(--accent)"></div>
+          <div style="width:24%;background:var(--indigo)"></div>
+          <div style="width:16%;background:#10B981"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Unsaved changes banner (conditionally visible) -->
+  <div style="padding:10px var(--pad) 0">
+    <div class="edit-banner">
+      <div class="edit-banner-dot"></div>
+      <span>You have unsaved changes in SP — 3 cells modified</span>
+      <button class="save-btn" style="margin-left:auto">Save Changes</button>
+      <button class="discard-btn">Discard</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ZONE 2 — Monthly Input Grid (col-12)
+       ============================================================ -->
+  <div class="z2 grid">
+    <div class="card grid-card col-12">
+
+      <div class="grid-header">
+        <h2>Monthly Budget Input — Spigen US · FY 2026</h2>
+        <div class="grid-status">
+          <span style="color:var(--text3)">Role: Team Lead</span>
+          <span style="color:var(--border)">|</span>
+          <span>Edit Jan – Dec</span>
+        </div>
+        <button class="save-btn" disabled>Save Changes</button>
+        <button class="discard-btn" style="margin-left:6px">Discard</button>
+      </div>
+
+      <!-- Channel tabs: SP / SB / SD / All -->
+      <div class="ch-tabs">
+        <div class="ch-tab active">Sponsored Products (SP)<span class="tab-sum">$360K/yr</span></div>
+        <div class="ch-tab">Sponsored Brands (SB)<span class="tab-sum">$144K/yr</span></div>
+        <div class="ch-tab">Sponsored Display (SD)<span class="tab-sum">$96K/yr</span></div>
+        <div class="ch-tab">All Channels<span class="tab-sum">$600K/yr</span></div>
+      </div>
+
+      <!-- The input table -->
+      <table class="input-table">
+        <thead>
+          <tr>
+            <th>Channel</th>
+            <th>Jan</th>
+            <th>Feb</th>
+            <th class="cur-month">Mar ●</th>
+            <th>Apr</th>
+            <th>May</th>
+            <th>Jun</th>
+            <th>Jul</th>
+            <th>Aug</th>
+            <th>Sep</th>
+            <th>Oct</th>
+            <th>Nov</th>
+            <th>Dec</th>
+            <th class="ann-sum-col">Annual</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- SP row -->
+          <tr>
+            <td><div class="row-channel"><div class="ch-dot sp"></div> SP</div></td>
+            <!-- Jan–Feb: past, read-only -->
+            <td class="past-cell">$28K</td>
+            <td class="past-cell">$26K</td>
+            <!-- Mar: current month, editable but highlighted -->
+            <td class="cur-month-col">
+              <input type="text" class="num-input dirty" value="$32K" title="Current month — partially locked">
+            </td>
+            <!-- Apr–Dec: fully editable -->
+            <td><input type="text" class="num-input" value="$30K"></td>
+            <td><input type="text" class="num-input" value="$30K"></td>
+            <td><input type="text" class="num-input" value="$30K"></td>
+            <td><input type="text" class="num-input" value="$32K"></td>
+            <td><input type="text" class="num-input" value="$35K"></td>
+            <td><input type="text" class="num-input" value="$30K"></td>
+            <td><input type="text" class="num-input" value="$38K"></td>
+            <td><input type="text" class="num-input" value="$48K"></td>
+            <td><input type="text" class="num-input" value="$41K"></td>
+            <!-- Annual auto-sum -->
+            <td class="sum-cell ann-sum-col">$360K</td>
+          </tr>
+
+          <!-- SB row (greyed — not active tab) -->
+          <tr style="opacity:.45">
+            <td><div class="row-channel"><div class="ch-dot sb"></div> SB</div></td>
+            <td class="past-cell">$11K</td>
+            <td class="past-cell">$10K</td>
+            <td class="cur-month-col"><input type="text" class="num-input" value="$13K" disabled></td>
+            <td><input type="text" class="num-input" value="$12K" disabled></td>
+            <td><input type="text" class="num-input" value="$12K" disabled></td>
+            <td><input type="text" class="num-input" value="$12K" disabled></td>
+            <td><input type="text" class="num-input" value="$12K" disabled></td>
+            <td><input type="text" class="num-input" value="$12K" disabled></td>
+            <td><input type="text" class="num-input" value="$12K" disabled></td>
+            <td><input type="text" class="num-input" value="$15K" disabled></td>
+            <td><input type="text" class="num-input" value="$16K" disabled></td>
+            <td><input type="text" class="num-input" value="$16K" disabled></td>
+            <td class="sum-cell ann-sum-col">$144K</td>
+          </tr>
+
+          <!-- SD row (greyed) -->
+          <tr style="opacity:.45">
+            <td><div class="row-channel"><div class="ch-dot sd"></div> SD</div></td>
+            <td class="past-cell">$8K</td>
+            <td class="past-cell">$7K</td>
+            <td class="cur-month-col"><input type="text" class="num-input" value="$8K" disabled></td>
+            <td><input type="text" class="num-input" value="$8K" disabled></td>
+            <td><input type="text" class="num-input" value="$8K" disabled></td>
+            <td><input type="text" class="num-input" value="$8K" disabled></td>
+            <td><input type="text" class="num-input" value="$8K" disabled></td>
+            <td><input type="text" class="num-input" value="$8K" disabled></td>
+            <td><input type="text" class="num-input" value="$8K" disabled></td>
+            <td><input type="text" class="num-input" value="$10K" disabled></td>
+            <td><input type="text" class="num-input" value="$13K" disabled></td>
+            <td><input type="text" class="num-input" value="$12K" disabled></td>
+            <td class="sum-cell ann-sum-col">$96K</td>
+          </tr>
+
+          <!-- Total row -->
+          <tr>
+            <td>Total</td>
+            <td class="past-cell" style="font-weight:700;font-size:11px;color:var(--text)">$47K</td>
+            <td class="past-cell" style="font-weight:700;font-size:11px;color:var(--text)">$43K</td>
+            <td class="cur-month-col sum-cell" style="color:var(--accent)">$53K</td>
+            <td class="sum-cell">$50K</td>
+            <td class="sum-cell">$50K</td>
+            <td class="sum-cell">$50K</td>
+            <td class="sum-cell">$52K</td>
+            <td class="sum-cell">$55K</td>
+            <td class="sum-cell">$50K</td>
+            <td class="sum-cell">$63K</td>
+            <td class="sum-cell">$77K</td>
+            <td class="sum-cell">$69K</td>
+            <td class="sum-cell total ann-sum-col">$600K</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ZONE 3 — Plan vs Actual Chart (col-8) + Channel Breakdown (col-4)
+       ============================================================ -->
+  <div class="z3 grid">
+
+    <!-- Plan vs Actual Bar Chart -->
+    <div class="card chart-card col-8">
+      <div class="chart-hdr">
+        <h2>Plan vs Actual — Monthly Trend</h2>
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-swatch plan"></div>Planned</div>
+          <div class="leg-item"><div class="leg-swatch actual"></div>Actual</div>
+          <div class="leg-item"><div class="leg-swatch proj"></div>Projected</div>
+        </div>
+      </div>
+      <div class="chart-sub">Spigen US · All Channels · FY 2026 — hover a month to see detail</div>
+
+      <div class="chart-wrap">
+        <!-- Y-axis -->
+        <div class="y-axis">
+          <div class="y-label">$80K</div>
+          <div class="y-label">$60K</div>
+          <div class="y-label">$40K</div>
+          <div class="y-label">$20K</div>
+          <div class="y-label">$0</div>
+        </div>
+
+        <!-- Bars -->
+        <div class="bar-chart" style="flex:1">
+          <!-- Jan: plan $50K, actual $47K -->
+          <div class="bc-group">
+            <div class="bc-bars">
+              <div class="bc-plan" style="height:75px"></div>
+              <div class="bc-actual" style="height:70px"></div>
+            </div>
+            <div class="bc-label">Jan</div>
+          </div>
+          <!-- Feb: plan $43K, actual $43K (exact) -->
+          <div class="bc-group">
+            <div class="bc-bars">
+              <div class="bc-plan" style="height:65px"></div>
+              <div class="bc-actual" style="height:65px"></div>
+            </div>
+            <div class="bc-label">Feb</div>
+          </div>
+          <!-- Mar: current — plan $53K, actual so far $42K + projected to $53K -->
+          <div class="bc-group is-cur" style="background:#FFF7ED14;border-radius:4px;padding:0 2px">
+            <div class="bc-bars">
+              <div class="bc-plan" style="height:80px;background:#FDE8D8;border:1px dashed #FDBA74"></div>
+              <div class="bc-actual" style="height:63px;background:var(--accent)"></div>
+              <div class="bc-proj" style="height:17px;background:var(--accent);opacity:.3;margin-top:0;align-self:flex-start;margin-top:auto"></div>
+            </div>
+            <div class="bc-label cur">Mar</div>
+          </div>
+          <!-- Apr–Dec: plan only (projected) -->
+          <div class="bc-group"><div class="bc-bars"><div class="bc-plan" style="height:75px"></div><div class="bc-proj" style="height:72px"></div></div><div class="bc-label">Apr</div></div>
+          <div class="bc-group"><div class="bc-bars"><div class="bc-plan" style="height:75px"></div><div class="bc-proj" style="height:71px"></div></div><div class="bc-label">May</div></div>
+          <div class="bc-group"><div class="bc-bars"><div class="bc-plan" style="height:75px"></div><div class="bc-proj" style="height:73px"></div></div><div class="bc-label">Jun</div></div>
+          <div class="bc-group"><div class="bc-bars"><div class="bc-plan" style="height:78px"></div><div class="bc-proj" style="height:75px"></div></div><div class="bc-label">Jul</div></div>
+          <div class="bc-group"><div class="bc-bars"><div class="bc-plan" style="height:83px"></div><div class="bc-proj" style="height:80px"></div></div><div class="bc-label">Aug</div></div>
+          <div class="bc-group"><div class="bc-bars"><div class="bc-plan" style="height:75px"></div><div class="bc-proj" style="height:73px"></div></div><div class="bc-label">Sep</div></div>
+          <div class="bc-group"><div class="bc-bars"><div class="bc-plan" style="height:95px"></div><div class="bc-proj" style="height:92px"></div></div><div class="bc-label">Oct</div></div>
+          <div class="bc-group"><div class="bc-bars"><div class="bc-plan" style="height:116px"></div><div class="bc-proj" style="height:112px"></div></div><div class="bc-label">Nov</div></div>
+          <div class="bc-group"><div class="bc-bars"><div class="bc-plan" style="height:104px"></div><div class="bc-proj" style="height:100px"></div></div><div class="bc-label">Dec</div></div>
+        </div>
+      </div>
+
+      <!-- Delta row -->
+      <div class="delta-row">
+        <div class="delta-col"><div class="delta-pct g">−6%</div><div class="bc-label">Jan</div></div>
+        <div class="delta-col"><div class="delta-pct g">0%</div><div class="bc-label">Feb</div></div>
+        <div class="delta-col"><div class="delta-pct o">−21%</div><div class="bc-label cur" style="color:var(--accent)">Mar</div></div>
+        <div class="delta-col"><div class="delta-pct nn">—</div><div class="bc-label">Apr</div></div>
+        <div class="delta-col"><div class="delta-pct nn">—</div><div class="bc-label">May</div></div>
+        <div class="delta-col"><div class="delta-pct nn">—</div><div class="bc-label">Jun</div></div>
+        <div class="delta-col"><div class="delta-pct nn">—</div><div class="bc-label">Jul</div></div>
+        <div class="delta-col"><div class="delta-pct nn">—</div><div class="bc-label">Aug</div></div>
+        <div class="delta-col"><div class="delta-pct nn">—</div><div class="bc-label">Sep</div></div>
+        <div class="delta-col"><div class="delta-pct nn">—</div><div class="bc-label">Oct</div></div>
+        <div class="delta-col"><div class="delta-pct nn">—</div><div class="bc-label">Nov</div></div>
+        <div class="delta-col"><div class="delta-pct nn">—</div><div class="bc-label">Dec</div></div>
+      </div>
+    </div>
+
+    <!-- Channel Breakdown -->
+    <div class="card breakdown-card col-4">
+      <h2>Channel Breakdown · YTD</h2>
+
+      <!-- Donut chart -->
+      <div class="donut-wrap">
+        <div class="donut">
+          <div class="donut-center">
+            <div class="donut-center-val">$147K</div>
+            <div class="donut-center-sub">spent</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SP detail -->
+      <div class="ch-detail-row">
+        <div class="ch-color-bar sp"></div>
+        <div class="ch-detail-info">
+          <div class="ch-detail-name">SP · Sponsored Products</div>
+          <div class="ch-detail-sub">Actual $85K of $90K planned</div>
+          <div class="ch-mini-bar-wrap">
+            <div class="ch-mini-bar-track">
+              <div class="ch-mini-bar-fill" style="width:94%;background:var(--accent)"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ch-detail-nums">
+          <div class="ch-detail-plan">$85K</div>
+          <div class="ch-detail-actual">94% of plan</div>
+        </div>
+      </div>
+
+      <!-- SB detail -->
+      <div class="ch-detail-row">
+        <div class="ch-color-bar sb"></div>
+        <div class="ch-detail-info">
+          <div class="ch-detail-name">SB · Sponsored Brands</div>
+          <div class="ch-detail-sub">Actual $38K of $36K planned</div>
+          <div class="ch-mini-bar-wrap">
+            <div class="ch-mini-bar-track">
+              <div class="ch-mini-bar-fill" style="width:100%;background:var(--red)"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ch-detail-nums">
+          <div class="ch-detail-plan" style="color:var(--red)">$38K</div>
+          <div class="ch-detail-actual" style="color:var(--red)">+6% over plan</div>
+        </div>
+      </div>
+
+      <!-- SD detail -->
+      <div class="ch-detail-row">
+        <div class="ch-color-bar sd"></div>
+        <div class="ch-detail-info">
+          <div class="ch-detail-name">SD · Sponsored Display</div>
+          <div class="ch-detail-sub">Actual $24K of $30K planned</div>
+          <div class="ch-mini-bar-wrap">
+            <div class="ch-mini-bar-track">
+              <div class="ch-mini-bar-fill" style="width:80%;background:#10B981"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ch-detail-nums">
+          <div class="ch-detail-plan">$24K</div>
+          <div class="ch-detail-actual">80% of plan</div>
+        </div>
+      </div>
+
+      <!-- YTD progress callout -->
+      <div class="ytd-callout">
+        <div class="ytd-callout-label">FY 2026 Annual Progress</div>
+        <div class="ytd-callout-row">
+          <span style="font-size:10px;color:var(--text2)">$147K</span>
+          <div class="ytd-bar-track">
+            <div class="ytd-bar-fill" style="width:24.5%"></div>
+          </div>
+          <div class="ytd-callout-pct">24.5%</div>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-top:3px">Indigo line = year progress (24.2% elapsed)</div>
+      </div>
+    </div>
+
+  </div><!-- /z3 -->
+
+</div><!-- /main -->
+
+<script>
+/* === Input interaction — dirty state === */
+document.querySelectorAll('.num-input:not([disabled])').forEach(input => {
+  const original = input.value;
+  input.addEventListener('input', () => {
+    input.classList.toggle('dirty', input.value !== original);
+    updateSaveBtnState();
+  });
+  input.addEventListener('focus', () => {
+    input.select();
+  });
+  // Tab to next editable cell
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll('.num-input:not([disabled])'));
+      const idx = inputs.indexOf(input);
+      if (idx < inputs.length - 1) inputs[idx + 1].focus();
+    }
+    if (e.key === 'Escape') {
+      input.value = original;
+      input.classList.remove('dirty');
+      input.blur();
+      updateSaveBtnState();
+    }
+  });
+});
+
+function updateSaveBtnState() {
+  const dirty = document.querySelectorAll('.num-input.dirty').length > 0;
+  document.querySelectorAll('.save-btn').forEach(b => b.disabled = !dirty);
+  document.querySelector('.edit-banner').style.display = dirty ? 'flex' : 'none';
+}
+
+/* === Market tabs === */
+document.querySelectorAll('.mtab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mtab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+
+/* === Channel sub-tabs === */
+document.querySelectorAll('.ch-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.ch-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+
+/* Initialize: hide edit banner (no unsaved changes) */
+document.querySelector('.edit-banner').style.display = 'none';
+</script>
+</body>
+</html>

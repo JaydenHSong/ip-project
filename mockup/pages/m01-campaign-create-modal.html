@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M01 — Campaign Create Wizard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ================================================
+   DESIGN TOKENS — matches s03 / s02 / s13
+   ================================================ */
+:root {
+  --sidebar: 220px;
+  --pad: 28px;
+  --gap: 16px;
+  --radius: 12px;
+  --border: #E5E7EB;
+  --bg: #F3F4F6;
+  --card: #fff;
+  --text: #18181B;
+  --text2: #6B7280;
+  --text3: #9CA3AF;
+  --accent: #F97316;
+  --green: #059669;
+  --red: #B91C1C;
+  --indigo: #6366F1;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);display:flex;height:100vh;overflow:hidden}
+
+/* ================================================
+   SIDEBAR (context shell — same as s03)
+   ================================================ */
+.sidebar{width:var(--sidebar);background:var(--card);border-right:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:24px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px;padding:0 4px}
+.logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.logo-text{font-size:13px;color:var(--text);font-weight:600}
+.logo-sub{font-size:10px;color:var(--text3)}
+.module{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;font-size:13px;color:var(--accent);font-weight:500}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;color:var(--text2);cursor:pointer}
+.nav-item.active{background:#FFF7ED;color:var(--accent);font-weight:600}
+.nav-bar{width:3px;height:18px;border-radius:2px}
+.nav-item.active .nav-bar{background:var(--accent)}
+
+/* ================================================
+   MAIN (dimmed — modal is foreground)
+   ================================================ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.topbar{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);flex-shrink:0;opacity:.45}
+.cmdk{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#F9FAFB;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)}
+.cmdk kbd{background:#E5E7EB;padding:2px 6px;border-radius:4px;font-size:10px}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--text2)}
+.avatar{width:28px;height:28px;background:#FFF7ED;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--accent);border:1px solid #FDBA74}
+.page-dimmed{flex:1;background:#F3F4F6;opacity:.35}
+
+/* ================================================
+   OVERLAY
+   ================================================ */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:100}
+
+/* ================================================
+   MODAL SHELL
+   Width: 560px, max-height: 90vh
+   ================================================ */
+.modal{
+  width:560px;
+  max-height:90vh;
+  background:var(--card);
+  border-radius:16px;
+  box-shadow:0 20px 60px rgba(0,0,0,.18),0 4px 16px rgba(0,0,0,.08);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+
+/* ---- MODAL HEADER ---- */
+.modal-header{
+  padding:20px 24px 0;
+  flex-shrink:0;
+}
+.mh-top{display:flex;justify-content:space-between;align-items:flex-start}
+.mh-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
+.mh-sub{font-size:12px;color:var(--text2);margin-top:3px}
+.close-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2);flex-shrink:0}
+.close-btn:hover{background:#F9FAFB}
+
+/* ---- STEP PROGRESS BAR ---- */
+.step-nav{
+  display:flex;
+  align-items:center;
+  gap:0;
+  margin-top:18px;
+  padding:0 2px;
+}
+.step-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  flex:1;
+  position:relative;
+}
+/* connector line between steps */
+.step-item:not(:last-child)::after{
+  content:'';
+  position:absolute;
+  top:13px;
+  left:calc(50% + 13px);
+  right:calc(-50% + 13px);
+  height:2px;
+  background:#E5E7EB;
+  z-index:0;
+}
+.step-item.done:not(:last-child)::after{background:var(--green)}
+.step-item.active:not(:last-child)::after{background:#E5E7EB}
+
+.step-circle{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;
+  position:relative;z-index:1;
+  transition:all .2s;
+}
+.step-item.done .step-circle{background:var(--green);color:#fff;border:2px solid var(--green)}
+.step-item.active .step-circle{background:var(--accent);color:#fff;border:2px solid var(--accent);box-shadow:0 0 0 4px rgba(249,115,22,.15)}
+.step-item.pending .step-circle{background:#F9FAFB;color:var(--text3);border:2px solid var(--border)}
+
+.step-label{font-size:10px;font-weight:500;text-align:center;line-height:1.2}
+.step-item.done .step-label{color:var(--green)}
+.step-item.active .step-label{color:var(--accent)}
+.step-item.pending .step-label{color:var(--text3)}
+
+.step-divider{height:1px;background:var(--border);margin:16px 0 0}
+
+/* ---- MODAL BODY ---- */
+.modal-body{
+  flex:1;
+  overflow-y:auto;
+  padding:20px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.modal-body::-webkit-scrollbar{width:4px}
+.modal-body::-webkit-scrollbar-track{background:transparent}
+.modal-body::-webkit-scrollbar-thumb{background:#E5E7EB;border-radius:4px}
+
+/* ---- SECTION BLOCKS ---- */
+.section-label{
+  font-size:10px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:0.6px;
+  margin-bottom:8px;
+  display:flex;align-items:center;gap:6px;
+}
+.section-label .sl-required{
+  font-size:9px;font-weight:600;color:var(--accent);
+  background:#FFF7ED;border:1px solid #FDBA74;
+  padding:1px 5px;border-radius:3px;text-transform:none;letter-spacing:0;
+}
+
+/* ---- TEAM SELECTOR ---- */
+.team-selector{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;
+}
+.team-card{
+  border:2px solid var(--border);border-radius:10px;
+  padding:10px 12px;cursor:pointer;
+  transition:all .15s;position:relative;
+}
+.team-card:hover{border-color:#FDBA74;background:#FFFCFA}
+.team-card.selected{border-color:var(--accent);background:#FFF7ED}
+.team-card.readonly{cursor:default;opacity:.7}
+.tc-abbr{
+  font-size:18px;font-weight:800;color:var(--text);
+  letter-spacing:-0.5px;line-height:1;
+}
+.tc-name{font-size:10px;color:var(--text2);margin-top:4px;font-weight:500}
+.tc-market{
+  display:inline-flex;align-items:center;
+  font-size:9px;font-weight:600;padding:1px 6px;
+  border-radius:4px;background:#F3F4F6;color:var(--text3);
+  margin-top:4px;
+}
+.tc-check{
+  position:absolute;top:7px;right:8px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--accent);color:#fff;
+  font-size:9px;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s;
+}
+.team-card.selected .tc-check{opacity:1}
+.team-readonly-badge{
+  display:flex;align-items:center;gap:6px;
+  padding:10px 14px;border:1px solid var(--border);border-radius:10px;
+  background:#F9FAFB;
+}
+.tr-badge-abbr{
+  font-size:20px;font-weight:800;color:var(--accent);
+}
+.tr-badge-info{flex:1}
+.tr-badge-name{font-size:13px;font-weight:600;color:var(--text)}
+.tr-badge-sub{font-size:11px;color:var(--text2);margin-top:1px}
+.tr-badge-lock{
+  font-size:10px;color:var(--text3);
+  display:flex;align-items:center;gap:3px;
+}
+
+/* ---- FORM FIELDS ---- */
+.field-row{display:flex;gap:10px}
+.field{display:flex;flex-direction:column;gap:5px;flex:1}
+.field-label{font-size:11px;font-weight:600;color:var(--text2)}
+.field select,.field input[type=text]{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  font-size:12px;
+  font-family:inherit;
+  color:var(--text);
+  background:var(--card);
+  outline:none;
+  transition:border-color .15s;
+  -webkit-appearance:none;appearance:none;
+}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236B7280'%3E%3Cpath d='M5 7l3 3 3-3'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;background-size:16px;padding-right:28px}
+.field select:focus,.field input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.field select:disabled,.field input[type=text]:disabled{background:#F9FAFB;color:var(--text3);cursor:not-allowed}
+
+/* ---- NAME PREVIEW BLOCK ---- */
+.name-preview{
+  background:#F8FAFF;border:1px solid #C7D2FE;
+  border-radius:10px;padding:12px 14px;
+}
+.np-label{font-size:10px;font-weight:600;color:var(--indigo);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.np-override-link{font-size:10px;font-weight:500;color:var(--text3);text-transform:none;letter-spacing:0;cursor:pointer}
+.np-override-link:hover{color:var(--text2)}
+.np-tokens{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-height:28px}
+.np-token{
+  padding:3px 8px;border-radius:5px;
+  font-size:11px;font-weight:600;
+  display:flex;align-items:center;gap:3px;
+}
+.np-token.filled{background:var(--indigo);color:#fff}
+.np-token.empty{background:#E5E7EB;color:var(--text3);font-style:italic;font-weight:400}
+.np-sep{color:var(--text3);font-size:12px;font-weight:400;line-height:1}
+.np-full{
+  margin-top:8px;padding-top:8px;border-top:1px dashed #C7D2FE;
+  font-size:12px;font-weight:600;color:var(--text);letter-spacing:0.3px;
+  font-family:monospace;
+}
+.np-full span{color:var(--text3);font-weight:400}
+.np-override-row{margin-top:8px;display:flex;gap:6px;align-items:center}
+.np-override-input{
+  flex:1;padding:6px 10px;
+  border:1px solid #C7D2FE;border-radius:6px;
+  font-size:11px;font-family:monospace;color:var(--text);
+  outline:none;background:#fff;
+}
+.np-override-input:focus{border-color:var(--indigo);box-shadow:0 0 0 2px rgba(99,102,241,.12)}
+.np-reset-btn{
+  padding:5px 10px;border:1px solid var(--border);border-radius:6px;
+  font-size:10px;font-weight:500;color:var(--text2);background:var(--card);
+  cursor:pointer;font-family:inherit;white-space:nowrap;
+}
+.np-reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ---- CAMPAIGN TYPE PILLS ---- */
+.type-pills{display:flex;gap:8px}
+.type-pill{
+  flex:1;border:2px solid var(--border);border-radius:10px;
+  padding:10px 8px;text-align:center;cursor:pointer;
+  transition:all .15s;
+}
+.type-pill:hover{border-color:#FDBA74;background:#FFFCFA}
+.type-pill.sel{border-color:var(--accent);background:#FFF7ED}
+.tp-icon{font-size:18px;margin-bottom:4px}
+.tp-name{font-size:11px;font-weight:700;color:var(--text)}
+.tp-desc{font-size:9px;color:var(--text2);margin-top:2px;line-height:1.3}
+
+/* ---- TARGETING STRATEGY GRID ---- */
+.targeting-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tg-card{
+  border:2px solid var(--border);border-radius:10px;
+  padding:10px 12px;cursor:pointer;transition:all .15s;
+}
+.tg-card:hover{border-color:#FDBA74;background:#FFFCFA}
+.tg-card.sel{border-color:var(--accent);background:#FFF7ED}
+.tg-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.tg-name{font-size:11px;font-weight:700;color:var(--text)}
+.tg-badge{font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px}
+.tg-badge.exact{background:#EEF2FF;color:var(--indigo)}
+.tg-badge.phrase{background:#F5F3FF;color:#7C3AED}
+.tg-badge.broad{background:#ECFDF5;color:var(--green)}
+.tg-badge.auto{background:#F0F9FF;color:#0284C7}
+.tg-badge.asin{background:#FFF7ED;color:var(--accent)}
+.tg-desc{font-size:10px;color:var(--text2);line-height:1.4}
+
+/* ---- PRODUCT / ASIN SELECTION ---- */
+.asin-search-bar{
+  display:flex;gap:6px;align-items:center;
+  padding:7px 10px;border:1px solid var(--border);border-radius:8px;
+  background:#F9FAFB;
+}
+.asin-search-bar input{
+  flex:1;border:none;background:transparent;
+  font-size:12px;font-family:inherit;color:var(--text);outline:none;
+}
+.asin-search-bar input::placeholder{color:var(--text3)}
+.asin-icon{font-size:13px;color:var(--text3)}
+.asin-results{
+  display:flex;flex-direction:column;gap:4px;
+  max-height:200px;overflow-y:auto;
+  margin-top:6px;padding:2px;
+}
+.asin-results::-webkit-scrollbar{width:3px}
+.asin-results::-webkit-scrollbar-thumb{background:#E5E7EB;border-radius:3px}
+.asin-item{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 10px;border:1px solid var(--border);border-radius:8px;
+  cursor:pointer;transition:all .12s;position:relative;
+}
+.asin-item:hover{border-color:#FDBA74;background:#FFFCFA}
+.asin-item.picked{border-color:var(--green);background:#F0FDF4}
+.asin-img{
+  width:36px;height:36px;border-radius:6px;
+  background:#F3F4F6;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;overflow:hidden;
+}
+.asin-info{flex:1;min-width:0}
+.asin-name{font-size:11px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asin-code{font-size:10px;color:var(--text3);font-family:monospace}
+.asin-price{font-size:11px;font-weight:600;color:var(--text);flex-shrink:0}
+.asin-check{
+  width:18px;height:18px;border-radius:50%;
+  background:var(--green);color:#fff;
+  font-size:9px;display:flex;align-items:center;justify-content:center;
+  opacity:0;flex-shrink:0;transition:opacity .15s;
+}
+.asin-item.picked .asin-check{opacity:1}
+
+.selected-asins{
+  display:flex;flex-wrap:wrap;gap:5px;
+  margin-top:6px;padding:8px 10px;
+  background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;
+  min-height:36px;align-items:center;
+}
+.selected-asins-label{font-size:10px;color:var(--green);font-weight:600;width:100%;margin-bottom:2px}
+.asin-chip{
+  display:flex;align-items:center;gap:4px;
+  padding:2px 8px 2px 6px;
+  background:#fff;border:1px solid #BBF7D0;border-radius:6px;
+  font-size:10px;font-weight:500;color:var(--text);
+}
+.asin-chip-x{
+  font-size:11px;color:var(--text3);cursor:pointer;line-height:1;
+  padding:0 1px;border-radius:2px;
+}
+.asin-chip-x:hover{color:var(--red)}
+
+/* ---- BUDGET FIELDS ---- */
+.budget-row{display:flex;gap:10px;align-items:flex-end}
+.budget-field{display:flex;flex-direction:column;gap:5px;flex:1}
+.budget-field label{font-size:11px;font-weight:600;color:var(--text2)}
+.budget-input-wrap{
+  display:flex;align-items:center;
+  border:1px solid var(--border);border-radius:8px;overflow:hidden;
+}
+.budget-prefix{
+  padding:8px 10px;background:#F9FAFB;
+  border-right:1px solid var(--border);
+  font-size:12px;font-weight:600;color:var(--text2);
+  flex-shrink:0;
+}
+.budget-input-wrap input{
+  flex:1;padding:8px 10px;border:none;
+  font-size:12px;font-family:inherit;color:var(--text);
+  outline:none;background:var(--card);
+}
+.budget-input-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.budget-hint{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* ---- KEYWORD SETUP ---- */
+.kw-list{display:flex;flex-direction:column;gap:4px}
+.kw-input-row{display:flex;gap:6px}
+.kw-input-row input[type=text]{
+  flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:8px;
+  font-size:12px;font-family:inherit;color:var(--text);outline:none;
+}
+.kw-input-row input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.kw-match-select{
+  width:90px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;
+  font-size:11px;font-family:inherit;color:var(--text2);outline:none;
+  -webkit-appearance:none;appearance:none;background:#F9FAFB;text-align:center;
+}
+.kw-add-btn{
+  padding:7px 12px;background:var(--accent);color:#fff;
+  border:none;border-radius:8px;font-size:11px;font-weight:600;
+  cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;
+}
+.kw-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.kw-chip{
+  display:flex;align-items:center;gap:4px;
+  padding:3px 8px 3px 6px;border-radius:5px;
+  font-size:10px;font-weight:600;
+}
+.kw-chip.exact{background:#EEF2FF;color:var(--indigo);border:1px solid #C7D2FE}
+.kw-chip.phrase{background:#F5F3FF;color:#7C3AED;border:1px solid #DDD6FE}
+.kw-chip.broad{background:#ECFDF5;color:var(--green);border:1px solid #BBF7D0}
+.kw-chip-x{font-size:11px;cursor:pointer;opacity:.6}
+.kw-chip-x:hover{opacity:1;color:var(--red)}
+.kw-import-link{font-size:11px;color:var(--indigo);cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:3px;margin-top:4px}
+.kw-import-link:hover{text-decoration:underline}
+
+/* ---- REVIEW SUMMARY ---- */
+.review-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.review-block{
+  border:1px solid var(--border);border-radius:10px;padding:12px 14px;
+}
+.rb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.rb-title{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.rb-edit{font-size:10px;color:var(--indigo);cursor:pointer;font-weight:500}
+.rb-edit:hover{text-decoration:underline}
+.rb-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.rb-row:last-child{margin-bottom:0}
+.rb-key{font-size:11px;color:var(--text2)}
+.rb-val{font-size:11px;font-weight:600;color:var(--text)}
+.rb-val.accent{color:var(--accent)}
+.rb-val.green{color:var(--green)}
+.review-name-block{
+  grid-column:span 2;
+  background:#F8FAFF;border:1px solid #C7D2FE;border-radius:10px;
+  padding:12px 14px;
+}
+.rnb-label{font-size:10px;font-weight:700;color:var(--indigo);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.rnb-name{font-size:13px;font-weight:700;color:var(--text);font-family:monospace;letter-spacing:0.3px}
+
+/* ---- MODAL FOOTER ---- */
+.modal-footer{
+  padding:16px 24px;
+  border-top:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  flex-shrink:0;background:var(--card);
+}
+.mf-back{
+  padding:8px 16px;border:1px solid var(--border);border-radius:8px;
+  font-size:12px;font-weight:500;color:var(--text2);background:var(--card);
+  cursor:pointer;font-family:inherit;
+}
+.mf-back:hover{border-color:var(--text2);color:var(--text)}
+.mf-back:disabled{opacity:.35;cursor:not-allowed}
+.mf-right{display:flex;gap:8px;align-items:center}
+.mf-skip{font-size:11px;color:var(--text3);cursor:pointer;font-weight:500}
+.mf-skip:hover{color:var(--text2)}
+.mf-next{
+  padding:8px 20px;background:var(--accent);color:#fff;
+  border:none;border-radius:8px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;
+  transition:background .15s;
+}
+.mf-next:hover{background:#EA6C0D}
+.mf-next.green{background:var(--green)}
+.mf-next.green:hover{background:#047857}
+.mf-step-hint{font-size:10px;color:var(--text3)}
+
+/* ================================================
+   STEP PANELS — visibility toggle
+   ================================================ */
+.step-panel{display:none}
+.step-panel.active{display:flex;flex-direction:column;gap:18px}
+
+/* ================================================
+   UTILITY
+   ================================================ */
+.divider{height:1px;background:var(--border);margin:0 -24px;width:calc(100% + 48px)}
+.inline-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600}
+.ib-sp{background:#FFF7ED;color:var(--accent)}
+.ib-sb{background:#EEF2FF;color:var(--indigo)}
+.ib-sd{background:#F9FAFB;color:var(--text2)}
+.hint-box{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:9px 12px;background:#FFF7ED;border:1px solid #FDBA74;
+  border-radius:8px;font-size:11px;color:var(--accent);
+}
+.hint-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+
+</style>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div><div class="logo-text">Amazon Resource</div><div class="logo-sub">Controller</div></div>
+  </div>
+  <div class="module">◯ AD Optimizer</div>
+  <nav class="nav">
+    <div class="nav-item active"><div class="nav-bar"></div>Dashboard</div>
+    <div class="nav-item"><div class="nav-bar"></div>Campaigns</div>
+    <div class="nav-item"><div class="nav-bar"></div>Optimization</div>
+    <div class="nav-item"><div class="nav-bar"></div>Auto Pilot</div>
+    <div class="nav-item"><div class="nav-bar"></div>Reports</div>
+  </nav>
+</div>
+
+<!-- ===== MAIN (dimmed background) ===== -->
+<div class="main">
+  <div class="topbar">
+    <div class="cmdk">🔍 Search campaigns, keywords... <kbd>⌘K</kbd></div>
+    <div class="topbar-right">
+      <span style="font-size:11px;font-weight:500;color:var(--text)">Spigen US</span>
+      <span style="color:var(--border)">|</span>
+      <span>Mar 26, 2026</span>
+      <div class="avatar">JS</div>
+    </div>
+  </div>
+  <div class="page-dimmed"></div>
+
+  <!-- ===== OVERLAY ===== -->
+  <div class="overlay">
+
+    <!-- ====================================================
+         M01 — CAMPAIGN CREATE WIZARD MODAL
+         ==================================================== -->
+    <div class="modal">
+
+      <!-- MODAL HEADER -->
+      <div class="modal-header">
+        <div class="mh-top">
+          <div>
+            <div class="mh-title">New Campaign</div>
+            <div class="mh-sub">Step <span id="step-current">1</span> of 4 — <span id="step-name-display">Team &amp; Name</span></div>
+          </div>
+          <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+
+        <!-- STEP PROGRESS -->
+        <div class="step-nav">
+          <div class="step-item active" id="si-1">
+            <div class="step-circle">1</div>
+            <div class="step-label">Team<br>&amp; Name</div>
+          </div>
+          <div class="step-item pending" id="si-2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Type &amp;<br>Targeting</div>
+          </div>
+          <div class="step-item pending" id="si-3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Products<br>&amp; Budget</div>
+          </div>
+          <div class="step-item pending" id="si-4">
+            <div class="step-circle">4</div>
+            <div class="step-label">Review<br>&amp; Create</div>
+          </div>
+        </div>
+        <div class="step-divider"></div>
+      </div>
+
+      <!-- ===================================================
+           STEP 1 — TEAM & NAME
+           =================================================== -->
+      <div class="modal-body" id="body-step1">
+        <div class="step-panel active" id="step1">
+
+          <!-- Team Selector — Director view (multiple teams) -->
+          <div id="director-team-section">
+            <div class="section-label">
+              Select Team
+              <span class="sl-required">Required</span>
+            </div>
+            <div class="hint-box" style="margin-bottom:10px">
+              <span class="hint-icon">ℹ</span>
+              <span>As Director, you manage multiple teams. Select which team owns this campaign.</span>
+            </div>
+            <div class="team-selector">
+              <div class="team-card selected" onclick="selectTeam(this,'MKT-A')">
+                <div class="tc-check">✓</div>
+                <div class="tc-abbr">MKT-A</div>
+                <div class="tc-name">Marketing A</div>
+                <div class="tc-market">US · 12 campaigns</div>
+              </div>
+              <div class="team-card" onclick="selectTeam(this,'MKT-B')">
+                <div class="tc-check">✓</div>
+                <div class="tc-abbr">MKT-B</div>
+                <div class="tc-name">Marketing B</div>
+                <div class="tc-market">US · 8 campaigns</div>
+              </div>
+              <div class="team-card" onclick="selectTeam(this,'MKT-EU')">
+                <div class="tc-check">✓</div>
+                <div class="tc-abbr">MKT-EU</div>
+                <div class="tc-name">Marketing EU</div>
+                <div class="tc-market">EU · 6 campaigns</div>
+              </div>
+            </div>
+
+            <!-- Marketer view — auto-filled, read-only (hidden by default; JS toggles) -->
+          </div>
+
+          <!-- Marketer view (role = marketer, single team) -->
+          <div id="marketer-team-section" style="display:none">
+            <div class="section-label">Your Team</div>
+            <div class="team-readonly-badge">
+              <div class="tr-badge-abbr">MKT-A</div>
+              <div class="tr-badge-info">
+                <div class="tr-badge-name">Marketing A — Spigen US</div>
+                <div class="tr-badge-sub">12 active campaigns · Campaign prefix: <strong>MKT-A</strong></div>
+              </div>
+              <div class="tr-badge-lock">🔒 Auto-assigned</div>
+            </div>
+          </div>
+
+          <!-- Campaign Meta Fields -->
+          <div>
+            <div class="section-label">Campaign Details</div>
+            <div class="field-row" style="margin-bottom:10px">
+              <div class="field">
+                <div class="field-label">Brand</div>
+                <select onchange="updateNamePreview()">
+                  <option value="">Select brand...</option>
+                  <option value="Spigen" selected>Spigen</option>
+                  <option value="Cyrill">Cyrill</option>
+                  <option value="Caseology">Caseology</option>
+                </select>
+              </div>
+              <div class="field">
+                <div class="field-label">Market</div>
+                <select onchange="updateNamePreview()">
+                  <option value="">Select market...</option>
+                  <option value="US" selected>US</option>
+                  <option value="CA">CA</option>
+                  <option value="UK">UK</option>
+                  <option value="DE">DE</option>
+                  <option value="JP">JP</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <div class="field-label">Product / Series</div>
+                <select onchange="updateNamePreview()">
+                  <option value="">Select product...</option>
+                  <option value="iPhone16" selected>iPhone 16 Cases</option>
+                  <option value="Galaxy" >Galaxy S25 Cases</option>
+                  <option value="AirPods">AirPods Cases</option>
+                  <option value="Charger">Chargers</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Auto-generated Name Preview -->
+          <div>
+            <div class="section-label">Campaign Name Preview</div>
+            <div class="name-preview">
+              <div class="np-label">
+                Auto-generated from your selections
+                <span class="np-override-link" onclick="toggleOverride()">Override manually</span>
+              </div>
+              <div class="np-tokens" id="name-tokens">
+                <span class="np-token filled">MKT-A</span>
+                <span class="np-sep">_</span>
+                <!-- Type slot — filled after step 2 -->
+                <span class="np-token filled" id="tok-type" style="background:var(--indigo)">SP</span>
+                <span class="np-sep">_</span>
+                <span class="np-token filled">US</span>
+                <span class="np-sep">_</span>
+                <!-- Strategy slot — filled after step 2 -->
+                <span class="np-token empty" id="tok-strategy">Strategy</span>
+                <span class="np-sep">_</span>
+                <span class="np-token filled">iPhone16</span>
+                <span class="np-sep">_</span>
+                <!-- Match slot — filled after step 2 -->
+                <span class="np-token empty" id="tok-match">Match</span>
+              </div>
+              <div class="np-full" id="name-full">
+                MKT-A_SP_US_<span>Brand</span>_iPhone16_<span>Exact</span>
+              </div>
+              <!-- Override row — hidden by default -->
+              <div class="np-override-row" id="override-row" style="display:none">
+                <input class="np-override-input" type="text" id="override-input"
+                  value="MKT-A_SP_US_Brand_iPhone16_Exact"
+                  oninput="onOverrideInput(this)">
+                <button class="np-reset-btn" onclick="resetOverride()">↺ Reset</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===================================================
+           STEP 2 — TYPE & TARGETING
+           =================================================== -->
+      <div class="modal-body" id="body-step2" style="display:none">
+        <div class="step-panel active" id="step2">
+
+          <!-- Ad Type -->
+          <div>
+            <div class="section-label">
+              Ad Type
+              <span class="sl-required">Required</span>
+            </div>
+            <div class="type-pills">
+              <div class="type-pill sel" onclick="selectType(this,'SP')">
+                <div class="tp-icon">🎯</div>
+                <div class="tp-name">SP</div>
+                <div class="tp-desc">Sponsored<br>Products</div>
+              </div>
+              <div class="type-pill" onclick="selectType(this,'SB')">
+                <div class="tp-icon">🏷</div>
+                <div class="tp-name">SB</div>
+                <div class="tp-desc">Sponsored<br>Brands</div>
+              </div>
+              <div class="type-pill" onclick="selectType(this,'SD')">
+                <div class="tp-icon">📺</div>
+                <div class="tp-name">SD</div>
+                <div class="tp-desc">Sponsored<br>Display</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Targeting Strategy -->
+          <div>
+            <div class="section-label">
+              Targeting Strategy
+              <span class="sl-required">Required</span>
+            </div>
+            <div class="targeting-grid">
+              <div class="tg-card sel" onclick="selectStrategy(this,'Brand','Exact')">
+                <div class="tg-head">
+                  <span class="tg-name">Brand</span>
+                  <span class="tg-badge exact">Exact</span>
+                </div>
+                <div class="tg-desc">Target customers searching your own brand keywords with exact match precision.</div>
+              </div>
+              <div class="tg-card" onclick="selectStrategy(this,'Competitor','Exact')">
+                <div class="tg-head">
+                  <span class="tg-name">Competitor</span>
+                  <span class="tg-badge exact">Exact</span>
+                </div>
+                <div class="tg-desc">Target competitor brand searches to capture adjacent demand.</div>
+              </div>
+              <div class="tg-card" onclick="selectStrategy(this,'Generic','Broad')">
+                <div class="tg-head">
+                  <span class="tg-name">Generic</span>
+                  <span class="tg-badge broad">Broad</span>
+                </div>
+                <div class="tg-desc">Broad category keywords for discovery and new-to-brand reach.</div>
+              </div>
+              <div class="tg-card" onclick="selectStrategy(this,'Auto','Auto')">
+                <div class="tg-head">
+                  <span class="tg-name">Auto</span>
+                  <span class="tg-badge auto">Auto</span>
+                </div>
+                <div class="tg-desc">Amazon auto-targets based on product listing. Best for research phase.</div>
+              </div>
+              <div class="tg-card" onclick="selectStrategy(this,'ASIN','ASIN')">
+                <div class="tg-head">
+                  <span class="tg-name">ASIN Targeting</span>
+                  <span class="tg-badge asin">ASIN</span>
+                </div>
+                <div class="tg-desc">Target specific competitor product detail pages.</div>
+              </div>
+              <div class="tg-card" onclick="selectStrategy(this,'Retargeting','Phrase')">
+                <div class="tg-head">
+                  <span class="tg-name">Retargeting</span>
+                  <span class="tg-badge phrase">Phrase</span>
+                </div>
+                <div class="tg-desc">Re-engage shoppers who viewed your products or similar listings.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Name Update Notice -->
+          <div class="name-preview">
+            <div class="np-label">Campaign name will update to:</div>
+            <div class="np-full" style="font-size:13px">
+              MKT-A_<strong style="color:var(--accent)">SP</strong>_US_<strong style="color:var(--accent)">Brand</strong>_iPhone16_<strong style="color:var(--accent)">Exact</strong>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===================================================
+           STEP 3 — PRODUCTS & BUDGET
+           =================================================== -->
+      <div class="modal-body" id="body-step3" style="display:none">
+        <div class="step-panel active" id="step3">
+
+          <!-- Product / ASIN Selection -->
+          <div>
+            <div class="section-label">
+              Products (ASINs)
+              <span class="sl-required">Required · Min 1</span>
+            </div>
+            <div class="asin-search-bar">
+              <span class="asin-icon">🔍</span>
+              <input type="text" placeholder="Search by product name or ASIN (e.g. B0CH4QLNKL)...">
+            </div>
+            <div class="asin-results">
+              <div class="asin-item picked" onclick="toggleAsin(this)">
+                <div class="asin-img">📱</div>
+                <div class="asin-info">
+                  <div class="asin-name">Spigen Tough Armor iPhone 16 Case — Black</div>
+                  <div class="asin-code">B0CH4QLNKL</div>
+                </div>
+                <div class="asin-price">$19.99</div>
+                <div class="asin-check">✓</div>
+              </div>
+              <div class="asin-item picked" onclick="toggleAsin(this)">
+                <div class="asin-img">📱</div>
+                <div class="asin-info">
+                  <div class="asin-name">Spigen Ultra Hybrid iPhone 16 Case — Crystal Clear</div>
+                  <div class="asin-code">B0CH4P8MXQ</div>
+                </div>
+                <div class="asin-price">$15.99</div>
+                <div class="asin-check">✓</div>
+              </div>
+              <div class="asin-item" onclick="toggleAsin(this)">
+                <div class="asin-img">📱</div>
+                <div class="asin-info">
+                  <div class="asin-name">Spigen Liquid Air iPhone 16 Case — Matte Black</div>
+                  <div class="asin-code">B0CH4R2VWP</div>
+                </div>
+                <div class="asin-price">$14.99</div>
+                <div class="asin-check">✓</div>
+              </div>
+              <div class="asin-item" onclick="toggleAsin(this)">
+                <div class="asin-img">📱</div>
+                <div class="asin-info">
+                  <div class="asin-name">Spigen Rugged Armor iPhone 16 Case — Matte Black</div>
+                  <div class="asin-code">B0CH4SXVTK</div>
+                </div>
+                <div class="asin-price">$13.99</div>
+                <div class="asin-check">✓</div>
+              </div>
+            </div>
+            <!-- Selected chips -->
+            <div class="selected-asins">
+              <div class="selected-asins-label">2 ASINs selected</div>
+              <div class="asin-chip">📱 B0CH4QLNKL<span class="asin-chip-x">×</span></div>
+              <div class="asin-chip">📱 B0CH4P8MXQ<span class="asin-chip-x">×</span></div>
+            </div>
+          </div>
+
+          <!-- Budget -->
+          <div>
+            <div class="section-label">
+              Daily Budget
+              <span class="sl-required">Required</span>
+            </div>
+            <div class="budget-row">
+              <div class="budget-field">
+                <label>Daily Budget</label>
+                <div class="budget-input-wrap">
+                  <div class="budget-prefix">$</div>
+                  <input type="text" value="150.00" oninput="updateBudgetHint(this)">
+                </div>
+                <div class="budget-hint">Recommended: $120–$200/day for Brand SP campaigns</div>
+              </div>
+              <div class="budget-field">
+                <label>Default Bid</label>
+                <div class="budget-input-wrap">
+                  <div class="budget-prefix">$</div>
+                  <input type="text" value="1.20">
+                </div>
+                <div class="budget-hint">Suggested CPC range: $0.80–$1.50</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Keyword Setup (conditional: shown for SP/SB Manual, hidden for Auto) -->
+          <div>
+            <div class="section-label">
+              Seed Keywords
+              <span style="font-size:10px;color:var(--text3);text-transform:none;letter-spacing:0;font-weight:400;margin-left:4px">Optional — add now or later in Optimization</span>
+            </div>
+            <div class="kw-list">
+              <div class="kw-input-row">
+                <input type="text" placeholder="Enter keyword (e.g. iphone 16 case)">
+                <select class="kw-match-select">
+                  <option value="exact">Exact</option>
+                  <option value="phrase">Phrase</option>
+                  <option value="broad">Broad</option>
+                </select>
+                <button class="kw-add-btn">+ Add</button>
+              </div>
+              <div class="kw-chips">
+                <span class="kw-chip exact">iphone 16 case <span class="kw-chip-x">×</span></span>
+                <span class="kw-chip exact">spigen iphone 16 <span class="kw-chip-x">×</span></span>
+                <span class="kw-chip phrase">tough armor case <span class="kw-chip-x">×</span></span>
+                <span class="kw-chip broad">phone case protection <span class="kw-chip-x">×</span></span>
+              </div>
+              <span class="kw-import-link">↑ Import from top performers in similar campaigns</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===================================================
+           STEP 4 — REVIEW & CREATE
+           =================================================== -->
+      <div class="modal-body" id="body-step4" style="display:none">
+        <div class="step-panel active" id="step4">
+
+          <!-- Campaign name banner -->
+          <div class="review-name-block">
+            <div class="rnb-label">Campaign Name</div>
+            <div class="rnb-name">MKT-A_SP_US_Brand_iPhone16_Exact</div>
+          </div>
+
+          <!-- Summary grid -->
+          <div class="review-grid">
+            <!-- Team & Assignment -->
+            <div class="review-block">
+              <div class="rb-header">
+                <span class="rb-title">Team</span>
+                <span class="rb-edit" onclick="goToStep(1)">Edit</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">Team</span>
+                <span class="rb-val accent">MKT-A</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">Brand</span>
+                <span class="rb-val">Spigen</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">Market</span>
+                <span class="rb-val">US</span>
+              </div>
+            </div>
+
+            <!-- Type & Targeting -->
+            <div class="review-block">
+              <div class="rb-header">
+                <span class="rb-title">Type &amp; Targeting</span>
+                <span class="rb-edit" onclick="goToStep(2)">Edit</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">Ad Type</span>
+                <span class="rb-val"><span class="inline-badge ib-sp">SP</span></span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">Strategy</span>
+                <span class="rb-val">Brand</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">Match</span>
+                <span class="rb-val">Exact</span>
+              </div>
+            </div>
+
+            <!-- Products -->
+            <div class="review-block">
+              <div class="rb-header">
+                <span class="rb-title">Products</span>
+                <span class="rb-edit" onclick="goToStep(3)">Edit</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">ASINs</span>
+                <span class="rb-val green">2 selected</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">B0CH4QLNKL</span>
+                <span class="rb-val" style="font-size:9px;font-family:monospace">Tough Armor</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">B0CH4P8MXQ</span>
+                <span class="rb-val" style="font-size:9px;font-family:monospace">Ultra Hybrid</span>
+              </div>
+            </div>
+
+            <!-- Budget -->
+            <div class="review-block">
+              <div class="rb-header">
+                <span class="rb-title">Budget</span>
+                <span class="rb-edit" onclick="goToStep(3)">Edit</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">Daily Budget</span>
+                <span class="rb-val green">$150.00</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">Default Bid</span>
+                <span class="rb-val">$1.20</span>
+              </div>
+              <div class="rb-row">
+                <span class="rb-key">Keywords</span>
+                <span class="rb-val">4 seed KWs</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Launch options -->
+          <div>
+            <div class="section-label">Launch Options</div>
+            <div class="field-row">
+              <div class="field">
+                <div class="field-label">Start Date</div>
+                <input type="text" value="Today (Mar 26, 2026)">
+              </div>
+              <div class="field">
+                <div class="field-label">Auto Pilot</div>
+                <select>
+                  <option value="off">Off — Manual control</option>
+                  <option value="on">On — AI manages bids &amp; budget</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="hint-box">
+            <span class="hint-icon">✅</span>
+            <span>Ready to create. Campaign will appear in your dashboard within 15–30 minutes after Amazon activation.</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- MODAL FOOTER -->
+      <div class="modal-footer">
+        <button class="mf-back" id="back-btn" onclick="prevStep()" disabled>← Back</button>
+        <div class="mf-right">
+          <span class="mf-step-hint" id="step-hint">Step 1 of 4</span>
+          <button class="mf-next" id="next-btn" onclick="nextStep()">Continue →</button>
+        </div>
+      </div>
+
+    </div>
+    <!-- /modal -->
+
+  </div>
+  <!-- /overlay -->
+
+</div>
+<!-- /main -->
+
+<script>
+/* ======================================================
+   WIZARD STATE
+   ====================================================== */
+let currentStep = 1;
+const TOTAL_STEPS = 4;
+const STEP_NAMES = ['Team & Name', 'Type & Targeting', 'Products & Budget', 'Review & Create'];
+
+/* Step classes: 'done' | 'active' | 'pending' */
+function setStepIndicators(step) {
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const el = document.getElementById('si-' + i);
+    if (i < step)       el.className = 'step-item done';
+    else if (i === step) el.className = 'step-item active';
+    else                el.className = 'step-item pending';
+
+    // Update circle text: done steps show checkmark
+    const circle = el.querySelector('.step-circle');
+    circle.textContent = i < step ? '✓' : String(i);
+  }
+}
+
+function showStep(step) {
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    document.getElementById('body-step' + i).style.display = i === step ? 'flex' : 'none';
+  }
+  setStepIndicators(step);
+
+  // Update header sub-text
+  document.getElementById('step-current').textContent = step;
+  document.getElementById('step-name-display').textContent = STEP_NAMES[step - 1];
+
+  // Footer
+  document.getElementById('step-hint').textContent = 'Step ' + step + ' of ' + TOTAL_STEPS;
+  document.getElementById('back-btn').disabled = step === 1;
+
+  const nextBtn = document.getElementById('next-btn');
+  if (step === TOTAL_STEPS) {
+    nextBtn.textContent = 'Create Campaign ✓';
+    nextBtn.className = 'mf-next green';
+  } else {
+    nextBtn.textContent = 'Continue →';
+    nextBtn.className = 'mf-next';
+  }
+}
+
+function nextStep() {
+  if (currentStep < TOTAL_STEPS) {
+    currentStep++;
+    showStep(currentStep);
+  } else {
+    // Final create action
+    alert('Campaign MKT-A_SP_US_Brand_iPhone16_Exact created!\n\nIt will appear in your dashboard within 15–30 minutes.');
+  }
+}
+
+function prevStep() {
+  if (currentStep > 1) {
+    currentStep--;
+    showStep(currentStep);
+  }
+}
+
+function goToStep(step) {
+  currentStep = step;
+  showStep(step);
+}
+
+function closeModal() {
+  document.querySelector('.overlay').style.opacity = '0';
+  document.querySelector('.overlay').style.pointerEvents = 'none';
+}
+
+/* ======================================================
+   TEAM SELECTOR
+   ====================================================== */
+function selectTeam(card, prefix) {
+  document.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  updateNamePreview();
+}
+
+// Toggle between director (multi) and marketer (read-only) views
+let roleView = 'director'; // 'director' | 'marketer'
+function setRoleView(role) {
+  roleView = role;
+  document.getElementById('director-team-section').style.display = role === 'director' ? 'block' : 'none';
+  document.getElementById('marketer-team-section').style.display = role === 'marketer' ? 'block' : 'none';
+}
+
+/* ======================================================
+   AD TYPE SELECTOR
+   ====================================================== */
+function selectType(pill, type) {
+  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('sel'));
+  pill.classList.add('sel');
+  document.getElementById('tok-type').textContent = type;
+  updateNamePreview();
+}
+
+/* ======================================================
+   STRATEGY SELECTOR
+   ====================================================== */
+function selectStrategy(card, strategy, match) {
+  document.querySelectorAll('.tg-card').forEach(c => c.classList.remove('sel'));
+  card.classList.add('sel');
+  const tokS = document.getElementById('tok-strategy');
+  const tokM = document.getElementById('tok-match');
+  tokS.textContent = strategy;
+  tokS.className = 'np-token filled';
+  tokM.textContent = match;
+  tokM.className = 'np-token filled';
+  updateNamePreview();
+}
+
+/* ======================================================
+   NAME PREVIEW BUILDER
+   ====================================================== */
+function updateNamePreview() {
+  const selectedTeam = document.querySelector('.team-card.selected');
+  const prefix = selectedTeam ? selectedTeam.querySelector('.tc-abbr').textContent : 'MKT-A';
+  const type   = document.getElementById('tok-type').textContent;
+  const strategy = document.getElementById('tok-strategy');
+  const match    = document.getElementById('tok-match');
+  const strategyVal = strategy.className.includes('empty') ? 'Brand' : strategy.textContent;
+  const matchVal    = match.className.includes('empty')    ? 'Exact' : match.textContent;
+  // Market and product from dropdowns
+  const marketSel  = document.querySelector('.field select:nth-of-type(2)');
+  const productSel = document.querySelector('.field select:nth-of-type(3)');
+
+  const full = document.getElementById('name-full');
+  const overInput = document.getElementById('override-input');
+  const builtName = `${prefix}_${type}_US_${strategyVal}_iPhone16_${matchVal}`;
+  full.innerHTML = builtName.replace(/<[^>]*>/g,'');
+  if (overInput) overInput.value = builtName;
+}
+
+/* ======================================================
+   OVERRIDE TOGGLE
+   ====================================================== */
+let overrideActive = false;
+function toggleOverride() {
+  overrideActive = !overrideActive;
+  const row = document.getElementById('override-row');
+  row.style.display = overrideActive ? 'flex' : 'none';
+}
+function onOverrideInput(input) {
+  const full = document.getElementById('name-full');
+  full.textContent = input.value;
+}
+function resetOverride() {
+  overrideActive = false;
+  document.getElementById('override-row').style.display = 'none';
+  updateNamePreview();
+}
+
+/* ======================================================
+   ASIN TOGGLE
+   ====================================================== */
+function toggleAsin(item) {
+  item.classList.toggle('picked');
+}
+
+/* ======================================================
+   INIT
+   ====================================================== */
+showStep(1);
+</script>
+</body>
+</html>

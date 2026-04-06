@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S04 — Optimization: Bidding</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ================================================
+   DESIGN TOKENS — matches s02 / s03 / m01–m05
+   ================================================ */
+:root {
+  --sidebar: 220px;
+  --pad: 28px;
+  --gap: 16px;
+  --radius: 12px;
+  --border: #E5E7EB;
+  --bg: #F3F4F6;
+  --card: #fff;
+  --text: #18181B;
+  --text2: #6B7280;
+  --text3: #9CA3AF;
+  --accent: #F97316;
+  --accent-bg: #FFF7ED;
+  --accent-border: #FDBA74;
+  --green: #059669;
+  --green-bg: #ECFDF5;
+  --green-border: #6EE7B7;
+  --red: #B91C1C;
+  --red-bg: #FEF2F2;
+  --red-border: #FECACA;
+  --indigo: #6366F1;
+  --indigo-bg: #EEF2FF;
+  --indigo-border: #C7D2FE;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);display:flex;height:100vh;overflow:hidden;font-size:13px}
+
+/* ================================================
+   SIDEBAR
+   ================================================ */
+.sidebar{width:var(--sidebar);background:var(--card);border-right:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:24px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px;padding:0 4px}
+.logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.logo-text{font-size:13px;color:var(--text);font-weight:600}
+.logo-sub{font-size:10px;color:var(--text3)}
+.module{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:8px;font-size:13px;color:var(--accent);font-weight:500}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;color:var(--text2);cursor:pointer}
+.nav-item:hover{background:#F9FAFB}
+.nav-item.active{background:var(--accent-bg);color:var(--accent);font-weight:600}
+.nav-bar{width:3px;height:18px;border-radius:2px}
+.nav-item.active .nav-bar{background:var(--accent)}
+.nav-icon{font-size:14px}
+.nav-badge{margin-left:auto;background:var(--red-bg);color:var(--red);font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
+
+/* ================================================
+   MAIN SHELL
+   ================================================ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ================================================
+   TOPBAR
+   ================================================ */
+.topbar{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.breadcrumb-sep{color:var(--text3)}
+.breadcrumb a{color:var(--text2);text-decoration:none;cursor:pointer}
+.breadcrumb a:hover{color:var(--text)}
+.breadcrumb-current{font-weight:600;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--text2)}
+.bell{position:relative;cursor:pointer;font-size:14px}
+.bell-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--card)}
+.avatar{width:28px;height:28px;background:var(--accent-bg);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--accent);border:1px solid var(--accent-border)}
+.cmdk{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#F9FAFB;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)}
+.cmdk kbd{background:#E5E7EB;padding:2px 6px;border-radius:4px;font-size:10px;color:var(--text2)}
+
+/* ================================================
+   CAMPAIGN CONTEXT BAR
+   ================================================ */
+.ctx-bar{
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  padding:0 var(--pad);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  height:48px;
+  flex-shrink:0;
+}
+.ctx-left{display:flex;align-items:center;gap:12px}
+.campaign-select{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 12px;
+  background:#F9FAFB;
+  border:1px solid var(--border);
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13px;font-weight:600;color:var(--text);
+  transition:border-color .15s;
+}
+.campaign-select:hover{border-color:var(--accent)}
+.campaign-select-arrow{font-size:10px;color:var(--text3)}
+.ctx-pills{display:flex;gap:6px}
+.ctx-pill{
+  padding:2px 8px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:10px;
+  font-size:10px;font-weight:500;color:var(--text2);
+}
+.ctx-pill.manual{background:var(--indigo-bg);border-color:var(--indigo-border);color:var(--indigo)}
+.ctx-pill.active{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.ctx-right{display:flex;align-items:center;gap:8px}
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent);color:#fff;border:none}
+.btn-outline{background:var(--card);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost{background:transparent;color:var(--text2);border:none;padding:7px 8px}
+
+/* ================================================
+   STRATEGY STRIP
+   ================================================ */
+.strategy-strip{
+  background:#FAFAFA;
+  border-bottom:1px solid var(--border);
+  padding:0 var(--pad);
+  height:34px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-shrink:0;
+}
+.strategy-label{font-size:11px;color:var(--text3);font-weight:500}
+.strategy-val{font-size:11px;font-weight:600;color:var(--text)}
+.strategy-edit{font-size:11px;color:var(--accent);cursor:pointer;font-weight:500}
+.strategy-edit:hover{text-decoration:underline}
+.strategy-sep{color:var(--border);font-size:10px}
+
+/* ================================================
+   OPTIMIZATION TABS
+   ================================================ */
+.opt-tabs{
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  padding:0 var(--pad);
+  display:flex;
+  align-items:flex-end;
+  gap:0;
+  flex-shrink:0;
+}
+.opt-tab{
+  padding:10px 16px 9px;
+  font-size:12px;font-weight:500;color:var(--text2);
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s;
+  white-space:nowrap;
+}
+.opt-tab:hover{color:var(--text)}
+.opt-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+/* ================================================
+   SCROLLABLE CONTENT
+   ================================================ */
+.content{flex:1;overflow-y:auto;padding:var(--gap) var(--pad) var(--pad)}
+
+/* 12-col grid */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--gap)}
+.col-12{grid-column:span 12}
+.col-8{grid-column:span 8}
+.col-6{grid-column:span 6}
+.col-4{grid-column:span 4}
+.col-3{grid-column:span 3}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+
+/* ================================================
+   ZONE A: TODAY'S ACTION QUEUE
+   ================================================ */
+.zone-a{margin-bottom:var(--gap)}
+.zone-a-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.zone-a-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.zone-a-badge{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.zone-a-meta{font-size:11px;color:var(--text3)}
+
+/* 3-column card row */
+.queue-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap)}
+
+/* single action card */
+.q-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  position:relative;
+}
+.q-card.pending{border-left:3px solid var(--accent)}
+.q-card.applied{border-left:3px solid var(--green);opacity:.7}
+
+.q-card-top{display:flex;align-items:flex-start;justify-content:space-between}
+.q-rank{font-size:10px;font-weight:700;color:var(--text3)}
+
+/* trend tag — border color only, no bg fill */
+.trend-tag{
+  padding:2px 7px;
+  border-radius:10px;
+  font-size:10px;font-weight:600;
+  background:var(--card);
+  border:1px solid;
+}
+.trend-rising{color:var(--green);border-color:var(--green)}
+.trend-declining{color:var(--red);border-color:var(--red-border)}
+.trend-emerging{color:var(--accent);border-color:var(--accent-border)}
+.trend-stable{color:var(--text3);border-color:var(--border)}
+
+.q-keyword{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.3px;line-height:1.3}
+.q-meta{font-size:10px;color:var(--text3);display:flex;gap:6px}
+.q-meta-sep{color:var(--border)}
+
+/* importance bar — grayscale segmented */
+.imp-section{}
+.imp-label{font-size:10px;color:var(--text3);font-weight:500;margin-bottom:5px;display:flex;justify-content:space-between}
+.imp-label span{font-weight:600;color:var(--text)}
+.imp-bar{display:flex;gap:2px}
+.imp-seg{height:6px;flex:1;border-radius:1px;background:#E5E7EB}
+.imp-seg.filled{background:var(--text)}
+.imp-stats{margin-top:5px;display:flex;gap:8px;font-size:10px;color:var(--text3)}
+.imp-stats span{display:flex;align-items:center;gap:2px}
+
+/* bid change */
+.bid-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#F9FAFB;border-radius:8px;border:1px solid var(--border)}
+.bid-current{font-size:11px;color:var(--text2)}
+.bid-arrow{font-size:10px;color:var(--text3)}
+.bid-rec{font-size:15px;font-weight:700;color:var(--text);font-family:'JetBrains Mono',monospace}
+.bid-delta{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;margin-left:auto}
+.bid-delta.up{color:var(--green)}
+.bid-delta.down{color:var(--red)}
+.bid-edit-group{display:flex;align-items:center;gap:4px;margin-left:auto}
+.bid-input{
+  width:64px;padding:4px 8px;
+  border:1px solid var(--border);border-radius:6px;
+  font-size:13px;font-weight:600;
+  font-family:'JetBrains Mono',monospace;
+  color:var(--text);text-align:right;
+  outline:none;background:var(--card);
+}
+.bid-input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(249,115,22,.12)}
+.bid-spinner{display:flex;flex-direction:column;gap:1px}
+.bid-spinner-btn{
+  width:16px;height:12px;border:1px solid var(--border);border-radius:3px;
+  background:var(--card);cursor:pointer;font-size:8px;display:flex;align-items:center;justify-content:center;color:var(--text2);
+}
+.bid-spinner-btn:hover{background:#F3F4F6}
+
+/* why line */
+.q-why{font-size:10px;color:var(--text3);line-height:1.5}
+.q-why span{font-weight:600;color:var(--text2)}
+
+/* card action buttons */
+.q-actions{display:flex;gap:6px}
+.q-btn{flex:1;padding:7px 0;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;text-align:center;transition:opacity .15s}
+.q-btn:hover{opacity:.85}
+.q-btn-approve{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.q-btn-skip{background:#F9FAFB;color:var(--text2);border:1px solid var(--border)}
+
+/* seasonality */
+.q-season{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:5px;padding-top:4px;border-top:1px dashed #F3F4F6}
+
+/* ================================================
+   APPLY TOP 3 BAR
+   ================================================ */
+.apply-bar{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 16px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  margin-bottom:var(--gap);
+}
+.apply-bar-info{font-size:12px;color:var(--text2)}
+.apply-bar-info strong{color:var(--text)}
+.apply-bar-est{font-size:11px;color:var(--green);font-weight:500;display:flex;align-items:center;gap:4px}
+.apply-bar-spacer{flex:1}
+.undo-text{font-size:11px;color:var(--accent);cursor:pointer;font-weight:500}
+.undo-text:hover{text-decoration:underline}
+
+/* ================================================
+   ZONE B: DAILY KPI
+   ================================================ */
+.kpi-card{padding:16px 20px}
+.kpi-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.kpi-header h2{font-size:13px;font-weight:600;color:var(--text)}
+.kpi-date{font-size:10px;color:var(--text3)}
+
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.kpi-item{}
+.kpi-label{font-size:10px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px}
+.kpi-val{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.5px;font-family:'JetBrains Mono',monospace}
+.kpi-val-sub{font-size:10px;color:var(--text3);font-weight:400}
+.kpi-delta{font-size:10px;font-weight:600}
+.kpi-delta.pos{color:var(--green)}
+.kpi-delta.neg{color:var(--red)}
+.kpi-delta.warn{color:var(--accent)}
+
+.kpi-spend-section{margin-top:4px}
+.kpi-spend-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.kpi-spend-text{font-size:11px;color:var(--text2);font-weight:500}
+.kpi-spend-pct{font-size:11px;font-weight:600;color:var(--accent)}
+.kpi-track{height:8px;background:#E5E7EB;border-radius:4px;position:relative;overflow:hidden}
+.kpi-fill{height:8px;border-radius:4px;position:absolute;left:0;top:0;background:var(--accent)}
+.kpi-fill.ok{background:var(--green)}
+.kpi-fill.low{background:var(--text3)}
+/* target day marker */
+.kpi-track::after{
+  content:'';position:absolute;left:78%;top:-2px;
+  width:2px;height:12px;background:var(--indigo);border-radius:1px;opacity:.7;
+}
+.kpi-spend-note{font-size:10px;color:var(--text3);margin-top:4px}
+
+/* ================================================
+   ZONE C: AI PIPELINE STATUS
+   ================================================ */
+.pipeline-card{padding:16px 20px}
+.pipeline-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.pipeline-header h2{font-size:13px;font-weight:600;color:var(--text)}
+.pipeline-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px rgba(5,150,105,.2)}
+
+.pipeline-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F3F4F6;font-size:11px}
+.pipeline-row:last-child{border-bottom:none;padding-bottom:0}
+.pipeline-row-label{color:var(--text2)}
+.pipeline-row-val{font-weight:600;color:var(--text)}
+.pipeline-row-val.green{color:var(--green)}
+.pipeline-row-val.orange{color:var(--accent)}
+
+.pipeline-new-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;background:var(--accent-bg);border:1px solid var(--accent-border);
+  border-radius:10px;font-size:10px;font-weight:600;color:var(--accent);
+  margin-top:8px;cursor:pointer;
+}
+
+/* ================================================
+   ZONE D: FULL KEYWORD TABLE
+   ================================================ */
+.table-card{}
+.table-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+}
+.table-header-left{display:flex;align-items:center;gap:8px}
+.table-header h2{font-size:13px;font-weight:600;color:var(--text)}
+.table-count{font-size:11px;color:var(--text3)}
+.table-header-right{display:flex;align-items:center;gap:6px}
+
+.filter-row{
+  display:flex;align-items:center;gap:6px;
+  padding:9px 16px;
+  border-bottom:1px solid var(--border);
+  background:#FAFAFA;
+}
+.search-box{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 10px;
+  border:1px solid var(--border);border-radius:7px;
+  background:var(--card);
+  font-size:11px;color:var(--text3);
+  flex:1;max-width:240px;
+}
+.filter-select{
+  padding:5px 10px;
+  border:1px solid var(--border);border-radius:7px;
+  background:var(--card);
+  font-size:11px;color:var(--text2);
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;gap:4px;
+}
+.filter-sep{flex:1}
+.bulk-bar{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 10px;
+  background:var(--indigo-bg);
+  border:1px solid var(--indigo-border);
+  border-radius:8px;
+  font-size:11px;color:var(--indigo);
+  font-weight:500;
+}
+.bulk-bar-btns{display:flex;gap:4px}
+.bulk-btn{
+  padding:3px 10px;border-radius:6px;font-size:11px;font-weight:500;
+  cursor:pointer;font-family:inherit;
+}
+.bulk-btn-approve{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.bulk-btn-reject{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.bulk-btn-edit{background:var(--card);color:var(--text2);border:1px solid var(--border)}
+.bulk-btn-rule{background:var(--accent);color:#fff;border:none}
+
+/* table head */
+.tbl-head{
+  display:flex;align-items:center;
+  padding:6px 16px;
+  background:#F9FAFB;
+  border-bottom:1px solid #F3F4F6;
+  font-size:10px;font-weight:600;color:var(--text2);
+  text-transform:uppercase;letter-spacing:0.3px;
+  user-select:none;
+}
+.th{cursor:pointer;display:flex;align-items:center;gap:2px}
+.th:hover{color:var(--text)}
+.th-sort{font-size:8px;opacity:.5}
+
+/* column widths */
+.tc-chk{width:28px;flex-shrink:0}
+.tc-rank{width:36px;flex-shrink:0;text-align:center}
+.tc-kw{flex:1;min-width:160px}
+.tc-match{width:64px;flex-shrink:0}
+.tc-trend{width:88px;flex-shrink:0}
+.tc-imp{width:80px;flex-shrink:0}
+.tc-bid{width:72px;flex-shrink:0;text-align:right}
+.tc-rec{width:72px;flex-shrink:0;text-align:right}
+.tc-delta{width:56px;flex-shrink:0;text-align:right}
+.tc-acos{width:60px;flex-shrink:0;text-align:right}
+.tc-act{width:72px;flex-shrink:0;text-align:right}
+
+/* table rows */
+.tr-row{
+  display:flex;align-items:center;
+  padding:0 16px;
+  border-bottom:1px solid #F3F4F6;
+  min-height:40px;
+  font-size:11px;
+  cursor:pointer;
+  transition:background .1s;
+}
+.tr-row:hover{background:#FAFAFA}
+.tr-row.pending-ai{border-left:3px solid var(--accent);padding-left:13px}
+.tr-row.selected{background:var(--indigo-bg)}
+
+/* keyword cell */
+.kw-name{font-weight:500;color:var(--text)}
+.kw-group{font-size:9px;color:var(--text3);margin-top:1px}
+
+/* match badge */
+.match-badge{
+  padding:1px 5px;border-radius:3px;
+  font-size:9px;font-weight:600;
+  background:#F3F4F6;color:var(--text2);
+}
+
+/* trend cell */
+.trend-cell{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:600}
+.trend-cell.rising{color:var(--green)}
+.trend-cell.declining{color:var(--red)}
+.trend-cell.emerging{color:var(--accent)}
+.trend-cell.stable{color:var(--text3)}
+
+/* importance dots */
+.imp-dots{display:flex;gap:2px;align-items:center}
+.imp-dot{width:7px;height:7px;border-radius:50%;background:#E5E7EB}
+.imp-dot.on{background:var(--text)}
+.imp-score{font-size:9px;color:var(--text3);margin-left:4px}
+
+/* bid/rec values */
+.mono{font-family:'JetBrains Mono',monospace}
+.val-up{color:var(--green);font-weight:600}
+.val-down{color:var(--red);font-weight:600}
+.val-neutral{color:var(--text2)}
+.delta-up{color:var(--green);font-size:10px;font-weight:600}
+.delta-down{color:var(--red);font-size:10px;font-weight:600}
+
+/* acos values */
+.acos-good{color:var(--green);font-weight:600}
+.acos-warn{color:var(--accent);font-weight:600}
+.acos-bad{color:var(--red);font-weight:600}
+.acos-neutral{color:var(--text2)}
+
+/* action buttons in row */
+.row-act-btn{
+  padding:3px 9px;
+  border-radius:5px;
+  font-size:10px;font-weight:500;
+  cursor:pointer;font-family:inherit;
+  background:var(--card);color:var(--text2);
+  border:1px solid var(--border);
+}
+.row-act-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* checkbox */
+input[type=checkbox]{
+  width:14px;height:14px;accent-color:var(--indigo);cursor:pointer;
+}
+
+/* ================================================
+   MISC UTILS
+   ================================================ */
+.badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;display:inline-block}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+/* ================================================
+   SCROLLBAR
+   ================================================ */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px}
+
+/* ================================================
+   RESPONSIVE
+   ================================================ */
+@media(max-width:1100px){
+  .sidebar{display:none}
+  .queue-cards{grid-template-columns:1fr 1fr}
+}
+@media(max-width:768px){
+  .queue-cards{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div>
+      <div class="logo-text">A.R.C.</div>
+      <div class="logo-sub">Spigen Operations</div>
+    </div>
+  </div>
+  <div class="module">
+    <span>📢</span> AD Optimizer
+  </div>
+  <nav class="nav">
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-item active">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">⚡</span> Optimization
+      <span class="nav-badge">5</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">📊</span> Analytics
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">💰</span> Budget Hub
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">🤖</span> Auto Pilot
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">⚙️</span> Rules
+    </div>
+  </nav>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="cmdk">
+        <span>Search</span>
+        <kbd>⌘K</kbd>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span>Mar 28, 2026</span>
+      <div class="bell">🔔<div class="bell-dot"></div></div>
+      <div class="avatar">JS</div>
+    </div>
+  </div>
+
+  <!-- CAMPAIGN CONTEXT BAR -->
+  <div class="ctx-bar">
+    <div class="ctx-left">
+      <!-- campaign selector -->
+      <div class="campaign-select" onclick="this.style.borderColor='var(--accent)'">
+        <span>📢</span>
+        <span>Spigen BT Speaker — SP Brand</span>
+        <span class="campaign-select-arrow">▾</span>
+      </div>
+      <div class="ctx-pills">
+        <span class="ctx-pill manual">Manual</span>
+        <span class="ctx-pill active">Active</span>
+        <span class="ctx-pill">SP · Exact + Phrase</span>
+      </div>
+    </div>
+    <div class="ctx-right">
+      <button class="btn btn-outline" onclick="alert('M03 Create Rule modal')">+ Add Rule</button>
+      <button class="btn btn-ghost">⋯</button>
+    </div>
+  </div>
+
+  <!-- STRATEGY STRIP -->
+  <div class="strategy-strip">
+    <span class="strategy-label">Bidding Strategy</span>
+    <span class="strategy-val">Dynamic Bids — Down Only</span>
+    <span class="strategy-sep">·</span>
+    <span class="strategy-label">Target ACoS</span>
+    <span class="strategy-val">35%</span>
+    <span class="strategy-sep">·</span>
+    <span class="strategy-label">Default Bid</span>
+    <span class="strategy-val">$1.20</span>
+    <span class="strategy-edit" onclick="alert('Inline edit strategy')">Edit</span>
+  </div>
+
+  <!-- OPTIMIZATION TABS -->
+  <div class="opt-tabs">
+    <div class="opt-tab active">Bidding</div>
+    <div class="opt-tab">Budget</div>
+    <div class="opt-tab">Keywords</div>
+    <div class="opt-tab">Dayparting</div>
+  </div>
+
+  <!-- SCROLLABLE CONTENT -->
+  <div class="content">
+
+    <!-- ============================================================
+         ZONE A: TODAY'S ACTION QUEUE
+         ============================================================ -->
+    <div class="zone-a">
+      <div class="zone-a-header">
+        <div class="zone-a-title">
+          Today's Action Queue
+          <span class="zone-a-badge">3 keywords</span>
+        </div>
+        <div class="zone-a-meta">Top 3 keywords → 80% of today's bidding impact</div>
+      </div>
+
+      <div class="queue-cards">
+
+        <!-- Card #1 -->
+        <div class="q-card pending">
+          <div class="q-card-top">
+            <span class="q-rank">#1 · Highest Impact</span>
+            <span class="trend-tag trend-rising">↑ Rising</span>
+          </div>
+          <div>
+            <div class="q-keyword">bluetooth speaker</div>
+            <div class="q-meta">
+              <span>Exact Match</span>
+              <span class="q-meta-sep">·</span>
+              <span>Brand Defense</span>
+            </div>
+          </div>
+          <div class="imp-section">
+            <div class="imp-label">
+              Importance
+              <span>9.1 / 10</span>
+            </div>
+            <div class="imp-bar">
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+            </div>
+            <div class="imp-stats">
+              <span>Revenue $1,240</span>
+              <span>Spend $112</span>
+              <span>ACoS deviation <strong style="color:var(--green)">−6.8pp</strong></span>
+            </div>
+          </div>
+          <div class="bid-row">
+            <div>
+              <div class="bid-current" style="font-size:10px;margin-bottom:2px">Current bid</div>
+              <div class="mono" style="font-size:13px;color:var(--text2)">$1.20</div>
+            </div>
+            <div class="bid-arrow">→</div>
+            <div>
+              <div class="bid-current" style="font-size:10px;margin-bottom:2px">AI Rec</div>
+              <div class="bid-rec">$1.65</div>
+            </div>
+            <div class="bid-delta up" style="margin-left:auto">+37.5%</div>
+            <div class="bid-edit-group">
+              <input class="bid-input" type="text" value="1.65">
+              <div class="bid-spinner">
+                <div class="bid-spinner-btn">▲</div>
+                <div class="bid-spinner-btn">▼</div>
+              </div>
+            </div>
+          </div>
+          <div class="q-why">
+            <span>CTR 4.2% ↑</span> · ACoS 28.2% (target 35%) · BA search volume <span>+18% WoW</span>
+          </div>
+          <div class="q-actions">
+            <button class="q-btn q-btn-approve" onclick="this.closest('.q-card').classList.add('applied')">✓ Approve $1.65</button>
+            <button class="q-btn q-btn-skip">Skip</button>
+          </div>
+          <div class="q-season">
+            <span>📅</span> Seasonality: search peak expected in 2 weeks
+          </div>
+        </div>
+
+        <!-- Card #2 -->
+        <div class="q-card pending">
+          <div class="q-card-top">
+            <span class="q-rank">#2 · Emerging Trend</span>
+            <span class="trend-tag trend-emerging">✦ Emerging</span>
+          </div>
+          <div>
+            <div class="q-keyword">wireless earbuds case</div>
+            <div class="q-meta">
+              <span>Phrase Match</span>
+              <span class="q-meta-sep">·</span>
+              <span>Category Attack</span>
+            </div>
+          </div>
+          <div class="imp-section">
+            <div class="imp-label">
+              Importance
+              <span>7.8 / 10</span>
+            </div>
+            <div class="imp-bar">
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+            </div>
+            <div class="imp-stats">
+              <span>Revenue $640</span>
+              <span>Spend $88</span>
+              <span>ACoS deviation <strong style="color:var(--accent)">+2.1pp</strong></span>
+            </div>
+          </div>
+          <div class="bid-row">
+            <div>
+              <div class="bid-current" style="font-size:10px;margin-bottom:2px">Current bid</div>
+              <div class="mono" style="font-size:13px;color:var(--text2)">$0.85</div>
+            </div>
+            <div class="bid-arrow">→</div>
+            <div>
+              <div class="bid-current" style="font-size:10px;margin-bottom:2px">AI Rec</div>
+              <div class="bid-rec">$1.10</div>
+            </div>
+            <div class="bid-delta up" style="margin-left:auto">+29.4%</div>
+            <div class="bid-edit-group">
+              <input class="bid-input" type="text" value="1.10">
+              <div class="bid-spinner">
+                <div class="bid-spinner-btn">▲</div>
+                <div class="bid-spinner-btn">▼</div>
+              </div>
+            </div>
+          </div>
+          <div class="q-why">
+            Emerging keyword in BA · <span>Search vol +42% MoM</span> · Low competition window
+          </div>
+          <div class="q-actions">
+            <button class="q-btn q-btn-approve" onclick="this.closest('.q-card').classList.add('applied')">✓ Approve $1.10</button>
+            <button class="q-btn q-btn-skip">Skip</button>
+          </div>
+          <div class="q-season">
+            <span>📅</span> No seasonal peak — consistent growth trend
+          </div>
+        </div>
+
+        <!-- Card #3 -->
+        <div class="q-card pending">
+          <div class="q-card-top">
+            <span class="q-rank">#3 · ACoS Alert</span>
+            <span class="trend-tag trend-declining">↓ Declining</span>
+          </div>
+          <div>
+            <div class="q-keyword">waterproof speaker outdoor</div>
+            <div class="q-meta">
+              <span>Broad Match</span>
+              <span class="q-meta-sep">·</span>
+              <span>Competitor</span>
+            </div>
+          </div>
+          <div class="imp-section">
+            <div class="imp-label">
+              Importance
+              <span>6.2 / 10</span>
+            </div>
+            <div class="imp-bar">
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg filled"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+              <div class="imp-seg"></div>
+            </div>
+            <div class="imp-stats">
+              <span>Revenue $310</span>
+              <span>Spend $96</span>
+              <span>ACoS deviation <strong style="color:var(--red)">+8.4pp</strong></span>
+            </div>
+          </div>
+          <div class="bid-row">
+            <div>
+              <div class="bid-current" style="font-size:10px;margin-bottom:2px">Current bid</div>
+              <div class="mono" style="font-size:13px;color:var(--text2)">$2.10</div>
+            </div>
+            <div class="bid-arrow">→</div>
+            <div>
+              <div class="bid-current" style="font-size:10px;margin-bottom:2px">AI Rec</div>
+              <div class="bid-rec" style="color:var(--red)">$1.60</div>
+            </div>
+            <div class="bid-delta down" style="margin-left:auto">−23.8%</div>
+            <div class="bid-edit-group">
+              <input class="bid-input" type="text" value="1.60">
+              <div class="bid-spinner">
+                <div class="bid-spinner-btn">▲</div>
+                <div class="bid-spinner-btn">▼</div>
+              </div>
+            </div>
+          </div>
+          <div class="q-why">
+            ACoS 43.4% (target 35%) · BA <span>search vol −12% WoW</span> · CPC rising
+          </div>
+          <div class="q-actions">
+            <button class="q-btn q-btn-approve" onclick="this.closest('.q-card').classList.add('applied')">✓ Approve $1.60</button>
+            <button class="q-btn q-btn-skip">Skip</button>
+          </div>
+          <div class="q-season">
+            <span>📅</span> Outdoor peak season ended — expect continued decline
+          </div>
+        </div>
+
+      </div><!-- /queue-cards -->
+    </div><!-- /zone-a -->
+
+    <!-- APPLY TOP 3 BAR -->
+    <div class="apply-bar">
+      <div class="apply-bar-info">
+        Applying AI recommendations for <strong>3 keywords</strong>
+      </div>
+      <div class="apply-bar-est">
+        ▼ Est. ACoS impact: −2.1pp · Spend efficiency +8%
+      </div>
+      <div class="apply-bar-spacer"></div>
+      <button class="btn btn-primary" onclick="document.getElementById('applied-state').style.display='flex';this.style.display='none'">
+        Apply Top 3 ✓
+      </button>
+      <div id="applied-state" style="display:none;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--green)">
+        ✓ Applied
+        <span class="undo-text">Undo (10s)</span>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ZONE B + C: KPI & PIPELINE (6:6)
+         ============================================================ -->
+    <div class="grid" style="margin-bottom:var(--gap)">
+
+      <!-- ZONE B: Daily KPI -->
+      <div class="col-6">
+        <div class="card kpi-card">
+          <div class="kpi-header">
+            <h2>Today's Performance</h2>
+            <span class="kpi-date">Mar 28, 2026 · 14:32 UTC</span>
+          </div>
+          <div class="kpi-grid">
+            <div class="kpi-item">
+              <div class="kpi-label">ACoS</div>
+              <div class="kpi-val">38.2%<span class="kpi-val-sub"> (target 35%)</span></div>
+              <div class="kpi-delta warn">▲ +1.4pp vs yesterday</div>
+            </div>
+            <div class="kpi-item">
+              <div class="kpi-label">Orders</div>
+              <div class="kpi-val">12</div>
+              <div class="kpi-delta pos">▲ +3 vs 7-day avg</div>
+            </div>
+            <div class="kpi-item">
+              <div class="kpi-label">CPC</div>
+              <div class="kpi-val">$0.84</div>
+              <div class="kpi-delta neg">▲ +$0.06 vs yesterday</div>
+            </div>
+            <div class="kpi-item">
+              <div class="kpi-label">CTR</div>
+              <div class="kpi-val">3.8%</div>
+              <div class="kpi-delta pos">▲ +0.3pp vs yesterday</div>
+            </div>
+          </div>
+          <div class="kpi-spend-section">
+            <div class="kpi-spend-label">
+              <span class="kpi-spend-text">Daily Spend: $234 / $400</span>
+              <span class="kpi-spend-pct">58.5% paced</span>
+            </div>
+            <div class="kpi-track">
+              <div class="kpi-fill ok" style="width:58.5%"></div>
+            </div>
+            <div class="kpi-spend-note">Target pace: 78% at this hour · Currently under-paced</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ZONE C: AI Pipeline -->
+      <div class="col-6">
+        <div class="card pipeline-card">
+          <div class="pipeline-header">
+            <h2>AI Keyword Intelligence</h2>
+            <div class="pipeline-dot"></div>
+          </div>
+          <div class="pipeline-row">
+            <span class="pipeline-row-label">Last Brand Analytics sync</span>
+            <span class="pipeline-row-val green">3 hours ago</span>
+          </div>
+          <div class="pipeline-row">
+            <span class="pipeline-row-label">Keywords analyzed</span>
+            <span class="pipeline-row-val">142 keywords</span>
+          </div>
+          <div class="pipeline-row">
+            <span class="pipeline-row-label">New recommendations</span>
+            <span class="pipeline-row-val orange">7 new</span>
+          </div>
+          <div class="pipeline-row">
+            <span class="pipeline-row-label">Trend signals detected</span>
+            <span class="pipeline-row-val">4 Rising · 2 Emerging · 3 Declining</span>
+          </div>
+          <div class="pipeline-row">
+            <span class="pipeline-row-label">Seasonality predictions</span>
+            <span class="pipeline-row-val">2 keywords · peak in 2 weeks</span>
+          </div>
+          <div class="pipeline-row">
+            <span class="pipeline-row-label">Next automated run</span>
+            <span class="pipeline-row-val">in 21 hours</span>
+          </div>
+          <div class="pipeline-new-badge" onclick="alert('Scroll to new recommendations')">
+            ✦ 7 new keywords added since last review
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /grid B+C -->
+
+    <!-- ============================================================
+         ZONE D: FULL KEYWORD INTELLIGENCE TABLE
+         ============================================================ -->
+    <div class="card table-card">
+      <div class="table-header">
+        <div class="table-header-left">
+          <h2>Keyword Intelligence</h2>
+          <span class="table-count">38 keywords · sorted by importance</span>
+        </div>
+        <div class="table-header-right">
+          <button class="btn btn-outline" style="font-size:11px;padding:5px 10px">Export CSV</button>
+        </div>
+      </div>
+
+      <!-- Filter row -->
+      <div class="filter-row">
+        <div class="search-box">
+          <span>🔍</span>
+          <span>Search keywords...</span>
+        </div>
+        <div class="filter-select">Trend ▾</div>
+        <div class="filter-select">Importance ▾</div>
+        <div class="filter-select">Match Type ▾</div>
+        <div class="filter-select">Status ▾</div>
+        <div class="filter-sep"></div>
+        <!-- Bulk action bar — visible when rows selected -->
+        <div class="bulk-bar" id="bulk-bar" style="display:none">
+          <span>2 selected</span>
+          <div class="bulk-bar-btns">
+            <button class="bulk-btn bulk-btn-approve">Approve</button>
+            <button class="bulk-btn bulk-btn-reject">Reject</button>
+            <button class="bulk-btn bulk-btn-edit">Edit Bid</button>
+            <button class="bulk-btn bulk-btn-rule" onclick="alert('Open M03 Create Rule with pre-filled keywords')">+ Add Rule</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table head -->
+      <div class="tbl-head">
+        <div class="tc-chk"><input type="checkbox" onchange="document.getElementById('bulk-bar').style.display=this.checked?'flex':'none'"></div>
+        <div class="tc-rank">Rank</div>
+        <div class="tc-kw th">Keyword <span class="th-sort">↕</span></div>
+        <div class="tc-match">Match</div>
+        <div class="tc-trend th">Trend <span class="th-sort">↕</span></div>
+        <div class="tc-imp th">Importance <span class="th-sort">↕</span></div>
+        <div class="tc-bid">Current Bid</div>
+        <div class="tc-rec">AI Rec</div>
+        <div class="tc-delta">Delta</div>
+        <div class="tc-acos th">ACoS <span class="th-sort">↕</span></div>
+        <div class="tc-act">Action</div>
+      </div>
+
+      <!-- Row 1 — pending AI rec, rising -->
+      <div class="tr-row pending-ai">
+        <div class="tc-chk"><input type="checkbox"></div>
+        <div class="tc-rank" style="font-size:10px;font-weight:700;color:var(--text3);text-align:center">1</div>
+        <div class="tc-kw">
+          <div class="kw-name">bluetooth speaker</div>
+          <div class="kw-group">Brand Defense</div>
+        </div>
+        <div class="tc-match"><span class="match-badge">Exact</span></div>
+        <div class="tc-trend">
+          <div class="trend-cell rising">↑ Rising</div>
+        </div>
+        <div class="tc-imp">
+          <div class="imp-dots">
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <span class="imp-score">9.1</span>
+          </div>
+        </div>
+        <div class="tc-bid mono">$1.20</div>
+        <div class="tc-rec mono val-up">$1.65</div>
+        <div class="tc-delta delta-up">+37.5%</div>
+        <div class="tc-acos acos-good">28.2%</div>
+        <div class="tc-act"><button class="row-act-btn">Review</button></div>
+      </div>
+
+      <!-- Row 2 — pending AI rec, emerging -->
+      <div class="tr-row pending-ai">
+        <div class="tc-chk"><input type="checkbox"></div>
+        <div class="tc-rank" style="font-size:10px;font-weight:700;color:var(--text3);text-align:center">2</div>
+        <div class="tc-kw">
+          <div class="kw-name">wireless earbuds case</div>
+          <div class="kw-group">Category Attack</div>
+        </div>
+        <div class="tc-match"><span class="match-badge">Phrase</span></div>
+        <div class="tc-trend">
+          <div class="trend-cell emerging">✦ Emerging</div>
+        </div>
+        <div class="tc-imp">
+          <div class="imp-dots">
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot"></div>
+            <span class="imp-score">7.8</span>
+          </div>
+        </div>
+        <div class="tc-bid mono">$0.85</div>
+        <div class="tc-rec mono val-up">$1.10</div>
+        <div class="tc-delta delta-up">+29.4%</div>
+        <div class="tc-acos acos-warn">37.1%</div>
+        <div class="tc-act"><button class="row-act-btn">Review</button></div>
+      </div>
+
+      <!-- Row 3 — pending AI rec, declining -->
+      <div class="tr-row pending-ai">
+        <div class="tc-chk"><input type="checkbox"></div>
+        <div class="tc-rank" style="font-size:10px;font-weight:700;color:var(--text3);text-align:center">3</div>
+        <div class="tc-kw">
+          <div class="kw-name">waterproof speaker outdoor</div>
+          <div class="kw-group">Competitor</div>
+        </div>
+        <div class="tc-match"><span class="match-badge">Broad</span></div>
+        <div class="tc-trend">
+          <div class="trend-cell declining">↓ Declining</div>
+        </div>
+        <div class="tc-imp">
+          <div class="imp-dots">
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot"></div>
+            <div class="imp-dot"></div>
+            <span class="imp-score">6.2</span>
+          </div>
+        </div>
+        <div class="tc-bid mono">$2.10</div>
+        <div class="tc-rec mono val-down">$1.60</div>
+        <div class="tc-delta delta-down">−23.8%</div>
+        <div class="tc-acos acos-bad">43.4%</div>
+        <div class="tc-act"><button class="row-act-btn">Review</button></div>
+      </div>
+
+      <!-- Row 4 — stable, no rec -->
+      <div class="tr-row">
+        <div class="tc-chk"><input type="checkbox"></div>
+        <div class="tc-rank" style="font-size:10px;font-weight:700;color:var(--text3);text-align:center">4</div>
+        <div class="tc-kw">
+          <div class="kw-name">spigen speaker</div>
+          <div class="kw-group">Brand Defense</div>
+        </div>
+        <div class="tc-match"><span class="match-badge">Exact</span></div>
+        <div class="tc-trend">
+          <div class="trend-cell stable">— Stable</div>
+        </div>
+        <div class="tc-imp">
+          <div class="imp-dots">
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot"></div>
+            <div class="imp-dot"></div>
+            <span class="imp-score">5.9</span>
+          </div>
+        </div>
+        <div class="tc-bid mono">$1.45</div>
+        <div class="tc-rec mono val-neutral">—</div>
+        <div class="tc-delta" style="color:var(--text3);font-size:10px">No change</div>
+        <div class="tc-acos acos-good">32.1%</div>
+        <div class="tc-act" style="color:var(--text3);font-size:10px">No action</div>
+      </div>
+
+      <!-- Row 5 — rising, no rec yet -->
+      <div class="tr-row">
+        <div class="tc-chk"><input type="checkbox"></div>
+        <div class="tc-rank" style="font-size:10px;font-weight:700;color:var(--text3);text-align:center">5</div>
+        <div class="tc-kw">
+          <div class="kw-name">portable bluetooth speaker</div>
+          <div class="kw-group">Category Attack</div>
+        </div>
+        <div class="tc-match"><span class="match-badge">Phrase</span></div>
+        <div class="tc-trend">
+          <div class="trend-cell rising">↑ Rising</div>
+        </div>
+        <div class="tc-imp">
+          <div class="imp-dots">
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot"></div>
+            <div class="imp-dot"></div>
+            <span class="imp-score">5.4</span>
+          </div>
+        </div>
+        <div class="tc-bid mono">$0.95</div>
+        <div class="tc-rec mono val-up">$1.15</div>
+        <div class="tc-delta delta-up">+21.1%</div>
+        <div class="tc-acos acos-good">31.8%</div>
+        <div class="tc-act"><button class="row-act-btn">Review</button></div>
+      </div>
+
+      <!-- Row 6 — stable -->
+      <div class="tr-row">
+        <div class="tc-chk"><input type="checkbox"></div>
+        <div class="tc-rank" style="font-size:10px;font-weight:700;color:var(--text3);text-align:center">6</div>
+        <div class="tc-kw">
+          <div class="kw-name">speaker with aux input</div>
+          <div class="kw-group">Generic</div>
+        </div>
+        <div class="tc-match"><span class="match-badge">Broad</span></div>
+        <div class="tc-trend">
+          <div class="trend-cell stable">— Stable</div>
+        </div>
+        <div class="tc-imp">
+          <div class="imp-dots">
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot"></div>
+            <div class="imp-dot"></div>
+            <div class="imp-dot"></div>
+            <span class="imp-score">4.1</span>
+          </div>
+        </div>
+        <div class="tc-bid mono">$0.62</div>
+        <div class="tc-rec mono val-neutral">—</div>
+        <div class="tc-delta" style="color:var(--text3);font-size:10px">No change</div>
+        <div class="tc-acos acos-warn">36.7%</div>
+        <div class="tc-act" style="color:var(--text3);font-size:10px">No action</div>
+      </div>
+
+      <!-- Row 7 — declining, bid down rec -->
+      <div class="tr-row">
+        <div class="tc-chk"><input type="checkbox"></div>
+        <div class="tc-rank" style="font-size:10px;font-weight:700;color:var(--text3);text-align:center">7</div>
+        <div class="tc-kw">
+          <div class="kw-name">mini bluetooth speaker</div>
+          <div class="kw-group">Category Attack</div>
+        </div>
+        <div class="tc-match"><span class="match-badge">Exact</span></div>
+        <div class="tc-trend">
+          <div class="trend-cell declining">↓ Declining</div>
+        </div>
+        <div class="tc-imp">
+          <div class="imp-dots">
+            <div class="imp-dot on"></div>
+            <div class="imp-dot on"></div>
+            <div class="imp-dot"></div>
+            <div class="imp-dot"></div>
+            <div class="imp-dot"></div>
+            <span class="imp-score">3.8</span>
+          </div>
+        </div>
+        <div class="tc-bid mono">$1.80</div>
+        <div class="tc-rec mono val-down">$1.30</div>
+        <div class="tc-delta delta-down">−27.8%</div>
+        <div class="tc-acos acos-bad">48.2%</div>
+        <div class="tc-act"><button class="row-act-btn">Review</button></div>
+      </div>
+
+      <!-- More rows placeholder -->
+      <div style="padding:14px 16px;text-align:center;font-size:11px;color:var(--text3);border-top:1px dashed var(--border)">
+        + 31 more keywords · <span style="color:var(--accent);cursor:pointer;font-weight:500">Show all</span>
+      </div>
+
+    </div><!-- /table-card -->
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// Row selection → bulk bar
+document.querySelectorAll('.tr-row input[type=checkbox]').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const checked = document.querySelectorAll('.tr-row input[type=checkbox]:checked').length;
+    const bar = document.getElementById('bulk-bar');
+    if (checked > 0) {
+      bar.style.display = 'flex';
+      bar.querySelector('span').textContent = `${checked} selected`;
+    } else {
+      bar.style.display = 'none';
+    }
+  });
+});
+
+// Campaign select — simple demo toggle
+document.querySelector('.campaign-select').addEventListener('click', () => {
+  alert('Campaign selector dropdown\n\n• Spigen BT Speaker — SP Brand (current)\n• Spigen BT Speaker — SP Category\n• AirPods Competitor — SP\n• ... 12 more Manual campaigns');
+});
+</script>
+</body>
+</html>

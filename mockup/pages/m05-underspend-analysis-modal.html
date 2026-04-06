@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M05 — Underspend Analysis Modal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ================================================
+   DESIGN TOKENS — matches m01–m04
+   ================================================ */
+:root {
+  --sidebar: 220px;
+  --pad: 28px;
+  --radius: 12px;
+  --border: #E5E7EB;
+  --bg: #F3F4F6;
+  --card: #fff;
+  --text: #18181B;
+  --text2: #6B7280;
+  --text3: #9CA3AF;
+  --accent: #F97316;
+  --accent-bg: #FFF7ED;
+  --accent-border: #FDBA74;
+  --green: #059669;
+  --green-bg: #ECFDF5;
+  --green-border: #6EE7B7;
+  --red: #B91C1C;
+  --red-bg: #FEF2F2;
+  --red-border: #FECACA;
+  --indigo: #6366F1;
+  --indigo-bg: #EEF2FF;
+  --indigo-border: #C7D2FE;
+  --amber: #92400E;
+  --amber-bg: #FFFBEB;
+  --amber-border: #FDE68A;
+  --modal-w: 520px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);display:flex;height:100vh;overflow:hidden;font-size:13px}
+
+/* ================================================
+   SIDEBAR (context shell)
+   ================================================ */
+.sidebar{width:var(--sidebar);background:var(--card);border-right:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:24px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px;padding:0 4px}
+.logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.logo-text{font-size:13px;color:var(--text);font-weight:600}
+.logo-sub{font-size:10px;color:var(--text3)}
+.module{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:8px;font-size:13px;color:var(--accent);font-weight:500}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;color:var(--text2);cursor:pointer}
+.nav-item.active{background:var(--accent-bg);color:var(--accent);font-weight:600}
+.nav-bar{width:3px;height:18px;border-radius:2px}
+.nav-item.active .nav-bar{background:var(--accent)}
+.nav-icon{font-size:14px}
+
+/* ================================================
+   MAIN (dimmed behind modal)
+   ================================================ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.topbar{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);flex-shrink:0;opacity:.45}
+.cmdk{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#F9FAFB;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)}
+.cmdk kbd{background:#E5E7EB;padding:2px 6px;border-radius:4px;font-size:10px}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--text2)}
+.avatar{width:28px;height:28px;background:var(--accent-bg);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--accent);border:1px solid var(--accent-border)}
+.page-dimmed{flex:1;background:#F3F4F6;opacity:.35}
+
+/* ================================================
+   OVERLAY + MODAL SHELL
+   ================================================ */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{width:var(--modal-w);max-height:calc(100vh - 48px);background:var(--card);border-radius:var(--radius);box-shadow:0 24px 64px rgba(0,0,0,.18);display:flex;flex-direction:column;overflow:hidden}
+
+/* ================================================
+   MODAL HEADER
+   ================================================ */
+.modal-header{padding:20px 24px 16px;flex-shrink:0;border-bottom:1px solid var(--border)}
+.modal-header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.underspend-type-row{display:flex;align-items:center;gap:8px}
+.underspend-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 0 3px #FEE9D7}
+.underspend-badge{padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.analysis-time{font-size:11px;color:var(--text3)}
+.close-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2);cursor:pointer;background:none;flex-shrink:0}
+.campaign-name{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px;margin-bottom:6px}
+.underspend-sentence{font-size:13px;color:var(--text);font-weight:500;line-height:1.4}
+.underspend-sentence strong{color:var(--accent)}
+
+/* ================================================
+   MODAL BODY (scrollable)
+   ================================================ */
+.modal-body{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.modal-body::-webkit-scrollbar{width:4px}
+.modal-body::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:4px}
+
+/* ================================================
+   ZONE A: UTILIZATION GAUGE + PACING BAR
+   ================================================ */
+.zone-a{display:flex;gap:12px;align-items:stretch}
+
+/* Circular gauge — underspend version (low fill = bad) */
+.gauge-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.gauge-svg-wrap{position:relative;width:96px;height:96px}
+.gauge-svg{width:96px;height:96px;transform:rotate(-90deg)}
+.gauge-track{fill:none;stroke:#F3F4F6;stroke-width:9}
+.gauge-fill{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .6s ease}
+.gauge-fill.low{stroke:var(--accent)}
+.gauge-fill.very-low{stroke:#EF4444}
+.gauge-fill.moderate{stroke:#D97706}
+.gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.gauge-pct{font-size:20px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;line-height:1}
+.gauge-label{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.gauge-caption{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;text-align:center}
+
+/* Utilization bar card */
+.util-card{flex:1;background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between}
+.util-numbers{display:flex;align-items:baseline;gap:6px;margin-bottom:10px}
+.util-spent{font-size:24px;font-weight:800;color:var(--text);font-family:'JetBrains Mono',monospace;line-height:1}
+.util-total{font-size:13px;color:var(--text3);font-weight:500}
+.util-bar-wrap{position:relative;margin-bottom:6px}
+.util-bar-track{height:10px;background:#E5E7EB;border-radius:6px;overflow:visible;position:relative}
+.util-bar-fill{height:100%;border-radius:6px;background:var(--accent);transition:width .6s ease}
+/* Ghost: expected-pace marker */
+.util-bar-expected{position:absolute;top:-3px;width:2px;height:16px;background:var(--text2);border-radius:1px}
+.util-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
+.util-status-row{display:flex;align-items:center;gap:5px;margin-top:4px}
+.util-status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.util-status-text{font-size:11px;color:var(--accent);font-weight:600}
+
+/* ================================================
+   ZONE B: KEY METRIC CARDS (3-up)
+   ================================================ */
+.metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.metric-card{background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.metric-card.alert-metric{border-color:var(--accent-border);background:var(--accent-bg)}
+.metric-card.danger-metric{border-color:var(--red-border);background:var(--red-bg)}
+.metric-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.metric-value{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--text);line-height:1.1}
+.metric-value.danger{color:var(--red)}
+.metric-value.warning{color:var(--accent)}
+.metric-value.ok{color:var(--green)}
+.metric-delta{display:flex;align-items:center;gap:3px;font-size:11px;font-weight:600}
+.delta-up.bad{color:var(--red)}
+.delta-down.bad{color:var(--red)}
+.delta-up.good{color:var(--green)}
+.delta-down.good{color:var(--green)}
+.delta-neutral{color:var(--text3)}
+.metric-sub{font-size:10px;color:var(--text3)}
+
+/* ================================================
+   ZONE C: ROOT CAUSE CARDS
+   ================================================ */
+.section-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.causes-list{display:flex;flex-direction:column;gap:8px}
+.cause-card{background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.cause-card.cause-primary{border-color:var(--accent-border)}
+
+/* Likelihood bar row */
+.cause-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cause-title{font-size:13px;font-weight:700;color:var(--text);flex:1}
+.cause-pct{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent);white-space:nowrap}
+
+.cause-bar-track{height:5px;background:#E5E7EB;border-radius:4px;overflow:hidden;width:100%}
+.cause-bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.cause-bar-fill.high{background:var(--accent)}
+.cause-bar-fill.medium{background:#D97706}
+.cause-bar-fill.low{background:#9CA3AF}
+
+.cause-desc{font-size:12px;color:var(--text2);line-height:1.45}
+
+.cause-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cause-impact{display:flex;align-items:center;gap:5px}
+.cause-impact-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
+.cause-impact-text{font-size:11px;color:var(--green);font-weight:600}
+.cause-fix-btn{padding:5px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--accent-border);background:var(--accent-bg);color:var(--accent);font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
+.cause-fix-btn:hover{background:var(--accent);color:#fff}
+
+/* ================================================
+   ZONE D: QUICK ACTIONS
+   ================================================ */
+.actions-section{display:flex;flex-direction:column;gap:8px}
+.action-primary{width:100%;padding:11px 16px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Inter',sans-serif;transition:background .15s}
+.action-primary:hover{background:#EA6C08}
+.action-primary-icon{font-size:15px}
+.action-primary-badge{padding:1px 6px;background:rgba(255,255,255,.25);border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.action-row{display:flex;gap:8px}
+.action-secondary{flex:1;padding:9px 12px;background:#fff;color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Inter',sans-serif;transition:all .15s}
+.action-secondary:hover{border-color:var(--text2);background:#F9FAFB}
+.action-dismiss{text-align:center;padding:6px;font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;background:none;border:none;font-family:'Inter',sans-serif;width:100%}
+.action-dismiss:hover{color:var(--text2)}
+
+/* ================================================
+   MODAL FOOTER
+   ================================================ */
+.modal-footer{padding:12px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#FAFAFA}
+.footer-meta{font-size:11px;color:var(--text3)}
+.footer-meta strong{color:var(--text2);font-weight:600}
+.footer-right{display:flex;align-items:center;gap:8px}
+.footer-link{font-size:11px;color:var(--indigo);cursor:pointer;text-decoration:none}
+.footer-link:hover{text-decoration:underline}
+
+/* ================================================
+   SCENARIO SWITCHER (demo only)
+   ================================================ */
+.demo-switcher{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px;background:rgba(0,0,0,.7);padding:6px 10px;border-radius:24px;z-index:200}
+.demo-btn{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:rgba(255,255,255,.12);color:#fff;font-family:'Inter',sans-serif;transition:all .15s}
+.demo-btn.active{background:var(--accent);color:#fff}
+.demo-btn:hover:not(.active){background:rgba(255,255,255,.22)}
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div>
+      <div class="logo-text">A.R.C.</div>
+      <div class="logo-sub">Spigen Platform</div>
+    </div>
+  </div>
+  <div class="module">📢 AD Optimizer</div>
+  <nav class="nav">
+    <div class="nav-item active">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">📊</span>
+      Director View
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">🎯</span>
+      My Campaigns
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">💰</span>
+      Budget Hub
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">⚙️</span>
+      Automation
+    </div>
+  </nav>
+</nav>
+
+<!-- MAIN (dimmed) -->
+<div class="main">
+  <div class="topbar">
+    <div class="cmdk">
+      Search campaigns, ASINs, rules...
+      <kbd>⌘K</kbd>
+    </div>
+    <div class="topbar-right">
+      <span>🔔 3</span>
+      <div class="avatar">JS</div>
+    </div>
+  </div>
+  <div class="page-dimmed"></div>
+
+  <!-- MODAL OVERLAY -->
+  <div class="overlay">
+    <div class="modal" id="modal">
+
+      <!-- HEADER -->
+      <div class="modal-header">
+        <div class="modal-header-top">
+          <div class="underspend-type-row">
+            <div class="underspend-dot" id="header-dot"></div>
+            <div class="underspend-badge" id="header-badge">Underspend</div>
+            <div class="analysis-time" id="analysis-time">Analyzed 8 min ago</div>
+          </div>
+          <button class="close-btn">✕</button>
+        </div>
+        <div class="campaign-name" id="campaign-name">SP_US_Brand_iPhone16_Exact</div>
+        <div class="underspend-sentence" id="underspend-sentence">
+          Spent <strong id="spent-label">$180 of $500</strong> — only <strong id="pct-label">36% utilization</strong> with 6 hours left today.
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div class="modal-body">
+
+        <!-- ZONE A: UTILIZATION GAUGE + BAR -->
+        <div class="zone-a" id="zone-a">
+          <!-- Circular gauge — low fill = underspending problem -->
+          <div class="gauge-wrap">
+            <div class="gauge-svg-wrap">
+              <!-- r=39, circumference ≈ 245 -->
+              <svg class="gauge-svg" viewBox="0 0 96 96">
+                <circle class="gauge-track" cx="48" cy="48" r="39"/>
+                <circle class="gauge-fill low" id="gauge-fill"
+                  cx="48" cy="48" r="39"
+                  stroke-dasharray="245"
+                  stroke-dashoffset="157"/>
+                <!-- Expected-pace arc (ghost, dashed) -->
+                <circle id="gauge-expected"
+                  cx="48" cy="48" r="39"
+                  fill="none"
+                  stroke="#D1D5DB"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-dasharray="8 6"
+                  stroke-dashoffset="245"/>
+              </svg>
+              <div class="gauge-center">
+                <div class="gauge-pct" id="gauge-pct">36%</div>
+                <div class="gauge-label" id="gauge-lbl">used</div>
+              </div>
+            </div>
+            <div class="gauge-caption" id="gauge-cap">Budget</div>
+          </div>
+
+          <!-- Horizontal utilization bar card -->
+          <div class="util-card" id="util-card">
+            <div>
+              <div class="util-numbers">
+                <div class="util-spent" id="bar-spent">$180</div>
+                <div class="util-total" id="bar-total">/ $500 daily</div>
+              </div>
+              <div class="util-bar-wrap">
+                <div class="util-bar-track">
+                  <div class="util-bar-fill" id="bar-fill" style="width:36%"></div>
+                </div>
+                <!-- Expected pace marker — where spend should be by now -->
+                <div class="util-bar-expected" id="bar-expected" style="left:58%;transform:translateX(-50%)"></div>
+              </div>
+              <div class="util-labels">
+                <span>$0</span>
+                <span id="bar-pace-label" style="position:relative;left:calc(58% - 20px)">$290 pace</span>
+                <span id="bar-max">$500</span>
+              </div>
+            </div>
+            <div class="util-status-row">
+              <div class="util-status-dot" id="status-dot"></div>
+              <div class="util-status-text" id="status-text">Underpacing — $110 behind expected spend</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ZONE B: KEY METRICS -->
+        <div class="metrics-row" id="metrics-row">
+          <div class="metric-card alert-metric">
+            <div class="metric-label">Impressions</div>
+            <div class="metric-value warning">1,240</div>
+            <div class="metric-delta delta-down bad">↓ −72% vs 7d avg</div>
+          </div>
+          <div class="metric-card alert-metric">
+            <div class="metric-label">Bid Win Rate</div>
+            <div class="metric-value warning">12%</div>
+            <div class="metric-delta delta-down bad">↓ was 31% target</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">ACoS</div>
+            <div class="metric-value ok">16.2%</div>
+            <div class="metric-delta delta-neutral">— Target 20%</div>
+          </div>
+        </div>
+
+        <!-- ZONE C: ROOT CAUSES -->
+        <div class="section-label">Root Causes</div>
+        <div class="causes-list" id="causes-list">
+
+          <!-- Cause 1 — highest likelihood -->
+          <div class="cause-card cause-primary" id="cause-1">
+            <div class="cause-top">
+              <div class="cause-title" id="c1-title">Bids Too Low</div>
+              <div class="cause-pct" id="c1-pct">62%</div>
+            </div>
+            <div class="cause-bar-track">
+              <div class="cause-bar-fill high" id="c1-bar" style="width:62%"></div>
+            </div>
+            <div class="cause-desc" id="c1-desc">Target CPC $0.80 is below the competitive floor — AI lost 88% of auctions this morning.</div>
+            <div class="cause-footer">
+              <div class="cause-impact">
+                <div class="cause-impact-dot"></div>
+                <div class="cause-impact-text" id="c1-impact">+$124 projected spend</div>
+              </div>
+              <button class="cause-fix-btn" id="c1-fix">Raise Bids to $1.20</button>
+            </div>
+          </div>
+
+          <!-- Cause 2 -->
+          <div class="cause-card" id="cause-2">
+            <div class="cause-top">
+              <div class="cause-title" id="c2-title">Budget Scheduled Too Tight</div>
+              <div class="cause-pct" id="c2-pct">25%</div>
+            </div>
+            <div class="cause-bar-track">
+              <div class="cause-bar-fill medium" id="c2-bar" style="width:25%"></div>
+            </div>
+            <div class="cause-desc" id="c2-desc">Dayparting rule limits delivery to 10 AM–2 PM only — 4 active hours out of 16.</div>
+            <div class="cause-footer">
+              <div class="cause-impact">
+                <div class="cause-impact-dot"></div>
+                <div class="cause-impact-text" id="c2-impact">+$80 projected spend</div>
+              </div>
+              <button class="cause-fix-btn" id="c2-fix">Expand Schedule</button>
+            </div>
+          </div>
+
+          <!-- Cause 3 -->
+          <div class="cause-card" id="cause-3">
+            <div class="cause-top">
+              <div class="cause-title" id="c3-title">Keyword Match Too Narrow</div>
+              <div class="cause-pct" id="c3-pct">13%</div>
+            </div>
+            <div class="cause-bar-track">
+              <div class="cause-bar-fill low" id="c3-bar" style="width:13%"></div>
+            </div>
+            <div class="cause-desc" id="c3-desc">Only 3 exact-match keywords active — low search volume on brand terms today.</div>
+            <div class="cause-footer">
+              <div class="cause-impact">
+                <div class="cause-impact-dot"></div>
+                <div class="cause-impact-text" id="c3-impact">+$30 projected spend</div>
+              </div>
+              <button class="cause-fix-btn" id="c3-fix">Add Broad Match</button>
+            </div>
+          </div>
+
+        </div><!-- /causes-list -->
+
+        <!-- ZONE D: QUICK ACTIONS -->
+        <div class="actions-section" id="actions-section">
+          <button class="action-primary" id="primary-action">
+            <span class="action-primary-icon">⚡</span>
+            Apply All Fixes
+            <span class="action-primary-badge">RECOMMENDED</span>
+          </button>
+          <div class="action-row" id="secondary-actions">
+            <button class="action-secondary" id="sec-action-1">
+              📋 View Auction Insights
+            </button>
+            <button class="action-secondary" id="sec-action-2">
+              📅 Edit Schedule
+            </button>
+          </div>
+          <button class="action-dismiss" id="dismiss-btn">
+            Dismiss — campaign is performing as intended
+          </button>
+        </div>
+
+      </div><!-- /modal-body -->
+
+      <!-- FOOTER -->
+      <div class="modal-footer">
+        <div class="footer-meta">Analysis ID <strong id="footer-id">#U-4412</strong> · AI Engine v2</div>
+        <div class="footer-right">
+          <a class="footer-link" href="#">View in Campaign Detail ↗</a>
+        </div>
+      </div>
+
+    </div><!-- /modal -->
+  </div><!-- /overlay -->
+</div><!-- /main -->
+
+<!-- SCENARIO SWITCHER -->
+<div class="demo-switcher">
+  <button class="demo-btn active" onclick="showScenario('low-bids')">Low Bids</button>
+  <button class="demo-btn" onclick="showScenario('negative-kw')">Neg Keywords</button>
+  <button class="demo-btn" onclick="showScenario('budget-cap')">Budget Cap</button>
+  <button class="demo-btn" onclick="showScenario('low-quality')">Low Quality Score</button>
+</div>
+
+<script>
+/* ================================================
+   SCENARIO CONFIGURATIONS
+   ================================================ */
+const SCENARIOS = {
+  'low-bids': {
+    badge: 'Underspend',
+    campaign: 'SP_US_Brand_iPhone16_Exact',
+    spentLabel: '$180 of $500',
+    pctLabel: '36% utilization',
+    gaugePct: '36%',
+    gaugeLbl: 'used',
+    gaugeCap: 'Budget',
+    /* 245 - (245 * 0.36) = 156.8 → 157 */
+    gaugeDashOffset: '157',
+    gaugeClass: 'low',
+    gaugePctColor: '#F97316',
+    /* expected-pace arc: 58% of day elapsed → offset = 245 - (245*0.58) = 102.9 */
+    expectedOffset: '103',
+    barSpent: '$180',
+    barTotal: '/ $500 daily',
+    barWidth: '36%',
+    statusDotColor: '#F97316',
+    statusText: 'Underpacing — $110 behind expected spend',
+    statusColor: '#F97316',
+    barExpectedLeft: '58%',
+    barPaceLabel: '$290 pace',
+    barMax: '$500',
+    metrics: [
+      { label: 'Impressions', value: '1,240',  delta: '↓ −72% vs 7d avg',    style: 'warning', card: 'alert-metric' },
+      { label: 'Bid Win Rate', value: '12%',   delta: '↓ was 31% target',     style: 'warning', card: 'alert-metric' },
+      { label: 'ACoS',         value: '16.2%', delta: '— Target 20%',          style: 'ok',      card: '' },
+    ],
+    causes: [
+      {
+        title: 'Bids Too Low',
+        pct: '62%', barWidth: '62%', barClass: 'high',
+        desc: 'Target CPC $0.80 is below the competitive floor — AI lost 88% of auctions this morning.',
+        impact: '+$124 projected spend',
+        fix: 'Raise Bids to $1.20',
+        primary: true,
+      },
+      {
+        title: 'Budget Scheduled Too Tight',
+        pct: '25%', barWidth: '25%', barClass: 'medium',
+        desc: 'Dayparting rule limits delivery to 10 AM–2 PM only — 4 active hours out of 16.',
+        impact: '+$80 projected spend',
+        fix: 'Expand Schedule',
+        primary: false,
+      },
+      {
+        title: 'Keyword Match Too Narrow',
+        pct: '13%', barWidth: '13%', barClass: 'low',
+        desc: 'Only 3 exact-match keywords active — low search volume on brand terms today.',
+        impact: '+$30 projected spend',
+        fix: 'Add Broad Match',
+        primary: false,
+      },
+    ],
+    primaryAction: '⚡ Apply All Fixes',
+    sec1: '📋 View Auction Insights',
+    sec2: '📅 Edit Schedule',
+    dismiss: 'Dismiss — campaign is performing as intended',
+    footerId: '#U-4412',
+  },
+
+  'negative-kw': {
+    badge: 'Underspend',
+    campaign: 'SP_US_Generic_CaseColor_Broad',
+    spentLabel: '$44 of $300',
+    pctLabel: '15% utilization',
+    gaugePct: '15%',
+    gaugeLbl: 'used',
+    gaugeCap: 'Budget',
+    /* 245 - (245 * 0.15) = 208.25 → 208 */
+    gaugeDashOffset: '208',
+    gaugeClass: 'very-low',
+    gaugePctColor: '#EF4444',
+    expectedOffset: '103',
+    barSpent: '$44',
+    barTotal: '/ $300 daily',
+    barWidth: '15%',
+    statusDotColor: '#EF4444',
+    statusText: 'Severely underpacing — blocked by negative keywords',
+    statusColor: '#EF4444',
+    barExpectedLeft: '58%',
+    barPaceLabel: '$174 pace',
+    barMax: '$300',
+    metrics: [
+      { label: 'Impressions', value: '310',    delta: '↓ −91% vs 7d avg',  style: 'danger',  card: 'danger-metric' },
+      { label: 'Neg KW Hits',  value: '1,820', delta: '↑ blocking spend',  style: 'warning', card: 'alert-metric' },
+      { label: 'ACoS',         value: '11.4%', delta: '— Target 22%',       style: 'ok',      card: '' },
+    ],
+    causes: [
+      {
+        title: 'Negative Keywords Blocking Reach',
+        pct: '71%', barWidth: '71%', barClass: 'high',
+        desc: '"case" and "cover" added as negative exact — blocking 1,820 search queries today.',
+        impact: '+$185 projected spend',
+        fix: 'Review Negatives',
+        primary: true,
+      },
+      {
+        title: 'Low Bid vs Competition',
+        pct: '19%', barWidth: '19%', barClass: 'medium',
+        desc: 'Remaining eligible keywords have $0.55 CPC bid — floor is $0.90 in this category.',
+        impact: '+$45 projected spend',
+        fix: 'Raise Bids to $0.95',
+        primary: false,
+      },
+      {
+        title: 'Small Keyword Pool',
+        pct: '10%', barWidth: '10%', barClass: 'low',
+        desc: 'Only 7 keywords targeting a broad audience — consider expanding with AI suggestions.',
+        impact: '+$20 projected spend',
+        fix: 'Add AI Keywords',
+        primary: false,
+      },
+    ],
+    primaryAction: '⚡ Apply All Fixes',
+    sec1: '🔑 Edit Negative Keywords',
+    sec2: '🔍 Keyword Research',
+    dismiss: 'Dismiss — I\'ll review negatives manually',
+    footerId: '#U-4413',
+  },
+
+  'budget-cap': {
+    badge: 'Budget Cap Hit',
+    campaign: 'SB_US_Brand_Lifestyle_Video',
+    spentLabel: '$200 of $200',
+    pctLabel: '100% cap hit at 11 AM',
+    gaugePct: '100%',
+    gaugeLbl: 'cap hit',
+    gaugeCap: 'Budget',
+    /* 245 - (245 * 1.0) = 0 */
+    gaugeDashOffset: '0',
+    gaugeClass: 'moderate',
+    gaugePctColor: '#D97706',
+    /* expected at 11 AM = 245 - (245*0.46) = 132 */
+    expectedOffset: '132',
+    barSpent: '$200',
+    barTotal: '/ $200 cap',
+    barWidth: '100%',
+    statusDotColor: '#D97706',
+    statusText: 'Budget exhausted at 11 AM — 5 hours of lost impressions',
+    statusColor: '#D97706',
+    barExpectedLeft: '46%',
+    barPaceLabel: '$92 pace',
+    barMax: '$200',
+    metrics: [
+      { label: 'Lost Impr.',  value: '8,400',  delta: '↓ no delivery 11AM+', style: 'warning', card: 'alert-metric' },
+      { label: 'Daily Cap',   value: '$200',   delta: '↑ hit at 11:04 AM',   style: 'warning', card: 'alert-metric' },
+      { label: 'ROAS',        value: '5.2×',   delta: '↑ strong returns',     style: 'ok',      card: '' },
+    ],
+    causes: [
+      {
+        title: 'Budget Cap Too Conservative',
+        pct: '68%', barWidth: '68%', barClass: 'high',
+        desc: '$200 cap was set for a slow period — this campaign\'s ROAS of 5.2× justifies higher spend.',
+        impact: '+$180 projected spend',
+        fix: 'Raise Cap to $380',
+        primary: true,
+      },
+      {
+        title: 'Bid Strategy Overly Aggressive',
+        pct: '22%', barWidth: '22%', barClass: 'medium',
+        desc: 'Target CPC $2.10 is front-loading delivery — budget consumed before afternoon peak.',
+        impact: 'Better time distribution',
+        fix: 'Enable Daily Pacing',
+        primary: false,
+      },
+      {
+        title: 'No Portfolio Budget Overflow',
+        pct: '10%', barWidth: '10%', barClass: 'low',
+        desc: 'Portfolio cap not configured — no overflow pool to absorb excess demand.',
+        impact: 'Prevents future caps',
+        fix: 'Set Portfolio Budget',
+        primary: false,
+      },
+    ],
+    primaryAction: '⚡ Apply All Fixes',
+    sec1: '💰 Edit Budget',
+    sec2: '📊 View ROAS Detail',
+    dismiss: 'Dismiss — budget cap is intentional',
+    footerId: '#U-4414',
+  },
+
+  'low-quality': {
+    badge: 'Low Quality Score',
+    campaign: 'SP_US_Generic_Accessories_Auto',
+    spentLabel: '$62 of $400',
+    pctLabel: '16% utilization',
+    gaugePct: '16%',
+    gaugeLbl: 'used',
+    gaugeCap: 'Budget',
+    /* 245 - (245 * 0.16) = 205.8 → 206 */
+    gaugeDashOffset: '206',
+    gaugeClass: 'very-low',
+    gaugePctColor: '#EF4444',
+    expectedOffset: '103',
+    barSpent: '$62',
+    barTotal: '/ $400 daily',
+    barWidth: '16%',
+    statusDotColor: '#EF4444',
+    statusText: 'Underpacing due to poor ad relevance score',
+    statusColor: '#EF4444',
+    barExpectedLeft: '58%',
+    barPaceLabel: '$232 pace',
+    barMax: '$400',
+    metrics: [
+      { label: 'Quality Score', value: '3/10', delta: '↓ poor relevance',    style: 'danger',  card: 'danger-metric' },
+      { label: 'Impressions',   value: '890',  delta: '↓ −83% vs avg',       style: 'danger',  card: 'danger-metric' },
+      { label: 'CTR',           value: '0.4%', delta: '— Low click intent',   style: 'warning', card: 'alert-metric' },
+    ],
+    causes: [
+      {
+        title: 'Ad Copy Relevance Low',
+        pct: '55%', barWidth: '55%', barClass: 'high',
+        desc: 'Keywords don\'t match ASIN title or bullet points — Amazon penalizes with reduced impressions.',
+        impact: '+$180 projected spend',
+        fix: 'Rewrite Ad Copy',
+        primary: true,
+      },
+      {
+        title: 'Landing Page Mismatch',
+        pct: '30%', barWidth: '30%', barClass: 'medium',
+        desc: 'Ad keywords include "wireless" but ASIN listing lacks that term — relevance gap.',
+        impact: '+$90 projected spend',
+        fix: 'Update Listing Keywords',
+        primary: false,
+      },
+      {
+        title: 'Low Historical CTR',
+        pct: '15%', barWidth: '15%', barClass: 'low',
+        desc: 'This campaign\'s CTR history (0.4%) signals low user intent — Amazon throttles delivery.',
+        impact: 'Gradual improvement',
+        fix: 'A/B Test New Creatives',
+        primary: false,
+      },
+    ],
+    primaryAction: '⚡ Apply All Fixes',
+    sec1: '✏️ Edit Ad Copy',
+    sec2: '🔗 Update Listing',
+    dismiss: 'Dismiss — I\'ll optimize listings manually',
+    footerId: '#U-4415',
+  },
+};
+
+/* ================================================
+   RENDER FUNCTION
+   ================================================ */
+function showScenario(key) {
+  const s = SCENARIOS[key];
+
+  // Update demo switcher
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  // Header
+  document.getElementById('header-badge').textContent = s.badge;
+  document.getElementById('campaign-name').textContent = s.campaign;
+  document.getElementById('spent-label').textContent = s.spentLabel;
+  document.getElementById('pct-label').textContent = s.pctLabel;
+
+  // Gauge
+  const fill = document.getElementById('gauge-fill');
+  fill.setAttribute('stroke-dashoffset', s.gaugeDashOffset);
+  fill.className = `gauge-fill ${s.gaugeClass}`;
+  document.getElementById('gauge-pct').textContent = s.gaugePct;
+  document.getElementById('gauge-pct').style.color = s.gaugePctColor;
+  document.getElementById('gauge-lbl').textContent = s.gaugeLbl;
+  document.getElementById('gauge-cap').textContent = s.gaugeCap;
+
+  // Expected-pace arc on gauge
+  document.getElementById('gauge-expected').setAttribute('stroke-dashoffset', s.expectedOffset);
+
+  // Utilization bar
+  document.getElementById('bar-spent').textContent = s.barSpent;
+  document.getElementById('bar-total').textContent = s.barTotal;
+  document.getElementById('bar-fill').style.width = s.barWidth;
+  document.getElementById('bar-expected').style.left = s.barExpectedLeft;
+  document.getElementById('bar-expected').style.transform = 'translateX(-50%)';
+  document.getElementById('bar-pace-label').textContent = s.barPaceLabel;
+  document.getElementById('bar-pace-label').style.left = `calc(${s.barExpectedLeft} - 20px)`;
+  document.getElementById('bar-max').textContent = s.barMax;
+  const statusDot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  statusDot.style.background = s.statusDotColor;
+  statusText.textContent = s.statusText;
+  statusText.style.color = s.statusColor;
+
+  // Metric cards
+  const row = document.getElementById('metrics-row');
+  row.innerHTML = s.metrics.map(m => `
+    <div class="metric-card ${m.card}">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-value ${m.style}">${m.value}</div>
+      <div class="metric-delta delta-neutral">${m.delta}</div>
+    </div>
+  `).join('');
+
+  // Root causes
+  const list = document.getElementById('causes-list');
+  list.innerHTML = s.causes.map(c => `
+    <div class="cause-card ${c.primary ? 'cause-primary' : ''}">
+      <div class="cause-top">
+        <div class="cause-title">${c.title}</div>
+        <div class="cause-pct">${c.pct}</div>
+      </div>
+      <div class="cause-bar-track">
+        <div class="cause-bar-fill ${c.barClass}" style="width:${c.barWidth}"></div>
+      </div>
+      <div class="cause-desc">${c.desc}</div>
+      <div class="cause-footer">
+        <div class="cause-impact">
+          <div class="cause-impact-dot"></div>
+          <div class="cause-impact-text">${c.impact}</div>
+        </div>
+        <button class="cause-fix-btn">${c.fix}</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Actions
+  document.getElementById('primary-action').innerHTML = `
+    <span class="action-primary-icon">⚡</span>
+    ${s.primaryAction}
+    <span class="action-primary-badge">RECOMMENDED</span>
+  `;
+  document.getElementById('sec-action-1').textContent = s.sec1;
+  document.getElementById('sec-action-2').textContent = s.sec2;
+  document.getElementById('dismiss-btn').textContent = s.dismiss;
+
+  // Footer
+  document.getElementById('footer-id').textContent = s.footerId;
+}
+</script>
+</body>
+</html>

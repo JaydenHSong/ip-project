@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M02 — Campaign Detail Slide Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ================================================
+   DESIGN TOKENS — matches s03 / s02 / m01
+   ================================================ */
+:root {
+  --sidebar: 220px;
+  --pad: 28px;
+  --radius: 12px;
+  --border: #E5E7EB;
+  --bg: #F3F4F6;
+  --card: #fff;
+  --text: #18181B;
+  --text2: #6B7280;
+  --text3: #9CA3AF;
+  --accent: #F97316;
+  --accent-bg: #FFF7ED;
+  --accent-border: #FDBA74;
+  --green: #059669;
+  --green-bg: #ECFDF5;
+  --green-border: #6EE7B7;
+  --red: #B91C1C;
+  --red-bg: #FEF2F2;
+  --red-border: #FECACA;
+  --indigo: #6366F1;
+  --indigo-bg: #EEF2FF;
+  --indigo-border: #C7D2FE;
+  --amber: #92400E;
+  --amber-bg: #FFFBEB;
+  --amber-border: #FDE68A;
+  /* Panel */
+  --panel-w: 480px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);display:flex;height:100vh;overflow:hidden;font-size:13px}
+
+/* ================================================
+   SIDEBAR (context shell)
+   ================================================ */
+.sidebar{width:var(--sidebar);background:var(--card);border-right:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:24px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px;padding:0 4px}
+.logo-icon{width:28px;height:28px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.logo-text{font-size:13px;color:var(--text);font-weight:600}
+.logo-sub{font-size:10px;color:var(--text3)}
+.module{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:8px;font-size:13px;color:var(--accent);font-weight:500}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;color:var(--text2);cursor:pointer}
+.nav-item.active{background:var(--accent-bg);color:var(--accent);font-weight:600}
+.nav-bar{width:3px;height:18px;border-radius:2px}
+.nav-item.active .nav-bar{background:var(--accent)}
+.nav-icon{font-size:14px}
+
+/* ================================================
+   MAIN (dimmed behind panel)
+   ================================================ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.topbar{height:52px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);flex-shrink:0;opacity:.45}
+.cmdk{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#F9FAFB;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text3)}
+.cmdk kbd{background:#E5E7EB;padding:2px 6px;border-radius:4px;font-size:10px}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--text2)}
+.avatar{width:28px;height:28px;background:var(--accent-bg);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--accent);border:1px solid var(--accent-border)}
+.page-dimmed{flex:1;background:#F3F4F6;opacity:.35}
+
+/* ================================================
+   SCRIM
+   ================================================ */
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.20);z-index:50;pointer-events:none}
+
+/* ================================================
+   SLIDE PANEL SHELL
+   Width: 480px, slides from right
+   Top-left: 16px radius, right: 0 radius
+   ================================================ */
+.panel{
+  position:absolute;
+  top:0;right:0;bottom:0;
+  width:var(--panel-w);
+  background:var(--card);
+  border-radius:16px 0 0 16px;
+  box-shadow:-8px 0 32px rgba(0,0,0,.12), -2px 0 8px rgba(0,0,0,.06);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  z-index:100;
+}
+
+/* ---- PANEL HEADER ---- */
+.ph{
+  flex-shrink:0;
+  padding:18px 20px 0;
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+}
+.ph-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.ph-left{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ph-breadcrumb{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.ph-breadcrumb span{color:var(--text2);font-weight:500}
+.ph-title{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px}
+.ph-meta{display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;border:1px solid}
+.badge-sp{background:#EEF2FF;color:var(--indigo);border-color:var(--indigo-border)}
+.badge-sb{background:#FFFBEB;color:var(--amber);border-color:var(--amber-border)}
+.badge-sd{background:#F0FDF4;color:#166534;border-color:#BBF7D0}
+.badge-auto{background:var(--indigo-bg);color:var(--indigo);border-color:var(--indigo-border)}
+.badge-status-active{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.badge-status-paused{background:#F3F4F6;color:var(--text2);border-color:var(--border)}
+.ph-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.close-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text2)}
+.close-btn:hover{background:#F9FAFB}
+
+/* Tab bar */
+.ph-tabs{display:flex;gap:0;margin-top:14px}
+.tab{padding:8px 14px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ---- PANEL BODY ---- */
+.pb{
+  flex:1;
+  overflow-y:auto;
+  padding:16px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.pb::-webkit-scrollbar{width:3px}
+.pb::-webkit-scrollbar-track{background:transparent}
+.pb::-webkit-scrollbar-thumb{background:#E5E7EB;border-radius:4px}
+
+/* ---- PANEL FOOTER ---- */
+.pf{
+  flex-shrink:0;
+  padding:12px 20px;
+  border-top:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:var(--card);
+  gap:10px;
+}
+.pf-left{font-size:11px;color:var(--text3)}
+.pf-left strong{color:var(--text2)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s}
+.btn-ghost{background:var(--card);color:var(--text2);border-color:var(--border)}
+.btn-ghost:hover{background:#F9FAFB}
+.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-accent:hover{opacity:.9}
+.btn-indigo{background:var(--indigo);color:#fff;border-color:var(--indigo)}
+.btn-indigo:hover{opacity:.9}
+.btn-sm{padding:5px 10px;font-size:11px}
+
+/* ================================================
+   SECTION LABEL
+   ================================================ */
+.sec-label{
+  font-size:10px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:0.6px;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.sec-label-action{font-size:10px;font-weight:500;color:var(--indigo);cursor:pointer;text-transform:none;letter-spacing:0}
+.sec-label-action:hover{opacity:.8}
+
+/* ================================================
+   SECTION A — Health Snapshot (KPI strip)
+   5 compact KPI tiles in a row
+   ================================================ */
+.kpi-strip{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+}
+.kpi-tile{
+  background:#F9FAFB;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 8px 8px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.kpi-tile.highlight-red{background:var(--red-bg);border-color:var(--red-border)}
+.kpi-tile.highlight-green{background:var(--green-bg);border-color:var(--green-border)}
+.kpi-tile.highlight-amber{background:var(--amber-bg);border-color:var(--amber-border)}
+.kpi-label{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px}
+.kpi-val{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-0.5px}
+.kpi-val.red{color:var(--red)}
+.kpi-val.green{color:var(--green)}
+.kpi-trend{display:flex;align-items:center;gap:3px;font-size:10px;font-weight:600}
+.kpi-trend.up{color:var(--green)}
+.kpi-trend.down{color:var(--red)}
+.kpi-trend.neutral{color:var(--text3)}
+/* Sparkline (SVG inline) */
+.sparkline{height:24px;margin-top:2px}
+
+/* ================================================
+   SECTION B — Budget Pacing
+   ================================================ */
+.pacing-card{
+  background:#F9FAFB;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:12px 14px;
+}
+.pacing-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.pacing-spent{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.5px}
+.pacing-budget{font-size:12px;color:var(--text3);margin-left:4px}
+.pacing-right{font-size:11px;color:var(--text2);display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.pacing-right strong{color:var(--text);font-weight:600}
+/* Progress bar track */
+.pacing-track{
+  height:10px;
+  background:#E5E7EB;
+  border-radius:5px;
+  position:relative;
+  overflow:visible;
+  margin-bottom:6px;
+}
+.pacing-fill{
+  height:100%;
+  border-radius:5px;
+  background:var(--accent);
+  transition:width .3s;
+  position:relative;
+}
+.pacing-fill.on-pace{background:var(--green)}
+.pacing-fill.over{background:var(--red)}
+.pacing-fill.under{background:var(--accent)}
+/* Target marker line */
+.pacing-target{
+  position:absolute;
+  top:-4px;
+  bottom:-4px;
+  width:2px;
+  background:var(--indigo);
+  border-radius:1px;
+}
+.pacing-target::after{
+  content:'84%';
+  position:absolute;
+  top:-16px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:9px;
+  color:var(--indigo);
+  font-weight:600;
+  white-space:nowrap;
+}
+.pacing-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
+.pacing-status-row{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.pacing-status-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.pacing-status-dot.green{background:var(--green)}
+.pacing-status-dot.red{background:var(--red)}
+.pacing-status-text{font-size:11px;color:var(--text2)}
+.pacing-status-text strong{color:var(--text);font-weight:600}
+/* Inline edit budget */
+.pacing-edit-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.pacing-edit-input{
+  flex:1;
+  display:flex;align-items:center;
+  border:1px solid var(--border);border-radius:6px;overflow:hidden;
+  background:var(--card);
+}
+.pacing-edit-prefix{
+  padding:5px 8px;background:#F9FAFB;border-right:1px solid var(--border);
+  font-size:12px;color:var(--text2);font-weight:600;
+}
+.pacing-edit-input input{
+  flex:1;padding:5px 8px;font-size:12px;font-family:'Inter',sans-serif;
+  border:none;outline:none;color:var(--text);background:transparent;
+}
+.pacing-edit-input.dirty{border-color:var(--accent);box-shadow:0 0 0 2px rgba(249,115,22,.12)}
+
+/* ================================================
+   SECTION C — Auto Pilot Status
+   ================================================ */
+.autopilot-card{
+  border-radius:10px;
+  border:1px solid var(--indigo-border);
+  background:var(--indigo-bg);
+  padding:12px 14px;
+}
+.autopilot-card.off{background:#F9FAFB;border-color:var(--border)}
+.ap-row{display:flex;align-items:center;justify-content:space-between}
+.ap-left{display:flex;flex-direction:column;gap:2px}
+.ap-title{font-size:13px;font-weight:700;color:var(--text)}
+.ap-sub{font-size:11px;color:var(--text2)}
+/* Toggle */
+.toggle-wrap{display:flex;align-items:center;gap:8px}
+.toggle{
+  width:40px;height:22px;border-radius:11px;
+  background:var(--indigo);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;
+}
+.toggle.off{background:#D1D5DB}
+.toggle-dot{
+  width:16px;height:16px;border-radius:50%;background:#fff;
+  position:absolute;top:3px;left:3px;
+  transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.toggle.on .toggle-dot{transform:translateX(18px)}
+.toggle-label{font-size:11px;font-weight:600}
+.toggle-label.on{color:var(--indigo)}
+.toggle-label.off{color:var(--text3)}
+/* AI activity mini-feed */
+.ap-feed{margin-top:10px;padding-top:10px;border-top:1px solid var(--indigo-border);display:flex;flex-direction:column;gap:6px}
+.ap-feed.off{border-top-color:var(--border)}
+.ap-feed-item{display:flex;align-items:flex-start;gap:8px}
+.ap-feed-dot{width:6px;height:6px;border-radius:50%;background:var(--indigo);margin-top:4px;flex-shrink:0}
+.ap-feed-dot.gray{background:var(--text3)}
+.ap-feed-text{font-size:11px;color:var(--text2);line-height:1.4}
+.ap-feed-time{font-size:10px;color:var(--text3);flex-shrink:0;margin-top:1px}
+.ap-feed-badge{
+  display:inline-flex;align-items:center;padding:1px 5px;border-radius:3px;
+  font-size:9px;font-weight:700;text-transform:uppercase;
+}
+.ap-feed-badge.bid-up{background:#ECFDF5;color:var(--green)}
+.ap-feed-badge.bid-down{background:var(--red-bg);color:var(--red)}
+.ap-feed-badge.budget{background:var(--amber-bg);color:var(--amber)}
+.ap-feed-badge.kw{background:var(--indigo-bg);color:var(--indigo)}
+
+/* ================================================
+   SECTION D — Performance Chart
+   Spend vs Sales 7-day sparklines
+   ================================================ */
+.chart-card{
+  background:#F9FAFB;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:12px 14px;
+}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.chart-legend{display:flex;align-items:center;gap:12px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);font-weight:500}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+.legend-dot.spend{background:var(--accent)}
+.legend-dot.sales{background:var(--indigo)}
+.chart-range{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.chart-range-btn{padding:3px 8px;font-size:10px;font-weight:500;color:var(--text2);cursor:pointer;background:var(--card)}
+.chart-range-btn.active{background:var(--accent);color:#fff}
+/* SVG chart container */
+.chart-svg-wrap{height:80px;position:relative}
+.chart-svg-wrap svg{width:100%;height:100%}
+/* Day labels */
+.chart-days{display:flex;justify-content:space-between;margin-top:4px}
+.chart-day{font-size:9px;color:var(--text3);text-align:center;flex:1}
+.chart-day.today{color:var(--accent);font-weight:600}
+
+/* ================================================
+   SECTION E — Ad Groups
+   ================================================ */
+.ag-list{display:flex;flex-direction:column;gap:6px}
+.ag-item{
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--card);
+  overflow:hidden;
+  cursor:pointer;
+  transition:border-color .15s;
+}
+.ag-item:hover{border-color:var(--accent)}
+.ag-item.expanded{border-color:var(--indigo);box-shadow:0 0 0 2px rgba(99,102,241,.08)}
+.ag-header{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;
+}
+.ag-chevron{
+  font-size:10px;color:var(--text3);transition:transform .2s;
+  flex-shrink:0;margin-left:auto;
+}
+.ag-item.expanded .ag-chevron{transform:rotate(90deg)}
+.ag-name{font-size:12px;font-weight:600;color:var(--text);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ag-kpis{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.ag-kpi{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.ag-kpi-val{font-size:11px;font-weight:600;color:var(--text)}
+.ag-kpi-val.red{color:var(--red)}
+.ag-kpi-val.green{color:var(--green)}
+.ag-kpi-label{font-size:9px;color:var(--text3)}
+.ag-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ag-status-dot.active{background:var(--green)}
+.ag-status-dot.paused{background:var(--text3)}
+/* Expanded body */
+.ag-body{
+  padding:0 12px 10px;
+  display:none;
+  flex-direction:column;
+  gap:8px;
+  border-top:1px solid var(--border);
+  margin-top:0;
+  padding-top:10px;
+}
+.ag-item.expanded .ag-body{display:flex}
+/* KW table inside ad group */
+.kw-table{width:100%;border-collapse:collapse}
+.kw-table th{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px;padding:4px 6px;text-align:right;border-bottom:1px solid var(--border)}
+.kw-table th:first-child{text-align:left}
+.kw-table td{font-size:11px;color:var(--text2);padding:5px 6px;border-bottom:1px solid #F3F4F6;text-align:right;vertical-align:middle}
+.kw-table td:first-child{text-align:left;color:var(--text);font-weight:500}
+.kw-table tr:last-child td{border-bottom:none}
+.kw-match{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;margin-left:4px}
+.kw-match.exact{background:var(--indigo-bg);color:var(--indigo)}
+.kw-match.broad{background:var(--green-bg);color:var(--green)}
+.kw-match.phrase{background:var(--amber-bg);color:var(--amber)}
+.bid-input{
+  display:flex;align-items:center;border:1px solid var(--border);border-radius:5px;overflow:hidden;
+  background:var(--card);width:68px;float:right;
+}
+.bid-prefix{padding:3px 5px;background:#F9FAFB;border-right:1px solid var(--border);font-size:10px;color:var(--text3);font-weight:600}
+.bid-input input{width:100%;padding:3px 5px;font-size:11px;font-family:'Inter',sans-serif;border:none;outline:none;color:var(--text);background:transparent;text-align:right}
+.bid-input.dirty{border-color:var(--accent);box-shadow:0 0 0 2px rgba(249,115,22,.10)}
+/* Mini sparkline row */
+.ag-sparkline-row{display:flex;align-items:center;gap:8px}
+.ag-spark-label{font-size:10px;color:var(--text3);flex-shrink:0;width:60px}
+
+/* ================================================
+   SECTION F — AI Activity Log
+   ================================================ */
+.activity-list{display:flex;flex-direction:column;gap:0}
+.activity-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:9px 0;
+  border-bottom:1px solid #F3F4F6;
+}
+.activity-item:last-child{border-bottom:none}
+.act-icon{
+  width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;flex-shrink:0;
+}
+.act-icon.bid{background:var(--indigo-bg);color:var(--indigo)}
+.act-icon.budget{background:var(--amber-bg);color:var(--amber)}
+.act-icon.kw{background:var(--green-bg);color:var(--green)}
+.act-icon.pause{background:var(--red-bg);color:var(--red)}
+.act-body{flex:1;min-width:0}
+.act-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:1px}
+.act-desc{font-size:11px;color:var(--text2);line-height:1.4}
+.act-time{font-size:10px;color:var(--text3);flex-shrink:0;margin-top:2px;white-space:nowrap}
+.act-undo{
+  font-size:10px;font-weight:600;color:var(--accent);
+  margin-top:4px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;
+}
+.act-undo:hover{opacity:.8}
+
+/* ================================================
+   SECTION G — Settings Strip
+   ================================================ */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.setting-item{
+  background:#F9FAFB;border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;display:flex;flex-direction:column;gap:3px;
+}
+.setting-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.4px}
+.setting-val{font-size:13px;font-weight:600;color:var(--text)}
+.setting-val.muted{font-size:12px;color:var(--text2);font-weight:500}
+.setting-edit-hint{font-size:10px;color:var(--indigo);cursor:pointer}
+.setting-edit-hint:hover{opacity:.8}
+
+/* ================================================
+   DANGER ZONE
+   ================================================ */
+.danger-zone{
+  border:1px solid var(--red-border);border-radius:8px;
+  padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--red-bg);
+}
+.danger-text{font-size:12px;color:var(--red);font-weight:500}
+.btn-danger{padding:6px 12px;background:var(--red);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer}
+.btn-danger:hover{opacity:.9}
+
+/* ================================================
+   UTILITY
+   ================================================ */
+.divider{height:1px;background:var(--border);margin:2px 0}
+.chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600}
+.chip-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.chip-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.chip-amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.chip-gray{background:#F3F4F6;color:var(--text2);border:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<!-- ============================================
+     SIDEBAR (context shell)
+     ============================================ -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div>
+      <div class="logo-text">A.R.C.</div>
+      <div class="logo-sub">Spigen · US</div>
+    </div>
+  </div>
+  <div class="module">
+    <span>📢</span> AD Optimizer
+  </div>
+  <nav class="nav">
+    <div class="nav-item active">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">🏠</span> Dashboard
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">⚡</span> Optimization
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">🤖</span> Auto Pilot
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">📊</span> Reports
+    </div>
+    <div class="nav-item">
+      <div class="nav-bar"></div>
+      <span class="nav-icon">💡</span> AI Recommendations
+    </div>
+  </nav>
+</aside>
+
+<!-- ============================================
+     MAIN (dimmed)
+     ============================================ -->
+<div class="main">
+  <header class="topbar">
+    <div class="cmdk">
+      <span>🔍</span>
+      <span>Search campaigns, keywords…</span>
+      <kbd>⌘K</kbd>
+    </div>
+    <div class="topbar-right">
+      <span>Spigen · US</span>
+      <div class="avatar">JH</div>
+    </div>
+  </header>
+  <div class="page-dimmed"></div>
+
+  <!-- ==========================================
+       SCRIM
+       ========================================== -->
+  <div class="scrim"></div>
+
+  <!-- ==========================================
+       M02 — CAMPAIGN DETAIL SLIDE PANEL
+       ========================================== -->
+  <div class="panel">
+
+    <!-- ── HEADER ── -->
+    <div class="ph">
+      <div class="ph-top">
+        <div class="ph-left">
+          <div class="ph-breadcrumb">
+            S03 Marketer Dashboard <span>›</span> <span>Campaign Detail</span>
+          </div>
+          <div class="ph-title">MKT-A_SP_US_Brand_iPhone16_Exact</div>
+          <div class="ph-meta">
+            <span class="badge badge-sp">SP</span>
+            <span class="badge badge-status-active">● Active</span>
+            <span class="badge badge-auto">🤖 Auto Pilot ON</span>
+            <span class="chip chip-green">On Pace</span>
+          </div>
+        </div>
+        <div class="ph-right">
+          <button class="btn btn-ghost btn-sm" onclick="void 0">Open Full ↗</button>
+          <button class="close-btn" onclick="void 0">✕</button>
+        </div>
+      </div>
+      <div class="ph-tabs">
+        <div class="tab active" onclick="setTab(this,'overview')">Overview</div>
+        <div class="tab" onclick="setTab(this,'adgroups')">Ad Groups</div>
+        <div class="tab" onclick="setTab(this,'activity')">AI Activity</div>
+        <div class="tab" onclick="setTab(this,'settings')">Settings</div>
+      </div>
+    </div>
+
+    <!-- ── BODY — OVERVIEW TAB (default) ── -->
+    <div class="pb" id="tab-overview">
+
+      <!-- ── A: HEALTH SNAPSHOT ── -->
+      <div>
+        <div class="sec-label">
+          Health Snapshot
+          <span class="sec-label-action">7d ▾</span>
+        </div>
+        <div class="kpi-strip">
+
+          <!-- ACoS -->
+          <div class="kpi-tile highlight-amber">
+            <div class="kpi-label">ACoS</div>
+            <div class="kpi-val">28.4%</div>
+            <div class="kpi-trend up">▲ 1.2%</div>
+            <!-- Sparkline (inline SVG) -->
+            <svg class="sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#92400E" stroke-width="1.5"
+                points="0,18 10,16 20,20 30,12 40,10 50,14 60,8"/>
+              <circle cx="60" cy="8" r="2" fill="#92400E"/>
+            </svg>
+          </div>
+
+          <!-- ROAS -->
+          <div class="kpi-tile highlight-green">
+            <div class="kpi-label">ROAS</div>
+            <div class="kpi-val green">3.52×</div>
+            <div class="kpi-trend up">▲ 0.3×</div>
+            <svg class="sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#059669" stroke-width="1.5"
+                points="0,18 10,16 20,14 30,16 40,10 50,8 60,6"/>
+              <circle cx="60" cy="6" r="2" fill="#059669"/>
+            </svg>
+          </div>
+
+          <!-- CTR -->
+          <div class="kpi-tile">
+            <div class="kpi-label">CTR</div>
+            <div class="kpi-val">0.42%</div>
+            <div class="kpi-trend neutral">— 0%</div>
+            <svg class="sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#9CA3AF" stroke-width="1.5"
+                points="0,12 10,10 20,14 30,12 40,11 50,13 60,12"/>
+              <circle cx="60" cy="12" r="2" fill="#9CA3AF"/>
+            </svg>
+          </div>
+
+          <!-- CPC -->
+          <div class="kpi-tile">
+            <div class="kpi-label">CPC</div>
+            <div class="kpi-val">$1.24</div>
+            <div class="kpi-trend down">▼ $0.08</div>
+            <svg class="sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#6B7280" stroke-width="1.5"
+                points="0,8 10,10 20,9 30,12 40,14 50,16 60,18"/>
+              <circle cx="60" cy="18" r="2" fill="#6B7280"/>
+            </svg>
+          </div>
+
+          <!-- Impressions -->
+          <div class="kpi-tile">
+            <div class="kpi-label">Impr.</div>
+            <div class="kpi-val">84K</div>
+            <div class="kpi-trend up">▲ 6%</div>
+            <svg class="sparkline" viewBox="0 0 60 24" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#6366F1" stroke-width="1.5"
+                points="0,20 10,18 20,16 30,18 40,12 50,10 60,8"/>
+              <circle cx="60" cy="8" r="2" fill="#6366F1"/>
+            </svg>
+          </div>
+
+        </div><!-- /kpi-strip -->
+      </div>
+
+      <!-- ── B: BUDGET PACING ── -->
+      <div>
+        <div class="sec-label">
+          Budget Pacing — Day 26 / 31
+          <span class="sec-label-action" onclick="toggleBudgetEdit()">Edit Budget</span>
+        </div>
+        <div class="pacing-card">
+          <div class="pacing-header">
+            <div>
+              <span class="pacing-spent">$2,184</span>
+              <span class="pacing-budget">/ $2,600 budget</span>
+            </div>
+            <div class="pacing-right">
+              <span>Proj. EOM: <strong>$2,608</strong></span>
+              <span>Daily avg: <strong>$84 / $84</strong></span>
+            </div>
+          </div>
+          <!-- Track: 84% of month elapsed = target marker -->
+          <div class="pacing-track">
+            <div class="pacing-fill on-pace" style="width:84%">
+              <!-- dot at current fill end -->
+            </div>
+            <!-- target marker at 84% -->
+            <div class="pacing-target" style="left:84%"></div>
+          </div>
+          <div class="pacing-labels">
+            <span>$0</span>
+            <span style="color:var(--indigo);font-weight:600">Target $2,184 ●</span>
+            <span>$2,600</span>
+          </div>
+          <div class="pacing-status-row">
+            <div class="pacing-status-dot green"></div>
+            <div class="pacing-status-text">
+              <strong>On Pace</strong> — 84% spent, 84% of month elapsed. Proj. $2,608 (+0.3% over)
+            </div>
+          </div>
+          <!-- Inline edit (hidden by default, toggled by "Edit Budget") -->
+          <div class="pacing-edit-row" id="budget-edit-row" style="display:none">
+            <div class="pacing-edit-input dirty" id="budget-input-wrap">
+              <div class="pacing-edit-prefix">$</div>
+              <input type="number" value="2600" id="budget-input" oninput="void 0" placeholder="Monthly budget">
+            </div>
+            <button class="btn btn-accent btn-sm" onclick="saveBudget()">Save</button>
+            <button class="btn btn-ghost btn-sm" onclick="cancelBudget()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── C: AUTO PILOT ── -->
+      <div>
+        <div class="sec-label">Auto Pilot</div>
+        <div class="autopilot-card" id="ap-card">
+          <div class="ap-row">
+            <div class="ap-left">
+              <div class="ap-title">Auto Pilot Active</div>
+              <div class="ap-sub">AI managing bids · dayparting ON · budget guard ON</div>
+            </div>
+            <div class="toggle-wrap">
+              <span class="toggle-label on" id="ap-label">ON</span>
+              <div class="toggle on" id="ap-toggle" onclick="toggleAutoPilot()">
+                <div class="toggle-dot"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Recent AI mini-feed -->
+          <div class="ap-feed" id="ap-feed">
+            <div class="ap-feed-item">
+              <div class="ap-feed-dot"></div>
+              <div class="ap-feed-text">
+                <span class="ap-feed-badge bid-up">Bid ▲</span>
+                &nbsp;"iPhone 16 case" → $1.24 → <strong>$1.38</strong>
+              </div>
+              <div class="ap-feed-time">2h ago</div>
+            </div>
+            <div class="ap-feed-item">
+              <div class="ap-feed-dot"></div>
+              <div class="ap-feed-text">
+                <span class="ap-feed-badge budget">Budget</span>
+                &nbsp;Daily cap raised $80 → <strong>$90</strong> (high demand signal)
+              </div>
+              <div class="ap-feed-time">6h ago</div>
+            </div>
+            <div class="ap-feed-item">
+              <div class="ap-feed-dot"></div>
+              <div class="ap-feed-text">
+                <span class="ap-feed-badge kw">Add KW</span>
+                &nbsp;"apple silicone case iphone 16" added (Broad)
+              </div>
+              <div class="ap-feed-time">1d ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── D: PERFORMANCE CHART ── -->
+      <div>
+        <div class="sec-label">
+          Spend vs Sales
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="chart-legend">
+              <div class="legend-item"><div class="legend-dot spend"></div>Spend</div>
+              <div class="legend-item"><div class="legend-dot sales"></div>Sales</div>
+            </div>
+            <div class="chart-range">
+              <div class="chart-range-btn active">7d</div>
+              <div class="chart-range-btn">14d</div>
+              <div class="chart-range-btn">30d</div>
+            </div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-svg-wrap">
+            <svg viewBox="0 0 440 80" preserveAspectRatio="none">
+              <!-- Grid lines -->
+              <line x1="0" y1="20" x2="440" y2="20" stroke="#F3F4F6" stroke-width="1"/>
+              <line x1="0" y1="40" x2="440" y2="40" stroke="#F3F4F6" stroke-width="1"/>
+              <line x1="0" y1="60" x2="440" y2="60" stroke="#F3F4F6" stroke-width="1"/>
+              <!-- Sales line (indigo) -->
+              <polyline fill="none" stroke="#6366F1" stroke-width="2"
+                points="0,55 63,40 126,35 189,45 252,30 315,25 378,20 440,22"/>
+              <!-- Spend area (orange) -->
+              <path d="M0,65 L63,58 L126,52 L189,60 L252,48 L315,42 L378,38 L440,40 L440,80 L0,80 Z"
+                fill="rgba(249,115,22,.12)"/>
+              <polyline fill="none" stroke="#F97316" stroke-width="2"
+                points="0,65 63,58 126,52 189,60 252,48 315,42 378,38 440,40"/>
+              <!-- Today marker -->
+              <line x1="440" y1="0" x2="440" y2="80" stroke="#F97316" stroke-width="1" stroke-dasharray="3,3"/>
+            </svg>
+          </div>
+          <div class="chart-days">
+            <span class="chart-day">Mar 20</span>
+            <span class="chart-day">Mar 21</span>
+            <span class="chart-day">Mar 22</span>
+            <span class="chart-day">Mar 23</span>
+            <span class="chart-day">Mar 24</span>
+            <span class="chart-day">Mar 25</span>
+            <span class="chart-day today">Today</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-overview -->
+
+    <!-- ── BODY — AD GROUPS TAB ── -->
+    <div class="pb" id="tab-adgroups" style="display:none">
+      <div class="sec-label">
+        Ad Groups (3)
+        <span class="sec-label-action">+ Add Group</span>
+      </div>
+      <div class="ag-list">
+
+        <!-- Ad Group 1 — expanded -->
+        <div class="ag-item expanded" onclick="toggleAG(this)">
+          <div class="ag-header">
+            <div class="ag-status-dot active"></div>
+            <div class="ag-name">Brand Exact — iPhone 16</div>
+            <div class="ag-kpis">
+              <div class="ag-kpi">
+                <div class="ag-kpi-val">24.1%</div>
+                <div class="ag-kpi-label">ACoS</div>
+              </div>
+              <div class="ag-kpi">
+                <div class="ag-kpi-val green">4.1×</div>
+                <div class="ag-kpi-label">ROAS</div>
+              </div>
+              <div class="ag-kpi">
+                <div class="ag-kpi-val">$840</div>
+                <div class="ag-kpi-label">Spend</div>
+              </div>
+            </div>
+            <div class="ag-chevron">▶</div>
+          </div>
+          <div class="ag-body">
+            <!-- Mini sparkline row -->
+            <div class="ag-sparkline-row">
+              <span class="ag-spark-label">ACoS trend</span>
+              <svg height="20" viewBox="0 0 200 20" style="flex:1" preserveAspectRatio="none">
+                <polyline fill="none" stroke="#92400E" stroke-width="1.5"
+                  points="0,15 33,12 66,14 100,10 133,8 166,9 200,7"/>
+              </svg>
+            </div>
+            <!-- Keywords table -->
+            <table class="kw-table">
+              <thead>
+                <tr>
+                  <th>Keyword</th>
+                  <th>Match</th>
+                  <th>Bid</th>
+                  <th>ACoS</th>
+                  <th>Clicks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>iphone 16 case<span class="kw-match exact">Exact</span></td>
+                  <td></td>
+                  <td>
+                    <div class="bid-input dirty" onclick="event.stopPropagation()">
+                      <div class="bid-prefix">$</div>
+                      <input type="number" value="1.38" onclick="event.stopPropagation()">
+                    </div>
+                  </td>
+                  <td style="color:var(--green)">22%</td>
+                  <td>312</td>
+                </tr>
+                <tr>
+                  <td>apple iphone 16 case<span class="kw-match exact">Exact</span></td>
+                  <td></td>
+                  <td>
+                    <div class="bid-input" onclick="event.stopPropagation()">
+                      <div class="bid-prefix">$</div>
+                      <input type="number" value="1.20" onclick="event.stopPropagation()">
+                    </div>
+                  </td>
+                  <td style="color:var(--amber)">28%</td>
+                  <td>187</td>
+                </tr>
+                <tr>
+                  <td>spigen iphone 16<span class="kw-match exact">Exact</span></td>
+                  <td></td>
+                  <td>
+                    <div class="bid-input" onclick="event.stopPropagation()">
+                      <div class="bid-prefix">$</div>
+                      <input type="number" value="0.95" onclick="event.stopPropagation()">
+                    </div>
+                  </td>
+                  <td style="color:var(--green)">18%</td>
+                  <td>94</td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="display:flex;gap:6px;margin-top:4px">
+              <button class="btn btn-ghost btn-sm">+ Add Keyword</button>
+              <button class="btn btn-ghost btn-sm">Negate KW</button>
+              <button class="btn btn-accent btn-sm" style="margin-left:auto">Save Bids</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ad Group 2 -->
+        <div class="ag-item" onclick="toggleAG(this)">
+          <div class="ag-header">
+            <div class="ag-status-dot active"></div>
+            <div class="ag-name">Category Broad — Cases</div>
+            <div class="ag-kpis">
+              <div class="ag-kpi">
+                <div class="ag-kpi-val red">38.7%</div>
+                <div class="ag-kpi-label">ACoS</div>
+              </div>
+              <div class="ag-kpi">
+                <div class="ag-kpi-val">2.6×</div>
+                <div class="ag-kpi-label">ROAS</div>
+              </div>
+              <div class="ag-kpi">
+                <div class="ag-kpi-val">$560</div>
+                <div class="ag-kpi-label">Spend</div>
+              </div>
+            </div>
+            <div class="ag-chevron">▶</div>
+          </div>
+          <div class="ag-body" style="display:none">
+            <div style="font-size:11px;color:var(--text2);padding:4px 0">Expand to see keywords…</div>
+          </div>
+        </div>
+
+        <!-- Ad Group 3 — paused -->
+        <div class="ag-item" onclick="toggleAG(this)" style="opacity:.65">
+          <div class="ag-header">
+            <div class="ag-status-dot paused"></div>
+            <div class="ag-name" style="color:var(--text2)">Auto — iPhone 16</div>
+            <div class="ag-kpis">
+              <div class="ag-kpi">
+                <div class="ag-kpi-val" style="color:var(--text2)">—</div>
+                <div class="ag-kpi-label">ACoS</div>
+              </div>
+              <div class="ag-kpi">
+                <div class="ag-kpi-val" style="color:var(--text2)">—</div>
+                <div class="ag-kpi-label">ROAS</div>
+              </div>
+              <div class="ag-kpi">
+                <div class="ag-kpi-val" style="color:var(--text2)">$0</div>
+                <div class="ag-kpi-label">Spend</div>
+              </div>
+            </div>
+            <span class="chip chip-gray" style="font-size:9px;margin-right:4px">Paused</span>
+            <div class="ag-chevron">▶</div>
+          </div>
+          <div class="ag-body" style="display:none"></div>
+        </div>
+
+      </div><!-- /ag-list -->
+    </div><!-- /tab-adgroups -->
+
+    <!-- ── BODY — AI ACTIVITY TAB ── -->
+    <div class="pb" id="tab-activity" style="display:none">
+      <div class="sec-label">
+        AI Activity Log
+        <span class="sec-label-action">View All →</span>
+      </div>
+      <div class="activity-list">
+
+        <div class="activity-item">
+          <div class="act-icon bid">↑</div>
+          <div class="act-body">
+            <div class="act-title">Bid Increased — "iphone 16 case"</div>
+            <div class="act-desc">ACoS 22% (target 25%), ROAS 4.5× → raised bid $1.20 → <strong>$1.38</strong></div>
+            <div class="act-undo">↩ Undo</div>
+          </div>
+          <div class="act-time">2h ago</div>
+        </div>
+
+        <div class="activity-item">
+          <div class="act-icon budget">💰</div>
+          <div class="act-body">
+            <div class="act-title">Daily Budget Raised</div>
+            <div class="act-desc">High demand signal detected (Friday PM) — $80 → <strong>$90</strong></div>
+            <div class="act-undo">↩ Undo</div>
+          </div>
+          <div class="act-time">6h ago</div>
+        </div>
+
+        <div class="activity-item">
+          <div class="act-icon kw">+</div>
+          <div class="act-body">
+            <div class="act-title">Keyword Added</div>
+            <div class="act-desc">"apple silicone case iphone 16" <span class="kw-match broad">Broad</span> — high impression share opportunity</div>
+            <div class="act-undo">↩ Undo</div>
+          </div>
+          <div class="act-time">1d ago</div>
+        </div>
+
+        <div class="activity-item">
+          <div class="act-icon bid">↓</div>
+          <div class="act-body">
+            <div class="act-title">Bid Decreased — "cases for iphone 16"</div>
+            <div class="act-desc">ACoS 42% (target 25%), 14-day underperforming → $1.10 → <strong>$0.78</strong></div>
+            <div class="act-undo">↩ Undo</div>
+          </div>
+          <div class="act-time">1d ago</div>
+        </div>
+
+        <div class="activity-item">
+          <div class="act-icon pause">⏸</div>
+          <div class="act-body">
+            <div class="act-title">Keyword Negated</div>
+            <div class="act-desc">"free iphone 16 case" — 0 conversions, 180 clicks wasted spend</div>
+            <div class="act-undo">↩ Undo</div>
+          </div>
+          <div class="act-time">3d ago</div>
+        </div>
+
+        <div class="activity-item">
+          <div class="act-icon bid">↑</div>
+          <div class="act-body">
+            <div class="act-title">Dayparting Updated</div>
+            <div class="act-desc">Peak hours Fri 6–9 PM raised +20%. Data: Orders DB pattern (last 30d)</div>
+            <div class="act-undo">↩ Undo</div>
+          </div>
+          <div class="act-time">5d ago</div>
+        </div>
+
+      </div>
+    </div><!-- /tab-activity -->
+
+    <!-- ── BODY — SETTINGS TAB ── -->
+    <div class="pb" id="tab-settings" style="display:none">
+      <div class="sec-label">Campaign Settings</div>
+      <div class="settings-grid">
+        <div class="setting-item">
+          <div class="setting-label">Start Date</div>
+          <div class="setting-val muted">Mar 1, 2026</div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">End Date</div>
+          <div class="setting-val muted">No end date</div>
+          <div class="setting-edit-hint">Edit ↗</div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">Bidding Strategy</div>
+          <div class="setting-val">Dynamic Down</div>
+          <div class="setting-edit-hint">Change</div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">Target ACoS</div>
+          <div class="setting-val">25%</div>
+          <div class="setting-edit-hint">Edit</div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">Portfolio</div>
+          <div class="setting-val muted">Brand Defense</div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">Campaign Group</div>
+          <div class="setting-val muted">iPhone 16 Series</div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">Dayparting</div>
+          <div class="setting-val">
+            <span class="chip chip-green">Active ●</span>
+          </div>
+          <div class="setting-edit-hint">Configure →</div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">Last Modified</div>
+          <div class="setting-val muted">Today, 2h ago</div>
+          <div class="setting-edit-hint">By Auto Pilot</div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:4px 0"></div>
+
+      <div class="sec-label" style="margin-bottom:8px">Danger Zone</div>
+      <div class="danger-zone">
+        <div class="danger-text">Pause or archive this campaign</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-danger" style="background:transparent;color:var(--red);border:1px solid var(--red-border);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">Pause</button>
+          <button class="btn-danger">Archive</button>
+        </div>
+      </div>
+    </div><!-- /tab-settings -->
+
+    <!-- ── FOOTER ── -->
+    <div class="pf">
+      <div class="pf-left">
+        Updated <strong>2 min ago</strong> · Amazon Ads API
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm">Duplicate</button>
+        <button class="btn btn-ghost btn-sm">Share</button>
+        <button class="btn btn-indigo btn-sm">Save Changes</button>
+      </div>
+    </div>
+
+  </div><!-- /panel -->
+</div><!-- /main -->
+
+<script>
+/* ── Tab switching ── */
+function setTab(el, name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const tabs = ['overview', 'adgroups', 'activity', 'settings'];
+  tabs.forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = t === name ? 'flex' : 'none';
+  });
+}
+
+/* ── Auto Pilot toggle ── */
+function toggleAutoPilot() {
+  const toggle = document.getElementById('ap-toggle');
+  const label = document.getElementById('ap-label');
+  const card = document.getElementById('ap-card');
+  const feed = document.getElementById('ap-feed');
+  const isOn = toggle.classList.contains('on');
+  if (isOn) {
+    if (!confirm('Stop Auto Pilot? Manual control resumes immediately.')) return;
+    toggle.classList.remove('on');
+    toggle.classList.add('off');
+    label.textContent = 'OFF';
+    label.className = 'toggle-label off';
+    card.classList.add('off');
+    card.querySelector('.ap-title').textContent = 'Auto Pilot Off';
+    card.querySelector('.ap-sub').textContent = 'Manual mode — all bids and budgets locked';
+    feed.style.display = 'none';
+  } else {
+    toggle.classList.remove('off');
+    toggle.classList.add('on');
+    label.textContent = 'ON';
+    label.className = 'toggle-label on';
+    card.classList.remove('off');
+    card.querySelector('.ap-title').textContent = 'Auto Pilot Active';
+    card.querySelector('.ap-sub').textContent = 'AI managing bids · dayparting ON · budget guard ON';
+    feed.style.display = 'flex';
+  }
+}
+
+/* ── Budget inline edit ── */
+function toggleBudgetEdit() {
+  const row = document.getElementById('budget-edit-row');
+  row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+  if (row.style.display === 'flex') {
+    document.getElementById('budget-input').focus();
+  }
+}
+function saveBudget() {
+  const val = document.getElementById('budget-input').value;
+  document.querySelector('.pacing-budget').textContent = '/ $' + Number(val).toLocaleString() + ' budget';
+  document.getElementById('budget-input-wrap').classList.remove('dirty');
+  document.getElementById('budget-edit-row').style.display = 'none';
+}
+function cancelBudget() {
+  document.getElementById('budget-input').value = 2600;
+  document.getElementById('budget-edit-row').style.display = 'none';
+}
+
+/* ── Ad Group expand ── */
+function toggleAG(item) {
+  const isExpanded = item.classList.contains('expanded');
+  // Collapse all
+  document.querySelectorAll('.ag-item').forEach(i => {
+    i.classList.remove('expanded');
+    const body = i.querySelector('.ag-body');
+    if (body) body.style.display = 'none';
+  });
+  // Expand clicked (unless it was already open)
+  if (!isExpanded) {
+    item.classList.add('expanded');
+    const body = item.querySelector('.ag-body');
+    if (body) body.style.display = 'flex';
+  }
+}
+
+/* ── Bid input dirty state ── */
+document.addEventListener('input', function(e) {
+  if (e.target.closest('.bid-input')) {
+    e.target.closest('.bid-input').classList.add('dirty');
+  }
+  if (e.target.id === 'budget-input') {
+    document.getElementById('budget-input-wrap').classList.add('dirty');
+  }
+});
+
+/* ── Chart range buttons ── */
+document.querySelectorAll('.chart-range-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.querySelectorAll('.chart-range-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
