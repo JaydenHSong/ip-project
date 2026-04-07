@@ -20,12 +20,16 @@ const ACTION_COLORS: Record<string, string> = {
   dayparting_apply: 'bg-indigo-500',
 }
 
-const SOURCE_BADGES: Record<string, string> = {
-  rule_engine: 'bg-gray-100 text-gray-600',
-  algorithm: 'bg-orange-50 text-orange-700',
-  ml: 'bg-purple-50 text-purple-700',
-  manual: 'bg-blue-50 text-blue-700',
+const SOURCE_BADGES: Record<string, { style: string; label: string }> = {
+  autopilot_formula: { style: 'bg-emerald-50 text-emerald-700', label: 'Formula' },
+  autopilot_ai: { style: 'bg-violet-50 text-violet-700', label: 'AI' },
+  rule_engine: { style: 'bg-gray-100 text-gray-600', label: 'Rule' },
+  algorithm: { style: 'bg-orange-50 text-orange-700', label: 'Algorithm' },
+  ml: { style: 'bg-purple-50 text-purple-700', label: 'ML' },
+  manual: { style: 'bg-blue-50 text-blue-700', label: 'Manual' },
 }
+
+const DEFAULT_BADGE = { style: 'bg-gray-100 text-gray-600', label: '' }
 
 const AiActivityLog = ({ entries, onRollback }: AiActivityLogProps) => {
   if (entries.length === 0) {
@@ -57,8 +61,8 @@ const AiActivityLog = ({ entries, onRollback }: AiActivityLogProps) => {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-700">{entry.action_type}</span>
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${SOURCE_BADGES[entry.source] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {entry.source}
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${(SOURCE_BADGES[entry.source] ?? DEFAULT_BADGE).style}`}>
+                  {(SOURCE_BADGES[entry.source] ?? DEFAULT_BADGE).label || entry.source}
                 </span>
                 {entry.guardrail_blocked && (
                   <span className="rounded border border-orange-300 px-1.5 py-0.5 text-[10px] font-medium text-orange-700">

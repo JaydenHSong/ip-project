@@ -2,21 +2,33 @@
 // Design Ref: §5.3 S09
 'use client'
 
+import { useState } from 'react'
 import { KpiCard } from '@/modules/ads/shared/components/kpi-card'
 import { ProgressBar } from '@/modules/ads/shared/components/progress-bar'
+import { GoalModeSelector } from './goal-mode-selector'
+import { AiReviewCard } from './ai-review-card'
 import { AiActivityLog } from './ai-activity-log'
 import { RollbackButton } from './rollback-button'
-import type { AutopilotCampaignItem, ActivityLogEntry } from '../types'
+import type { AutopilotCampaignItem, ActivityLogEntry, GoalMode } from '../types'
 
 type AutopilotDetailProps = {
   campaign: AutopilotCampaignItem
   activityLog: ActivityLogEntry[]
+  profileId?: string
   onPause: () => void
   onRollback: (logIds: string[]) => Promise<void>
+  onGoalModeChanged?: (mode: GoalMode) => void
   onBack: () => void
 }
 
-const AutopilotDetail = ({ campaign, activityLog, onPause, onRollback, onBack }: AutopilotDetailProps) => {
+const AutopilotDetail = ({ campaign, activityLog, profileId, onPause, onRollback, onGoalModeChanged, onBack }: AutopilotDetailProps) => {
+  const [goalMode, setGoalMode] = useState<GoalMode>(campaign.goal_mode ?? 'growth')
+
+  const handleGoalModeChanged = (mode: GoalMode) => {
+    setGoalMode(mode)
+    onGoalModeChanged?.(mode)
+  }
+
   const last5Ids = activityLog
     .filter((l) => !l.is_rolled_back && !l.guardrail_blocked)
     .slice(0, 5)
@@ -56,6 +68,16 @@ const AutopilotDetail = ({ campaign, activityLog, onPause, onRollback, onBack }:
         </div>
         <KpiCard label="Actions (7d)" value={activityLog.length} />
       </div>
+
+      {/* Goal Mode Selector — Phase 3 FR-01 */}
+      <GoalModeSelector
+        campaignId={campaign.id}
+        currentMode={goalMode}
+        onChanged={handleGoalModeChanged}
+      />
+
+      {/* AI Weekly Review — Phase 3 FR-06 */}
+      {profileId && <AiReviewCard profileId={profileId} />}
 
       {/* Undo Last 5 — Design S09 */}
       {last5Ids.length > 0 && (

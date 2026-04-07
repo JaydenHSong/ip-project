@@ -17,11 +17,14 @@ type AutopilotKpi = {
 
 // ─── S08 List Item ───
 
+type GoalMode = 'launch' | 'growth' | 'profit' | 'defend'
+
 type AutopilotCampaignItem = {
   id: string
   name: string
   marketing_code: string
   status: CampaignStatus
+  goal_mode: GoalMode
   confidence_score: number | null
   target_acos: number | null
   weekly_budget: number | null
@@ -71,11 +74,38 @@ type RollbackResponse = {
   }
 }
 
+// ─── AI Review ───
+
+type AiReviewEntry = {
+  id: string
+  review_type: string
+  review_period_start: string
+  review_period_end: string
+  portfolio_summary: string | null
+  recommendations: AiReviewRecommendation[]
+  model_used: string
+  tokens_used: number
+  created_at: string
+}
+
+type AiReviewRecommendation = {
+  campaign_id: string
+  recommendation_type: string
+  current_value: string
+  suggested_value: string
+  reasoning: string
+  confidence: number
+  priority: 'high' | 'medium' | 'low'
+}
+
 export type {
+  GoalMode,
   AutopilotKpi,
   AutopilotCampaignItem,
   AutopilotDetail,
   ActivityLogEntry,
   RollbackRequest,
   RollbackResponse,
+  AiReviewEntry,
+  AiReviewRecommendation,
 }

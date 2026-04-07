@@ -12,7 +12,7 @@ const getAutopilotList = async (brandMarketId: string) => {
 
   const { data: campaigns } = await supabase
     .from('ads.campaigns')
-    .select('id, name, marketing_code, status, confidence_score, target_acos, weekly_budget')
+    .select('id, name, marketing_code, status, goal_mode, confidence_score, target_acos, weekly_budget')
     .eq('brand_market_id', brandMarketId)
     .eq('mode', 'autopilot')
     .order('created_at', { ascending: false })
@@ -22,6 +22,7 @@ const getAutopilotList = async (brandMarketId: string) => {
     name: c.name,
     marketing_code: c.marketing_code,
     status: c.status,
+    goal_mode: c.goal_mode ?? 'growth',
     confidence_score: c.confidence_score,
     target_acos: c.target_acos,
     weekly_budget: c.weekly_budget,

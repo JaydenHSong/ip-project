@@ -12,6 +12,7 @@ const AutopilotDetailPage = ({ params }: { params: Promise<{ id: string }> }) =>
   const { id } = use(params)
   const router = useRouter()
   const [campaign, setCampaign] = useState<AutopilotCampaignItem | null>(null)
+  const [profileId, setProfileId] = useState<string | null>(null)
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -21,8 +22,11 @@ const AutopilotDetailPage = ({ params }: { params: Promise<{ id: string }> }) =>
       // Fetch campaign detail
       const campRes = await fetch(`/api/ads/campaigns/${id}`)
       if (campRes.ok) {
-        const campJson = await campRes.json() as { data: AutopilotCampaignItem }
+        const campJson = await campRes.json() as { data: AutopilotCampaignItem & { marketplace_profile_id?: string } }
         setCampaign(campJson.data)
+        if (campJson.data.marketplace_profile_id) {
+          setProfileId(campJson.data.marketplace_profile_id)
+        }
       }
 
       // Fetch activity log
@@ -81,8 +85,10 @@ const AutopilotDetailPage = ({ params }: { params: Promise<{ id: string }> }) =>
       <AutopilotDetail
         campaign={campaign}
         activityLog={activityLog}
+        profileId={profileId ?? undefined}
         onPause={handlePause}
         onRollback={handleRollback}
+        onGoalModeChanged={() => fetchData()}
         onBack={() => router.push('/ads/autopilot')}
       />
     </div>
