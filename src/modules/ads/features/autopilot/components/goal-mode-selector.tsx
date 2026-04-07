@@ -15,7 +15,7 @@ const GOAL_MODES: { value: GoalMode; label: string; desc: string; multiplier: st
   { value: 'launch', label: 'Launch', desc: 'Aggressive — max visibility', multiplier: '×1.3', color: 'bg-blue-50 border-blue-300 text-blue-700' },
   { value: 'growth', label: 'Growth', desc: 'Balanced — scale steadily', multiplier: '×1.1', color: 'bg-green-50 border-green-300 text-green-700' },
   { value: 'profit', label: 'Profit', desc: 'Conservative — maximize ROI', multiplier: '×0.85', color: 'bg-amber-50 border-amber-300 text-amber-700' },
-  { value: 'defend', label: 'Defend', desc: 'Maintain — hold position', multiplier: '×1.0', color: 'bg-gray-50 border-gray-300 text-gray-700' },
+  { value: 'defend', label: 'Defend', desc: 'Maintain — hold position', multiplier: '×1.0', color: 'bg-th-bg-hover border-th-border text-th-text-secondary' },
 ]
 
 const GoalModeSelector = ({ campaignId, currentMode, onChanged }: GoalModeSelectorProps) => {
@@ -48,8 +48,8 @@ const GoalModeSelector = ({ campaignId, currentMode, onChanged }: GoalModeSelect
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Goal Mode</h3>
+    <div className="rounded-lg border border-th-border bg-surface-card p-4">
+      <h3 className="text-xs font-medium text-th-text-muted uppercase tracking-wide">Goal Mode</h3>
       <div className="mt-3 grid grid-cols-4 gap-2">
         {GOAL_MODES.map((mode) => {
           const isActive = selected === mode.value
@@ -61,7 +61,7 @@ const GoalModeSelector = ({ campaignId, currentMode, onChanged }: GoalModeSelect
               className={`rounded-lg border p-3 text-left transition-all ${
                 isActive
                   ? `${mode.color} ring-1 ring-offset-1`
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  : 'border-th-border bg-surface-card text-th-text-secondary hover:border-th-border hover:bg-th-bg-hover'
               } ${isSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <div className="flex items-center justify-between">

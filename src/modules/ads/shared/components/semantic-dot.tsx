@@ -18,7 +18,7 @@ const DOT_COLORS: Record<DotColor, string> = {
 
 const SemanticDot = ({ color, label, className = '' }: SemanticDotProps) => {
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs text-gray-600 ${className}`}>
+    <span className={`inline-flex items-center gap-1.5 text-xs text-th-text-secondary ${className}`}>
       <span className={`h-2 w-2 rounded-full ${DOT_COLORS[color]}`} />
       {label}
     </span>

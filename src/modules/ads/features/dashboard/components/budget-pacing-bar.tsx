@@ -24,9 +24,9 @@ const getBarColor = (pct: number, onTrack: boolean): string => {
 const BudgetPacingBar = ({ items, className = '' }: BudgetPacingBarProps) => {
   if (items.length === 0) {
     return (
-      <div className={`rounded-lg border border-gray-200 bg-white p-4 ${className}`}>
-        <h3 className="text-sm font-medium text-gray-900 mb-3">Budget Pacing</h3>
-        <p className="text-sm text-gray-400 text-center py-8">No budget data for this period</p>
+      <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
+        <h3 className="text-sm font-medium text-th-text mb-3">Budget Pacing</h3>
+        <p className="text-sm text-th-text-muted text-center py-8">No budget data for this period</p>
       </div>
     )
   }
@@ -37,10 +37,10 @@ const BudgetPacingBar = ({ items, className = '' }: BudgetPacingBarProps) => {
   const expectedPct = (dayOfMonth / daysInMonth) * 100
 
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-4 ${className}`}>
+    <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-900">Budget Pacing</h3>
-        <span className="text-xs text-gray-400">
+        <h3 className="text-sm font-medium text-th-text">Budget Pacing</h3>
+        <span className="text-xs text-th-text-muted">
           Day {dayOfMonth}/{daysInMonth} &middot; Expected: {expectedPct.toFixed(0)}%
         </span>
       </div>
@@ -51,10 +51,10 @@ const BudgetPacingBar = ({ items, className = '' }: BudgetPacingBarProps) => {
             {/* Row header */}
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-700">
+                <span className="text-xs font-medium text-th-text-secondary">
                   {item.brand} {item.market}
                 </span>
-                <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-mono text-gray-500">
+                <span className="rounded bg-th-bg-tertiary px-1.5 py-0.5 text-[10px] font-mono text-th-text-muted">
                   {item.channel.toUpperCase()}
                 </span>
                 {!item.on_track && (
@@ -63,13 +63,13 @@ const BudgetPacingBar = ({ items, className = '' }: BudgetPacingBarProps) => {
                   </span>
                 )}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-th-text-muted">
                 {formatCurrency(item.actual)} / {formatCurrency(item.planned)}
               </div>
             </div>
 
             {/* Progress bar with target marker */}
-            <div className="relative h-2.5 w-full rounded-full bg-gray-100">
+            <div className="relative h-2.5 w-full rounded-full bg-th-bg-tertiary">
               {/* Actual spend bar */}
               <div
                 className={`h-2.5 rounded-full transition-all ${getBarColor(item.pacing_pct, item.on_track)}`}
@@ -77,7 +77,7 @@ const BudgetPacingBar = ({ items, className = '' }: BudgetPacingBarProps) => {
               />
               {/* Expected pacing marker */}
               <div
-                className="absolute top-0 h-2.5 w-0.5 bg-gray-900"
+                className="absolute top-0 h-2.5 w-0.5 bg-th-text"
                 style={{ left: `${Math.min(expectedPct, 100)}%` }}
                 title={`Expected: ${expectedPct.toFixed(0)}%`}
               />

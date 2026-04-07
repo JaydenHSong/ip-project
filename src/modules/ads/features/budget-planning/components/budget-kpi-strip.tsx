@@ -21,7 +21,7 @@ const BudgetKpiStrip = ({ data, isLoading }: BudgetKpiStripProps) => {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-[88px] animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
+          <div key={i} className="h-[88px] animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
         ))}
       </div>
     )

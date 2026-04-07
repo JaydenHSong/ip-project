@@ -22,7 +22,7 @@ const AdsRecommendationsPage = () => {
       {selectedMarketId ? (
         <AiRecommendations brandMarketId={selectedMarketId} onApprove={handleApprove} />
       ) : (
-        <div className="text-center py-12 text-sm text-gray-400">Select a market to view recommendations</div>
+        <div className="text-center py-12 text-sm text-th-text-muted">Select a market to view recommendations</div>
       )}
     </div>
   )

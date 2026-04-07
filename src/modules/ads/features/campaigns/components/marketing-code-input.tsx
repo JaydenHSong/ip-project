@@ -63,14 +63,14 @@ const MarketingCodeInput = ({
 
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-th-text-secondary mb-1">
         Marketing Code
       </label>
       <div className="flex items-center gap-2">
-        <div className="flex rounded-md border border-gray-300 bg-white overflow-hidden">
+        <div className="flex rounded-md border border-th-border bg-surface-card overflow-hidden">
           {/* Brand segment */}
-          <div className="flex items-center border-r border-gray-200 bg-gray-50 px-2">
-            <span className="text-xs text-gray-400">Brand</span>
+          <div className="flex items-center border-r border-th-border bg-th-bg-hover px-2">
+            <span className="text-xs text-th-text-muted">Brand</span>
           </div>
           <input
             type="text"
@@ -81,12 +81,12 @@ const MarketingCodeInput = ({
               const rest = value.slice(2)
               onChange(`${brand}${rest}`)
             }}
-            className="w-10 px-1.5 py-1.5 text-center text-sm font-mono font-semibold text-gray-900 focus:outline-none"
+            className="w-10 px-1.5 py-1.5 text-center text-sm font-mono font-semibold text-th-text focus:outline-none"
             placeholder="SG"
           />
           {/* Market segment */}
-          <div className="flex items-center border-x border-gray-200 bg-gray-50 px-2">
-            <span className="text-xs text-gray-400">Mkt</span>
+          <div className="flex items-center border-x border-th-border bg-th-bg-hover px-2">
+            <span className="text-xs text-th-text-muted">Mkt</span>
           </div>
           <input
             type="text"
@@ -98,12 +98,12 @@ const MarketingCodeInput = ({
               const seq = value.slice(4)
               onChange(`${brand}${market}${seq}`)
             }}
-            className="w-10 px-1.5 py-1.5 text-center text-sm font-mono font-semibold text-gray-900 focus:outline-none"
+            className="w-10 px-1.5 py-1.5 text-center text-sm font-mono font-semibold text-th-text focus:outline-none"
             placeholder="US"
           />
           {/* Sequence segment */}
-          <div className="flex items-center border-x border-gray-200 bg-gray-50 px-2">
-            <span className="text-xs text-gray-400">Seq</span>
+          <div className="flex items-center border-x border-th-border bg-th-bg-hover px-2">
+            <span className="text-xs text-th-text-muted">Seq</span>
           </div>
           <input
             type="text"
@@ -114,20 +114,20 @@ const MarketingCodeInput = ({
               const seq = e.target.value.replace(/\D/g, '').slice(0, 2)
               onChange(`${prefix}${seq}`)
             }}
-            className="w-10 px-1.5 py-1.5 text-center text-sm font-mono font-semibold text-gray-900 focus:outline-none"
+            className="w-10 px-1.5 py-1.5 text-center text-sm font-mono font-semibold text-th-text focus:outline-none"
             placeholder="01"
           />
         </div>
         {isLoading && (
-          <span className="text-xs text-gray-400">generating...</span>
+          <span className="text-xs text-th-text-muted">generating...</span>
         )}
         {value && (
-          <span className="rounded bg-gray-100 px-2 py-1 text-xs font-mono font-semibold text-gray-700">
+          <span className="rounded bg-th-bg-tertiary px-2 py-1 text-xs font-mono font-semibold text-th-text-secondary">
             {value}
           </span>
         )}
       </div>
-      <p className="mt-1 text-xs text-gray-400">
+      <p className="mt-1 text-xs text-th-text-muted">
         6-digit code: Brand(2) + Market(2) + Sequence(2)
       </p>
     </div>

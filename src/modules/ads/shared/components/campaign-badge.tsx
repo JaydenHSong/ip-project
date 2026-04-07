@@ -10,7 +10,7 @@ type CampaignBadgeProps = {
 
 const BADGE_STYLES: Record<CampaignMode, string> = {
   autopilot: 'bg-orange-50 text-orange-700 border-orange-200',
-  manual: 'bg-gray-50 text-gray-600 border-gray-200',
+  manual: 'bg-th-bg-hover text-th-text-secondary border-th-border',
 }
 
 const BADGE_LABELS: Record<CampaignMode, string> = {

@@ -65,11 +65,11 @@ const KeywordsManagement = ({ campaignId, brandMarketId, onApprove }: KeywordsMa
             key={tab}
             onClick={() => setFilterTab(tab)}
             className={`rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
-              filterTab === tab ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 text-gray-500'
+              filterTab === tab ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-th-border text-th-text-muted'
             }`}
           >
             {tab === 'all' ? 'All' : tab === 'promote' ? 'Promote' : 'Negate'}
-            <span className="ml-1 text-gray-400">
+            <span className="ml-1 text-th-text-muted">
               ({tab === 'all' ? recs.length : recs.filter((r) => r.recommendation_type === tab).length})
             </span>
           </button>
@@ -80,7 +80,7 @@ const KeywordsManagement = ({ campaignId, brandMarketId, onApprove }: KeywordsMa
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-12 animate-pulse rounded bg-gray-50" />
+            <div key={i} className="h-12 animate-pulse rounded bg-th-bg-hover" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -92,7 +92,7 @@ const KeywordsManagement = ({ campaignId, brandMarketId, onApprove }: KeywordsMa
             return (
               <div
                 key={rec.id}
-                className={`flex items-center justify-between rounded border-l-2 bg-white px-4 py-2.5 ${
+                className={`flex items-center justify-between rounded border-l-2 bg-surface-card px-4 py-2.5 ${
                   isPromote ? 'border-l-emerald-500' : 'border-l-red-400 border-dashed'
                 }`}
               >
@@ -107,11 +107,11 @@ const KeywordsManagement = ({ campaignId, brandMarketId, onApprove }: KeywordsMa
                         return next
                       })
                     }}
-                    className="rounded border-gray-300 text-orange-500"
+                    className="rounded border-th-border text-orange-500"
                   />
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-700 truncate">{rec.keyword_text}</p>
-                    <p className="text-[11px] text-gray-400">{rec.reason}</p>
+                    <p className="text-xs font-medium text-th-text-secondary truncate">{rec.keyword_text}</p>
+                    <p className="text-[11px] text-th-text-muted">{rec.reason}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
@@ -123,7 +123,7 @@ const KeywordsManagement = ({ campaignId, brandMarketId, onApprove }: KeywordsMa
                   )}
                   <button
                     onClick={() => onApprove(rec.id)}
-                    className="rounded bg-gray-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-gray-800"
+                    className="rounded bg-th-text px-2.5 py-1 text-xs font-medium text-white hover:bg-th-text"
                   >
                     {isPromote ? 'Promote' : 'Negate'}
                   </button>

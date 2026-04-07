@@ -23,9 +23,9 @@ const KpiCard = ({
   className = '',
 }: KpiCardProps) => {
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-4 ${className}`}>
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-gray-900">
+    <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
+      <p className="text-xs text-th-text-muted">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-th-text">
         {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
       </p>
       {trend && trendValue && (

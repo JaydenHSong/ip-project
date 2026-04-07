@@ -79,14 +79,14 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
     return groups
   }, [filteredRecs])
 
-  if (isLoading) return <div className="h-64 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
+  if (isLoading) return <div className="h-64 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
 
   return (
     <div className="space-y-6">
       {/* Header — Design S11: "Beta 뱃지 + Manual campaigns only" */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h2 className="text-base font-semibold text-gray-900">AI Recommendations</h2>
+          <h2 className="text-base font-semibold text-th-text">AI Recommendations</h2>
           <span className="rounded border border-orange-500 px-1.5 py-0.5 text-[10px] font-medium text-orange-600">Beta</span>
         </div>
         <div className="flex gap-2">
@@ -96,12 +96,12 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
           >
             Approve All
           </button>
-          <button className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+          <button className="rounded-md border border-th-border px-3 py-1.5 text-xs font-medium text-th-text-secondary hover:bg-th-bg-hover">
             Skip All
           </button>
         </div>
       </div>
-      <p className="text-xs text-gray-400 -mt-4">Manual campaigns only</p>
+      <p className="text-xs text-th-text-muted -mt-4">Manual campaigns only</p>
 
       {/* Impact Summary Bar — Design S11 */}
       {summary && (
@@ -114,12 +114,12 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
       )}
 
       {/* Filter Row — Design S11: "Campaign/Brand/Market" */}
-      <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">Filters</span>
+      <div className="flex items-center gap-3 rounded-lg border border-th-border bg-th-bg-hover px-4 py-2.5">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-th-text-muted">Filters</span>
         <select
           value={campaignFilter}
           onChange={(e) => setCampaignFilter(e.target.value)}
-          className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-orange-500 focus:outline-none"
+          className="rounded border border-th-border bg-surface-card px-2 py-1 text-xs text-th-text-secondary focus:border-orange-500 focus:outline-none"
         >
           <option value="all">All Campaigns</option>
           {campaignOptions.map((name) => (
@@ -129,7 +129,7 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
         <select
           value={brandFilter}
           onChange={(e) => setBrandFilter(e.target.value)}
-          className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-orange-500 focus:outline-none"
+          className="rounded border border-th-border bg-surface-card px-2 py-1 text-xs text-th-text-secondary focus:border-orange-500 focus:outline-none"
         >
           <option value="all">All Brands</option>
           <option value="spigen">Spigen</option>
@@ -139,7 +139,7 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
         <select
           value={marketFilter}
           onChange={(e) => setMarketFilter(e.target.value)}
-          className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-orange-500 focus:outline-none"
+          className="rounded border border-th-border bg-surface-card px-2 py-1 text-xs text-th-text-secondary focus:border-orange-500 focus:outline-none"
         >
           <option value="all">All Markets</option>
           <option value="US">US</option>
@@ -155,7 +155,7 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
             Clear
           </button>
         )}
-        <span className="ml-auto text-[10px] text-gray-400">{filteredRecs.length} recommendations</span>
+        <span className="ml-auto text-[10px] text-th-text-muted">{filteredRecs.length} recommendations</span>
       </div>
 
       {/* Category Grouped Recommendation Cards — Design S11 */}
@@ -170,39 +170,39 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
               <div key={type}>
                 {/* Category Header */}
                 <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900">{TYPE_LABELS[type] ?? type}</h3>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                  <h3 className="text-sm font-semibold text-th-text">{TYPE_LABELS[type] ?? type}</h3>
+                  <span className="rounded-full bg-th-bg-tertiary px-2 py-0.5 text-[10px] font-medium text-th-text-secondary">
                     {items.length}
                   </span>
                 </div>
                 <div className="space-y-2">
                   {items.map((rec) => (
-                    <div key={rec.id} className={`rounded-lg border bg-white p-4 ${TYPE_COLORS[rec.recommendation_type] ?? ''}`}>
+                    <div key={rec.id} className={`rounded-lg border bg-surface-card p-4 ${TYPE_COLORS[rec.recommendation_type] ?? ''}`}>
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-semibold text-gray-900">{rec.campaign_name}</span>
+                            <span className="text-xs font-semibold text-th-text">{rec.campaign_name}</span>
                             <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                              rec.impact_level === 'high' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
+                              rec.impact_level === 'high' ? 'bg-emerald-100 text-emerald-800' : 'bg-th-bg-tertiary text-th-text-secondary'
                             }`}>
                               {rec.impact_level}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-700">{rec.keyword_text}</p>
-                          <p className="text-xs text-gray-500 mt-1">{rec.reason}</p>
+                          <p className="text-sm text-th-text-secondary">{rec.keyword_text}</p>
+                          <p className="text-xs text-th-text-muted mt-1">{rec.reason}</p>
                           {rec.current_bid != null && rec.suggested_bid != null && (
                             <p className="text-xs font-mono mt-1">
-                              <span className="text-gray-400">${rec.current_bid.toFixed(2)}</span>
+                              <span className="text-th-text-muted">${rec.current_bid.toFixed(2)}</span>
                               <span className="mx-1">&rarr;</span>
                               <span className="font-semibold text-emerald-600">${rec.suggested_bid.toFixed(2)}</span>
                             </p>
                           )}
                         </div>
                         <div className="flex gap-1 ml-3 shrink-0">
-                          <button onClick={() => onApprove(rec.id)} className="rounded bg-gray-900 px-3 py-1 text-xs font-medium text-white hover:bg-gray-800">
+                          <button onClick={() => onApprove(rec.id)} className="rounded bg-th-text px-3 py-1 text-xs font-medium text-white hover:bg-th-text">
                             Approve
                           </button>
-                          <button className="rounded bg-gray-100 px-3 py-1 text-xs text-gray-600 hover:bg-gray-200">
+                          <button className="rounded bg-th-bg-tertiary px-3 py-1 text-xs text-th-text-secondary hover:bg-th-bg-tertiary">
                             Skip
                           </button>
                         </div>

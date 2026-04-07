@@ -131,21 +131,21 @@ const AdsCampaignsPage = () => {
       <div>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">Campaigns</h1>
-            <p className="mt-0.5 text-sm text-gray-500">
+            <h1 className="text-lg font-semibold text-th-text">Campaigns</h1>
+            <p className="mt-0.5 text-sm text-th-text-muted">
               Manage your Amazon ad campaigns across all brands and markets.
             </p>
           </div>
         </div>
 
         {/* Page Tabs: Campaigns | Budget Planning — Design S03 */}
-        <div className="mt-4 flex border-b border-gray-200">
+        <div className="mt-4 flex border-b border-th-border">
           <button
             onClick={() => setPageTab('campaigns')}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               pageTab === 'campaigns'
                 ? 'border-b-2 border-orange-500 text-orange-600'
-                : 'text-gray-500 hover:text-gray-700'
+                : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
             Campaigns
@@ -155,7 +155,7 @@ const AdsCampaignsPage = () => {
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               pageTab === 'budget_planning'
                 ? 'border-b-2 border-orange-500 text-orange-600'
-                : 'text-gray-500 hover:text-gray-700'
+                : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
             Budget Planning
@@ -168,13 +168,13 @@ const AdsCampaignsPage = () => {
           {/* KPI Strip with personal/team toggle — Design S03 */}
           <div>
             <div className="mb-2 flex items-center justify-end">
-              <div className="inline-flex rounded-md border border-gray-200 bg-white">
+              <div className="inline-flex rounded-md border border-th-border bg-surface-card">
                 <button
                   onClick={() => setKpiView('personal')}
                   className={`px-3 py-1 text-xs font-medium transition-colors ${
                     kpiView === 'personal'
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-th-text text-white'
+                      : 'text-th-text-muted hover:text-th-text-secondary'
                   } rounded-l-md`}
                 >
                   Personal
@@ -183,8 +183,8 @@ const AdsCampaignsPage = () => {
                   onClick={() => setKpiView('team')}
                   className={`px-3 py-1 text-xs font-medium transition-colors ${
                     kpiView === 'team'
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-th-text text-white'
+                      : 'text-th-text-muted hover:text-th-text-secondary'
                   } rounded-r-md`}
                 >
                   Team
@@ -197,7 +197,7 @@ const AdsCampaignsPage = () => {
           {/* AI Queue Preview — Design S03: "AI Queue 미리보기 4칸" */}
           {selectedMarketId && (
             <div>
-              <h3 className="text-sm font-medium text-gray-900 mb-2">AI Action Queue</h3>
+              <h3 className="text-sm font-medium text-th-text mb-2">AI Action Queue</h3>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {campaigns.filter((c) => c.mode === 'autopilot').slice(0, 4).map((c) => (
                   <AiQueuePreview
@@ -209,7 +209,7 @@ const AdsCampaignsPage = () => {
                   />
                 ))}
                 {campaigns.filter((c) => c.mode === 'autopilot').length === 0 && !isLoading && (
-                  <p className="col-span-full text-sm text-gray-400 py-4 text-center">
+                  <p className="col-span-full text-sm text-th-text-muted py-4 text-center">
                     No Auto Pilot campaigns — AI Queue is empty
                   </p>
                 )}
@@ -233,21 +233,21 @@ const AdsCampaignsPage = () => {
           {/* Pagination */}
           {pagination.total > pagination.limit && (
             <div className="flex items-center justify-between text-sm">
-              <p className="text-gray-500">
+              <p className="text-th-text-muted">
                 Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
               </p>
               <div className="flex gap-2">
                 <button
                   disabled={pagination.page <= 1}
                   onClick={() => setPagination((p) => ({ ...p, page: p.page - 1 }))}
-                  className="rounded border border-gray-300 px-3 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  className="rounded border border-th-border px-3 py-1 text-th-text-secondary hover:bg-th-bg-hover disabled:opacity-50"
                 >
                   Previous
                 </button>
                 <button
                   disabled={pagination.page * pagination.limit >= pagination.total}
                   onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
-                  className="rounded border border-gray-300 px-3 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  className="rounded border border-th-border px-3 py-1 text-th-text-secondary hover:bg-th-bg-hover disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -257,10 +257,10 @@ const AdsCampaignsPage = () => {
         </>
       ) : (
         /* Budget Planning Tab — placeholder for Track B */
-        <div className="rounded-lg border border-gray-200 bg-white py-16 text-center">
-          <div className="mb-3 mx-auto h-12 w-12 rounded-full bg-gray-100" />
-          <p className="text-sm font-medium text-gray-900">Budget Planning</p>
-          <p className="mt-1 text-sm text-gray-500">Annual budget planning with 12-month grid — Track B</p>
+        <div className="rounded-lg border border-th-border bg-surface-card py-16 text-center">
+          <div className="mb-3 mx-auto h-12 w-12 rounded-full bg-th-bg-tertiary" />
+          <p className="text-sm font-medium text-th-text">Budget Planning</p>
+          <p className="mt-1 text-sm text-th-text-muted">Annual budget planning with 12-month grid — Track B</p>
         </div>
       )}
 

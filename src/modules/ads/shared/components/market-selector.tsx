@@ -26,7 +26,7 @@ const MarketSelector = ({ markets, className = '' }: MarketSelectorProps) => {
     <select
       value={selectedMarketId ?? ''}
       onChange={(e) => setSelectedMarketId(e.target.value)}
-      className={`rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 ${className}`}
+      className={`rounded-md border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text-secondary focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 ${className}`}
     >
       {markets.map((m) => (
         <option key={m.brand_market_id} value={m.brand_market_id}>

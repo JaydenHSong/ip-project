@@ -37,13 +37,13 @@ const AdsOptimizationPage = () => {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Optimization</h1>
-          <p className="mt-0.5 text-sm text-gray-500">Bid, budget, keyword, and dayparting optimization.</p>
+          <h1 className="text-lg font-semibold text-th-text">Optimization</h1>
+          <p className="mt-0.5 text-sm text-th-text-muted">Bid, budget, keyword, and dayparting optimization.</p>
         </div>
         <select
           value={selectedCampaignId ?? ''}
           onChange={(e) => setSelectedCampaignId(e.target.value || null)}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
+          className="rounded-md border border-th-border bg-surface-card px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
         >
           <option value="">Select Campaign</option>
           {campaigns.map((c) => (

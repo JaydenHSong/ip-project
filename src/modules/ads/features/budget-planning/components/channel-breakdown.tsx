@@ -17,7 +17,7 @@ const CHANNEL_LABELS: Record<string, string> = {
 }
 
 const CHANNEL_COLORS: Record<string, string> = {
-  sp: 'bg-gray-900',
+  sp: 'bg-th-text',
   sb: 'bg-orange-500',
   sd: 'bg-gray-400',
 }
@@ -49,11 +49,11 @@ const ChannelBreakdown = ({ plans, actuals, className = '' }: ChannelBreakdownPr
   const totalActual = channels.reduce((s, c) => s + c.ytd_actual, 0)
 
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-4 ${className}`}>
-      <h3 className="text-sm font-medium text-gray-900 mb-4">Channel Breakdown (YTD)</h3>
+    <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
+      <h3 className="text-sm font-medium text-th-text mb-4">Channel Breakdown (YTD)</h3>
 
       {/* Stacked bar */}
-      <div className="flex h-3 rounded-full overflow-hidden bg-gray-100 mb-4">
+      <div className="flex h-3 rounded-full overflow-hidden bg-th-bg-tertiary mb-4">
         {channels.map((ch) => {
           const widthPct = totalActual > 0 ? (ch.ytd_actual / totalActual) * 100 : 0
           return (
@@ -74,14 +74,14 @@ const ChannelBreakdown = ({ plans, actuals, className = '' }: ChannelBreakdownPr
             <div className={`h-3 w-3 rounded-sm ${CHANNEL_COLORS[ch.channel]}`} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">
+                <span className="text-xs font-medium text-th-text-secondary">
                   {CHANNEL_LABELS[ch.channel]}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-th-text-muted">
                   {fmt(ch.ytd_actual)} / {fmt(ch.ytd_planned)}
                 </span>
               </div>
-              <div className="mt-1 h-1 w-full rounded-full bg-gray-100">
+              <div className="mt-1 h-1 w-full rounded-full bg-th-bg-tertiary">
                 <div
                   className={`h-1 rounded-full ${CHANNEL_COLORS[ch.channel]} transition-all`}
                   style={{ width: `${Math.min(ch.pacing_pct, 100)}%` }}

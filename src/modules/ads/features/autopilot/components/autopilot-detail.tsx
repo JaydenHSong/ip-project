@@ -39,10 +39,10 @@ const AutopilotDetail = ({ campaign, activityLog, profileId, onPause, onRollback
       {/* Campaign Header — Design S09 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700">&larr; Back</button>
+          <button onClick={onBack} className="text-sm text-th-text-muted hover:text-th-text-secondary">&larr; Back</button>
           <div>
-            <h2 className="text-base font-semibold text-gray-900">{campaign.name}</h2>
-            <p className="text-xs text-gray-400 font-mono">{campaign.marketing_code}</p>
+            <h2 className="text-base font-semibold text-th-text">{campaign.name}</h2>
+            <p className="text-xs text-th-text-muted font-mono">{campaign.marketing_code}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -51,7 +51,7 @@ const AutopilotDetail = ({ campaign, activityLog, profileId, onPause, onRollback
               Pause
             </button>
           )}
-          <button className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+          <button className="rounded-md border border-th-border px-3 py-1.5 text-xs font-medium text-th-text-secondary hover:bg-th-bg-hover">
             Settings
           </button>
         </div>
@@ -61,9 +61,9 @@ const AutopilotDetail = ({ campaign, activityLog, profileId, onPause, onRollback
       <div className="grid grid-cols-4 gap-3">
         <KpiCard label="ACoS Target" value={campaign.target_acos ? `${campaign.target_acos}%` : '-'} />
         <KpiCard label="Weekly Budget" value={campaign.weekly_budget ? `$${campaign.weekly_budget}` : '-'} />
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-xs text-gray-500">Confidence</p>
-          <p className="mt-1 text-2xl font-semibold text-gray-900">{campaign.confidence_score ?? 0}%</p>
+        <div className="rounded-lg border border-th-border bg-surface-card p-4">
+          <p className="text-xs text-th-text-muted">Confidence</p>
+          <p className="mt-1 text-2xl font-semibold text-th-text">{campaign.confidence_score ?? 0}%</p>
           <ProgressBar value={campaign.confidence_score ?? 0} showPercent={false} className="mt-2" />
         </div>
         <KpiCard label="Actions (7d)" value={activityLog.length} />

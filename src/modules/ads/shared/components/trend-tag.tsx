@@ -10,7 +10,7 @@ type TrendTagProps = {
 
 const TREND_STYLES: Record<TrendDirection, { color: string; icon: string }> = {
   improving: { color: 'text-emerald-600', icon: '↑' },
-  stable: { color: 'text-gray-500', icon: '→' },
+  stable: { color: 'text-th-text-muted', icon: '→' },
   worsening: { color: 'text-red-600', icon: '↓' },
 }
 

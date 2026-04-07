@@ -24,12 +24,12 @@ const MODULES: ModuleConfig[] = [
     path: '/ip',
     status: 'active',
     menuItems: [
-      { label: 'Dashboard', labelKey: 'nav.dashboard', path: '/dashboard', icon: 'layout-dashboard' },
-      { label: 'Campaigns', labelKey: 'nav.campaigns', path: '/campaigns', icon: 'search' },
-      { label: 'Report Queue', labelKey: 'nav.reportQueue', path: '/reports', icon: 'file-text' },
-      { label: 'Completed Reports', labelKey: 'nav.completedReports', path: '/reports/completed', icon: 'check-circle' },
-      { label: 'IP Registry', labelKey: 'nav.ipRegistry', path: '/patents', icon: 'copyright' },
-      { label: 'Notices', labelKey: 'nav.notices', path: '/notices', icon: 'bell' },
+      { label: 'Dashboard', labelKey: 'nav.dashboard', path: '/ip/dashboard', icon: 'layout-dashboard' },
+      { label: 'Campaigns', labelKey: 'nav.campaigns', path: '/ip/campaigns', icon: 'search' },
+      { label: 'Report Queue', labelKey: 'nav.reportQueue', path: '/ip/reports', icon: 'file-text' },
+      { label: 'Completed Reports', labelKey: 'nav.completedReports', path: '/ip/reports/completed', icon: 'check-circle' },
+      { label: 'IP Registry', labelKey: 'nav.ipRegistry', path: '/ip/patents', icon: 'copyright' },
+      { label: 'Notices', labelKey: 'nav.notices', path: '/ip/notices', icon: 'bell' },
     ],
   },
   {

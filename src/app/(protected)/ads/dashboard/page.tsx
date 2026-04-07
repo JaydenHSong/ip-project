@@ -71,19 +71,19 @@ const AdsDashboardPage = () => {
       {/* Page header with view toggle */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">AD Dashboard</h1>
-          <p className="mt-0.5 text-sm text-gray-500">
+          <h1 className="text-lg font-semibold text-th-text">AD Dashboard</h1>
+          <p className="mt-0.5 text-sm text-th-text-muted">
             {view === 'ceo' ? 'Cross-brand performance overview' : 'Budget pacing & team performance'}
           </p>
         </div>
 
         {/* View toggle — only show if owner (can access both views) */}
         {userRole === 'owner' && (
-          <div className="inline-flex rounded-md border border-gray-200 bg-white">
+          <div className="inline-flex rounded-md border border-th-border bg-surface-card">
             <button
               onClick={() => setView('ceo')}
               className={`px-3 py-1.5 text-xs font-medium transition-colors rounded-l-md ${
-                view === 'ceo' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'
+                view === 'ceo' ? 'bg-th-text text-white' : 'text-th-text-muted hover:text-th-text-secondary'
               }`}
             >
               CEO View
@@ -91,7 +91,7 @@ const AdsDashboardPage = () => {
             <button
               onClick={() => setView('director')}
               className={`px-3 py-1.5 text-xs font-medium transition-colors rounded-r-md ${
-                view === 'director' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'
+                view === 'director' ? 'bg-th-text text-white' : 'text-th-text-muted hover:text-th-text-secondary'
               }`}
             >
               Director View

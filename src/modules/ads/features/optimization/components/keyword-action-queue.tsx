@@ -21,22 +21,22 @@ const KeywordActionQueue = ({ items, onApprove, onSkip, className = '' }: Keywor
         return (
           <div
             key={item.id}
-            className={`flex items-center gap-3 rounded border-l-2 bg-white px-3 py-2 ${
+            className={`flex items-center gap-3 rounded border-l-2 bg-surface-card px-3 py-2 ${
               isPromote ? 'border-l-emerald-500' : 'border-l-red-400 border-dashed'
             }`}
           >
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-gray-700 truncate">{item.keyword_text}</p>
-              <p className="text-[11px] text-gray-400">{item.campaign_name}</p>
+              <p className="text-xs font-medium text-th-text-secondary truncate">{item.keyword_text}</p>
+              <p className="text-[11px] text-th-text-muted">{item.campaign_name}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {isPromote && item.suggested_bid && (
                 <span className="text-xs font-mono text-emerald-600">+${item.suggested_bid.toFixed(2)}</span>
               )}
-              <button onClick={() => onApprove(item.id)} className="rounded bg-gray-900 px-2 py-0.5 text-[10px] text-white hover:bg-gray-800">
+              <button onClick={() => onApprove(item.id)} className="rounded bg-th-text px-2 py-0.5 text-[10px] text-white hover:bg-th-text">
                 {isPromote ? 'Promote' : 'Negate'}
               </button>
-              <button onClick={() => onSkip(item.id)} className="text-[10px] text-gray-400 hover:text-gray-600">Skip</button>
+              <button onClick={() => onSkip(item.id)} className="text-[10px] text-th-text-muted hover:text-th-text-secondary">Skip</button>
             </div>
           </div>
         )

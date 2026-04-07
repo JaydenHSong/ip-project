@@ -16,17 +16,17 @@ const HourlySpendChart = ({ data, dailyBudget, className = '' }: HourlySpendChar
   const barH = 96
 
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-4 ${className}`}>
+    <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-900">Hourly Spend</h3>
+        <h3 className="text-sm font-medium text-th-text">Hourly Spend</h3>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <div className="h-2 w-2 rounded-full bg-gray-900" />
-            <span className="text-[10px] text-gray-500">Actual</span>
+            <div className="h-2 w-2 rounded-full bg-th-text" />
+            <span className="text-[10px] text-th-text-muted">Actual</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="h-2 w-2 rounded-full bg-gray-300" />
-            <span className="text-[10px] text-gray-500">Predicted</span>
+            <div className="h-2 w-2 rounded-full bg-th-text-muted" />
+            <span className="text-[10px] text-th-text-muted">Predicted</span>
           </div>
         </div>
       </div>
@@ -38,9 +38,9 @@ const HourlySpendChart = ({ data, dailyBudget, className = '' }: HourlySpendChar
           const isNow = point.hour === currentHour
           return (
             <div key={point.hour} className="flex-1 flex items-end gap-px relative">
-              <div className="flex-1 rounded-t bg-gray-200" style={{ height: `${predH}px` }} />
+              <div className="flex-1 rounded-t bg-th-bg-tertiary" style={{ height: `${predH}px` }} />
               <div
-                className={`flex-1 rounded-t ${isNow ? 'bg-orange-500' : 'bg-gray-900'}`}
+                className={`flex-1 rounded-t ${isNow ? 'bg-orange-500' : 'bg-th-text'}`}
                 style={{ height: `${actualH}px` }}
               />
               {isNow && (
@@ -55,7 +55,7 @@ const HourlySpendChart = ({ data, dailyBudget, className = '' }: HourlySpendChar
 
       <div className="flex gap-px mt-1">
         {data.map((point) => (
-          <div key={point.hour} className="flex-1 text-center text-[7px] text-gray-300">
+          <div key={point.hour} className="flex-1 text-center text-[7px] text-th-text-muted">
             {point.hour % 6 === 0 ? `${point.hour}h` : ''}
           </div>
         ))}

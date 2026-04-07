@@ -33,14 +33,14 @@ const OptimizationLayout = ({
     <div className="space-y-4">
       {/* Campaign Context Bar */}
       {campaignId && (
-        <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2.5">
-          <span className="text-xs text-gray-400">Campaign:</span>
-          <span className="text-sm font-medium text-gray-900">{campaignName ?? campaignId}</span>
+        <div className="flex items-center gap-3 rounded-lg border border-th-border bg-surface-card px-4 py-2.5">
+          <span className="text-xs text-th-text-muted">Campaign:</span>
+          <span className="text-sm font-medium text-th-text">{campaignName ?? campaignId}</span>
         </div>
       )}
 
       {/* Sub-tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-th-border">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -48,7 +48,7 @@ const OptimizationLayout = ({
             className={`px-4 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.key
                 ? 'border-b-2 border-orange-500 text-orange-600'
-                : 'text-gray-500 hover:text-gray-700'
+                : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
             {tab.label}

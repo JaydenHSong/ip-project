@@ -27,7 +27,7 @@ const CampaignStatusStrip = ({ summary, isLoading }: CampaignStatusStripProps) =
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="h-[88px] animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
+          <div key={i} className="h-[88px] animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
         ))}
       </div>
     )
@@ -56,9 +56,9 @@ const CampaignStatusStrip = ({ summary, isLoading }: CampaignStatusStripProps) =
         value={formatCurrency(summary.total_sales_mtd)}
       />
       {/* 4. Budget Pacing */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <p className="text-xs text-gray-500">Budget Pacing</p>
-        <p className="mt-1 text-2xl font-semibold text-gray-900">
+      <div className="rounded-lg border border-th-border bg-surface-card p-4">
+        <p className="text-xs text-th-text-muted">Budget Pacing</p>
+        <p className="mt-1 text-2xl font-semibold text-th-text">
           {pacingPct.toFixed(0)}%
         </p>
         <ProgressBar value={pacingPct} showPercent={false} className="mt-2" />

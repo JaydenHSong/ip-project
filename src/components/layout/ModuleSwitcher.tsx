@@ -56,7 +56,7 @@ export const ModuleSwitcher = ({ currentModule, collapsed }: ModuleSwitcherProps
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'flex w-full items-center gap-2.5 rounded-lg border border-th-sidebar-border px-3 py-2 text-xs font-medium transition-colors',
+          'flex w-full items-center gap-2.5 rounded-lg border border-th-sidebar-border px-3 py-2.5 text-sm font-medium transition-colors',
           'text-th-sidebar-text hover:bg-th-sidebar-hover',
           collapsed && 'justify-center px-2',
         )}
@@ -84,7 +84,7 @@ export const ModuleSwitcher = ({ currentModule, collapsed }: ModuleSwitcherProps
                 disabled={isDisabled}
                 onClick={() => handleSelect(mod)}
                 className={cn(
-                  'flex w-full items-center gap-3 px-3 py-2.5 text-sm transition-colors',
+                  'flex w-full items-center gap-3 px-3.5 py-3 text-sm transition-colors',
                   isActive
                     ? 'bg-th-accent/10 text-th-accent-text font-medium'
                     : isDisabled
@@ -92,11 +92,11 @@ export const ModuleSwitcher = ({ currentModule, collapsed }: ModuleSwitcherProps
                       : 'text-th-text-secondary hover:bg-th-bg-hover',
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <Icon className="h-5 w-5 shrink-0" />
                 <span className="flex-1 text-left">{mod.name}</span>
-                {isActive && <span className="h-1.5 w-1.5 rounded-full bg-th-accent" />}
+                {isActive && <span className="h-2 w-2 rounded-full bg-th-accent" />}
                 {isDisabled && (
-                  <span className="rounded-full bg-th-bg-tertiary px-1.5 py-0.5 text-[10px] text-th-text-muted">Soon</span>
+                  <span className="rounded-full bg-th-bg-tertiary px-2 py-0.5 text-[10px] text-th-text-muted">Soon</span>
                 )}
               </button>
             )

@@ -61,7 +61,7 @@ const SortHeader = ({
 
   return (
     <th
-      className={`cursor-pointer select-none px-4 py-3 text-left text-xs font-medium text-gray-500 hover:text-gray-700 ${className}`}
+      className={`cursor-pointer select-none px-4 py-3 text-left text-xs font-medium text-th-text-muted hover:text-th-text-secondary ${className}`}
       onClick={handleClick}
     >
       <span className="inline-flex items-center gap-1">
@@ -78,15 +78,15 @@ const SortHeader = ({
 
 const SkeletonRow = () => (
   <tr className="animate-pulse">
-    <td className="px-4 py-3"><div className="h-4 w-4 rounded bg-gray-100" /></td>
-    <td className="px-4 py-3"><div className="h-4 w-32 rounded bg-gray-100" /></td>
-    <td className="px-4 py-3"><div className="h-4 w-16 rounded bg-gray-100" /></td>
-    <td className="px-4 py-3"><div className="h-4 w-14 rounded bg-gray-100" /></td>
-    <td className="px-4 py-3"><div className="h-4 w-16 rounded bg-gray-100" /></td>
-    <td className="px-4 py-3"><div className="h-4 w-12 rounded bg-gray-100" /></td>
-    <td className="px-4 py-3"><div className="h-4 w-12 rounded bg-gray-100" /></td>
-    <td className="px-4 py-3"><div className="h-4 w-12 rounded bg-gray-100" /></td>
-    <td className="px-4 py-3"><div className="h-4 w-10 rounded bg-gray-100" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-4 rounded bg-th-bg-tertiary" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-32 rounded bg-th-bg-tertiary" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-16 rounded bg-th-bg-tertiary" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-14 rounded bg-th-bg-tertiary" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-16 rounded bg-th-bg-tertiary" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-12 rounded bg-th-bg-tertiary" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-12 rounded bg-th-bg-tertiary" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-12 rounded bg-th-bg-tertiary" /></td>
+    <td className="px-4 py-3"><div className="h-4 w-10 rounded bg-th-bg-tertiary" /></td>
   </tr>
 )
 
@@ -130,18 +130,18 @@ const CampaignTable = ({
   return (
     <div>
       {/* Filters Bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-t-lg border border-b-0 border-gray-200 bg-gray-50 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-t-lg border border-b-0 border-th-border bg-th-bg-hover px-4 py-3">
         <input
           type="text"
           placeholder="Search campaigns..."
           value={filters.search}
           onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
-          className="w-56 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 placeholder-gray-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          className="w-56 rounded-md border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text-secondary placeholder-th-text-muted focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
         />
         <select
           value={filters.status}
           onChange={(e) => onFiltersChange({ ...filters, status: e.target.value as CampaignStatus | '' })}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-orange-500 focus:outline-none"
+          className="rounded-md border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text-secondary focus:border-orange-500 focus:outline-none"
         >
           <option value="">All Status</option>
           <option value="active">Running</option>
@@ -152,7 +152,7 @@ const CampaignTable = ({
         <select
           value={filters.mode}
           onChange={(e) => onFiltersChange({ ...filters, mode: e.target.value as CampaignMode | '' })}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-orange-500 focus:outline-none"
+          className="rounded-md border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text-secondary focus:border-orange-500 focus:outline-none"
         >
           <option value="">All Mode</option>
           <option value="autopilot">Auto Pilot</option>
@@ -169,21 +169,21 @@ const CampaignTable = ({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-b-lg border border-gray-200">
+      <div className="overflow-x-auto rounded-b-lg border border-th-border">
         <table className="w-full text-sm">
-          <thead className="border-b border-gray-200 bg-white">
+          <thead className="border-b border-th-border bg-surface-card">
             <tr>
               <th className="w-10 px-4 py-3">
                 <input
                   type="checkbox"
                   checked={selectedIds.size === campaigns.length && campaigns.length > 0}
                   onChange={toggleSelectAll}
-                  className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                  className="rounded border-th-border text-orange-500 focus:ring-orange-500"
                 />
               </th>
               <SortHeader label="Campaign" sortKey="name" currentSort={sort} onSort={onSortChange} className="min-w-[200px]" />
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Mode</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-th-text-muted">Mode</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-th-text-muted">Status</th>
               <SortHeader label="Budget" sortKey="daily_budget" currentSort={sort} onSort={onSortChange} />
               <SortHeader label="Spend Today" sortKey="spend_today" currentSort={sort} onSort={onSortChange} />
               <SortHeader label="ACoS" sortKey="acos" currentSort={sort} onSort={onSortChange} />
@@ -191,7 +191,7 @@ const CampaignTable = ({
               <SortHeader label="Orders 7d" sortKey="orders_7d" currentSort={sort} onSort={onSortChange} />
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-th-border">
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : campaigns.length === 0 ? (
@@ -214,7 +214,7 @@ const CampaignTable = ({
                 return (
                   <tr
                     key={c.id}
-                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="cursor-pointer hover:bg-th-bg-hover transition-colors"
                     onClick={() => onRowClick(c.id)}
                   >
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -222,13 +222,13 @@ const CampaignTable = ({
                         type="checkbox"
                         checked={selectedIds.has(c.id)}
                         onChange={() => toggleSelect(c.id)}
-                        className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                        className="rounded border-th-border text-orange-500 focus:ring-orange-500"
                       />
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium text-gray-900 truncate max-w-[240px]">{c.name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="font-medium text-th-text truncate max-w-[240px]">{c.name}</p>
+                        <p className="text-xs text-th-text-muted mt-0.5">
                           {c.marketing_code} &middot; {c.campaign_type.toUpperCase()}
                           {c.assigned_to && ` \u00B7 ${c.assigned_to.name}`}
                         </p>
@@ -242,9 +242,9 @@ const CampaignTable = ({
                     </td>
                     <td className="px-4 py-3">
                       <div className="w-24">
-                        <p className="text-gray-900">
+                        <p className="text-th-text">
                           ${(c.daily_budget ?? c.weekly_budget ?? 0).toFixed(0)}
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-th-text-muted">
                             /{c.daily_budget ? 'd' : 'w'}
                           </span>
                         </p>
@@ -253,21 +253,21 @@ const CampaignTable = ({
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">
+                    <td className="px-4 py-3 text-th-text-secondary">
                       ${c.spend_today.toFixed(2)}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={c.acos != null && c.target_acos != null && c.acos > c.target_acos ? 'text-red-600 font-medium' : 'text-gray-700'}>
+                      <span className={c.acos != null && c.target_acos != null && c.acos > c.target_acos ? 'text-red-600 font-medium' : 'text-th-text-secondary'}>
                         {c.acos != null ? `${c.acos.toFixed(1)}%` : '-'}
                       </span>
                       {c.target_acos != null && (
-                        <p className="text-xs text-gray-400">target {c.target_acos}%</p>
+                        <p className="text-xs text-th-text-muted">target {c.target_acos}%</p>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">
+                    <td className="px-4 py-3 text-th-text-secondary">
                       {c.roas != null ? `${c.roas.toFixed(2)}x` : '-'}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">
+                    <td className="px-4 py-3 text-th-text-secondary">
                       {c.orders_7d.toLocaleString()}
                     </td>
                   </tr>

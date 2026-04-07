@@ -14,11 +14,11 @@ type HeatmapGridProps = {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const getIntensity = (weight: number): string => {
-  if (weight === 0) return 'bg-gray-50'
-  if (weight < 0.25) return 'bg-gray-200'
+  if (weight === 0) return 'bg-th-bg-hover'
+  if (weight < 0.25) return 'bg-th-bg-tertiary'
   if (weight < 0.5) return 'bg-gray-400'
-  if (weight < 0.75) return 'bg-gray-600'
-  return 'bg-gray-800'
+  if (weight < 0.75) return 'bg-th-bg-tertiary'
+  return 'bg-th-bg-tertiary'
 }
 
 const HeatmapGrid = ({ cells, onCellToggle, highlightNow = true, className = '' }: HeatmapGridProps) => {
@@ -36,14 +36,14 @@ const HeatmapGrid = ({ cells, onCellToggle, highlightNow = true, className = '' 
           <tr>
             <th className="w-10" />
             {Array.from({ length: 24 }, (_, h) => (
-              <th key={h} className="text-[8px] text-gray-400 text-center w-4">{h % 6 === 0 ? h : ''}</th>
+              <th key={h} className="text-[8px] text-th-text-muted text-center w-4">{h % 6 === 0 ? h : ''}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {DAYS.map((day, dayIdx) => (
             <tr key={day}>
-              <td className="text-[10px] text-gray-500 font-medium pr-1">{day}</td>
+              <td className="text-[10px] text-th-text-muted font-medium pr-1">{day}</td>
               {Array.from({ length: 24 }, (_, hour) => {
                 const cell = getCell(dayIdx, hour)
                 const weight = cell?.weight ?? 0

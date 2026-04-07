@@ -34,7 +34,7 @@ const RollbackButton = ({
   const baseClasses = size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-4 py-1.5 text-sm'
   const variantClasses = variant === 'danger'
     ? 'bg-red-500 text-white hover:bg-red-600'
-    : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+    : 'border border-th-border text-th-text-secondary hover:bg-th-bg-hover'
 
   return (
     <button

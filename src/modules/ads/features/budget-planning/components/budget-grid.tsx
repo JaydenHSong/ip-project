@@ -63,9 +63,9 @@ const BudgetGrid = ({ plans, actuals, autopilotMonthly, year, onSave }: BudgetGr
   const actualTotal = actualData?.annual_total ?? 0
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-th-border bg-surface-card">
       {/* Channel tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-th-border">
         {CHANNEL_TABS.map((tab) => (
           <button
             key={tab.key}
@@ -73,7 +73,7 @@ const BudgetGrid = ({ plans, actuals, autopilotMonthly, year, onSave }: BudgetGr
             className={`px-4 py-2.5 text-sm font-medium transition-colors ${
               activeChannel === tab.key
                 ? 'border-b-2 border-orange-500 text-orange-600'
-                : 'text-gray-500 hover:text-gray-700'
+                : 'text-th-text-muted hover:text-th-text-secondary'
             }`}
           >
             {tab.label}
@@ -96,18 +96,18 @@ const BudgetGrid = ({ plans, actuals, autopilotMonthly, year, onSave }: BudgetGr
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-gray-100">
-              <th className="sticky left-0 bg-white px-3 py-2 text-left text-gray-500 font-medium w-28">Row</th>
+            <tr className="border-b border-th-border">
+              <th className="sticky left-0 bg-surface-card px-3 py-2 text-left text-th-text-muted font-medium w-28">Row</th>
               {MONTHS.map((m) => (
-                <th key={m} className="px-2 py-2 text-center text-gray-500 font-medium min-w-[72px]">{m}</th>
+                <th key={m} className="px-2 py-2 text-center text-th-text-muted font-medium min-w-[72px]">{m}</th>
               ))}
-              <th className="px-3 py-2 text-center text-gray-700 font-semibold">Total</th>
+              <th className="px-3 py-2 text-center text-th-text-secondary font-semibold">Total</th>
             </tr>
           </thead>
           <tbody>
             {/* Plan row (editable) */}
-            <tr className="border-b border-gray-50">
-              <td className="sticky left-0 bg-white px-3 py-2 text-gray-700 font-medium">Plan &apos;{String(year).slice(2)}</td>
+            <tr className="border-b border-th-border">
+              <td className="sticky left-0 bg-surface-card px-3 py-2 text-th-text-secondary font-medium">Plan &apos;{String(year).slice(2)}</td>
               {MONTHS.map((_, i) => {
                 const month = i + 1
                 const value = getCellValue(month)
@@ -121,35 +121,35 @@ const BudgetGrid = ({ plans, actuals, autopilotMonthly, year, onSave }: BudgetGr
                       className={`w-full rounded border px-2 py-1 text-right text-xs font-mono ${
                         isEdited
                           ? 'border-orange-300 bg-orange-50'
-                          : 'border-gray-200 bg-white'
+                          : 'border-th-border bg-surface-card'
                       } focus:border-orange-500 focus:outline-none`}
                     />
                   </td>
                 )
               })}
-              <td className="px-3 py-2 text-right font-mono font-semibold text-gray-900">
+              <td className="px-3 py-2 text-right font-mono font-semibold text-th-text">
                 ${fmt(planTotal)}
               </td>
             </tr>
 
             {/* Actual row (read-only) */}
-            <tr className="border-b border-gray-50 bg-gray-50">
-              <td className="sticky left-0 bg-gray-50 px-3 py-2 text-gray-500 font-medium">Actual &apos;{String(year).slice(2)}</td>
+            <tr className="border-b border-th-border bg-th-bg-hover">
+              <td className="sticky left-0 bg-th-bg-hover px-3 py-2 text-th-text-muted font-medium">Actual &apos;{String(year).slice(2)}</td>
               {MONTHS.map((_, i) => {
                 const amount = actualData?.months.find((m) => m.month === i + 1)?.amount ?? 0
                 return (
-                  <td key={i} className="px-2 py-2 text-center text-gray-500 font-mono">
+                  <td key={i} className="px-2 py-2 text-center text-th-text-muted font-mono">
                     {amount > 0 ? `$${fmt(amount)}` : '-'}
                   </td>
                 )
               })}
-              <td className="px-3 py-2 text-right font-mono font-medium text-gray-600">
+              <td className="px-3 py-2 text-right font-mono font-medium text-th-text-secondary">
                 ${fmt(actualTotal)}
               </td>
             </tr>
 
             {/* Auto Pilot row — Design S13: "Auto Pilot ⚡ 행 (#FFF7ED 배경)" */}
-            <tr className="border-b border-gray-50" style={{ backgroundColor: '#FFF7ED' }}>
+            <tr className="border-b border-th-border" style={{ backgroundColor: '#FFF7ED' }}>
               <td className="sticky left-0 px-3 py-2 font-medium text-orange-700" style={{ backgroundColor: '#FFF7ED' }}>
                 Auto Pilot
               </td>

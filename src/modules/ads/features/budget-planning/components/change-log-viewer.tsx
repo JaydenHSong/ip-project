@@ -42,32 +42,32 @@ const ChangeLogViewer = ({ brandMarketId, year, isOpen, onClose }: ChangeLogView
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-md rounded-xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-base font-semibold text-gray-900">Budget Change Log</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+      <div className="relative w-full max-w-md rounded-xl bg-surface-card shadow-xl">
+        <div className="flex items-center justify-between border-b border-th-border px-6 py-4">
+          <h2 className="text-base font-semibold text-th-text">Budget Change Log</h2>
+          <button onClick={onClose} className="text-th-text-muted hover:text-th-text-secondary">&times;</button>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
           {isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-12 animate-pulse rounded bg-gray-50" />
+                <div key={i} className="h-12 animate-pulse rounded bg-th-bg-hover" />
               ))}
             </div>
           ) : logs.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">No changes recorded</p>
+            <p className="text-sm text-th-text-muted text-center py-8">No changes recorded</p>
           ) : (
             <div className="space-y-2">
               {logs.map((log) => (
-                <div key={log.id} className="rounded border border-gray-100 bg-gray-50 px-3 py-2">
+                <div key={log.id} className="rounded border border-th-border bg-th-bg-hover px-3 py-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-700">{log.user_name}</span>
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-xs font-medium text-th-text-secondary">{log.user_name}</span>
+                    <span className="text-[11px] text-th-text-muted">
                       {new Date(log.changed_at).toLocaleString()}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 text-xs text-th-text-muted">
                     <span className="font-mono">{log.field}</span>:
                     <span className="text-red-500 line-through ml-1">${log.old_value ?? '0'}</span>
                     <span className="mx-1">&rarr;</span>

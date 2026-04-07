@@ -28,12 +28,12 @@ const ProgressBar = ({
   return (
     <div className={className}>
       {(label || showPercent) && (
-        <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
+        <div className="mb-1 flex items-center justify-between text-xs text-th-text-muted">
           {label && <span>{label}</span>}
           {showPercent && <span>{clamped.toFixed(0)}%</span>}
         </div>
       )}
-      <div className={`w-full rounded-full bg-gray-100 ${height}`}>
+      <div className={`w-full rounded-full bg-th-bg-tertiary ${height}`}>
         <div
           className={`${height} rounded-full transition-all ${getBarColor(clamped)}`}
           style={{ width: `${clamped}%` }}

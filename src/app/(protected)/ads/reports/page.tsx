@@ -62,8 +62,8 @@ const AdsReportsPage = () => {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900">Spend Intelligence</h1>
-        <p className="mt-0.5 text-sm text-gray-500">
+        <h1 className="text-lg font-semibold text-th-text">Spend Intelligence</h1>
+        <p className="mt-0.5 text-sm text-th-text-muted">
           Identify waste, track trends, and act on AI-powered recommendations.
         </p>
       </div>

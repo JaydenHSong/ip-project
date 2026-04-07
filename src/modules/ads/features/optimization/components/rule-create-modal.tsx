@@ -82,25 +82,25 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-md rounded-xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-base font-semibold text-gray-900">Create Rule</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+      <div className="relative w-full max-w-md rounded-xl bg-surface-card shadow-xl">
+        <div className="flex items-center justify-between border-b border-th-border px-6 py-4">
+          <h2 className="text-base font-semibold text-th-text">Create Rule</h2>
+          <button onClick={onClose} className="text-th-text-muted hover:text-th-text-secondary">&times;</button>
         </div>
 
         <div className="space-y-4 px-6 py-5 max-h-[60vh] overflow-y-auto">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Rule Name</label>
+            <label className="block text-sm font-medium text-th-text-secondary mb-1">Rule Name</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+              className="w-full rounded-md border border-th-border px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Template</label>
+            <label className="block text-sm font-medium text-th-text-secondary mb-2">Template</label>
             <div className="space-y-2">
               {TEMPLATES.map((t) => (
                 <button
@@ -108,11 +108,11 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
                   type="button"
                   onClick={() => setForm({ ...form, template: t.key })}
                   className={`w-full rounded-lg border-2 p-3 text-left transition-colors ${
-                    form.template === t.key ? 'border-orange-500 bg-orange-50' : 'border-gray-200'
+                    form.template === t.key ? 'border-orange-500 bg-orange-50' : 'border-th-border'
                   }`}
                 >
-                  <p className="text-sm font-medium text-gray-900">{t.label}</p>
-                  <p className="text-xs text-gray-500">{t.description}</p>
+                  <p className="text-sm font-medium text-th-text">{t.label}</p>
+                  <p className="text-xs text-th-text-muted">{t.description}</p>
                 </button>
               ))}
             </div>
@@ -120,11 +120,11 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Metric</label>
+              <label className="block text-xs text-th-text-muted mb-1">Metric</label>
               <select
                 value={form.condition_metric}
                 onChange={(e) => setForm({ ...form, condition_metric: e.target.value })}
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                className="w-full rounded-md border border-th-border px-2 py-1.5 text-sm"
               >
                 <option value="acos">ACoS</option>
                 <option value="ctr">CTR</option>
@@ -133,11 +133,11 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Operator</label>
+              <label className="block text-xs text-th-text-muted mb-1">Operator</label>
               <select
                 value={form.condition_operator}
                 onChange={(e) => setForm({ ...form, condition_operator: e.target.value as RuleFormData['condition_operator'] })}
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                className="w-full rounded-md border border-th-border px-2 py-1.5 text-sm"
               >
                 <option value=">">&gt;</option>
                 <option value="<">&lt;</option>
@@ -146,23 +146,23 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Value</label>
+              <label className="block text-xs text-th-text-muted mb-1">Value</label>
               <input
                 type="number"
                 value={form.condition_value}
                 onChange={(e) => setForm({ ...form, condition_value: Number(e.target.value) })}
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                className="w-full rounded-md border border-th-border px-2 py-1.5 text-sm"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Look-back</label>
+              <label className="block text-xs text-th-text-muted mb-1">Look-back</label>
               <select
                 value={form.look_back_days}
                 onChange={(e) => setForm({ ...form, look_back_days: Number(e.target.value) })}
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                className="w-full rounded-md border border-th-border px-2 py-1.5 text-sm"
               >
                 <option value={7}>7 days</option>
                 <option value={14}>14 days</option>
@@ -170,11 +170,11 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Frequency</label>
+              <label className="block text-xs text-th-text-muted mb-1">Frequency</label>
               <select
                 value={form.run_frequency}
                 onChange={(e) => setForm({ ...form, run_frequency: e.target.value as RunFrequency })}
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                className="w-full rounded-md border border-th-border px-2 py-1.5 text-sm"
               >
                 <option value="hourly">Hourly</option>
                 <option value="daily">Daily</option>
@@ -186,33 +186,33 @@ const RuleCreateModal = ({ isOpen, onClose, onSubmit }: RuleCreateModalProps) =>
 
         {/* Simulate Result */}
         {simulateResult && (
-          <div className="mx-6 mb-2 rounded-md border border-gray-200 bg-gray-50 p-3">
-            <p className="text-xs font-medium text-gray-700 mb-1">Simulation Result</p>
+          <div className="mx-6 mb-2 rounded-md border border-th-border bg-th-bg-hover p-3">
+            <p className="text-xs font-medium text-th-text-secondary mb-1">Simulation Result</p>
             <div className="flex gap-4 text-xs">
               <div>
-                <span className="text-gray-500">Campaigns affected: </span>
-                <span className="font-semibold text-gray-900">{simulateResult.affected_campaigns}</span>
+                <span className="text-th-text-muted">Campaigns affected: </span>
+                <span className="font-semibold text-th-text">{simulateResult.affected_campaigns}</span>
               </div>
               <div>
-                <span className="text-gray-500">Keywords matched: </span>
-                <span className="font-semibold text-gray-900">{simulateResult.matched_keywords}</span>
+                <span className="text-th-text-muted">Keywords matched: </span>
+                <span className="font-semibold text-th-text">{simulateResult.matched_keywords}</span>
               </div>
               <div>
-                <span className="text-gray-500">Est. impact: </span>
+                <span className="text-th-text-muted">Est. impact: </span>
                 <span className="font-semibold text-orange-600">{simulateResult.estimated_impact}</span>
               </div>
             </div>
           </div>
         )}
 
-        <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4">
-          <button onClick={onClose} className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
+        <div className="flex items-center justify-between border-t border-th-border px-6 py-4">
+          <button onClick={onClose} className="rounded-md border border-th-border px-4 py-2 text-sm text-th-text-secondary hover:bg-th-bg-hover">Cancel</button>
           <div className="flex gap-2">
             {/* Simulate — Design M03: "[Simulate] 버튼 + results" */}
             <button
               onClick={handleSimulate}
               disabled={!form.name || isSimulating}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-md border border-th-border px-4 py-2 text-sm font-medium text-th-text-secondary hover:bg-th-bg-hover disabled:opacity-50"
             >
               {isSimulating ? 'Simulating...' : 'Simulate'}
             </button>

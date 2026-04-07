@@ -27,7 +27,7 @@ const CampaignSelector = ({
 
   if (!selectedMarketId) {
     return (
-      <select disabled className={`rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-400 ${className}`}>
+      <select disabled className={`rounded-md border border-th-border bg-th-bg-hover px-3 py-1.5 text-sm text-th-text-muted ${className}`}>
         <option>Select market first</option>
       </select>
     )
@@ -38,7 +38,7 @@ const CampaignSelector = ({
       value={value ?? ''}
       onChange={(e) => onChange(e.target.value)}
       disabled={isLoading}
-      className={`rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 ${className}`}
+      className={`rounded-md border border-th-border bg-surface-card px-3 py-1.5 text-sm text-th-text-secondary focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 ${className}`}
     >
       <option value="">{isLoading ? 'Loading...' : placeholder}</option>
       {campaigns.map((c) => (

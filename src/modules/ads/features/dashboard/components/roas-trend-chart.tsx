@@ -19,9 +19,9 @@ const BRAND_COLORS: Record<string, string> = {
 const RoasTrendChart = ({ data, targetRoas = 3.0, className = '' }: RoasTrendChartProps) => {
   if (data.length === 0) {
     return (
-      <div className={`rounded-lg border border-gray-200 bg-white p-4 ${className}`}>
-        <h3 className="text-sm font-medium text-gray-900 mb-3">ROAS Trend (30 Days)</h3>
-        <div className="flex items-center justify-center h-48 text-sm text-gray-400">
+      <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
+        <h3 className="text-sm font-medium text-th-text mb-3">ROAS Trend (30 Days)</h3>
+        <div className="flex items-center justify-center h-48 text-sm text-th-text-muted">
           No trend data available yet
         </div>
       </div>
@@ -48,14 +48,14 @@ const RoasTrendChart = ({ data, targetRoas = 3.0, className = '' }: RoasTrendCha
   const targetY = scaleY(targetRoas)
 
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-4 ${className}`}>
+    <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-gray-900">ROAS Trend (30 Days)</h3>
+        <h3 className="text-sm font-medium text-th-text">ROAS Trend (30 Days)</h3>
         <div className="flex items-center gap-3">
           {Object.entries(BRAND_COLORS).map(([brand, color]) => (
             <div key={brand} className="flex items-center gap-1">
               <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-[11px] text-gray-500 capitalize">{brand}</span>
+              <span className="text-[11px] text-th-text-muted capitalize">{brand}</span>
             </div>
           ))}
         </div>

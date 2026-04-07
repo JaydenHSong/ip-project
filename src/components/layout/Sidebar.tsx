@@ -15,6 +15,13 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
+  Target,
+  SlidersHorizontal,
+  Bot,
+  BarChart3,
+  Copyright,
+  Bell,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { createClient } from '@/lib/supabase/client'
@@ -26,20 +33,35 @@ import type { User } from '@/types/users'
 
 type NavItem = {
   labelKey: string
+  label?: string
   href: string
   icon: React.ComponentType<{ className?: string }>
   minRole?: Role
   milestone?: number
 }
 
-const MAIN_NAV: NavItem[] = [
-  { labelKey: 'nav.dashboard', href: '/ip/dashboard', icon: LayoutDashboard },
-  { labelKey: 'nav.campaigns', href: '/ip/campaigns', icon: Search },
-  { labelKey: 'nav.reportQueue', href: '/ip/reports', icon: FileWarning },
-  { labelKey: 'nav.completedReports', href: '/ip/reports/completed', icon: CheckCircle2 },
-  { labelKey: 'nav.patents', href: '/ip/patents', icon: Shield },
-  { labelKey: 'nav.notices', href: '/ip/notices', icon: Megaphone },
-]
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  'layout-dashboard': LayoutDashboard,
+  'search': Search,
+  'file-text': FileText,
+  'check-circle': CheckCircle2,
+  'copyright': Copyright,
+  'bell': Bell,
+  'target': Target,
+  'sliders-horizontal': SlidersHorizontal,
+  'bot': Bot,
+  'bar-chart-3': BarChart3,
+  'shield': Shield,
+  'megaphone': Megaphone,
+}
+
+const buildNavFromModule = (mod: import('@/constants/modules').ModuleConfig): NavItem[] =>
+  mod.menuItems.map((item) => ({
+    labelKey: item.labelKey,
+    label: item.label,
+    href: item.path,
+    icon: ICON_MAP[item.icon] ?? LayoutDashboard,
+  }))
 
 const BOTTOM_NAV: NavItem[] = [
   { labelKey: 'nav.settings', href: '/settings', icon: Settings },
@@ -80,7 +102,8 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const currentModule = getCurrentModule(pathname)
 
-  const mainItems = filterItems(MAIN_NAV, user.role)
+  const moduleNav = currentModule ? buildNavFromModule(currentModule) : []
+  const mainItems = filterItems(moduleNav, user.role)
   const bottomItems = filterItems(BOTTOM_NAV, user.role)
 
   const handleLogout = async () => {
@@ -99,7 +122,7 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
     const isActive =
       !hasMoreSpecificMatch && (pathname === item.href || pathname.startsWith(`${item.href}/`))
     const Icon = item.icon
-    const label = t(item.labelKey)
+    const label = t(item.labelKey) || item.label || item.labelKey
 
     return (
       <Link

@@ -63,7 +63,7 @@ const AutopilotDetailPage = ({ params }: { params: Promise<{ id: string }> }) =>
     return (
       <div className="p-6 space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-24 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
+          <div key={i} className="h-24 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
         ))}
       </div>
     )
@@ -72,7 +72,7 @@ const AutopilotDetailPage = ({ params }: { params: Promise<{ id: string }> }) =>
   if (!campaign) {
     return (
       <div className="p-6 text-center py-12">
-        <p className="text-sm text-gray-500">Campaign not found</p>
+        <p className="text-sm text-th-text-muted">Campaign not found</p>
         <button onClick={() => router.push('/ads/autopilot')} className="mt-2 text-sm text-orange-500 hover:text-orange-600">
           Back to Auto Pilot
         </button>

@@ -21,13 +21,13 @@ const ConfidenceBar = ({ score, className = '' }: ConfidenceBarProps) => {
   return (
     <div className={className}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-gray-500">AI Confidence</span>
+        <span className="text-xs text-th-text-muted">AI Confidence</span>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-700">{stage.label}</span>
-          <span className="text-xs font-semibold text-gray-900">{score}%</span>
+          <span className="text-xs font-medium text-th-text-secondary">{stage.label}</span>
+          <span className="text-xs font-semibold text-th-text">{score}%</span>
         </div>
       </div>
-      <div className="h-2 w-full rounded-full bg-gray-100">
+      <div className="h-2 w-full rounded-full bg-th-bg-tertiary">
         <div
           className={`h-2 rounded-full transition-all ${stage.color}`}
           style={{ width: `${Math.min(score, 100)}%` }}
@@ -38,7 +38,7 @@ const ConfidenceBar = ({ score, className = '' }: ConfidenceBarProps) => {
         {[30, 50, 70, 90].map((threshold) => (
           <div
             key={threshold}
-            className="text-[8px] text-gray-300"
+            className="text-[8px] text-th-text-muted"
             style={{ marginLeft: `${threshold - 5}%` }}
           >
             |

@@ -11,8 +11,8 @@ type StatusBadgeProps = {
 const STATUS_STYLES: Record<CampaignStatus, string> = {
   active: 'bg-emerald-50 text-emerald-700',
   learning: 'bg-orange-50 text-orange-700',
-  paused: 'bg-gray-100 text-gray-500',
-  archived: 'bg-gray-50 text-gray-400',
+  paused: 'bg-th-bg-tertiary text-th-text-muted',
+  archived: 'bg-th-bg-hover text-th-text-muted',
 }
 
 const STATUS_LABELS: Record<CampaignStatus, string> = {

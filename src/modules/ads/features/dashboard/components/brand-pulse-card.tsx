@@ -48,18 +48,18 @@ const BrandPulseCard = ({ brand, className = '' }: BrandPulseCardProps) => {
   const sparkData = brand.markets.find((m) => m.roas_trend.length > 0)?.roas_trend ?? []
 
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-5 ${className}`}>
+    <div className={`rounded-lg border border-th-border bg-surface-card p-5 ${className}`}>
       {/* Brand name */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-900">{brand.brand_name}</h3>
-        <span className="text-xs text-gray-400">{brand.markets.length} markets</span>
+        <h3 className="text-sm font-semibold text-th-text">{brand.brand_name}</h3>
+        <span className="text-xs text-th-text-muted">{brand.markets.length} markets</span>
       </div>
 
       {/* ROAS hero + sparkline */}
       <div className="flex items-end justify-between mb-4">
         <div>
-          <p className="text-xs text-gray-500">ROAS</p>
-          <p className="text-3xl font-bold text-gray-900">{avgRoas.toFixed(2)}x</p>
+          <p className="text-xs text-th-text-muted">ROAS</p>
+          <p className="text-3xl font-bold text-th-text">{avgRoas.toFixed(2)}x</p>
         </div>
         {sparkData.length > 0 && (
           <Sparkline data={sparkData} className="h-6 w-20 text-orange-500" />
@@ -69,12 +69,12 @@ const BrandPulseCard = ({ brand, className = '' }: BrandPulseCardProps) => {
       {/* TACoS gauge */}
       <div className="mb-3">
         <div className="flex justify-between text-xs mb-1">
-          <span className="text-gray-500">ACoS</span>
+          <span className="text-th-text-muted">ACoS</span>
           <span className={`font-medium ${avgAcos > 30 ? 'text-red-600' : avgAcos > 20 ? 'text-orange-600' : 'text-emerald-600'}`}>
             {avgAcos.toFixed(1)}%
           </span>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-gray-100">
+        <div className="h-1.5 w-full rounded-full bg-th-bg-tertiary">
           <div
             className={`h-1.5 rounded-full transition-all ${
               avgAcos > 30 ? 'bg-red-500' : avgAcos > 20 ? 'bg-orange-500' : 'bg-emerald-500'
@@ -85,18 +85,18 @@ const BrandPulseCard = ({ brand, className = '' }: BrandPulseCardProps) => {
       </div>
 
       {/* Bottom stats */}
-      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100">
+      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-th-border">
         <div>
-          <p className="text-[11px] text-gray-400">Spend</p>
-          <p className="text-xs font-semibold text-gray-700">{formatCurrency(totalSpend)}</p>
+          <p className="text-[11px] text-th-text-muted">Spend</p>
+          <p className="text-xs font-semibold text-th-text-secondary">{formatCurrency(totalSpend)}</p>
         </div>
         <div>
-          <p className="text-[11px] text-gray-400">Sales</p>
-          <p className="text-xs font-semibold text-gray-700">{formatCurrency(totalSales)}</p>
+          <p className="text-[11px] text-th-text-muted">Sales</p>
+          <p className="text-xs font-semibold text-th-text-secondary">{formatCurrency(totalSales)}</p>
         </div>
         <div>
-          <p className="text-[11px] text-gray-400">Orders</p>
-          <p className="text-xs font-semibold text-gray-700">{totalOrders.toLocaleString()}</p>
+          <p className="text-[11px] text-th-text-muted">Orders</p>
+          <p className="text-xs font-semibold text-th-text-secondary">{totalOrders.toLocaleString()}</p>
         </div>
       </div>
     </div>

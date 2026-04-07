@@ -10,7 +10,7 @@ type AcosHeatmapProps = {
 }
 
 const getAcosBg = (acos: number): string => {
-  if (acos === 0) return 'bg-gray-50 text-gray-400'
+  if (acos === 0) return 'bg-th-bg-hover text-th-text-muted'
   if (acos <= 15) return 'bg-emerald-50 text-emerald-700'
   if (acos <= 25) return 'bg-emerald-100 text-emerald-800'
   if (acos <= 35) return 'bg-orange-50 text-orange-700'
@@ -21,7 +21,7 @@ const getAcosBg = (acos: number): string => {
 const getDeltaColor = (delta: number): string => {
   if (delta < -2) return 'text-emerald-600' // improving
   if (delta > 2) return 'text-red-600'      // worsening
-  return 'text-gray-400'                     // stable
+  return 'text-th-text-muted'                     // stable
 }
 
 const AcosHeatmap = ({ data, className = '' }: AcosHeatmapProps) => {
@@ -34,35 +34,35 @@ const AcosHeatmap = ({ data, className = '' }: AcosHeatmapProps) => {
 
   if (data.length === 0) {
     return (
-      <div className={`rounded-lg border border-gray-200 bg-white p-4 ${className}`}>
-        <h3 className="text-sm font-medium text-gray-900 mb-3">ACoS Heatmap</h3>
-        <p className="text-sm text-gray-400 text-center py-8">No data available</p>
+      <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
+        <h3 className="text-sm font-medium text-th-text mb-3">ACoS Heatmap</h3>
+        <p className="text-sm text-th-text-muted text-center py-8">No data available</p>
       </div>
     )
   }
 
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white p-4 ${className}`}>
-      <h3 className="text-sm font-medium text-gray-900 mb-3">ACoS Heatmap</h3>
+    <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
+      <h3 className="text-sm font-medium text-th-text mb-3">ACoS Heatmap</h3>
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
             <tr>
-              <th className="px-2 py-1.5 text-left text-gray-500 font-medium">Brand</th>
+              <th className="px-2 py-1.5 text-left text-th-text-muted font-medium">Brand</th>
               {markets.map((m) => (
-                <th key={m} className="px-2 py-1.5 text-center text-gray-500 font-medium">{m}</th>
+                <th key={m} className="px-2 py-1.5 text-center text-th-text-muted font-medium">{m}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {brands.map((brand) => (
               <tr key={brand}>
-                <td className="px-2 py-1.5 font-medium text-gray-700">{brand}</td>
+                <td className="px-2 py-1.5 font-medium text-th-text-secondary">{brand}</td>
                 {markets.map((market) => {
                   const cell = getCell(brand, market)
                   if (!cell) {
-                    return <td key={market} className="px-2 py-1.5 text-center text-gray-300">—</td>
+                    return <td key={market} className="px-2 py-1.5 text-center text-th-text-muted">—</td>
                   }
                   return (
                     <td key={market} className="px-1 py-1">
@@ -84,8 +84,8 @@ const AcosHeatmap = ({ data, className = '' }: AcosHeatmapProps) => {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100">
-        <span className="text-[10px] text-gray-400">ACoS:</span>
+      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-th-border">
+        <span className="text-[10px] text-th-text-muted">ACoS:</span>
         <div className="flex gap-1">
           {[
             { label: '<15%', cls: 'bg-emerald-50 text-emerald-700' },

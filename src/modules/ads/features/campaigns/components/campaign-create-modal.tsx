@@ -76,16 +76,16 @@ const StepTeamName = ({
       onChange={(code) => onUpdate({ marketing_code: code })}
     />
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Campaign Name</label>
+      <label className="block text-sm font-medium text-th-text-secondary mb-1">Campaign Name</label>
       <input
         type="text"
         value={form.name}
         onChange={(e) => onUpdate({ name: e.target.value })}
         placeholder="e.g. Spigen US SP - iPhone Cases"
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+        className="w-full rounded-md border border-th-border px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
       />
       {form.marketing_code && form.name && (
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-th-text-muted">
           Preview: <span className="font-mono font-medium">{form.marketing_code}</span> — {form.name}
         </p>
       )}
@@ -103,7 +103,7 @@ const StepMode = ({
   onUpdate: (patch: Partial<FormState>) => void
 }) => (
   <div className="space-y-4">
-    <label className="block text-sm font-medium text-gray-700 mb-2">Campaign Mode</label>
+    <label className="block text-sm font-medium text-th-text-secondary mb-2">Campaign Mode</label>
     <div className="grid grid-cols-1 gap-3">
       {/* Manual */}
       <button
@@ -112,11 +112,11 @@ const StepMode = ({
         className={`rounded-lg border-2 p-4 text-left transition-colors ${
           form.mode === 'manual'
             ? 'border-orange-500 bg-orange-50'
-            : 'border-gray-200 hover:border-gray-300'
+            : 'border-th-border hover:border-th-border'
         }`}
       >
-        <p className="text-sm font-semibold text-gray-900">Manual</p>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="text-sm font-semibold text-th-text">Manual</p>
+        <p className="mt-1 text-xs text-th-text-muted">
           You control all campaign settings — bids, budgets, keywords, and scheduling.
         </p>
       </button>
@@ -128,11 +128,11 @@ const StepMode = ({
         className={`rounded-lg border-2 p-4 text-left transition-colors ${
           form.mode === 'autopilot'
             ? 'border-orange-500 bg-orange-50'
-            : 'border-gray-200 hover:border-gray-300'
+            : 'border-th-border hover:border-th-border'
         }`}
       >
-        <p className="text-sm font-semibold text-gray-900">Auto Pilot</p>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="text-sm font-semibold text-th-text">Auto Pilot</p>
+        <p className="mt-1 text-xs text-th-text-muted">
           AI manages bids, budgets, and keywords automatically based on your target ACoS.
         </p>
       </button>
@@ -189,7 +189,7 @@ const StepTypeTargeting = ({
     <div className="space-y-4">
       {/* Campaign Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Campaign Type</label>
+        <label className="block text-sm font-medium text-th-text-secondary mb-2">Campaign Type</label>
         <div className="grid grid-cols-3 gap-3">
           {(['sp', 'sb', 'sd'] as const).map((type) => (
             <button
@@ -199,11 +199,11 @@ const StepTypeTargeting = ({
               className={`rounded-lg border-2 p-3 text-center transition-colors ${
                 form.campaign_type === type
                   ? 'border-orange-500 bg-orange-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-th-border hover:border-th-border'
               }`}
             >
-              <p className="text-sm font-semibold text-gray-900">{type.toUpperCase()}</p>
-              <p className="mt-0.5 text-[11px] text-gray-500">
+              <p className="text-sm font-semibold text-th-text">{type.toUpperCase()}</p>
+              <p className="mt-0.5 text-[11px] text-th-text-muted">
                 {type === 'sp' ? 'Sponsored Products' : type === 'sb' ? 'Sponsored Brands' : 'Sponsored Display'}
               </p>
             </button>
@@ -214,33 +214,33 @@ const StepTypeTargeting = ({
       {/* Budget + ACoS */}
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Target ACoS (%)</label>
+          <label className="block text-xs text-th-text-muted mb-1">Target ACoS (%)</label>
           <input
             type="number"
             value={form.target_acos}
             onChange={(e) => onUpdate({ target_acos: Number(e.target.value) })}
             min={1} max={100}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
+            className="w-full rounded-md border border-th-border px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Daily Budget ($)</label>
+          <label className="block text-xs text-th-text-muted mb-1">Daily Budget ($)</label>
           <input
             type="number"
             value={form.daily_budget}
             onChange={(e) => onUpdate({ daily_budget: Number(e.target.value) })}
             min={1}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
+            className="w-full rounded-md border border-th-border px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Max Bid Cap ($)</label>
+          <label className="block text-xs text-th-text-muted mb-1">Max Bid Cap ($)</label>
           <input
             type="number"
             value={form.max_bid_cap}
             onChange={(e) => onUpdate({ max_bid_cap: Number(e.target.value) })}
             min={0.02} step={0.01}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
+            className="w-full rounded-md border border-th-border px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
           />
         </div>
       </div>
@@ -256,7 +256,7 @@ const StepTypeTargeting = ({
               className={`rounded-md border px-3 py-1 text-xs transition-colors ${
                 form.targeting_type === t
                   ? 'border-orange-500 bg-orange-50 text-orange-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  : 'border-th-border text-th-text-secondary hover:border-th-border'
               }`}
             >
               {t === 'keyword' ? 'Keyword' : 'Product'} Targeting
@@ -273,12 +273,12 @@ const StepTypeTargeting = ({
                 onChange={(e) => setNewKeyword(e.target.value)}
                 placeholder="Enter keyword..."
                 onKeyDown={(e) => e.key === 'Enter' && addKeyword()}
-                className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
+                className="flex-1 rounded-md border border-th-border px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
               />
               <select
                 value={newMatchType}
                 onChange={(e) => setNewMatchType(e.target.value as MatchType)}
-                className="rounded-md border border-gray-300 px-2 py-1.5 text-xs"
+                className="rounded-md border border-th-border px-2 py-1.5 text-xs"
               >
                 <option value="broad">Broad</option>
                 <option value="phrase">Phrase</option>
@@ -289,12 +289,12 @@ const StepTypeTargeting = ({
                 value={newBid}
                 onChange={(e) => setNewBid(Number(e.target.value))}
                 step={0.01} min={0.02}
-                className="w-16 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
+                className="w-16 rounded-md border border-th-border px-2 py-1.5 text-xs"
               />
               <button
                 type="button"
                 onClick={addKeyword}
-                className="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
+                className="rounded-md bg-th-text px-3 py-1.5 text-xs font-medium text-white hover:bg-th-text"
               >
                 Add
               </button>
@@ -302,20 +302,20 @@ const StepTypeTargeting = ({
             {form.keywords.length > 0 && (
               <div className="space-y-1 max-h-32 overflow-y-auto">
                 {form.keywords.map((kw, i) => (
-                  <div key={i} className="flex items-center justify-between rounded border border-gray-100 bg-gray-50 px-3 py-1">
+                  <div key={i} className="flex items-center justify-between rounded border border-th-border bg-th-bg-hover px-3 py-1">
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="text-gray-700">{kw.text}</span>
-                      <span className="rounded bg-gray-200 px-1 py-0.5 text-[10px] text-gray-600">{kw.match_type}</span>
+                      <span className="text-th-text-secondary">{kw.text}</span>
+                      <span className="rounded bg-th-bg-tertiary px-1 py-0.5 text-[10px] text-th-text-secondary">{kw.match_type}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-mono text-gray-500">${kw.bid.toFixed(2)}</span>
-                      <button type="button" onClick={() => removeKeyword(i)} className="text-gray-400 hover:text-red-500 text-xs">&times;</button>
+                      <span className="text-[11px] font-mono text-th-text-muted">${kw.bid.toFixed(2)}</span>
+                      <button type="button" onClick={() => removeKeyword(i)} className="text-th-text-muted hover:text-red-500 text-xs">&times;</button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            <p className="mt-1 text-[11px] text-gray-400">{form.keywords.length} keywords</p>
+            <p className="mt-1 text-[11px] text-th-text-muted">{form.keywords.length} keywords</p>
           </>
         )}
 
@@ -326,9 +326,9 @@ const StepTypeTargeting = ({
               onChange={(e) => onUpdate({ product_asins: e.target.value.split('\n').filter(Boolean) })}
               placeholder="Enter ASINs, one per line..."
               rows={3}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:border-orange-500 focus:outline-none"
+              className="w-full rounded-md border border-th-border px-3 py-2 text-sm font-mono focus:border-orange-500 focus:outline-none"
             />
-            <p className="mt-1 text-[11px] text-gray-400">{form.product_asins.length} ASINs</p>
+            <p className="mt-1 text-[11px] text-th-text-muted">{form.product_asins.length} ASINs</p>
           </div>
         )}
       </div>
@@ -347,37 +347,37 @@ const StepBudgetAP = ({
 }) => (
   <div className="space-y-4">
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Target ACoS (%)</label>
+      <label className="block text-sm font-medium text-th-text-secondary mb-1">Target ACoS (%)</label>
       <input
         type="number"
         value={form.target_acos}
         onChange={(e) => onUpdate({ target_acos: Number(e.target.value) })}
         min={1} max={100}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+        className="w-full rounded-md border border-th-border px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
       />
-      <p className="mt-1 text-xs text-gray-400">AI will optimize towards this target</p>
+      <p className="mt-1 text-xs text-th-text-muted">AI will optimize towards this target</p>
     </div>
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Weekly Budget ($)</label>
+      <label className="block text-sm font-medium text-th-text-secondary mb-1">Weekly Budget ($)</label>
       <input
         type="number"
         value={form.weekly_budget}
         onChange={(e) => onUpdate({ weekly_budget: Number(e.target.value) })}
         min={7}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+        className="w-full rounded-md border border-th-border px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
       />
-      <p className="mt-1 text-xs text-gray-400">AI distributes budget across days using Daily Pacing</p>
+      <p className="mt-1 text-xs text-th-text-muted">AI distributes budget across days using Daily Pacing</p>
     </div>
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Max Bid Cap ($)</label>
+      <label className="block text-sm font-medium text-th-text-secondary mb-1">Max Bid Cap ($)</label>
       <input
         type="number"
         value={form.max_bid_cap}
         onChange={(e) => onUpdate({ max_bid_cap: Number(e.target.value) })}
         min={0.02} step={0.01}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
+        className="w-full rounded-md border border-th-border px-3 py-2 text-sm focus:border-orange-500 focus:outline-none"
       />
-      <p className="mt-1 text-xs text-gray-400">Safety cap — AI will never bid above this amount</p>
+      <p className="mt-1 text-xs text-th-text-muted">Safety cap — AI will never bid above this amount</p>
     </div>
   </div>
 )
@@ -386,33 +386,33 @@ const StepBudgetAP = ({
 
 const StepReview = ({ form }: { form: FormState }) => (
   <div className="space-y-4">
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-      <h4 className="text-sm font-semibold text-gray-900 mb-3">Campaign Summary</h4>
+    <div className="rounded-lg border border-th-border bg-th-bg-hover p-4">
+      <h4 className="text-sm font-semibold text-th-text mb-3">Campaign Summary</h4>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <dt className="text-gray-500">Marketing Code</dt>
-        <dd className="font-mono font-medium text-gray-900">{form.marketing_code || '-'}</dd>
-        <dt className="text-gray-500">Name</dt>
-        <dd className="font-medium text-gray-900 truncate">{form.name || '-'}</dd>
-        <dt className="text-gray-500">Mode</dt>
-        <dd className="font-medium text-gray-900">{form.mode === 'autopilot' ? 'Auto Pilot' : 'Manual'}</dd>
+        <dt className="text-th-text-muted">Marketing Code</dt>
+        <dd className="font-mono font-medium text-th-text">{form.marketing_code || '-'}</dd>
+        <dt className="text-th-text-muted">Name</dt>
+        <dd className="font-medium text-th-text truncate">{form.name || '-'}</dd>
+        <dt className="text-th-text-muted">Mode</dt>
+        <dd className="font-medium text-th-text">{form.mode === 'autopilot' ? 'Auto Pilot' : 'Manual'}</dd>
         {form.mode === 'manual' && (
           <>
-            <dt className="text-gray-500">Type</dt>
-            <dd className="font-medium text-gray-900">{form.campaign_type.toUpperCase()}</dd>
+            <dt className="text-th-text-muted">Type</dt>
+            <dd className="font-medium text-th-text">{form.campaign_type.toUpperCase()}</dd>
           </>
         )}
-        <dt className="text-gray-500">Target ACoS</dt>
-        <dd className="font-medium text-gray-900">{form.target_acos}%</dd>
-        <dt className="text-gray-500">Budget</dt>
-        <dd className="font-medium text-gray-900">
+        <dt className="text-th-text-muted">Target ACoS</dt>
+        <dd className="font-medium text-th-text">{form.target_acos}%</dd>
+        <dt className="text-th-text-muted">Budget</dt>
+        <dd className="font-medium text-th-text">
           ${form.mode === 'manual' ? `${form.daily_budget}/day` : `${form.weekly_budget}/week`}
         </dd>
-        <dt className="text-gray-500">Max Bid Cap</dt>
-        <dd className="font-medium text-gray-900">${form.max_bid_cap}</dd>
+        <dt className="text-th-text-muted">Max Bid Cap</dt>
+        <dd className="font-medium text-th-text">${form.max_bid_cap}</dd>
         {form.mode === 'manual' && (
           <>
-            <dt className="text-gray-500">Keywords</dt>
-            <dd className="font-medium text-gray-900">{form.keywords.length}</dd>
+            <dt className="text-th-text-muted">Keywords</dt>
+            <dd className="font-medium text-th-text">{form.keywords.length}</dd>
           </>
         )}
       </dl>
@@ -428,13 +428,13 @@ const StepReview = ({ form }: { form: FormState }) => (
     )}
 
     {form.keywords.length > 0 && (
-      <div className="rounded-lg border border-gray-200 p-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-2">Keywords ({form.keywords.length})</h4>
+      <div className="rounded-lg border border-th-border p-4">
+        <h4 className="text-sm font-semibold text-th-text mb-2">Keywords ({form.keywords.length})</h4>
         <div className="space-y-1 max-h-32 overflow-y-auto">
           {form.keywords.map((kw, i) => (
             <div key={i} className="flex items-center justify-between text-xs">
-              <span className="text-gray-700">{kw.text} <span className="text-gray-400">({kw.match_type})</span></span>
-              <span className="font-mono text-gray-500">${kw.bid.toFixed(2)}</span>
+              <span className="text-th-text-secondary">{kw.text} <span className="text-th-text-muted">({kw.match_type})</span></span>
+              <span className="font-mono text-th-text-muted">${kw.bid.toFixed(2)}</span>
             </div>
           ))}
         </div>
@@ -500,11 +500,11 @@ const CampaignCreateModal = ({ isOpen, onClose, onSubmit }: CampaignCreateModalP
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
 
-      <div className="relative w-full max-w-lg rounded-xl bg-white shadow-xl">
+      <div className="relative w-full max-w-lg rounded-xl bg-surface-card shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-base font-semibold text-gray-900">Create Campaign</h2>
-          <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+        <div className="flex items-center justify-between border-b border-th-border px-6 py-4">
+          <h2 className="text-base font-semibold text-th-text">Create Campaign</h2>
+          <button onClick={handleClose} className="text-th-text-muted hover:text-th-text-secondary">&times;</button>
         </div>
 
         {/* Step indicator */}
@@ -512,12 +512,12 @@ const CampaignCreateModal = ({ isOpen, onClose, onSubmit }: CampaignCreateModalP
           {steps.map((label, i) => (
             <div key={label} className="flex items-center gap-1">
               <div className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
-                i <= step ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'
+                i <= step ? 'bg-orange-500 text-white' : 'bg-th-bg-tertiary text-th-text-muted'
               }`}>
                 {i + 1}
               </div>
-              <span className={`text-xs ${i <= step ? 'text-gray-700' : 'text-gray-400'}`}>{label}</span>
-              {i < steps.length - 1 && <div className={`mx-1 h-px w-6 ${i < step ? 'bg-orange-500' : 'bg-gray-200'}`} />}
+              <span className={`text-xs ${i <= step ? 'text-th-text-secondary' : 'text-th-text-muted'}`}>{label}</span>
+              {i < steps.length - 1 && <div className={`mx-1 h-px w-6 ${i < step ? 'bg-orange-500' : 'bg-th-bg-tertiary'}`} />}
             </div>
           ))}
         </div>
@@ -532,10 +532,10 @@ const CampaignCreateModal = ({ isOpen, onClose, onSubmit }: CampaignCreateModalP
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between border-t border-th-border px-6 py-4">
           <button
             onClick={() => step > 0 ? setStep(step - 1) : handleClose()}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-md border border-th-border px-4 py-2 text-sm font-medium text-th-text-secondary hover:bg-th-bg-hover"
           >
             {step === 0 ? 'Cancel' : 'Back'}
           </button>

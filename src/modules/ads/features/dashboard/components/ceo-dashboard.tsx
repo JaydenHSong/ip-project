@@ -20,7 +20,7 @@ const AI_STATUS_STYLES: Record<string, { bg: string; text: string; label: string
 }
 
 const SkeletonCard = () => (
-  <div className="h-48 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
+  <div className="h-48 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
 )
 
 const CeoDashboard = ({ data, isLoading }: CeoDashboardProps) => {
@@ -32,8 +32,8 @@ const CeoDashboard = ({ data, isLoading }: CeoDashboardProps) => {
           <SkeletonCard />
           <SkeletonCard />
         </div>
-        <div className="h-48 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
-        <div className="h-32 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
+        <div className="h-48 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
+        <div className="h-32 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
       </div>
     )
   }
@@ -70,7 +70,7 @@ const CeoDashboard = ({ data, isLoading }: CeoDashboardProps) => {
             <BrandPulseCard key={brand.brand_id} brand={brand} />
           ))
         ) : (
-          <div className="col-span-3 text-center py-12 text-sm text-gray-400">
+          <div className="col-span-3 text-center py-12 text-sm text-th-text-muted">
             No brand data available
           </div>
         )}

@@ -46,8 +46,8 @@ const AdsAutopilotPage = () => {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Auto Pilot</h1>
-          <p className="mt-0.5 text-sm text-gray-500">AI-managed campaigns with full automation.</p>
+          <h1 className="text-lg font-semibold text-th-text">Auto Pilot</h1>
+          <p className="mt-0.5 text-sm text-th-text-muted">AI-managed campaigns with full automation.</p>
         </div>
         <button
           onClick={() => router.push('/ads/campaigns')}
@@ -69,7 +69,7 @@ const AdsAutopilotPage = () => {
 
       {/* Context Bar — Design S08 */}
       {kpi && (
-        <div className="flex items-center gap-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2">
+        <div className="flex items-center gap-4 rounded-lg border border-th-border bg-th-bg-hover px-4 py-2">
           <span className="flex items-center gap-1.5 text-xs">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             Running {kpi.active_count}

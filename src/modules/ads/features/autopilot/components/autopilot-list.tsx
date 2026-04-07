@@ -19,7 +19,7 @@ const AutopilotList = ({ campaigns, isLoading, onRowClick, onAction }: Autopilot
     return (
       <div className="space-y-2">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-16 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
+          <div key={i} className="h-16 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
         ))}
       </div>
     )
@@ -30,25 +30,25 @@ const AutopilotList = ({ campaigns, isLoading, onRowClick, onAction }: Autopilot
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-th-border bg-surface-card">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-200">
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500">Campaign</th>
-            <th className="px-3 py-3 text-center text-xs font-medium text-gray-500">Status</th>
-            <th className="px-3 py-3 text-center text-xs font-medium text-gray-500">Confidence</th>
-            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500">Target ACoS</th>
-            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500">Weekly Budget</th>
-            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500">Last Action</th>
+          <tr className="border-b border-th-border">
+            <th className="px-4 py-3 text-left text-xs font-medium text-th-text-muted">Campaign</th>
+            <th className="px-3 py-3 text-center text-xs font-medium text-th-text-muted">Status</th>
+            <th className="px-3 py-3 text-center text-xs font-medium text-th-text-muted">Confidence</th>
+            <th className="px-3 py-3 text-right text-xs font-medium text-th-text-muted">Target ACoS</th>
+            <th className="px-3 py-3 text-right text-xs font-medium text-th-text-muted">Weekly Budget</th>
+            <th className="px-3 py-3 text-left text-xs font-medium text-th-text-muted">Last Action</th>
             <th className="px-3 py-3 w-8" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-th-border">
           {campaigns.map((c) => (
-            <tr key={c.id} className="cursor-pointer hover:bg-gray-50" onClick={() => onRowClick(c.id)}>
+            <tr key={c.id} className="cursor-pointer hover:bg-th-bg-hover" onClick={() => onRowClick(c.id)}>
               <td className="px-4 py-3">
-                <p className="font-medium text-gray-900 truncate max-w-[200px]">{c.name}</p>
-                <p className="text-xs text-gray-400 font-mono">{c.marketing_code}</p>
+                <p className="font-medium text-th-text truncate max-w-[200px]">{c.name}</p>
+                <p className="text-xs text-th-text-muted font-mono">{c.marketing_code}</p>
               </td>
               <td className="px-3 py-3 text-center">
                 <AdsStatusBadge status={c.status} />
@@ -58,14 +58,14 @@ const AutopilotList = ({ campaigns, isLoading, onRowClick, onAction }: Autopilot
                   <ProgressBar value={c.confidence_score ?? 0} showPercent size="sm" />
                 </div>
               </td>
-              <td className="px-3 py-3 text-right text-gray-700">{c.target_acos ?? '-'}%</td>
-              <td className="px-3 py-3 text-right text-gray-700">${c.weekly_budget ?? 0}</td>
-              <td className="px-3 py-3 text-xs text-gray-500">
+              <td className="px-3 py-3 text-right text-th-text-secondary">{c.target_acos ?? '-'}%</td>
+              <td className="px-3 py-3 text-right text-th-text-secondary">${c.weekly_budget ?? 0}</td>
+              <td className="px-3 py-3 text-xs text-th-text-muted">
                 {c.last_action ? (
                   <div>
                     <span>{c.last_action}</span>
                     {c.last_action_at && (
-                      <span className="ml-1 text-gray-400">
+                      <span className="ml-1 text-th-text-muted">
                         {new Date(c.last_action_at).toLocaleDateString()}
                       </span>
                     )}
@@ -75,15 +75,15 @@ const AutopilotList = ({ campaigns, isLoading, onRowClick, onAction }: Autopilot
               <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                 {/* Kebab menu — Design S08 */}
                 <div className="relative group">
-                  <button className="text-gray-400 hover:text-gray-600">&#x22EE;</button>
-                  <div className="hidden group-hover:block absolute right-0 top-6 z-10 w-36 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                  <button className="text-th-text-muted hover:text-th-text-secondary">&#x22EE;</button>
+                  <div className="hidden group-hover:block absolute right-0 top-6 z-10 w-36 rounded-md border border-th-border bg-surface-card py-1 shadow-lg">
                     {c.status === 'active' && (
-                      <button onClick={() => onAction(c.id, 'pause')} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50">
+                      <button onClick={() => onAction(c.id, 'pause')} className="w-full px-3 py-1.5 text-left text-xs text-th-text-secondary hover:bg-th-bg-hover">
                         Pause
                       </button>
                     )}
                     {c.status === 'paused' && (
-                      <button onClick={() => onAction(c.id, 'resume')} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50">
+                      <button onClick={() => onAction(c.id, 'resume')} className="w-full px-3 py-1.5 text-left text-xs text-th-text-secondary hover:bg-th-bg-hover">
                         Resume
                       </button>
                     )}

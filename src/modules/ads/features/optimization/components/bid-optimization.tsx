@@ -82,7 +82,7 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
     return (
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-24 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
+          <div key={i} className="h-24 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
         ))}
       </div>
     )
@@ -103,21 +103,21 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
       {/* Today's Focus × 3 — Design S04 */}
       {top3.length > 0 ? (
         <div>
-          <h3 className="text-sm font-medium text-gray-900 mb-3">Today&apos;s Focus</h3>
+          <h3 className="text-sm font-medium text-th-text mb-3">Today&apos;s Focus</h3>
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
             {top3.map((rec) => (
-              <div key={rec.id} className="rounded-lg border border-gray-200 bg-white p-4">
-                <p className="text-xs font-medium text-gray-700 truncate">{rec.keyword_text}</p>
+              <div key={rec.id} className="rounded-lg border border-th-border bg-surface-card p-4">
+                <p className="text-xs font-medium text-th-text-secondary truncate">{rec.keyword_text}</p>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-sm text-gray-400">${rec.current_bid?.toFixed(2) ?? '-'}</span>
-                  <span className="text-gray-300">&rarr;</span>
+                  <span className="text-sm text-th-text-muted">${rec.current_bid?.toFixed(2) ?? '-'}</span>
+                  <span className="text-th-text-muted">&rarr;</span>
                   <span className="text-sm font-semibold text-emerald-600">${rec.suggested_bid?.toFixed(2) ?? '-'}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
                     rec.impact_level === 'high' ? 'bg-emerald-50 text-emerald-700'
                     : rec.impact_level === 'medium' ? 'bg-orange-50 text-orange-700'
-                    : 'bg-gray-50 text-gray-600'
+                    : 'bg-th-bg-hover text-th-text-secondary'
                   }`}>
                     {rec.impact_level.toUpperCase()}
                   </span>
@@ -128,7 +128,7 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
                     >
                       Approve
                     </button>
-                    <button className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-200">
+                    <button className="rounded bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary hover:bg-th-bg-tertiary">
                       Skip
                     </button>
                   </div>
@@ -138,7 +138,7 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
           </div>
 
           {/* Apply Top 3 Bar — Design S04: "#18181B 다크" */}
-          <div className="mt-3 flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2.5">
+          <div className="mt-3 flex items-center justify-center rounded-lg bg-th-text px-4 py-2.5">
             <button
               onClick={async () => {
                 for (const rec of top3) await onApprove(rec.id)
@@ -155,40 +155,40 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
 
       {/* Keyword Table — Design S04 */}
       {allRecs.length > 3 && (
-        <div className="rounded-lg border border-gray-200 bg-white">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="text-sm font-medium text-gray-900">All Bid Recommendations</h3>
+        <div className="rounded-lg border border-th-border bg-surface-card">
+          <div className="px-4 py-3 border-b border-th-border">
+            <h3 className="text-sm font-medium text-th-text">All Bid Recommendations</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-gray-100">
+                <tr className="border-b border-th-border">
                   <th className="w-8 px-3 py-2">
-                    <input type="checkbox" className="rounded border-gray-300 text-orange-500" />
+                    <input type="checkbox" className="rounded border-th-border text-orange-500" />
                   </th>
-                  <th className="px-3 py-2 text-left text-gray-500">Keyword</th>
-                  <th className="px-3 py-2 text-right text-gray-500">Current</th>
-                  <th className="px-3 py-2 text-right text-gray-500">Suggested</th>
-                  <th className="px-3 py-2 text-center text-gray-500">Impact</th>
-                  <th className="px-3 py-2 text-left text-gray-500">Reason</th>
-                  <th className="px-3 py-2 text-center text-gray-500">Action</th>
+                  <th className="px-3 py-2 text-left text-th-text-muted">Keyword</th>
+                  <th className="px-3 py-2 text-right text-th-text-muted">Current</th>
+                  <th className="px-3 py-2 text-right text-th-text-muted">Suggested</th>
+                  <th className="px-3 py-2 text-center text-th-text-muted">Impact</th>
+                  <th className="px-3 py-2 text-left text-th-text-muted">Reason</th>
+                  <th className="px-3 py-2 text-center text-th-text-muted">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {allRecs.slice(3).map((rec) => (
-                  <tr key={rec.id} className={`border-b border-gray-50 ${rec.source === 'algorithm' ? 'border-l-2 border-l-orange-400' : ''}`}>
+                  <tr key={rec.id} className={`border-b border-th-border ${rec.source === 'algorithm' ? 'border-l-2 border-l-orange-400' : ''}`}>
                     <td className="px-3 py-2">
-                      <input type="checkbox" className="rounded border-gray-300 text-orange-500" />
+                      <input type="checkbox" className="rounded border-th-border text-orange-500" />
                     </td>
-                    <td className="px-3 py-2 font-medium text-gray-700">{rec.keyword_text}</td>
-                    <td className="px-3 py-2 text-right font-mono text-gray-500">${rec.current_bid?.toFixed(2) ?? '-'}</td>
+                    <td className="px-3 py-2 font-medium text-th-text-secondary">{rec.keyword_text}</td>
+                    <td className="px-3 py-2 text-right font-mono text-th-text-muted">${rec.current_bid?.toFixed(2) ?? '-'}</td>
                     <td className="px-3 py-2 text-right font-mono text-emerald-600">${rec.suggested_bid?.toFixed(2) ?? '-'}</td>
                     <td className="px-3 py-2 text-center">
                       <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                        rec.impact_level === 'high' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-50 text-gray-600'
+                        rec.impact_level === 'high' ? 'bg-emerald-50 text-emerald-700' : 'bg-th-bg-hover text-th-text-secondary'
                       }`}>{rec.impact_level}</span>
                     </td>
-                    <td className="px-3 py-2 text-gray-500 truncate max-w-[160px]">{rec.reason}</td>
+                    <td className="px-3 py-2 text-th-text-muted truncate max-w-[160px]">{rec.reason}</td>
                     <td className="px-3 py-2 text-center">
                       <button onClick={() => onApprove(rec.id)} className="text-orange-500 hover:text-orange-700 font-medium">
                         Approve
