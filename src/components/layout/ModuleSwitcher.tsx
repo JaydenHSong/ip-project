@@ -17,12 +17,17 @@ const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   truck: Truck,
 }
 
+const ROLE_LEVEL: Record<string, number> = {
+  owner: 5, admin: 4, editor: 3, viewer_plus: 2, viewer: 1,
+}
+
 type ModuleSwitcherProps = {
   currentModule: ModuleConfig | null
   collapsed: boolean
+  userRole?: string
 }
 
-export const ModuleSwitcher = ({ currentModule, collapsed }: ModuleSwitcherProps) => {
+export const ModuleSwitcher = ({ currentModule, collapsed, userRole = 'viewer' }: ModuleSwitcherProps) => {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -75,7 +80,8 @@ export const ModuleSwitcher = ({ currentModule, collapsed }: ModuleSwitcherProps
           {MODULES.map((mod) => {
             const Icon = MODULE_ICONS[mod.icon] ?? Shield
             const isActive = mod.key === active.key
-            const isDisabled = mod.status !== 'active'
+            const hasRole = !mod.minRole || (ROLE_LEVEL[userRole] ?? 0) >= (ROLE_LEVEL[mod.minRole] ?? 0)
+            const isDisabled = mod.status !== 'active' || !hasRole
 
             return (
               <button

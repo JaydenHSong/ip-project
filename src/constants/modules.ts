@@ -13,6 +13,7 @@ type ModuleConfig = {
   icon: string
   path: string
   status: 'active' | 'coming_soon' | 'disabled'
+  minRole?: 'owner' | 'admin' | 'editor' | 'viewer_plus' | 'viewer'
   menuItems: MenuItem[]
 }
 
@@ -38,6 +39,7 @@ const MODULES: ModuleConfig[] = [
     icon: 'megaphone',
     path: '/ads',
     status: 'active',
+    minRole: 'owner',
     menuItems: [
       { label: 'Dashboard', labelKey: 'nav.adsDashboard', path: '/ads/dashboard', icon: 'layout-dashboard' },
       { label: 'Campaigns', labelKey: 'nav.adsCampaigns', path: '/ads/campaigns', icon: 'target' },

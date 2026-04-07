@@ -30,8 +30,8 @@ export class SyncService {
   constructor(
     private adsPort: AdsPort,
     private spApiPort: SpApiPort,
-    private db: SupabaseClient,
-    private publicDb: SupabaseClient,
+    private db: SupabaseClient<any, any>,
+    private publicDb: SupabaseClient<any, any>,
   ) {}
 
   // ─── SP-API: Brand Analytics → ads.brand_analytics (module-2) ───

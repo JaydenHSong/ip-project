@@ -163,7 +163,7 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
       </div>
 
       {/* Module Switcher */}
-      <ModuleSwitcher currentModule={currentModule} collapsed={collapsed} />
+      <ModuleSwitcher currentModule={currentModule} collapsed={collapsed} userRole={user.role} />
 
       {/* Main Nav */}
       <nav className="flex-1 space-y-1 px-2 py-4">

@@ -8,7 +8,7 @@ import { adsConfig } from '../infra/api-config'
 
 export class StreamService implements StreamPort {
   constructor(
-    private db: SupabaseClient,
+    private db: SupabaseClient<any, any>,
   ) {}
 
   validateSignature(payload: string, signature: string): boolean {

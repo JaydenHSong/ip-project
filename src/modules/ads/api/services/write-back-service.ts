@@ -32,7 +32,7 @@ export type DaypartingResult = {
 export class WriteBackService {
   constructor(
     private adsPort: AdsPort,
-    private db: SupabaseClient,
+    private db: SupabaseClient<any, any>,
   ) {}
 
   // Execute a single approved action → Amazon
