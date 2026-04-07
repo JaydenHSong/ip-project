@@ -5,16 +5,19 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AutoPilotContext, AutoPilotSkipped, MetricsSnapshot, BidCalculation } from '../types'
 import type { WriteBackAction, WriteBackResult } from '@/modules/ads/api/services/write-back-service'
+import type { AiRecommendation } from './ai-reviewer'
 import { getStrategy, getInternalAcosTarget } from './goal-strategy'
 import { getLearningPhase, getConstraints, filterByConstraints } from './learning-guard'
 import { filterBySoftGuard } from './soft-guard'
-import { buildBidActions } from './action-builder'
+import { buildBidActions, buildStateAction } from './action-builder'
+import { checkRetailSignals } from './retail-signal'
 import { calculateBid } from '../bid-calculator'
 import { checkGuardrails } from '../guardrails'
 
 type OrchestratorDeps = {
   db: SupabaseClient
   executeBatch: (actions: WriteBackAction[]) => Promise<WriteBackResult[]>
+  aiReviewRecommendations?: AiRecommendation[]
 }
 
 type OrchestratorOutput = {
@@ -40,10 +43,25 @@ async function runAutoPilot(
   const phase = getLearningPhase(campaign.learning_day, campaign.confidence_score)
   const constraints = getConstraints(phase)
 
-  // 3. Fetch active keywords for bid calculation
+  // 3. Retail Signal check — inventory 0 → instant pause, BuyBox lost → reduce
+  const [retailSignal] = await checkRetailSignals([campaign], deps.db)
+  if (retailSignal?.recommended_action === 'pause') {
+    const pauseAction: WriteBackAction = {
+      type: 'campaign_state',
+      campaign_id: campaign.campaign_id,
+      current_value: 1,
+      proposed_value: 0,
+      details: { reason: retailSignal.reason, source: 'autopilot_formula' },
+    }
+    const executed = await deps.executeBatch([pauseAction])
+    return { executed, skipped: [], total_actions: 1, total_blocked: 0 }
+  }
+  const retailMultiplier = retailSignal?.bid_multiplier ?? 1.0
+
+  // 4. Fetch active keywords for bid calculation
   const keywords = await fetchKeywordMetrics(campaign, deps.db)
 
-  // 4. Calculate bids for each keyword
+  // 5. Calculate bids for each keyword
   const bidResults: BidCalculation[] = keywords.map(kw => calculateBid({
     campaign_id: campaign.campaign_id,
     keyword_id: kw.keyword_id,
@@ -56,19 +74,33 @@ async function runAutoPilot(
     orders: kw.orders,
   }))
 
-  // 5. Build actions (bid adjustments)
-  const daypartMultipliers = new Map<string, number>()
-  const rawActions = buildBidActions(bidResults, strategy, campaign, daypartMultipliers)
+  // 5b. Apply retail signal multiplier + AI review recommendations (±10%)
+  const adjustedBids = bidResults.map(bid => {
+    let adjusted = bid.suggested_bid * retailMultiplier
+    // AI review: find matching recommendation and apply within ±10%
+    const aiRec = deps.aiReviewRecommendations?.find(
+      r => r.campaign_id === bid.campaign_id && r.recommendation_type === 'bid_strategy',
+    )
+    if (aiRec && aiRec.confidence >= 0.7) {
+      const aiMultiplier = Math.max(0.9, Math.min(1.1, parseFloat(aiRec.suggested_value) || 1.0))
+      adjusted = adjusted * aiMultiplier
+    }
+    return { ...bid, suggested_bid: adjusted }
+  })
 
-  // 6. Soft Guard filter (Layer 1 — 예측 선제 차단)
+  // 6. Build actions (bid adjustments)
+  const daypartMultipliers = new Map<string, number>()
+  const rawActions = buildBidActions(adjustedBids, strategy, campaign, daypartMultipliers)
+
+  // 7. Soft Guard filter (Layer 1 — 예측 선제 차단)
   const softResult = filterBySoftGuard(rawActions, metrics, campaign.target_acos, internalTarget)
   allSkipped.push(...softResult.blocked)
 
-  // 7. Learning Guard filter
+  // 8. Learning Guard filter
   const learnResult = filterByConstraints(softResult.allowed, constraints)
   allSkipped.push(...learnResult.blocked)
 
-  // 8. Hard Guard filter (Layer 2 — G01~G10 + HG01~05)
+  // 9. Hard Guard filter (Layer 2 — G01~G10 + HG01~05)
   const finalActions: WriteBackAction[] = []
   let cycleActionCount = 0
 
@@ -113,7 +145,7 @@ async function runAutoPilot(
     cycleActionCount += 1
   }
 
-  // 9. Execute via WriteBackService
+  // 10. Execute via WriteBackService
   const executed = finalActions.length > 0
     ? await deps.executeBatch(finalActions)
     : []

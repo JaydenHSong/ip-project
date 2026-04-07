@@ -121,6 +121,8 @@ type MetricsSnapshot = {
   impressions_7d: number
   clicks_7d: number
   orders_7d: number
+  top_keywords?: { keyword_id: string; keyword_text: string; acos: number; orders: number }[]
+  bottom_keywords?: { keyword_id: string; keyword_text: string; acos: number; spend: number }[]
 }
 
 type AutoPilotResult = {

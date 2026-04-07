@@ -83,4 +83,40 @@ function buildStateAction(
   }
 }
 
-export { buildBidActions, buildBudgetAction, buildStateAction }
+/** Convert keyword harvest/negate results to AutoPilot actions. */
+function buildKeywordActions(
+  harvests: { search_term: string; campaign_id: string; from_match: string }[],
+  negates: { keyword_id: string; keyword_text: string; reason: string }[],
+  context: AutoPilotContext,
+): AutoPilotAction[] {
+  const actions: AutoPilotAction[] = []
+
+  for (const h of harvests) {
+    actions.push({
+      type: 'keyword_add',
+      campaign_id: h.campaign_id,
+      current_value: 0,
+      proposed_value: 1,
+      reason: `Auto harvest: "${h.search_term}" promoted from ${h.from_match} to exact`,
+      source: 'autopilot_formula',
+      confidence: 85,
+    })
+  }
+
+  for (const n of negates) {
+    actions.push({
+      type: 'keyword_negate',
+      campaign_id: context.campaign_id,
+      keyword_id: n.keyword_id,
+      current_value: 1,
+      proposed_value: 0,
+      reason: `Auto negate: ${n.reason}`,
+      source: 'autopilot_formula',
+      confidence: 80,
+    })
+  }
+
+  return actions
+}
+
+export { buildBidActions, buildBudgetAction, buildStateAction, buildKeywordActions }
