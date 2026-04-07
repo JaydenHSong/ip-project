@@ -49,8 +49,8 @@ src/
 │   ├── ads/             ← AD Optimizer (여기서 작업)
 │   │   ├── dashboard/
 │   │   ├── campaigns/
-│   │   ├── keywords/
-│   │   ├── budget/
+│   │   ├── optimization/
+│   │   ├── autopilot/
 │   │   └── reports/
 │   ├── settings/        ← 공통
 │   └── ...
@@ -156,7 +156,67 @@ npx vercel --prod       # Production 배포 (확인 후)
 
 ---
 
-## 7. 브랜치 전략
+## 7. 모듈 접근 제어 (ModuleAccessGate)
+
+새 모듈을 만들 때 **역할 기반 접근 제어**가 필요하면 `ModuleAccessGate` 컴포넌트를 사용합니다.
+
+### 7.1 modules.ts에 모듈 등록
+
+```ts
+// src/constants/modules.ts
+{
+  key: 'listings',
+  name: 'Listing Management',
+  icon: 'list',
+  path: '/listings',
+  status: 'active',
+  minRole: 'admin',      // admin 이상만 접근 가능
+  menuItems: [
+    { label: 'Dashboard', labelKey: 'nav.listingsDashboard', path: '/listings/dashboard', icon: 'layout-dashboard' },
+  ],
+}
+```
+
+`minRole` 옵션:
+
+| 값 | 레벨 | 설명 |
+|---|---|---|
+| `owner` | 5 | 오너만 |
+| `admin` | 4 | 어드민 이상 |
+| `editor` | 3 | 에디터 이상 |
+| `viewer_plus` | 2 | 뷰어+ 이상 |
+| 미설정 | - | 모든 사용자 (IP Protection처럼) |
+
+### 7.2 모듈 layout.tsx에 Gate 적용
+
+```tsx
+// src/app/(protected)/listings/layout.tsx
+'use client'
+
+import { type ReactNode } from 'react'
+import { ModuleAccessGate } from '@/components/layout/ModuleAccessGate'
+
+const ListingsLayout = ({ children }: { children: ReactNode }) => (
+  <ModuleAccessGate minRole="admin" moduleName="Listing Management">
+    {children}
+  </ModuleAccessGate>
+)
+
+export default ListingsLayout
+```
+
+### 7.3 동작 방식
+
+- **접근 허용**: 사용자 역할 >= `minRole` → 정상 렌더링
+- **접근 거부**: "Coming Soon" 화면 + Dashboard 이동 버튼
+- **ModuleSwitcher**: 역할 부족 시 드롭다운에서 비활성(Soon) 표시
+
+> `ModuleAccessGate` 경로: `@/components/layout/ModuleAccessGate`
+> IP Protection은 `minRole` 미설정 → 모든 사용자 접근 가능
+
+---
+
+## 8. 브랜치 전략
 
 ```
 main                          ← 프로덕션 (직접 push 금지, PR 필수)
@@ -172,7 +232,7 @@ main                          ← 프로덕션 (직접 push 금지, PR 필수)
 
 ---
 
-## 8. 퍼미션 매트릭스
+## 9. 퍼미션 매트릭스
 
 Google Sheets에서 모듈별 역할/권한 관리:
 https://docs.google.com/spreadsheets/d/1Z6m2ez4ITpjeQVr4zeLmLFyr-Ac-JyPVxluE3UQEIvY
@@ -182,7 +242,7 @@ https://docs.google.com/spreadsheets/d/1Z6m2ez4ITpjeQVr4zeLmLFyr-Ac-JyPVxluE3UQE
 
 ---
 
-## 9. 문의
+## 10. 문의
 
 - PM: Jayden Song (jsong@spigen.com)
 - 아키텍처: `docs/01-plan/features/spigen-platform-architecture.plan.md`
