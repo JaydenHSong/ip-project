@@ -16,7 +16,8 @@ type TrendSignal = 'rising' | 'emerging' | 'stable' | 'declining'
 type AlertType = 'budget_runout' | 'spend_spike' | 'acos_spike' | 'zero_sales' | 'buybox_lost' | 'stock_low' | 'cpc_surge' | 'cvr_drop'
 type Severity = 'critical' | 'warning' | 'info'
 type ActionType = 'bid_adjust' | 'keyword_add' | 'keyword_negate' | 'keyword_promote' | 'budget_adjust' | 'campaign_pause' | 'campaign_resume' | 'dayparting_apply'
-type ActionSource = 'rule_engine' | 'algorithm' | 'ml' | 'manual'
+type GoalMode = 'launch' | 'growth' | 'profit' | 'defend'
+type ActionSource = 'rule_engine' | 'algorithm' | 'ml' | 'manual' | 'autopilot_formula' | 'autopilot_ai'
 type RecommendationType = 'bid_adjust' | 'promote' | 'negate' | 'new_keyword' | 'trend_alert'
 type RecommendationStatus = 'pending' | 'approved' | 'skipped' | 'expired'
 type ImpactLevel = 'high' | 'medium' | 'low'
@@ -59,7 +60,9 @@ type Campaign = {
   weekly_budget: number | null
   max_bid_cap: number | null
   confidence_score: number | null
+  goal_mode: GoalMode
   learning_day: number
+  autopilot_started_at: string | null
   created_by: string
   assigned_to: string | null
   launched_at: string | null
@@ -382,7 +385,7 @@ export type {
   // Enums
   CampaignType, CampaignMode, CampaignStatus, AmazonState,
   MatchType, KeywordState, Region, Channel, ReportLevel,
-  TrendSignal, AlertType, Severity, ActionType, ActionSource,
+  TrendSignal, AlertType, Severity, ActionType, ActionSource, GoalMode,
   RecommendationType, RecommendationStatus, ImpactLevel,
   RuleTemplate, RunFrequency, DiagnosisType, TrendDirection,
   // Entities

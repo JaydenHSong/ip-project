@@ -72,10 +72,67 @@ type GuardrailCheckParams = {
   keyword_orders?: number
   // G10: rollback window
   last_action_at?: string
+  // HG-01~05: AutoPilot Hard Guards
+  current_acos_7d?: number
+  target_acos?: number
+  daily_spend_pct?: number
+  weekly_spend_pct?: number
+  learning_day?: number
+  cycle_action_count?: number
+}
+
+// ─── AutoPilot Types ───
+
+type AutoPilotContext = {
+  campaign_id: string
+  profile_id: string
+  goal_mode: 'launch' | 'growth' | 'profit' | 'defend'
+  target_acos: number
+  weekly_budget: number
+  max_bid_cap: number | null
+  learning_day: number
+  confidence_score: number
+  autopilot_started_at: string
+}
+
+type AutoPilotAction = {
+  type: 'bid_adjust' | 'budget_adjust' | 'campaign_state' | 'keyword_add' | 'keyword_negate'
+  campaign_id: string
+  keyword_id?: string
+  ad_group_id?: string
+  current_value: number
+  proposed_value: number
+  reason: string
+  source: 'autopilot_formula'
+  confidence: number
+}
+
+type AutoPilotSkipped = {
+  action: AutoPilotAction
+  blocked_by: 'soft_guard' | 'hard_guard' | 'learning_guard'
+  guard_reason: string
+}
+
+type MetricsSnapshot = {
+  acos_7d: number | null
+  acos_14d: number | null
+  spend_7d: number
+  sales_7d: number
+  impressions_7d: number
+  clicks_7d: number
+  orders_7d: number
+}
+
+type AutoPilotResult = {
+  actions: AutoPilotAction[]
+  skipped: AutoPilotSkipped[]
+  metrics_snapshot: MetricsSnapshot
 }
 
 export type {
   BidCalculation, BudgetPacingResult, KeywordScore,
   RuleCondition, RuleEvaluation, DaypartMultiplier,
   GuardrailCheckParams,
+  AutoPilotContext, AutoPilotAction, AutoPilotSkipped,
+  MetricsSnapshot, AutoPilotResult,
 }

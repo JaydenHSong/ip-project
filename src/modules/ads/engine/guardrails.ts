@@ -105,6 +105,58 @@ const GUARDRAILS: Record<string, (p: GuardrailCheckParams) => GuardrailResult | 
     }
     return null
   },
+
+  // ─── AutoPilot Hard Guards (HG-01~05) ───
+  // Design Ref: §3.4 — Layer 2 절대 규칙
+
+  // HG-01: Target ACoS 천장 — ACoS > Target 시 bid 인상 차단
+  'HG01_ACOS_CEILING': (p) => {
+    if (p.current_acos_7d === undefined || p.target_acos === undefined) return null
+    if (p.current_acos_7d > p.target_acos && p.action_type === 'bid_adjust' && p.proposed_value > p.current_value) {
+      return { blocked: true, guardrail_id: 'HG01', reason: `ACoS ${p.current_acos_7d}% exceeds target ${p.target_acos}%. Bid increase blocked.` }
+    }
+    return null
+  },
+
+  // HG-02: 일일 예산 80% 도달 → bid 인상 중단
+  'HG02_DAILY_BUDGET_80': (p) => {
+    if (p.daily_spend_pct === undefined) return null
+    if (p.daily_spend_pct >= 80 && p.action_type === 'bid_adjust' && p.proposed_value > p.current_value) {
+      return { blocked: true, guardrail_id: 'HG02', reason: `Daily budget ${p.daily_spend_pct.toFixed(0)}% spent. Bid increase blocked.` }
+    }
+    return null
+  },
+
+  // HG-03: 주간 예산 100% 도달 → 전체 액션 차단
+  'HG03_WEEKLY_BUDGET_FULL': (p) => {
+    if (p.weekly_spend_pct === undefined) return null
+    if (p.weekly_spend_pct >= 100) {
+      return { blocked: true, guardrail_id: 'HG03', reason: `Weekly budget fully spent (${p.weekly_spend_pct.toFixed(0)}%). All actions blocked.` }
+    }
+    return null
+  },
+
+  // HG-04: Learning 기간 스킬 위반 최종 차단 (week1에서 과격한 bid 변경)
+  'HG04_LEARNING_VIOLATION': (p) => {
+    if (p.learning_day === undefined || p.learning_day >= 14) return null
+    if (p.action_type === 'bid_adjust' && p.current_value > 0) {
+      const changePct = Math.abs(p.proposed_value - p.current_value) / p.current_value * 100
+      const limit = p.learning_day < 7 ? 10 : 20
+      if (changePct > limit) {
+        return { blocked: true, guardrail_id: 'HG04', reason: `Learning day ${p.learning_day}: bid change ${changePct.toFixed(0)}% exceeds hard limit ${limit}%` }
+      }
+    }
+    return null
+  },
+
+  // HG-05: 한 사이클 액션 수 상한 50개
+  'HG05_ACTION_LIMIT': (p) => {
+    if (p.cycle_action_count === undefined) return null
+    if (p.cycle_action_count >= 50) {
+      return { blocked: true, guardrail_id: 'HG05', reason: `Cycle action limit reached (${p.cycle_action_count}/50)` }
+    }
+    return null
+  },
 }
 
 const checkGuardrails = (params: GuardrailCheckParams): GuardrailResult => {
