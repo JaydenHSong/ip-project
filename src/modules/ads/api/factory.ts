@@ -1,7 +1,7 @@
 // Design Ref: §7 — DI Container (Feature flag → adapter selection)
 // Plan SC: SC-01 Mock↔Real 무중단 전환
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdminClient as createPublicAdminClient, createAdsAdminClient } from '@/lib/supabase/admin'
 import { adsConfig } from './infra/api-config'
 import { rateLimiter } from './infra/rate-limiter'
 import { tokenStore } from './infra/token-store'
@@ -34,7 +34,8 @@ export function createSyncService(profileId: string): SyncService {
   return new SyncService(
     createAdsPort(profileId),
     createSpApiPort(profileId),
-    createAdminClient(),
+    createAdsAdminClient(),
+    createPublicAdminClient(),
   )
 }
 
@@ -42,12 +43,12 @@ export function createSyncService(profileId: string): SyncService {
 export function createWriteBackService(profileId: string): WriteBackService {
   return new WriteBackService(
     createAdsPort(profileId),
-    createAdminClient(),
+    createAdsAdminClient(),
   )
 }
 
 export function createStreamService(): StreamService {
-  return new StreamService(createAdminClient())
+  return new StreamService(createAdsAdminClient())
 }
 
 // Convenience: check if running in mock mode

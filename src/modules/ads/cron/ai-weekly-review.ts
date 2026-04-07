@@ -38,7 +38,7 @@ async function runWeeklyReviewCron(
 
       // Fetch campaign name
       const { data: nameRow } = await db
-        .from('ads.campaigns')
+        .from('campaigns')
         .select('name')
         .eq('id', campaign.campaign_id)
         .single()
@@ -69,7 +69,7 @@ async function runWeeklyReviewCron(
     })
 
     // Store review in DB
-    await db.from('ads.ai_reviews').insert({
+    await db.from('ai_reviews').insert({
       marketplace_profile_id: profileId,
       review_type: 'weekly',
       review_period_start: periodStart,
@@ -102,7 +102,7 @@ async function fetchKeywordSummaries(
 ): Promise<{ topKw: KwSummary[]; bottomKw: KwBottomSummary[] }> {
   // Top: highest orders, low ACoS
   const { data: top } = await db
-    .from('ads.keywords')
+    .from('keywords')
     .select('keyword_text, acos_7d, orders_7d')
     .eq('campaign_id', campaignId)
     .eq('state', 'enabled')
@@ -112,7 +112,7 @@ async function fetchKeywordSummaries(
 
   // Bottom: high spend, zero orders
   const { data: bottom } = await db
-    .from('ads.keywords')
+    .from('keywords')
     .select('keyword_text, acos_7d, spend_7d')
     .eq('campaign_id', campaignId)
     .eq('state', 'enabled')

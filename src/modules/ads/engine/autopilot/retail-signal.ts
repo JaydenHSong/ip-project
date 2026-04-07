@@ -35,7 +35,7 @@ async function checkRetailSignals(
 
   // Read cached retail data from campaigns table
   const { data } = await db
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('id, inventory_days, has_buy_box, price_changed, amazon_state')
     .in('id', campaignIds)
 

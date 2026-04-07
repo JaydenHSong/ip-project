@@ -15,17 +15,18 @@ const AdsLayout = ({ children }: { children: ReactNode }) => {
       try {
         const res = await fetch('/api/ads/markets')
         if (!res.ok) return
-        const data = await res.json() as { data: MarketOption[] }
-        setMarkets(data.data)
-        if (data.data.length > 0 && !selectedMarketId) {
-          setSelectedMarketId(data.data[0].brand_market_id)
+        const json = await res.json() as { data: MarketOption[] }
+        setMarkets(json.data)
+        if (json.data.length > 0) {
+          setSelectedMarketId(json.data[0].brand_market_id)
         }
       } catch {
-        // 마켓 로드 실패 시 무시 — API 미구현 상태에서 정상
+        // 마켓 로드 실패 시 무시
       }
     }
     fetchMarkets()
-  }, [selectedMarketId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <MarketContext.Provider value={{ selectedMarketId, setSelectedMarketId }}>

@@ -1,7 +1,7 @@
 // Cron: Orders → dayparting patterns (daily)
 // Design Ref: §9 — Cron rewrite: delegate to SyncService via factory
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import { createSyncService } from '../api/factory'
 
 type PatternResult = {
@@ -11,10 +11,10 @@ type PatternResult = {
 }
 
 export async function analyzeOrdersPattern(): Promise<PatternResult> {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data: profiles, error } = await supabase
-    .from('ads.marketplace_profiles')
+    .from('marketplace_profiles')
     .select('id, profile_id, marketplace_id')
     .eq('is_active', true)
 

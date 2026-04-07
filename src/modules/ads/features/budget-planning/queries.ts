@@ -1,7 +1,7 @@
 // AD Optimizer — Budget Planning Server Queries
 // Design Ref: §4.2 Budget endpoints
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import type { BudgetListQuery, ChannelBudget, YtdSummary, BudgetEntry, BudgetChangeLogItem } from './types'
 import type { Channel } from '@/modules/ads/shared/types'
 
@@ -10,12 +10,12 @@ const CHANNELS: Channel[] = ['sp', 'sb', 'sd']
 // ─── GET: Budget list ───
 
 const getBudgets = async (query: BudgetListQuery) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
   const { brand_market_id, year } = query
 
   // 1. Planned budgets
   const { data: planned } = await supabase
-    .from('ads.budgets')
+    .from('budgets')
     .select('channel, month, amount')
     .eq('brand_market_id', brand_market_id)
     .eq('year', year)
@@ -25,7 +25,7 @@ const getBudgets = async (query: BudgetListQuery) => {
 
   // 2. Actual spend (from report_snapshots aggregated monthly)
   const { data: actuals } = await supabase
-    .from('ads.budgets')
+    .from('budgets')
     .select('channel, month, amount')
     .eq('brand_market_id', brand_market_id)
     .eq('year', year)
@@ -73,7 +73,7 @@ const getBudgets = async (query: BudgetListQuery) => {
 
   // 4. Auto Pilot monthly (from autopilot campaigns' weekly_budget × 4.3)
   const { data: apCampaigns } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('weekly_budget')
     .eq('brand_market_id', brand_market_id)
     .eq('mode', 'autopilot')
@@ -93,13 +93,13 @@ const getBudgets = async (query: BudgetListQuery) => {
 // ─── PUT: Save budgets ───
 
 const saveBudgets = async (brandMarketId: string, year: number, entries: BudgetEntry[], userId: string) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   // Upsert each entry
   for (const entry of entries) {
     // Check if exists
     const { data: existing } = await supabase
-      .from('ads.budgets')
+      .from('budgets')
       .select('id, amount')
       .eq('brand_market_id', brandMarketId)
       .eq('year', year)
@@ -112,11 +112,11 @@ const saveBudgets = async (brandMarketId: string, year: number, entries: BudgetE
       // Update + log change
       if (existing.amount !== entry.amount) {
         await supabase
-          .from('ads.budgets')
+          .from('budgets')
           .update({ amount: entry.amount, updated_at: new Date().toISOString() })
           .eq('id', existing.id)
 
-        await supabase.from('ads.budget_change_log').insert({
+        await supabase.from('budget_change_log').insert({
           budget_id: existing.id,
           user_id: userId,
           field: `${entry.channel}_${entry.month}`,
@@ -127,7 +127,7 @@ const saveBudgets = async (brandMarketId: string, year: number, entries: BudgetE
     } else {
       // Insert new
       const { data: newBudget } = await supabase
-        .from('ads.budgets')
+        .from('budgets')
         .insert({
           org_unit_id: brandMarketId, // TODO: resolve proper org_unit_id
           brand_market_id: brandMarketId,
@@ -142,7 +142,7 @@ const saveBudgets = async (brandMarketId: string, year: number, entries: BudgetE
         .single()
 
       if (newBudget) {
-        await supabase.from('ads.budget_change_log').insert({
+        await supabase.from('budget_change_log').insert({
           budget_id: newBudget.id,
           user_id: userId,
           field: `${entry.channel}_${entry.month}`,
@@ -159,10 +159,10 @@ const saveBudgets = async (brandMarketId: string, year: number, entries: BudgetE
 // ─── GET: Change log ───
 
 const getBudgetChangeLog = async (brandMarketId: string, year: number, limit = 50): Promise<BudgetChangeLogItem[]> => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data: budgetIds } = await supabase
-    .from('ads.budgets')
+    .from('budgets')
     .select('id')
     .eq('brand_market_id', brandMarketId)
     .eq('year', year)
@@ -171,7 +171,7 @@ const getBudgetChangeLog = async (brandMarketId: string, year: number, limit = 5
   if (ids.length === 0) return []
 
   const { data: logs } = await supabase
-    .from('ads.budget_change_log')
+    .from('budget_change_log')
     .select('id, user_id, field, old_value, new_value, changed_at')
     .in('budget_id', ids)
     .order('changed_at', { ascending: false })

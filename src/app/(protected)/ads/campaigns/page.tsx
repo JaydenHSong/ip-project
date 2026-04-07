@@ -168,24 +168,24 @@ const AdsCampaignsPage = () => {
           {/* KPI Strip with personal/team toggle — Design S03 */}
           <div>
             <div className="mb-2 flex items-center justify-end">
-              <div className="inline-flex rounded-md border border-th-border bg-surface-card">
+              <div className="inline-flex rounded-lg border border-th-accent/30 bg-surface-card p-0.5">
                 <button
                   onClick={() => setKpiView('personal')}
-                  className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`px-4 py-1.5 text-xs font-semibold transition-colors rounded-md ${
                     kpiView === 'personal'
-                      ? 'bg-th-text text-white'
-                      : 'text-th-text-muted hover:text-th-text-secondary'
-                  } rounded-l-md`}
+                      ? 'bg-th-accent text-white shadow-sm'
+                      : 'text-th-text-muted hover:text-th-text'
+                  }`}
                 >
                   Personal
                 </button>
                 <button
                   onClick={() => setKpiView('team')}
-                  className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`px-4 py-1.5 text-xs font-semibold transition-colors rounded-md ${
                     kpiView === 'team'
-                      ? 'bg-th-text text-white'
-                      : 'text-th-text-muted hover:text-th-text-secondary'
-                  } rounded-r-md`}
+                      ? 'bg-th-accent text-white shadow-sm'
+                      : 'text-th-text-muted hover:text-th-text'
+                  }`}
                 >
                   Team
                 </button>

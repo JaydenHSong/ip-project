@@ -1,17 +1,17 @@
 // AD Optimizer — Autopilot Server Queries
 // Design Ref: §4.2 /api/ads/autopilot
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import type { AutopilotKpi, AutopilotCampaignItem, ActivityLogEntry } from './types'
 
 // ─── S08: List + KPI ───
 
 const getAutopilotList = async (brandMarketId: string) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
   const { data: campaigns } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('id, name, marketing_code, status, goal_mode, confidence_score, target_acos, weekly_budget')
     .eq('brand_market_id', brandMarketId)
     .eq('mode', 'autopilot')
@@ -35,7 +35,7 @@ const getAutopilotList = async (brandMarketId: string) => {
   // Get last action for each campaign
   for (const item of items) {
     const { data: lastLog } = await supabase
-      .from('ads.automation_logs')
+      .from('automation_logs')
       .select('action_type, executed_at')
       .eq('campaign_id', item.id)
       .order('executed_at', { ascending: false })
@@ -54,7 +54,7 @@ const getAutopilotList = async (brandMarketId: string) => {
   const paused = items.filter((c) => c.status === 'paused')
 
   const { count: actionsCount } = await supabase
-    .from('ads.automation_logs')
+    .from('automation_logs')
     .select('id', { count: 'exact', head: true })
     .in('campaign_id', items.map((i) => i.id).length > 0 ? items.map((i) => i.id) : ['__none__'])
     .gte('executed_at', sevenDaysAgo)
@@ -75,11 +75,11 @@ const getAutopilotList = async (brandMarketId: string) => {
 // ─── S09: Detail + Activity Log ───
 
 const getAutopilotDetail = async (campaignId: string) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   // Activity log (last 50 actions)
   const { data: logs } = await supabase
-    .from('ads.automation_logs')
+    .from('automation_logs')
     .select('id, action_type, source, reason, keyword_id, action_detail, guardrail_blocked, guardrail_reason, is_rolled_back, executed_at')
     .eq('campaign_id', campaignId)
     .order('executed_at', { ascending: false })
@@ -88,7 +88,7 @@ const getAutopilotDetail = async (campaignId: string) => {
   // Get keyword texts for logs that have keyword_id
   const kwIds = (logs ?? []).map((l) => l.keyword_id).filter(Boolean)
   const { data: keywords } = await supabase
-    .from('ads.keywords')
+    .from('keywords')
     .select('id, keyword_text')
     .in('id', kwIds.length > 0 ? kwIds : ['__none__'])
 
@@ -117,13 +117,13 @@ const getAutopilotDetail = async (campaignId: string) => {
 // ─── Rollback ───
 
 const rollbackActions = async (logIds: string[], userId: string) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
   let rolledBack = 0
   let failed = 0
 
   for (const logId of logIds) {
     const { error } = await supabase
-      .from('ads.automation_logs')
+      .from('automation_logs')
       .update({
         is_rolled_back: true,
         rolled_back_at: new Date().toISOString(),

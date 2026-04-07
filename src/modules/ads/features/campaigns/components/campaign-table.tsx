@@ -254,7 +254,7 @@ const CampaignTable = ({
                       </div>
                     </td>
                     <td className="px-4 py-3 text-th-text-secondary">
-                      ${c.spend_today.toFixed(2)}
+                      {c.spend_today != null ? `$${c.spend_today.toFixed(2)}` : '-'}
                     </td>
                     <td className="px-4 py-3">
                       <span className={c.acos != null && c.target_acos != null && c.acos > c.target_acos ? 'text-red-600 font-medium' : 'text-th-text-secondary'}>
@@ -268,7 +268,7 @@ const CampaignTable = ({
                       {c.roas != null ? `${c.roas.toFixed(2)}x` : '-'}
                     </td>
                     <td className="px-4 py-3 text-th-text-secondary">
-                      {c.orders_7d.toLocaleString()}
+                      {c.orders_7d != null ? c.orders_7d.toLocaleString() : '-'}
                     </td>
                   </tr>
                 )

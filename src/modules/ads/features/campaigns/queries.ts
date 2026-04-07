@@ -1,13 +1,13 @@
 // AD Optimizer — Campaigns Server Queries
 // Design Ref: §4.2 Campaigns endpoints
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import type { CampaignListQuery, CampaignKpiSummary } from './types'
 
 // ─── List ───
 
 const getCampaigns = async (query: CampaignListQuery) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
   const {
     brand_market_id,
     mode,
@@ -21,8 +21,8 @@ const getCampaigns = async (query: CampaignListQuery) => {
   } = query
 
   let qb = supabase
-    .from('ads.campaigns')
-    .select('*, assigned_user:users!ads_campaigns_assigned_to_fkey(id, name, avatar_url)', { count: 'exact' })
+    .from('campaigns')
+    .select('*', { count: 'exact' })
     .eq('brand_market_id', brand_market_id)
 
   if (mode) qb = qb.eq('mode', mode)
@@ -46,12 +46,12 @@ const getCampaigns = async (query: CampaignListQuery) => {
 // ─── Detail ───
 
 const getCampaignById = async (id: string) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   // 1. Campaign base data
   const { data, error } = await supabase
-    .from('ads.campaigns')
-    .select('*, assigned_user:users!ads_campaigns_assigned_to_fkey(id, name, avatar_url)')
+    .from('campaigns')
+    .select('*')
     .eq('id', id)
     .single()
 
@@ -64,7 +64,7 @@ const getCampaignById = async (id: string) => {
   const dateStr = sevenDaysAgo.toISOString().split('T')[0]
 
   const { data: snapshots } = await supabase
-    .from('ads.report_snapshots')
+    .from('report_snapshots')
     .select('impressions, clicks, spend, sales, orders, acos, roas, cpc, ctr, cvr')
     .eq('campaign_id', id)
     .eq('report_level', 'campaign')
@@ -101,18 +101,18 @@ const getCampaignById = async (id: string) => {
 
   // 3. Counts
   const { count: keywordsCount } = await supabase
-    .from('ads.keywords')
+    .from('keywords')
     .select('id', { count: 'exact', head: true })
     .eq('campaign_id', id)
 
   const { count: adGroupsCount } = await supabase
-    .from('ads.ad_groups')
+    .from('ad_groups')
     .select('id', { count: 'exact', head: true })
     .eq('campaign_id', id)
 
   // 4. Recent automation actions (last 10)
   const { data: recentActions } = await supabase
-    .from('ads.automation_logs')
+    .from('automation_logs')
     .select('id, action_type, reason, executed_at')
     .eq('campaign_id', id)
     .order('executed_at', { ascending: false })
@@ -130,10 +130,10 @@ const getCampaignById = async (id: string) => {
 // ─── KPI Summary ───
 
 const getCampaignKpiSummary = async (brandMarketId: string): Promise<CampaignKpiSummary> => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data: campaigns, error } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('id, status, daily_budget, weekly_budget')
     .eq('brand_market_id', brandMarketId)
 
@@ -158,7 +158,7 @@ const getCampaignKpiSummary = async (brandMarketId: string): Promise<CampaignKpi
 
   if (campaignIds.length > 0) {
     const { data: snapshots } = await supabase
-      .from('ads.report_snapshots')
+      .from('report_snapshots')
       .select('spend, sales, orders, acos, roas')
       .in('campaign_id', campaignIds)
       .eq('report_level', 'campaign')
@@ -213,14 +213,14 @@ type CreateCampaignPayload = {
 }
 
 const createCampaign = async (payload: CreateCampaignPayload) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
   const { keywords, negative_keywords, ...rest } = payload
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- product_asins stored in campaign metadata
   const { product_asins, ...campaignData } = rest
 
   // 1. Insert campaign
   const { data, error } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .insert({
       ...campaignData,
       status: 'learning',
@@ -236,7 +236,7 @@ const createCampaign = async (payload: CreateCampaignPayload) => {
 
   // 2. Insert default ad group
   const { data: adGroup } = await supabase
-    .from('ads.ad_groups')
+    .from('ad_groups')
     .insert({
       campaign_id: campaignId,
       name: `${data.name} - Default`,
@@ -260,7 +260,7 @@ const createCampaign = async (payload: CreateCampaignPayload) => {
     }))
 
     const { error: kwError } = await supabase
-      .from('ads.keywords')
+      .from('keywords')
       .insert(keywordRows)
 
     if (kwError) throw kwError
@@ -278,7 +278,7 @@ const createCampaign = async (payload: CreateCampaignPayload) => {
     }))
 
     const { error: negError } = await supabase
-      .from('ads.keywords')
+      .from('keywords')
       .insert(negRows)
 
     if (negError) throw negError
@@ -290,10 +290,10 @@ const createCampaign = async (payload: CreateCampaignPayload) => {
 // ─── Update ───
 
 const updateCampaign = async (id: string, updates: Record<string, unknown>) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data, error } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select('id, marketing_code, name, status')
@@ -312,10 +312,10 @@ const archiveCampaign = async (id: string) => {
 // ─── Marketing Code: next sequence ───
 
 const getNextMarketingCode = async (brandMarketId: string, prefix: string): Promise<string> => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('marketing_code')
     .eq('brand_market_id', brandMarketId)
     .ilike('marketing_code', `${prefix}%`)

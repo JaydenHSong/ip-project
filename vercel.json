@@ -17,8 +17,16 @@
       "schedule": "0 0 * * *"
     },
     {
+      "path": "/api/ads/cron/sync-campaigns",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/ads/cron/sync-reports",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/ads/cron/autopilot-run",
-      "schedule": "0 * * * *"
+      "schedule": "*/30 * * * *"
     },
     {
       "path": "/api/ads/cron/keyword-pipeline",

@@ -175,7 +175,7 @@ async function fetchKeywordMetrics(
   db: SupabaseClient,
 ): Promise<KeywordMetric[]> {
   const { data } = await db
-    .from('ads.keywords')
+    .from('keywords')
     .select('amazon_keyword_id, bid, acos_7d, cvr_7d, aov_7d, clicks_7d, orders_7d')
     .eq('campaign_id', campaign.campaign_id)
     .eq('state', 'enabled')

@@ -1,7 +1,7 @@
 // AD Optimizer — Optimization Server Queries
 // Design Ref: §4.2 Recommendations, Rules, Dayparting endpoints
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import type { RecommendationItem, RecommendationSummary, BudgetPacingDetail, KeywordStatsStrip, DaypartingGroup, HeatmapCell } from './types'
 
 // ─── Recommendations ───
@@ -13,10 +13,10 @@ const getRecommendations = async (params: {
   status?: string
   limit?: number
 }) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   let qb = supabase
-    .from('ads.keyword_recommendations')
+    .from('keyword_recommendations')
     .select('*')
     .eq('brand_market_id', params.brand_market_id)
 
@@ -33,7 +33,7 @@ const getRecommendations = async (params: {
   // Resolve campaign names
   const campaignIds = [...new Set((data ?? []).map((r) => r.campaign_id))]
   const { data: campaigns } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('id, name')
     .in('id', campaignIds.length > 0 ? campaignIds : ['__none__'])
   const campMap = new Map((campaigns ?? []).map((c) => [c.id, c.name]))
@@ -72,10 +72,10 @@ const getRecommendations = async (params: {
 // ─── Approve Recommendation ───
 
 const approveRecommendation = async (id: string, adjustedBid?: number) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data: rec } = await supabase
-    .from('ads.keyword_recommendations')
+    .from('keyword_recommendations')
     .select('*')
     .eq('id', id)
     .single()
@@ -86,13 +86,13 @@ const approveRecommendation = async (id: string, adjustedBid?: number) => {
 
   // Update recommendation status
   await supabase
-    .from('ads.keyword_recommendations')
+    .from('keyword_recommendations')
     .update({ status: 'approved' })
     .eq('id', id)
 
   // Log automation action
   const { data: log } = await supabase
-    .from('ads.automation_logs')
+    .from('automation_logs')
     .insert({
       campaign_id: rec.campaign_id,
       keyword_id: rec.keyword_id,
@@ -119,10 +119,10 @@ const approveRecommendation = async (id: string, adjustedBid?: number) => {
 // ─── Budget Pacing Detail ───
 
 const getBudgetPacingDetail = async (campaignId: string): Promise<BudgetPacingDetail> => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data: campaign } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('daily_budget, weekly_budget, mode')
     .eq('id', campaignId)
     .single()
@@ -132,7 +132,7 @@ const getBudgetPacingDetail = async (campaignId: string): Promise<BudgetPacingDe
   // Get today's hourly snapshots (simplified — real impl would use hourly report data)
   const today = new Date().toISOString().split('T')[0]
   const { data: todaySnaps } = await supabase
-    .from('ads.report_snapshots')
+    .from('report_snapshots')
     .select('spend')
     .eq('campaign_id', campaignId)
     .eq('report_date', today)
@@ -161,17 +161,17 @@ const getBudgetPacingDetail = async (campaignId: string): Promise<BudgetPacingDe
 // ─── Keyword Stats ───
 
 const getKeywordStats = async (campaignId: string): Promise<KeywordStatsStrip> => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data: keywords } = await supabase
-    .from('ads.keywords')
+    .from('keywords')
     .select('match_type')
     .eq('campaign_id', campaignId)
     .eq('state', 'enabled')
 
   const kws = keywords ?? []
   const { count: pendingCount } = await supabase
-    .from('ads.keyword_recommendations')
+    .from('keyword_recommendations')
     .select('id', { count: 'exact', head: true })
     .eq('campaign_id', campaignId)
     .eq('status', 'pending')
@@ -188,10 +188,10 @@ const getKeywordStats = async (campaignId: string): Promise<KeywordStatsStrip> =
 // ─── Dayparting Groups ───
 
 const getDaypartingGroups = async (brandMarketId: string): Promise<DaypartingGroup[]> => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data: schedules } = await supabase
-    .from('ads.dayparting_schedules')
+    .from('dayparting_schedules')
     .select('id, group_name, campaign_ids, is_enabled, schedule, ai_recommended_schedule')
     .eq('brand_market_id', brandMarketId)
 

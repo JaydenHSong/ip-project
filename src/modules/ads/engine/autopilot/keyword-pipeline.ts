@@ -46,7 +46,7 @@ async function findHarvestCandidates(
   const internalTarget = getInternalAcosTarget(campaign.target_acos, campaign.goal_mode)
 
   const { data } = await db
-    .from('ads.search_term_reports')
+    .from('search_term_reports')
     .select('search_term, campaign_id, ad_group_id, orders_7d, clicks_7d, acos_7d, spend_7d')
     .eq('campaign_id', campaign.campaign_id)
     .gte('orders_7d', strategy.keyword_harvest_min_orders)
@@ -76,7 +76,7 @@ async function findNegateCandidates(
   db: SupabaseClient,
 ): Promise<NegateCandidate[]> {
   const { data } = await db
-    .from('ads.keywords')
+    .from('keywords')
     .select('amazon_keyword_id, keyword_text, campaign_id, clicks_7d, spend_7d, orders_7d')
     .eq('campaign_id', campaign.campaign_id)
     .eq('state', 'enabled')
@@ -105,7 +105,7 @@ async function filterExistingExact(
 
   const terms = candidates.map(c => c.search_term)
   const { data: existing } = await db
-    .from('ads.keywords')
+    .from('keywords')
     .select('keyword_text')
     .in('keyword_text', terms)
     .eq('match_type', 'exact')

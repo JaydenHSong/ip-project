@@ -1,15 +1,15 @@
 // Cron: Reporting → report_snapshots (daily 2AM)
 // Design Ref: §5.1 — Delegates to SyncService via factory
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import { createSyncService } from '@/modules/ads/api/factory'
 import type { SyncResult } from '@/modules/ads/api/services/sync-service'
 
 export async function syncReports(): Promise<SyncResult> {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data: profiles, error } = await supabase
-    .from('ads.marketplace_profiles')
+    .from('marketplace_profiles')
     .select('profile_id')
     .eq('is_active', true)
 

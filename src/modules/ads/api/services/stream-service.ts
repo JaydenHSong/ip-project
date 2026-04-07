@@ -58,7 +58,7 @@ export class StreamService implements StreamPort {
 
     // Resolve local campaign IDs for this profile
     const { data: mpProfile } = await supabase
-      .from('ads.marketplace_profiles')
+      .from('marketplace_profiles')
       .select('id, brand_market_id')
       .eq('profile_id', batch.profile_id)
       .single()
@@ -71,7 +71,7 @@ export class StreamService implements StreamPort {
     // Build campaign map: amazon_campaign_id → local campaign record
     const amazonCampaignIds = [...new Set(batch.metrics.map(m => m.campaign_id))]
     const { data: campaigns } = await supabase
-      .from('ads.campaigns')
+      .from('campaigns')
       .select('id, amazon_campaign_id, target_acos, daily_budget')
       .eq('marketplace_profile_id', mpProfile.id)
       .in('amazon_campaign_id', amazonCampaignIds)
@@ -91,7 +91,7 @@ export class StreamService implements StreamPort {
       const roas = metric.cost > 0 ? metric.sales / metric.cost : 0
 
       const { error } = await supabase
-        .from('ads.report_snapshots')
+        .from('report_snapshots')
         .upsert({
           campaign_id: campaign.id,
           brand_market_id: mpProfile.brand_market_id,
@@ -150,7 +150,7 @@ export class StreamService implements StreamPort {
     }
 
     // Log stream event (non-critical — table may not exist yet)
-    await supabase.from('ads.stream_events').insert({
+    await supabase.from('stream_events').insert({
       profile_id: batch.profile_id,
       dataset_id: batch.dataset_id,
       metrics_count: batch.metrics.length,
@@ -170,7 +170,7 @@ export class StreamService implements StreamPort {
     message: string,
     data: Record<string, unknown>,
   ): Promise<void> {
-    await supabase.from('ads.alerts').insert({
+    await supabase.from('alerts').insert({
       campaign_id: campaignId,
       brand_market_id: brandMarketId,
       alert_type: alertType,

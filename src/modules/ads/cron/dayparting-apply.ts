@@ -2,14 +2,14 @@
 // Design Ref: §5.2 — Delegates to WriteBackService via factory
 
 import { createWriteBackService } from '@/modules/ads/api/factory'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import type { DaypartingResult } from '@/modules/ads/api/services/write-back-service'
 
 export async function applyDayparting(): Promise<DaypartingResult> {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
 
   const { data: profiles, error } = await supabase
-    .from('ads.marketplace_profiles')
+    .from('marketplace_profiles')
     .select('profile_id')
     .eq('is_active', true)
 
@@ -28,7 +28,7 @@ export async function applyDayparting(): Promise<DaypartingResult> {
     totals.errors += result.errors
 
     // Log to ads.sync_logs
-    await supabase.from('ads.sync_logs').insert({
+    await supabase.from('sync_logs').insert({
       profile_id: profile.profile_id,
       sync_type: 'dayparting',
       started_at: startedAt,

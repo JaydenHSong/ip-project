@@ -31,6 +31,7 @@ export class SyncService {
     private adsPort: AdsPort,
     private spApiPort: SpApiPort,
     private db: SupabaseClient,
+    private publicDb: SupabaseClient,
   ) {}
 
   // ─── SP-API: Brand Analytics → ads.brand_analytics (module-2) ───
@@ -42,9 +43,9 @@ export class SyncService {
     try {
       // Get marketplace_id for this profile
       const { data: profile } = await supabase
-        .from('ads.marketplace_profiles')
+        .from('marketplace_profiles')
         .select('marketplace_id')
-        .eq('profile_id', profileId)
+        .eq('ads_profile_id', profileId)
         .single()
 
       if (!profile?.marketplace_id) {
@@ -60,7 +61,7 @@ export class SyncService {
       // Upsert into report_snapshots or a dedicated brand analytics table
       for (const row of rows) {
         const { error } = await supabase
-          .from('ads.report_snapshots')
+          .from('report_snapshots')
           .upsert({
             brand_market_id: profileId,
             campaign_id: null,
@@ -93,9 +94,9 @@ export class SyncService {
 
     try {
       const { data: profile } = await supabase
-        .from('ads.marketplace_profiles')
+        .from('marketplace_profiles')
         .select('marketplace_id')
-        .eq('profile_id', profileId)
+        .eq('ads_profile_id', profileId)
         .single()
 
       if (!profile?.marketplace_id) {
@@ -127,7 +128,7 @@ export class SyncService {
 
       // Store pattern
       const { error } = await supabase
-        .from('ads.report_snapshots')
+        .from('report_snapshots')
         .upsert({
           brand_market_id: profileId,
           campaign_id: null,
@@ -164,9 +165,9 @@ export class SyncService {
     try {
       // Get marketplace_profile + brand_market for FK references
       const { data: mpProfile } = await supabase
-        .from('ads.marketplace_profiles')
+        .from('marketplace_profiles')
         .select('id, brand_market_id')
-        .eq('profile_id', profileId)
+        .eq('ads_profile_id', profileId)
         .single()
 
       if (!mpProfile) {
@@ -174,16 +175,35 @@ export class SyncService {
         return result
       }
 
-      // Resolve org_unit_id from brand_markets for new campaign creation
-      const { data: brandMarket } = await supabase
-        .from('public.brand_markets')
-        .select('org_unit_id')
+      // Resolve org_unit_id: brand_markets → brands → org_units (via name match)
+      const { data: brandMarket } = await this.publicDb
+        .from('brand_markets')
+        .select('id, brand_id')
         .eq('id', mpProfile.brand_market_id)
         .single()
 
+      let orgUnitId: string | null = null
+      if (brandMarket?.brand_id) {
+        const { data: brand } = await this.publicDb
+          .from('brands')
+          .select('name')
+          .eq('id', brandMarket.brand_id)
+          .single()
+
+        if (brand?.name) {
+          const { data: orgUnit } = await this.publicDb
+            .from('org_units')
+            .select('id')
+            .eq('name', brand.name)
+            .single()
+
+          orgUnitId = (orgUnit?.id as string) ?? null
+        }
+      }
+
       // Get a system admin user for created_by on auto-created campaigns
-      const { data: adminUser } = await supabase
-        .from('public.users')
+      const { data: adminUser } = await this.publicDb
+        .from('users')
         .select('id')
         .eq('role', 'admin')
         .limit(1)
@@ -201,7 +221,7 @@ export class SyncService {
 
       // Get existing campaigns mapped by amazon_campaign_id
       const { data: existing } = await supabase
-        .from('ads.campaigns')
+        .from('campaigns')
         .select('id, amazon_campaign_id')
         .eq('marketplace_profile_id', mpProfile.id)
         .not('amazon_campaign_id', 'is', null)
@@ -226,7 +246,7 @@ export class SyncService {
         if (localId) {
           // Update existing campaign
           const { error } = await supabase
-            .from('ads.campaigns')
+            .from('campaigns')
             .update({
               amazon_state: campaign.state,
               status: mapStatus(campaign.state),
@@ -241,13 +261,13 @@ export class SyncService {
           } else {
             result.updated += 1
           }
-        } else if (brandMarket?.org_unit_id && adminUser?.id) {
+        } else if (orgUnitId && adminUser?.id) {
           // Auto-create new campaign discovered from Amazon with defaults
           const marketingCode = `SYNC-${campaign.campaign_id.slice(-6).toUpperCase()}`
           const { error } = await supabase
-            .from('ads.campaigns')
+            .from('campaigns')
             .insert({
-              org_unit_id: brandMarket.org_unit_id,
+              org_unit_id: orgUnitId,
               brand_market_id: mpProfile.brand_market_id,
               marketplace_profile_id: mpProfile.id,
               amazon_campaign_id: campaign.campaign_id,
@@ -273,7 +293,7 @@ export class SyncService {
       for (const [amazonId, localId] of existingMap) {
         if (!seenIds.has(amazonId)) {
           await supabase
-            .from('ads.campaigns')
+            .from('campaigns')
             .update({ amazon_state: 'archived', status: 'archived', updated_at: new Date().toISOString() })
             .eq('id', localId)
         }
@@ -281,9 +301,9 @@ export class SyncService {
 
       // Update last_sync_at on marketplace_profile
       await supabase
-        .from('ads.marketplace_profiles')
+        .from('marketplace_profiles')
         .update({ last_sync_at: new Date().toISOString() })
-        .eq('profile_id', profileId)
+        .eq('ads_profile_id', profileId)
 
       result.synced = allCampaigns.length
     } catch (err) {
@@ -302,9 +322,9 @@ export class SyncService {
 
     try {
       const { data: mpProfile } = await supabase
-        .from('ads.marketplace_profiles')
+        .from('marketplace_profiles')
         .select('id, brand_market_id')
-        .eq('profile_id', profileId)
+        .eq('ads_profile_id', profileId)
         .single()
 
       if (!mpProfile) {
@@ -314,7 +334,7 @@ export class SyncService {
 
       // Get campaigns to associate reports
       const { data: campaigns } = await supabase
-        .from('ads.campaigns')
+        .from('campaigns')
         .select('id, amazon_campaign_id')
         .eq('marketplace_profile_id', mpProfile.id)
         .not('amazon_campaign_id', 'is', null)
@@ -333,7 +353,7 @@ export class SyncService {
         if (!localCampaignId) continue
 
         const { error } = await supabase
-          .from('ads.report_snapshots')
+          .from('report_snapshots')
           .upsert({
             campaign_id: localCampaignId,
             brand_market_id: mpProfile.brand_market_id,
@@ -379,9 +399,9 @@ export class SyncService {
 
     try {
       const { data: mpProfile } = await supabase
-        .from('ads.marketplace_profiles')
+        .from('marketplace_profiles')
         .select('id, brand_market_id')
-        .eq('profile_id', profileId)
+        .eq('ads_profile_id', profileId)
         .single()
 
       if (!mpProfile) {
@@ -391,7 +411,7 @@ export class SyncService {
 
       // Get active SP campaigns with their target ACoS
       const { data: campaigns } = await supabase
-        .from('ads.campaigns')
+        .from('campaigns')
         .select('id, amazon_campaign_id, target_acos, brand_market_id')
         .eq('marketplace_profile_id', mpProfile.id)
         .eq('status', 'active')
@@ -417,7 +437,7 @@ export class SyncService {
           const targetAcos = Number(campaign.target_acos) || 30
           // Expire old pending recommendations for this campaign
           await supabase
-            .from('ads.keyword_recommendations')
+            .from('keyword_recommendations')
             .update({ status: 'expired' })
             .eq('campaign_id', campaign.id)
             .eq('status', 'pending')
@@ -426,7 +446,7 @@ export class SyncService {
             // High performer: orders > 0, ACoS < target → promote
             if (term.orders > 0 && term.acos < targetAcos && term.clicks >= 5) {
               const { error } = await supabase
-                .from('ads.keyword_recommendations')
+                .from('keyword_recommendations')
                 .insert({
                   campaign_id: campaign.id,
                   brand_market_id: campaign.brand_market_id,
@@ -449,7 +469,7 @@ export class SyncService {
             // Waster: clicks > 10, orders = 0, spend > $5 → negate
             if (term.orders === 0 && term.clicks > 10 && term.cost > 5) {
               const { error } = await supabase
-                .from('ads.keyword_recommendations')
+                .from('keyword_recommendations')
                 .insert({
                   campaign_id: campaign.id,
                   brand_market_id: campaign.brand_market_id,

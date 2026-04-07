@@ -1,7 +1,7 @@
 // AD Optimizer — Spend Intelligence Server Queries
 // Design Ref: §4.2 GET /api/ads/reports/spend-intelligence
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import type {
   SpendLeakSummary,
   SpendLeakItem,
@@ -14,12 +14,12 @@ import type {
 // ─── Main Query ───
 
 const getSpendIntelligence = async (brandMarketId: string) => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   // 1. Spend Diagnostics
   const { data: diagnostics } = await supabase
-    .from('ads.spend_diagnostics')
+    .from('spend_diagnostics')
     .select('campaign_id, diagnosis_type, root_causes, utilization_pct, analyzed_at')
     .eq('brand_market_id', brandMarketId)
     .order('analyzed_at', { ascending: false })
@@ -28,14 +28,14 @@ const getSpendIntelligence = async (brandMarketId: string) => {
   // 2. Campaign names + 7d metrics
   const campaignIds = [...new Set((diagnostics ?? []).map((d) => d.campaign_id))]
   const { data: campaigns } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('id, name, marketing_code')
     .in('id', campaignIds.length > 0 ? campaignIds : ['__none__'])
 
   const campaignMap = new Map((campaigns ?? []).map((c) => [c.id, c]))
 
   const { data: snapshots } = await supabase
-    .from('ads.report_snapshots')
+    .from('report_snapshots')
     .select('campaign_id, spend, sales, acos')
     .in('campaign_id', campaignIds.length > 0 ? campaignIds : ['__none__'])
     .eq('report_level', 'campaign')
@@ -106,7 +106,7 @@ const getSpendIntelligence = async (brandMarketId: string) => {
 
   // 4. Trend Alerts
   const { data: trends } = await supabase
-    .from('ads.spend_trends')
+    .from('spend_trends')
     .select('id, campaign_id, metric, value, prev_week_value, trend_direction, consecutive_weeks_worsening')
     .eq('brand_market_id', brandMarketId)
     .gt('consecutive_weeks_worsening', 1)

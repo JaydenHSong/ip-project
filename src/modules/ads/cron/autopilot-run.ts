@@ -19,7 +19,7 @@ async function fetchAutoPilotCampaigns(
   db: SupabaseClient,
 ): Promise<AutoPilotContext[]> {
   const { data } = await db
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('id, marketplace_profile_id, goal_mode, target_acos, weekly_budget, max_bid_cap, learning_day, confidence_score, autopilot_started_at')
     .eq('marketplace_profile_id', profileId)
     .eq('mode', 'autopilot')
@@ -46,7 +46,7 @@ async function fetchMetricsSnapshot(
   db: SupabaseClient,
 ): Promise<MetricsSnapshot> {
   const { data } = await db
-    .from('ads.report_snapshots')
+    .from('report_snapshots')
     .select('acos, spend, sales, impressions, clicks, orders')
     .eq('campaign_id', campaignId)
     .eq('report_level', 'campaign')

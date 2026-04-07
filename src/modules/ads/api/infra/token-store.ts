@@ -1,7 +1,7 @@
 // Design Ref: §6.3 — Token Store (DB + in-memory cache)
 // Plan SC: SC-06 Token 자동 갱신 0 downtime
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import { adsConfig } from './api-config'
 import type { AmazonTokenSet } from '../types'
 
@@ -30,9 +30,9 @@ export class TokenStore {
   async storeToken(profileId: string, tokenSet: AmazonTokenSet): Promise<void> {
     tokenCache.set(profileId, tokenSet)
 
-    const supabase = createAdminClient()
+    const supabase = createAdsAdminClient()
     await supabase
-      .from('ads.marketplace_profiles')
+      .from('marketplace_profiles')
       .update({
         refresh_token: tokenSet.refresh_token,
         access_token_expires_at: new Date(tokenSet.expires_at).toISOString(),
@@ -94,17 +94,20 @@ export class TokenStore {
   }
 
   private async doRefresh(profileId: string): Promise<AmazonTokenSet> {
-    const supabase = createAdminClient()
+    const supabase = createAdsAdminClient()
 
-    // Look up refresh_token from DB
+    // Look up refresh_token_key from DB → resolve from env var
     const { data: profile } = await supabase
-      .from('ads.marketplace_profiles')
-      .select('refresh_token')
-      .eq('profile_id', profileId)
+      .from('marketplace_profiles')
+      .select('refresh_token_key')
+      .eq('ads_profile_id', profileId)
       .single()
 
-    if (!profile?.refresh_token) {
-      throw new Error(`No refresh token for profile ${profileId}`)
+    const refreshTokenKey = profile?.refresh_token_key as string | null
+    const refreshToken = refreshTokenKey ? process.env[refreshTokenKey] : null
+
+    if (!refreshToken) {
+      throw new Error(`No refresh token for profile ${profileId} (key: ${refreshTokenKey ?? 'none'})`)
     }
 
     // Call Amazon OAuth refresh
@@ -113,7 +116,7 @@ export class TokenStore {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
-        refresh_token: profile.refresh_token,
+        refresh_token: refreshToken,
         client_id: adsConfig.ads.clientId,
         client_secret: adsConfig.ads.clientSecret,
       }),

@@ -67,7 +67,7 @@ export class WriteBackService {
           await this.adsPort.updateKeywordBid(action.keyword_id, action.proposed_value)
           // Update local DB
           await this.db
-            .from('ads.keywords')
+            .from('keywords')
             .update({ bid: action.proposed_value, last_auto_adjusted_at: new Date().toISOString() })
             .eq('amazon_keyword_id', action.keyword_id)
           break
@@ -78,7 +78,7 @@ export class WriteBackService {
             budget: action.proposed_value,
           })
           await this.db
-            .from('ads.campaigns')
+            .from('campaigns')
             .update({ daily_budget: action.proposed_value, updated_at: new Date().toISOString() })
             .eq('amazon_campaign_id', action.campaign_id)
           break
@@ -88,7 +88,7 @@ export class WriteBackService {
           const state = action.proposed_value === 1 ? 'enabled' : 'paused'
           await this.adsPort.updateCampaign(action.campaign_id, { state })
           await this.db
-            .from('ads.campaigns')
+            .from('campaigns')
             .update({
               amazon_state: state,
               status: state === 'enabled' ? 'active' : 'paused',
@@ -121,7 +121,7 @@ export class WriteBackService {
           if (!action.keyword_id) throw new Error('keyword_id required for keyword_negate')
           await this.adsPort.archiveKeyword(action.keyword_id)
           await this.db
-            .from('ads.keywords')
+            .from('keywords')
             .update({ state: 'archived', updated_at: new Date().toISOString() })
             .eq('amazon_keyword_id', action.keyword_id)
           break
@@ -160,7 +160,7 @@ export class WriteBackService {
 
     // Get enabled dayparting schedules
     const { data: schedules } = await supabase
-      .from('ads.dayparting_schedules')
+      .from('dayparting_schedules')
       .select('id, campaign_ids, schedule')
       .eq('is_enabled', true)
 
@@ -180,7 +180,7 @@ export class WriteBackService {
       if (!campaignIds?.length) continue
 
       const { data: campaigns } = await supabase
-        .from('ads.campaigns')
+        .from('campaigns')
         .select('id, amazon_campaign_id, amazon_state, mode')
         .in('id', campaignIds)
         .eq('mode', 'autopilot')
@@ -195,7 +195,7 @@ export class WriteBackService {
           try {
             await this.adsPort.updateCampaign(camp.amazon_campaign_id, { state: 'enabled' })
             await supabase
-              .from('ads.campaigns')
+              .from('campaigns')
               .update({ amazon_state: 'enabled', status: 'active', updated_at: new Date().toISOString() })
               .eq('id', camp.id)
             result.campaigns_adjusted += 1
@@ -204,7 +204,7 @@ export class WriteBackService {
           try {
             await this.adsPort.updateCampaign(camp.amazon_campaign_id, { state: 'paused' })
             await supabase
-              .from('ads.campaigns')
+              .from('campaigns')
               .update({ amazon_state: 'paused', status: 'paused', updated_at: new Date().toISOString() })
               .eq('id', camp.id)
             result.campaigns_adjusted += 1
@@ -214,7 +214,7 @@ export class WriteBackService {
 
       // Update last_applied_at
       await supabase
-        .from('ads.dayparting_schedules')
+        .from('dayparting_schedules')
         .update({ last_applied_at: new Date().toISOString() })
         .eq('id', sched.id)
     }
@@ -229,7 +229,7 @@ export class WriteBackService {
     guardrailId: string | null,
     reason: string | null,
   ): Promise<void> {
-    await this.db.from('ads.automation_log').insert({
+    await this.db.from('automation_log').insert({
       campaign_id: action.campaign_id,
       keyword_id: action.keyword_id ?? null,
       batch_id: crypto.randomUUID(),

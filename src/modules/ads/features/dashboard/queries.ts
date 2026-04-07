@@ -1,7 +1,7 @@
 // AD Optimizer — Dashboard Server Queries
 // Design Ref: §4.2 CEO/Director dashboard endpoints
 
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 import type {
   CeoDashboardData,
   DirectorDashboardData,
@@ -25,7 +25,7 @@ const getMonthRange = () => {
 // ─── S01: CEO Dashboard ───
 
 const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
   const { start } = getMonthRange()
 
   // 1. Get all brand_markets for this org
@@ -39,7 +39,7 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
   // 2. Get MTD report snapshots per brand_market
   const bmIds = bms.map((bm) => bm.id)
   const { data: snapshots } = await supabase
-    .from('ads.report_snapshots')
+    .from('report_snapshots')
     .select('brand_market_id, spend, sales, orders, acos, roas')
     .in('brand_market_id', bmIds.length > 0 ? bmIds : ['__none__'])
     .eq('report_level', 'campaign')
@@ -74,14 +74,14 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
 
   // 4. Alerts count
   const { count: alertsCount } = await supabase
-    .from('ads.alerts')
+    .from('alerts')
     .select('id', { count: 'exact', head: true })
     .in('brand_market_id', bmIds.length > 0 ? bmIds : ['__none__'])
     .eq('is_resolved', false)
 
   // 5. AI Status — based on recent automation failures
   const { data: recentLogs } = await supabase
-    .from('ads.automation_logs')
+    .from('automation_logs')
     .select('guardrail_blocked, api_success')
     .gte('executed_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
     .limit(100)
@@ -119,13 +119,13 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
 // ─── S02: Director Dashboard ───
 
 const getDirectorDashboard = async (orgUnitId: string, brandMarketIds: string[]): Promise<DirectorDashboardData> => {
-  const supabase = createAdminClient()
+  const supabase = createAdsAdminClient()
   const { start, dayOfMonth } = getMonthRange()
   const bmFilter = brandMarketIds.length > 0 ? brandMarketIds : ['__none__']
 
   // 1. Budget Pacing
   const { data: budgets } = await supabase
-    .from('ads.budgets')
+    .from('budgets')
     .select('brand_market_id, channel, amount')
     .in('brand_market_id', bmFilter)
     .eq('is_actual', false)
@@ -138,7 +138,7 @@ const getDirectorDashboard = async (orgUnitId: string, brandMarketIds: string[])
     .in('id', bmFilter)
 
   const { data: spendSnapshots } = await supabase
-    .from('ads.report_snapshots')
+    .from('report_snapshots')
     .select('brand_market_id, spend')
     .in('brand_market_id', bmFilter)
     .eq('report_level', 'campaign')
@@ -186,7 +186,7 @@ const getDirectorDashboard = async (orgUnitId: string, brandMarketIds: string[])
 
   // 3. Auto Pilot Impact
   const { data: apLogs } = await supabase
-    .from('ads.automation_logs')
+    .from('automation_logs')
     .select('id, action_type')
     .eq('source', 'algorithm')
     .gte('executed_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
@@ -215,7 +215,7 @@ const getDirectorDashboard = async (orgUnitId: string, brandMarketIds: string[])
 
   // 5. Pending Actions (unresolved alerts)
   const { data: alerts } = await supabase
-    .from('ads.alerts')
+    .from('alerts')
     .select('id, alert_type, severity, title, campaign_id')
     .in('brand_market_id', bmFilter)
     .eq('is_resolved', false)
@@ -225,7 +225,7 @@ const getDirectorDashboard = async (orgUnitId: string, brandMarketIds: string[])
   // Get campaign names for alerts
   const alertCampaignIds = (alerts ?? []).map((a) => a.campaign_id).filter(Boolean)
   const { data: alertCampaigns } = await supabase
-    .from('ads.campaigns')
+    .from('campaigns')
     .select('id, name')
     .in('id', alertCampaignIds.length > 0 ? alertCampaignIds : ['__none__'])
 
