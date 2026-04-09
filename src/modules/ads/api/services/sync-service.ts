@@ -332,16 +332,26 @@ export class SyncService {
         return result
       }
 
-      // Get campaigns to associate reports
-      const { data: campaigns } = await supabase
-        .from('campaigns')
-        .select('id, amazon_campaign_id')
-        .eq('marketplace_profile_id', mpProfile.id)
-        .not('amazon_campaign_id', 'is', null)
+      // Get campaigns to associate reports — paginate to get all (Supabase default limit is 1000)
+      const campaignMap = new Map<string, string>()
+      let from = 0
+      const pageSize = 1000
 
-      const campaignMap = new Map(
-        (campaigns ?? []).map(c => [c.amazon_campaign_id, c.id]),
-      )
+      while (true) {
+        const { data: page } = await supabase
+          .from('campaigns')
+          .select('id, amazon_campaign_id')
+          .eq('marketplace_profile_id', mpProfile.id)
+          .not('amazon_campaign_id', 'is', null)
+          .range(from, from + pageSize - 1)
+
+        if (!page || page.length === 0) break
+        for (const c of page) {
+          campaignMap.set(String(c.amazon_campaign_id), c.id)
+        }
+        if (page.length < pageSize) break
+        from += pageSize
+      }
 
       // Request and download SP campaign report
       const dateRange: DateRange = { start: date, end: date }

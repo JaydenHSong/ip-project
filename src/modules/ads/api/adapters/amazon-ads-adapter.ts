@@ -262,34 +262,50 @@ export class AmazonAdsAdapter implements AdsPort {
   // ─── Reports (v3) ───
 
   async requestReport(reportType: string, dateRange: DateRange): Promise<string> {
+    // Map internal type names to Amazon v3 reportTypeId
+    const reportTypeMap: Record<string, string> = {
+      sp_campaigns: 'spCampaigns',
+      sp_targeting: 'spTargeting',
+      sp_search_term: 'spSearchTerm',
+      sp_advertised_product: 'spAdvertisedProduct',
+    }
+    const amazonReportType = reportTypeMap[reportType] ?? reportType
+
     const data = await this.request<{ reportId: string }>(
       'POST', '/reporting/reports',
       {
-        reportDate: dateRange.start,
+        name: `ARC ${amazonReportType} ${dateRange.start}`,
+        startDate: dateRange.start,
+        endDate: dateRange.end,
         configuration: {
           adProduct: 'SPONSORED_PRODUCTS',
           groupBy: ['campaign'],
-          columns: ['impressions', 'clicks', 'cost', 'purchases1d', 'sales1d'],
-          reportTypeId: reportType,
+          columns: ['impressions', 'clicks', 'cost', 'purchases1d', 'sales1d', 'campaignId', 'date'],
+          reportTypeId: amazonReportType,
           timeUnit: 'DAILY',
           format: 'GZIP_JSON',
         },
       },
+      { 'Content-Type': 'application/vnd.createasyncreportrequest.v3+json' },
     )
     return data.reportId
   }
 
   async downloadReport(reportId: string): Promise<AmazonReportMetrics[]> {
-    // Poll for report status
+    // Poll for report status — Amazon takes ~10min for large accounts
     type ReportStatus = { reportId: string; status: string; url?: string }
     let status: ReportStatus
+    const v3Header = { 'Content-Type': 'application/vnd.createasyncreportrequest.v3+json' }
 
-    for (let attempt = 0; attempt < 10; attempt++) {
-      status = await this.request<ReportStatus>('GET', `/reporting/reports/${reportId}`)
+    for (let attempt = 0; attempt < 80; attempt++) {
+      status = await this.request<ReportStatus>('GET', `/reporting/reports/${reportId}`, undefined, v3Header)
       if (status.status === 'COMPLETED' && status.url) {
-        // Download from S3 URL
+        // Download gzipped JSON from S3 URL
+        const { gunzipSync } = await import('node:zlib')
         const res = await fetch(status.url)
-        const rows = await res.json() as Array<Record<string, unknown>>
+        const buffer = Buffer.from(await res.arrayBuffer())
+        const decompressed = gunzipSync(buffer)
+        const rows = JSON.parse(decompressed.toString()) as Array<Record<string, unknown>>
         return rows.map(r => ({
           campaign_id: String(r.campaignId ?? ''),
           impressions: Number(r.impressions ?? 0),
@@ -316,9 +332,9 @@ export class AmazonAdsAdapter implements AdsPort {
         }))
       }
       if (status.status === 'FAILURE') throw new Error(`Report ${reportId} failed`)
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      await new Promise(resolve => setTimeout(resolve, 15000))
     }
-    throw new Error(`Report ${reportId} timed out`)
+    throw new Error(`Report ${reportId} timed out after 20min`)
   }
 
   async getSearchTermReport(campaignId: string, dateRange: DateRange): Promise<SearchTermRow[]> {

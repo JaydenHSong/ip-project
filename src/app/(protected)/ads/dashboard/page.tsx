@@ -79,19 +79,23 @@ const AdsDashboardPage = () => {
 
         {/* View toggle — only show if owner (can access both views) */}
         {userRole === 'owner' && (
-          <div className="inline-flex rounded-md border border-th-border bg-surface-card">
+          <div className="inline-flex rounded-lg border border-th-border bg-surface-card overflow-hidden">
             <button
               onClick={() => setView('ceo')}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors rounded-l-md ${
-                view === 'ceo' ? 'bg-th-text text-white' : 'text-th-text-muted hover:text-th-text-secondary'
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                view === 'ceo'
+                  ? 'bg-th-accent text-white'
+                  : 'text-th-text-muted hover:bg-th-accent/10 hover:text-th-text'
               }`}
             >
               CEO View
             </button>
             <button
               onClick={() => setView('director')}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors rounded-r-md ${
-                view === 'director' ? 'bg-th-text text-white' : 'text-th-text-muted hover:text-th-text-secondary'
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                view === 'director'
+                  ? 'bg-th-accent text-white'
+                  : 'text-th-text-muted hover:bg-th-accent/10 hover:text-th-text'
               }`}
             >
               Director View

@@ -93,19 +93,88 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
     : failCount > 0 ? 'warning' as const
     : 'healthy' as const
 
-  // 6. ACoS Heatmap
-  const acosHeatmap: AcosHeatmapCell[] = brands.flatMap((b) =>
-    b.markets.map((m) => ({
-      brand: b.brand_name,
-      market: m.market,
-      acos: m.acos,
-      delta: 0, // TODO: compare with previous month
-    })),
-  )
+  // 6. ACoS Heatmap with delta (vs previous month)
+  const prevMonthStart = new Date()
+  prevMonthStart.setMonth(prevMonthStart.getMonth() - 1, 1)
+  const prevMonthEnd = new Date()
+  prevMonthEnd.setDate(0) // last day of previous month
+  const prevStart = prevMonthStart.toISOString().split('T')[0]
+  const prevEnd = prevMonthEnd.toISOString().split('T')[0]
 
-  // 7. ROAS Trend 30d (placeholder structure)
-  const roasTrend30d: RoasTrendPoint[] = []
-  // TODO: populate from daily report_snapshots grouped by date and brand
+  const { data: prevSnapshots } = await supabase
+    .from('report_snapshots')
+    .select('brand_market_id, spend, sales')
+    .in('brand_market_id', bmIds.length > 0 ? bmIds : ['__none__'])
+    .eq('report_level', 'campaign')
+    .gte('report_date', prevStart)
+    .lte('report_date', prevEnd)
+
+  const prevAcosByBm = new Map<string, number>()
+  const prevSpendByBm = new Map<string, number>()
+  const prevSalesByBm = new Map<string, number>()
+  for (const s of prevSnapshots ?? []) {
+    prevSpendByBm.set(s.brand_market_id, (prevSpendByBm.get(s.brand_market_id) ?? 0) + (s.spend ?? 0))
+    prevSalesByBm.set(s.brand_market_id, (prevSalesByBm.get(s.brand_market_id) ?? 0) + (s.sales ?? 0))
+  }
+  for (const [bmId, prevSpend] of prevSpendByBm) {
+    const prevSales = prevSalesByBm.get(bmId) ?? 0
+    prevAcosByBm.set(bmId, prevSales > 0 ? (prevSpend / prevSales) * 100 : 0)
+  }
+
+  const acosHeatmap: AcosHeatmapCell[] = bms.map((bm) => {
+    const bmId = bm.id
+    const curSnapshots = (snapshots ?? []).filter((s) => s.brand_market_id === bmId)
+    const curSpend = curSnapshots.reduce((sum, s) => sum + (s.spend ?? 0), 0)
+    const curSales = curSnapshots.reduce((sum, s) => sum + (s.sales ?? 0), 0)
+    const curAcos = curSales > 0 ? (curSpend / curSales) * 100 : 0
+    const prevAcos = prevAcosByBm.get(bmId) ?? 0
+    return {
+      brand: bm.brand_name ?? 'Unknown',
+      market: bm.marketplace ?? 'US',
+      acos: curAcos,
+      delta: prevAcos > 0 ? curAcos - prevAcos : 0,
+    }
+  })
+
+  // 7. ROAS Trend 30d
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+
+  const { data: trendSnapshots } = await supabase
+    .from('report_snapshots')
+    .select('report_date, brand_market_id, spend, sales')
+    .in('brand_market_id', bmIds.length > 0 ? bmIds : ['__none__'])
+    .eq('report_level', 'campaign')
+    .gte('report_date', thirtyDaysAgoStr)
+
+  // Build brand_market_id → brand_name lookup
+  const bmToBrand = new Map<string, string>()
+  for (const bm of bms) {
+    bmToBrand.set(bm.id, (bm.brand_name ?? 'Unknown').toLowerCase())
+  }
+
+  // Aggregate spend/sales by date and brand
+  const dailyBrandMap = new Map<string, Record<string, { spend: number; sales: number }>>()
+  for (const s of trendSnapshots ?? []) {
+    const brandName = bmToBrand.get(s.brand_market_id) ?? 'unknown'
+    const dayData = dailyBrandMap.get(s.report_date) ?? {}
+    const existing = dayData[brandName] ?? { spend: 0, sales: 0 }
+    existing.spend += s.spend ?? 0
+    existing.sales += s.sales ?? 0
+    dayData[brandName] = existing
+    dailyBrandMap.set(s.report_date, dayData)
+  }
+
+  const roasTrend30d: RoasTrendPoint[] = Array.from(dailyBrandMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, byBrand]) => {
+      const roas = (name: string) => {
+        const d = byBrand[name]
+        return d && d.spend > 0 ? d.sales / d.spend : 0
+      }
+      return { date, spigen: roas('spigen'), legato: roas('legato'), cyrill: roas('cyrill') }
+    })
 
   return {
     brands,
@@ -139,7 +208,7 @@ const getDirectorDashboard = async (orgUnitId: string, brandMarketIds: string[])
 
   const { data: spendSnapshots } = await supabase
     .from('report_snapshots')
-    .select('brand_market_id, spend')
+    .select('brand_market_id, spend, sales')
     .in('brand_market_id', bmFilter)
     .eq('report_level', 'campaign')
     .gte('report_date', start)
@@ -174,7 +243,7 @@ const getDirectorDashboard = async (orgUnitId: string, brandMarketIds: string[])
     const bm = bmLookup.get(bmId)
     const sales = (spendSnapshots ?? [])
       .filter((s) => s.brand_market_id === bmId)
-      .reduce((sum, s) => sum + (s.spend ?? 0), 0) // placeholder — need sales
+      .reduce((sum, s) => sum + (s.sales ?? 0), 0)
     const acos = sales > 0 ? (spend / sales) * 100 : 0
     marketPerformance.push({
       brand: bm?.brand_name ?? 'Unknown',
@@ -203,15 +272,57 @@ const getDirectorDashboard = async (orgUnitId: string, brandMarketIds: string[])
     .select('id, name')
     .eq('parent_id', orgUnitId)
 
-  const teamPerformance: TeamPerformanceItem[] = (teams ?? []).map((t) => ({
-    org_unit_id: t.id,
-    team_name: t.name,
-    spend: 0,
-    acos: 0,
-    delta_acos: 0,
-    campaigns_count: 0,
-  }))
-  // TODO: aggregate per-team metrics from campaigns + report_snapshots
+  // Get campaigns grouped by org_unit for team metrics
+  const teamIds = (teams ?? []).map((t) => t.id)
+  const { data: teamCampaigns } = await supabase
+    .from('campaigns')
+    .select('id, org_unit_id, status')
+    .in('org_unit_id', teamIds.length > 0 ? teamIds : ['__none__'])
+
+  const teamCampaignMap = new Map<string, string[]>()
+  const teamCampaignCounts = new Map<string, number>()
+  for (const c of teamCampaigns ?? []) {
+    if (!c.org_unit_id) continue
+    const ids = teamCampaignMap.get(c.org_unit_id) ?? []
+    ids.push(c.id)
+    teamCampaignMap.set(c.org_unit_id, ids)
+    teamCampaignCounts.set(c.org_unit_id, (teamCampaignCounts.get(c.org_unit_id) ?? 0) + 1)
+  }
+
+  const allTeamCampaignIds = (teamCampaigns ?? []).map((c) => c.id)
+  const { data: teamSnapshots } = await supabase
+    .from('report_snapshots')
+    .select('campaign_id, spend, sales')
+    .in('campaign_id', allTeamCampaignIds.length > 0 ? allTeamCampaignIds : ['__none__'])
+    .eq('report_level', 'campaign')
+    .gte('report_date', start)
+
+  const campaignToTeam = new Map<string, string>()
+  for (const [teamId, cIds] of teamCampaignMap) {
+    for (const cId of cIds) campaignToTeam.set(cId, teamId)
+  }
+
+  const teamSpend = new Map<string, number>()
+  const teamSales = new Map<string, number>()
+  for (const s of teamSnapshots ?? []) {
+    const teamId = campaignToTeam.get(s.campaign_id)
+    if (!teamId) continue
+    teamSpend.set(teamId, (teamSpend.get(teamId) ?? 0) + (s.spend ?? 0))
+    teamSales.set(teamId, (teamSales.get(teamId) ?? 0) + (s.sales ?? 0))
+  }
+
+  const teamPerformance: TeamPerformanceItem[] = (teams ?? []).map((t) => {
+    const spend = teamSpend.get(t.id) ?? 0
+    const sales = teamSales.get(t.id) ?? 0
+    return {
+      org_unit_id: t.id,
+      team_name: t.name,
+      spend,
+      acos: sales > 0 ? (spend / sales) * 100 : 0,
+      delta_acos: 0, // requires previous period comparison
+      campaigns_count: teamCampaignCounts.get(t.id) ?? 0,
+    }
+  })
 
   // 5. Pending Actions (unresolved alerts)
   const { data: alerts } = await supabase

@@ -37,8 +37,49 @@ const getCampaigns = async (query: CampaignListQuery) => {
 
   if (error) throw error
 
+  const campaigns = data ?? []
+
+  // Enrich with 7-day KPI from report_snapshots
+  const campaignIds = campaigns.map((c) => c.id)
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  const dateStr = sevenDaysAgo.toISOString().split('T')[0]
+
+  const kpiMap = new Map<string, { spend: number; sales: number; orders: number }>()
+
+  if (campaignIds.length > 0) {
+    const { data: snapshots } = await supabase
+      .from('report_snapshots')
+      .select('campaign_id, spend, sales, orders')
+      .in('campaign_id', campaignIds)
+      .eq('report_level', 'campaign')
+      .gte('report_date', dateStr)
+
+    for (const s of snapshots ?? []) {
+      const existing = kpiMap.get(s.campaign_id) ?? { spend: 0, sales: 0, orders: 0 }
+      existing.spend += s.spend ?? 0
+      existing.sales += s.sales ?? 0
+      existing.orders += s.orders ?? 0
+      kpiMap.set(s.campaign_id, existing)
+    }
+  }
+
+  const enriched = campaigns.map((c) => {
+    const kpi = kpiMap.get(c.id)
+    const spend7d = kpi?.spend ?? 0
+    const sales7d = kpi?.sales ?? 0
+    return {
+      ...c,
+      spend_7d: spend7d,
+      sales_7d: sales7d,
+      orders_7d: kpi?.orders ?? 0,
+      acos: sales7d > 0 ? (spend7d / sales7d) * 100 : null,
+      roas: spend7d > 0 ? sales7d / spend7d : null,
+    }
+  })
+
   return {
-    data: data ?? [],
+    data: enriched,
     pagination: { page, limit, total: count ?? 0 },
   }
 }
