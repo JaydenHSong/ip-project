@@ -2,6 +2,7 @@
 // Design Ref: §5.3 S08
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
 import { AdsStatusBadge } from '@/modules/ads/shared/components/status-badge'
 import { ProgressBar } from '@/modules/ads/shared/components/progress-bar'
 import { EmptyState } from '@/modules/ads/shared/components/empty-state'
@@ -15,6 +16,28 @@ type AutopilotListProps = {
 }
 
 const AutopilotList = ({ campaigns, isLoading, onRowClick, onAction }: AutopilotListProps) => {
+  // H5 fix: state-driven kebab menu (replaces CSS hover) for keyboard + a11y
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!openMenuId) return
+    const onDocClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenMenuId(null)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [openMenuId])
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -73,24 +96,46 @@ const AutopilotList = ({ campaigns, isLoading, onRowClick, onAction }: Autopilot
                 ) : '-'}
               </td>
               <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                {/* Kebab menu — Design S08 */}
-                <div className="relative group">
-                  <button className="text-th-text-muted hover:text-th-text-secondary">&#x22EE;</button>
-                  <div className="hidden group-hover:block absolute right-0 top-6 z-10 w-36 rounded-md border border-th-border bg-surface-card py-1 shadow-lg">
-                    {c.status === 'active' && (
-                      <button onClick={() => onAction(c.id, 'pause')} className="w-full px-3 py-1.5 text-left text-xs text-th-text-secondary hover:bg-th-bg-hover">
-                        Pause
+                {/* Kebab menu — Design S08 — H5 fix: state-driven, keyboard accessible */}
+                <div className="relative" ref={openMenuId === c.id ? menuRef : undefined}>
+                  <button
+                    aria-haspopup="menu"
+                    aria-expanded={openMenuId === c.id}
+                    aria-label={`Actions for ${c.name}`}
+                    onClick={() => setOpenMenuId(openMenuId === c.id ? null : c.id)}
+                    className="rounded p-1 text-th-text-muted hover:bg-th-bg-hover hover:text-th-text-secondary focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    &#x22EE;
+                  </button>
+                  {openMenuId === c.id && (
+                    <div role="menu" className="absolute right-0 top-7 z-10 w-36 rounded-md border border-th-border bg-surface-card py-1 shadow-lg">
+                      {c.status === 'active' && (
+                        <button
+                          role="menuitem"
+                          onClick={() => { onAction(c.id, 'pause'); setOpenMenuId(null) }}
+                          className="w-full px-3 py-1.5 text-left text-xs text-th-text-secondary hover:bg-th-bg-hover focus:bg-th-bg-hover focus:outline-none"
+                        >
+                          Pause
+                        </button>
+                      )}
+                      {c.status === 'paused' && (
+                        <button
+                          role="menuitem"
+                          onClick={() => { onAction(c.id, 'resume'); setOpenMenuId(null) }}
+                          className="w-full px-3 py-1.5 text-left text-xs text-th-text-secondary hover:bg-th-bg-hover focus:bg-th-bg-hover focus:outline-none"
+                        >
+                          Resume
+                        </button>
+                      )}
+                      <button
+                        role="menuitem"
+                        onClick={() => { onAction(c.id, 'emergency_stop'); setOpenMenuId(null) }}
+                        className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 focus:bg-red-50 focus:outline-none"
+                      >
+                        Emergency Stop
                       </button>
-                    )}
-                    {c.status === 'paused' && (
-                      <button onClick={() => onAction(c.id, 'resume')} className="w-full px-3 py-1.5 text-left text-xs text-th-text-secondary hover:bg-th-bg-hover">
-                        Resume
-                      </button>
-                    )}
-                    <button onClick={() => onAction(c.id, 'emergency_stop')} className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50">
-                      Emergency Stop
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </td>
             </tr>

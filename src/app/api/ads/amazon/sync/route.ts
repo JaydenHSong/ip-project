@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createSyncService } from '@/modules/ads/api/factory'
-import type { SyncResult, AnalysisResult } from '@/modules/ads/api/services/sync-service'
+import type { SyncResult, AnalysisResult } from '@/modules/ads/api/services/sync'
 
 type SyncType = 'campaigns' | 'reports' | 'keywords' | 'all'
 

@@ -3,7 +3,7 @@
 
 import { createAdsAdminClient } from '@/lib/supabase/admin'
 import { createSyncService } from '@/modules/ads/api/factory'
-import type { AnalysisResult } from '@/modules/ads/api/services/sync-service'
+import type { AnalysisResult } from '@/modules/ads/api/services/sync'
 
 export async function analyzeKeywords(): Promise<AnalysisResult> {
   const supabase = createAdsAdminClient()

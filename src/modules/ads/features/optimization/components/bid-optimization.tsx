@@ -20,6 +20,42 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
   const [strategy, setStrategy] = useState<StrategyStripData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
+  const [isApplyingTop3, setIsApplyingTop3] = useState(false)
+  const [applyError, setApplyError] = useState<string | null>(null)
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleSkip = (id: string) => {
+    setSkippedIds((prev) => new Set(prev).add(id))
+    setSelectedIds((prev) => {
+      if (!prev.has(id)) return prev
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+  }
+
+  const handleApplyTop3 = async () => {
+    setIsApplyingTop3(true)
+    setApplyError(null)
+    const results = await Promise.allSettled(top3.map((rec) => onApprove(rec.id)))
+    const failed = results.filter((r) => r.status === 'rejected').length
+    if (failed > 0) {
+      setApplyError(`${failed}/${top3.length} approvals failed. Please retry.`)
+    } else {
+      // Remove approved items from local state
+      setRecommendations((prev) => prev.filter((r) => !top3.some((t) => t.id === r.id)))
+    }
+    setIsApplyingTop3(false)
+  }
 
   useEffect(() => {
     if (!campaignId || !brandMarketId) return
@@ -52,7 +88,10 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
               const rulesJson = await rulesRes.json() as { data: unknown[] }
               rulesCount = rulesJson.data?.length ?? 0
             }
-          } catch { /* silent */ }
+          } catch (err) {
+            // L1 fix: log rules fetch failures
+            console.error('[bid-optimization] rules fetch failed', err)
+          }
 
           setStrategy({
             target_acos: campJson.data.target_acos,
@@ -61,8 +100,9 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
             active_rules: rulesCount,
           })
         }
-      } catch {
-        // silent
+      } catch (err) {
+        // L1 fix: log recommendations fetch failures
+        console.error('[bid-optimization] fetch failed', err)
       } finally {
         setIsLoading(false)
       }
@@ -71,8 +111,12 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
     fetch_()
   }, [campaignId, brandMarketId])
 
-  const top3 = recommendations.slice(0, 3)
-  const allRecs = recommendations
+  // H1 fix: skipped items hidden from active lists
+  const visibleRecs = recommendations.filter((r) => !skippedIds.has(r.id))
+  const top3 = visibleRecs.slice(0, 3)
+  const allRecs = visibleRecs
+  const tableRecs = visibleRecs.slice(3)
+  const allTableSelected = tableRecs.length > 0 && tableRecs.every((r) => selectedIds.has(r.id))
 
   if (!campaignId) {
     return <EmptyState title="Select a campaign" description="Choose a campaign to see bid recommendations" />
@@ -128,7 +172,11 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
                     >
                       Approve
                     </button>
-                    <button className="rounded bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary hover:bg-th-bg-tertiary">
+                    {/* H1 fix: Skip button now removes the recommendation locally */}
+                    <button
+                      onClick={() => handleSkip(rec.id)}
+                      className="rounded bg-th-bg-tertiary px-2 py-0.5 text-xs text-th-text-secondary hover:bg-th-bg-hover"
+                    >
                       Skip
                     </button>
                   </div>
@@ -138,16 +186,19 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
           </div>
 
           {/* Apply Top 3 Bar — Design S04: "#18181B 다크" */}
+          {/* H3 fix: parallel execution + loading + error feedback */}
           <div className="mt-3 flex items-center justify-center rounded-lg bg-th-text px-4 py-2.5">
             <button
-              onClick={async () => {
-                for (const rec of top3) await onApprove(rec.id)
-              }}
-              className="text-sm font-medium text-white hover:text-orange-300 transition-colors"
+              onClick={handleApplyTop3}
+              disabled={isApplyingTop3 || top3.length === 0}
+              className="text-sm font-medium text-white hover:text-orange-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Apply Top 3 Recommendations
+              {isApplyingTop3 ? 'Applying…' : 'Apply Top 3 Recommendations'}
             </button>
           </div>
+          {applyError && (
+            <p className="mt-2 text-center text-xs text-red-500">{applyError}</p>
+          )}
         </div>
       ) : (
         <EmptyState title="All caught up!" description="No pending bid recommendations for this campaign." />
@@ -164,7 +215,27 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
               <thead>
                 <tr className="border-b border-th-border">
                   <th className="w-8 px-3 py-2">
-                    <input type="checkbox" className="rounded border-th-border text-orange-500" />
+                    {/* H2 fix: header checkbox toggles all table rows */}
+                    <input
+                      type="checkbox"
+                      checked={allTableSelected}
+                      onChange={() => {
+                        if (allTableSelected) {
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev)
+                            tableRecs.forEach((r) => next.delete(r.id))
+                            return next
+                          })
+                        } else {
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev)
+                            tableRecs.forEach((r) => next.add(r.id))
+                            return next
+                          })
+                        }
+                      }}
+                      className="rounded border-th-border text-orange-500"
+                    />
                   </th>
                   <th className="px-3 py-2 text-left text-th-text-muted">Keyword</th>
                   <th className="px-3 py-2 text-right text-th-text-muted">Current</th>
@@ -175,10 +246,16 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
                 </tr>
               </thead>
               <tbody>
-                {allRecs.slice(3).map((rec) => (
+                {tableRecs.map((rec) => (
                   <tr key={rec.id} className={`border-b border-th-border ${rec.source === 'algorithm' ? 'border-l-2 border-l-orange-400' : ''}`}>
                     <td className="px-3 py-2">
-                      <input type="checkbox" className="rounded border-th-border text-orange-500" />
+                      {/* H2 fix: row checkbox connected to selectedIds */}
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(rec.id)}
+                        onChange={() => toggleSelect(rec.id)}
+                        className="rounded border-th-border text-orange-500"
+                      />
                     </td>
                     <td className="px-3 py-2 font-medium text-th-text-secondary">{rec.keyword_text}</td>
                     <td className="px-3 py-2 text-right font-mono text-th-text-muted">${rec.current_bid?.toFixed(2) ?? '-'}</td>
@@ -208,7 +285,20 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
           { key: 'approve_all', label: 'Approve All' },
           { key: 'skip_all', label: 'Skip All' },
         ]}
-        onAction={() => setSelectedIds(new Set())}
+        onAction={async (action) => {
+          // H2 fix: bulk actions actually fire
+          const ids = Array.from(selectedIds)
+          if (action === 'approve_all') {
+            await Promise.allSettled(ids.map((id) => onApprove(id)))
+          } else if (action === 'skip_all') {
+            setSkippedIds((prev) => {
+              const next = new Set(prev)
+              ids.forEach((id) => next.add(id))
+              return next
+            })
+          }
+          setSelectedIds(new Set())
+        }}
         onClear={() => setSelectedIds(new Set())}
       />
     </div>

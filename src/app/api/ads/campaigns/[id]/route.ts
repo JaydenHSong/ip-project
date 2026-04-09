@@ -1,7 +1,9 @@
 // GET /api/ads/campaigns/[id] — Campaign detail (M02)
-// PUT /api/ads/campaigns/[id] — Update campaign
+// PUT /api/ads/campaigns/[id] — Update campaign (kept for backwards compat)
+// PATCH /api/ads/campaigns/[id] — Update campaign (RESTful partial update, preferred)
 // DELETE /api/ads/campaigns/[id] — Archive campaign
 // Design Ref: §4.2
+// L3 fix: PATCH alias added so clients can use the RESTful verb for partial updates.
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
@@ -91,6 +93,10 @@ export const PUT = withAuth(async (req, { params }) => {
     )
   }
 }, ['editor', 'admin', 'owner'])
+
+// ─── PATCH: alias of PUT for RESTful partial updates (L3 fix) ───
+// Same behavior as PUT; exists so clients can use the semantically correct verb.
+export const PATCH = PUT
 
 // ─── DELETE: Archive campaign (soft delete) ───
 

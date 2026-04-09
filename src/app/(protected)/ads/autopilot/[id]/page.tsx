@@ -35,7 +35,10 @@ const AutopilotDetailPage = ({ params }: { params: Promise<{ id: string }> }) =>
         const logJson = await logRes.json() as { data: { activity_log: ActivityLogEntry[] } }
         setActivityLog(logJson.data.activity_log)
       }
-    } catch { /* silent */ }
+    } catch (err) {
+      // L1 fix: log fetch failures
+      console.error('[ads/autopilot/[id]] fetch failed', err)
+    }
     finally { setIsLoading(false) }
   }, [id])
 
@@ -43,7 +46,8 @@ const AutopilotDetailPage = ({ params }: { params: Promise<{ id: string }> }) =>
 
   const handlePause = async () => {
     await fetch(`/api/ads/campaigns/${id}`, {
-      method: 'PUT',
+      // L3 fix: PATCH is the RESTful verb for partial updates
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'paused' }),
     })

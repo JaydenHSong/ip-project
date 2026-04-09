@@ -10,8 +10,11 @@ import { CampaignStatusStrip } from '@/modules/ads/features/campaigns/components
 import { CampaignTable } from '@/modules/ads/features/campaigns/components/campaign-table'
 import { CampaignCreateModal } from '@/modules/ads/features/campaigns/components/campaign-create-modal'
 import { AiQueuePreview } from '@/modules/ads/features/campaigns/components/ai-queue-preview'
+import { BudgetKpiStrip } from '@/modules/ads/features/budget-planning/components/budget-kpi-strip'
+import { BudgetGrid } from '@/modules/ads/features/budget-planning/components/budget-grid'
 import type { CampaignFilters, SortConfig } from '@/modules/ads/features/campaigns/components/campaign-table'
 import type { CampaignListItem, CampaignKpiSummary, CreateCampaignRequest } from '@/modules/ads/features/campaigns/types'
+import type { BudgetListResponse, BudgetKpiData, BudgetEntry } from '@/modules/ads/features/budget-planning/types'
 
 type PageTab = 'campaigns' | 'budget_planning'
 type KpiView = 'personal' | 'team'
@@ -36,6 +39,56 @@ const AdsCampaignsPage = () => {
     search: '',
   })
   const [sort, setSort] = useState<SortConfig>({ key: 'created_at', dir: 'desc' })
+
+  // M1 fix: minimal Budget Planning tab — reuse existing BudgetKpiStrip + BudgetGrid
+  const currentYear = new Date().getFullYear()
+  const [budgetData, setBudgetData] = useState<BudgetListResponse['data'] | null>(null)
+  const [isBudgetLoading, setIsBudgetLoading] = useState(false)
+
+  const fetchBudget = useCallback(async () => {
+    if (!selectedMarketId) {
+      setBudgetData(null)
+      return
+    }
+    setIsBudgetLoading(true)
+    try {
+      const res = await fetch(`/api/ads/budgets?brand_market_id=${selectedMarketId}&year=${currentYear}`)
+      if (res.ok) {
+        const json = await res.json() as BudgetListResponse
+        setBudgetData(json.data)
+      }
+    } catch (err) {
+      console.error('[ads/campaigns budget] fetch failed', err)
+    } finally {
+      setIsBudgetLoading(false)
+    }
+  }, [selectedMarketId, currentYear])
+
+  useEffect(() => {
+    if (pageTab === 'budget_planning') {
+      fetchBudget()
+    }
+  }, [pageTab, fetchBudget])
+
+  const budgetKpi: BudgetKpiData | null = budgetData ? {
+    annual_planned: budgetData.plans.reduce((s, p) => s + p.annual_total, 0),
+    ytd_spent: budgetData.ytd.spent,
+    ytd_planned: budgetData.ytd.planned,
+    remaining: budgetData.ytd.remaining,
+    autopilot_total: budgetData.autopilot_monthly.reduce((s, v) => s + v, 0),
+  } : null
+
+  const handleBudgetSave = async (entries: BudgetEntry[]) => {
+    if (!selectedMarketId) return
+    const res = await fetch('/api/ads/budgets', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand_market_id: selectedMarketId, year: currentYear, entries }),
+    })
+    if (res.ok) {
+      await fetchBudget()
+    }
+  }
 
   // Fetch campaigns
   const fetchCampaigns = useCallback(async () => {
@@ -74,7 +127,9 @@ const AdsCampaignsPage = () => {
       setCampaigns(json.data)
       setPagination(json.pagination)
       if (json.kpi) setKpi(json.kpi)
-    } catch {
+    } catch (err) {
+      // L1 fix: log so users (and Sentry/console) can see when fetch fails.
+      console.error('[ads/campaigns] fetch failed', err)
       setCampaigns([])
     } finally {
       setIsLoading(false)
@@ -116,7 +171,8 @@ const AdsCampaignsPage = () => {
     await Promise.all(
       ids.map((id) =>
         fetch(`/api/ads/campaigns/${id}`, {
-          method: 'PUT',
+          // L3 fix: PATCH is the RESTful verb for partial updates
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: newStatus }),
         }),
@@ -256,12 +312,35 @@ const AdsCampaignsPage = () => {
           )}
         </>
       ) : (
-        /* Budget Planning Tab — placeholder for Track B */
-        <div className="rounded-lg border border-th-border bg-surface-card py-16 text-center">
-          <div className="mb-3 mx-auto h-12 w-12 rounded-full bg-th-bg-tertiary" />
-          <p className="text-sm font-medium text-th-text">Budget Planning</p>
-          <p className="mt-1 text-sm text-th-text-muted">Annual budget planning with 12-month grid — Track B</p>
-        </div>
+        /* Budget Planning Tab — M1 fix: minimal Track B assembled from existing
+           BudgetKpiStrip + BudgetGrid components. Annual 12-month plan editor per channel. */
+        <>
+          {!selectedMarketId ? (
+            <div className="rounded-lg border border-dashed border-th-border bg-surface-card p-8 text-center">
+              <p className="text-sm text-th-text-muted">Select a market to view annual budget planning.</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <BudgetKpiStrip data={budgetKpi} isLoading={isBudgetLoading} />
+              {budgetData && (
+                <BudgetGrid
+                  plans={budgetData.plans}
+                  actuals={budgetData.actuals}
+                  autopilotMonthly={budgetData.autopilot_monthly}
+                  year={currentYear}
+                  onSave={handleBudgetSave}
+                />
+              )}
+              {!budgetData && !isBudgetLoading && (
+                <div className="rounded-lg border border-dashed border-th-border bg-surface-card p-8 text-center">
+                  <p className="text-sm text-th-text-muted">
+                    No annual budget yet for {currentYear}. Save values in the grid above to get started.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {/* Create Modal */}

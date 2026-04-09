@@ -64,10 +64,15 @@ type QuickFixAction = {
   id: string
   campaign_id: string
   campaign_name: string
-  action_type: string
+  action_type: 'pause' | 'reduce_budget' | 'adjust_bids'
   description: string
   estimated_impact: number
   severity: 'high' | 'medium' | 'low'
+  // Server-calculated recommended values (C5 fix: prevent client-side budget=0 hardcoding)
+  current_daily_budget: number | null
+  recommended_daily_budget: number | null
+  current_max_bid_cap: number | null
+  recommended_max_bid_cap: number | null
 }
 
 // ─── Full Response ───

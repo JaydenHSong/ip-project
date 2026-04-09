@@ -24,20 +24,17 @@ const DailyBudgetPacing = ({ campaignId, daypartingActive = false }: DailyBudget
     const fetch_ = async () => {
       setIsLoading(true)
       try {
-        const res = await fetch(`/api/ads/campaigns/${campaignId}`)
+        // C1+C2 fix: call the budget-pacing endpoint which aggregates real
+        // spend from report_snapshots instead of hardcoding zeros.
+        const res = await fetch(`/api/ads/optimization/budget-pacing/${campaignId}`)
         if (res.ok) {
-          const json = await res.json() as { data: { daily_budget: number | null; weekly_budget: number | null } }
-          const budget = json.data.daily_budget ?? (json.data.weekly_budget ? json.data.weekly_budget / 7 : 0)
-          setData({
-            daily_budget: budget,
-            spend_today: 0,
-            remaining: budget,
-            pacing_pct: 0,
-            distribution: 'even',
-            hourly_spend: Array.from({ length: 24 }, (_, h) => ({ hour: h, actual: 0, predicted: budget / 24 })),
-          })
+          const json = await res.json() as { data: BudgetPacingDetail }
+          setData(json.data)
         }
-      } catch { /* silent */ }
+      } catch (err) {
+        // L1 fix: log fetch failures for devtools/Sentry visibility
+        console.error('[daily-budget-pacing] fetch failed', err)
+      }
       finally { setIsLoading(false) }
     }
     fetch_()
@@ -59,7 +56,10 @@ const DailyBudgetPacing = ({ campaignId, daypartingActive = false }: DailyBudget
           remaining: newBudget - data.spend_today,
         })
       }
-    } catch { /* silent */ }
+    } catch (err) {
+      // L1 fix: log budget save failures
+      console.error('[daily-budget-pacing] save failed', err)
+    }
     setIsEditingBudget(false)
   }, [editBudgetValue, campaignId, data])
 

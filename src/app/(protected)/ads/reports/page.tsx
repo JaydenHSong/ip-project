@@ -31,8 +31,9 @@ const AdsReportsPage = () => {
         const json = await res.json() as SpendIntelligenceResponse
         setData(json.data)
       }
-    } catch {
-      // API not ready
+    } catch (err) {
+      // L1 fix: log fetch failures
+      console.error('[ads/reports] fetch failed', err)
     } finally {
       setIsLoading(false)
     }
@@ -43,16 +44,27 @@ const AdsReportsPage = () => {
   }, [fetchData])
 
   const handleQuickFix = async (action: QuickFixAction) => {
-    // Execute the quick fix action via campaign API
-    const endpoint = `/api/ads/campaigns/${action.campaign_id}`
-    const body = action.action_type === 'pause'
-      ? { status: 'paused' }
-      : action.action_type === 'reduce_budget'
-      ? { daily_budget: 0 } // TODO: calculate reduced budget
-      : { max_bid_cap: 0 }  // TODO: calculate reduced bid
+    // C5 fix: use server-calculated recommended values instead of hardcoding 0.
+    // Server (spend-intelligence/queries.ts) pre-computes recommended_daily_budget
+    // (80% of current) and recommended_max_bid_cap (85% of current) so the client
+    // never has to fall back to a destructive default.
+    let body: Record<string, unknown> | null = null
 
-    await fetch(endpoint, {
-      method: 'PUT',
+    if (action.action_type === 'pause') {
+      body = { status: 'paused' }
+    } else if (action.action_type === 'reduce_budget') {
+      if (action.recommended_daily_budget == null) return
+      body = { daily_budget: action.recommended_daily_budget }
+    } else if (action.action_type === 'adjust_bids') {
+      if (action.recommended_max_bid_cap == null) return
+      body = { max_bid_cap: action.recommended_max_bid_cap }
+    }
+
+    if (!body) return
+
+    await fetch(`/api/ads/campaigns/${action.campaign_id}`, {
+      // L3 fix: PATCH is the RESTful verb for partial updates
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })

@@ -14,12 +14,15 @@ type DaypartingScheduleProps = {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
+// C4 fix: 5-step color scale so the heatmap actually communicates dayparting
+// weight visually. Uses orange brand ramp (off → light → high) for accessibility
+// and consistency with the rest of the app.
 const getWeightColor = (weight: number): string => {
-  if (weight === 0) return 'bg-th-bg-tertiary'
-  if (weight < 0.3) return 'bg-th-bg-tertiary'
-  if (weight < 0.6) return 'bg-gray-400'
-  if (weight < 0.8) return 'bg-th-bg-tertiary'
-  return 'bg-th-bg-tertiary'
+  if (weight <= 0) return 'bg-th-bg-tertiary'
+  if (weight < 0.3) return 'bg-orange-100'
+  if (weight < 0.6) return 'bg-orange-300'
+  if (weight < 0.8) return 'bg-orange-500'
+  return 'bg-orange-700'
 }
 
 const DaypartingSchedule = ({ brandMarketId }: DaypartingScheduleProps) => {
@@ -37,7 +40,10 @@ const DaypartingSchedule = ({ brandMarketId }: DaypartingScheduleProps) => {
           setGroups(json.data ?? [])
           if (json.data?.length > 0) setSelectedGroup(json.data[0].id)
         }
-      } catch { /* API not ready */ }
+      } catch (err) {
+        // L1 fix: log fetch failures
+        console.error('[dayparting-schedule] fetch failed', err)
+      }
       finally { setIsLoading(false) }
     }
     fetch_()
@@ -57,7 +63,10 @@ const DaypartingSchedule = ({ brandMarketId }: DaypartingScheduleProps) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_enabled: updated.is_enabled }),
       })
-    } catch { /* silent */ }
+    } catch (err) {
+      // L1 fix: log toggle failures
+      console.error('[dayparting-schedule] toggle failed', err)
+    }
   }, [currentGroup])
 
   if (isLoading) return <div className="h-64 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
@@ -179,14 +188,14 @@ const DaypartingSchedule = ({ brandMarketId }: DaypartingScheduleProps) => {
             </table>
           </div>
 
-          {/* Heatmap Legend */}
+          {/* Heatmap Legend — C4 fix: matches getWeightColor 5-step scale */}
           <div className="flex items-center gap-1 mt-3">
-            <span className="text-[9px] text-th-text-muted mr-1">Low</span>
+            <span className="text-[9px] text-th-text-muted mr-1">Off</span>
             <div className="h-2.5 w-4 rounded-sm bg-th-bg-tertiary" />
-            <div className="h-2.5 w-4 rounded-sm bg-th-bg-tertiary" />
-            <div className="h-2.5 w-4 rounded-sm bg-gray-400" />
-            <div className="h-2.5 w-4 rounded-sm bg-th-bg-tertiary" />
-            <div className="h-2.5 w-4 rounded-sm bg-th-bg-tertiary" />
+            <div className="h-2.5 w-4 rounded-sm bg-orange-100" />
+            <div className="h-2.5 w-4 rounded-sm bg-orange-300" />
+            <div className="h-2.5 w-4 rounded-sm bg-orange-500" />
+            <div className="h-2.5 w-4 rounded-sm bg-orange-700" />
             <span className="text-[9px] text-th-text-muted ml-1">High</span>
             <div className="ml-3 flex items-center gap-1">
               <div className="h-2.5 w-4 rounded-sm ring-2 ring-orange-500 ring-inset" />

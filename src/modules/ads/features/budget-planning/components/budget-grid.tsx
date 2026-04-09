@@ -149,8 +149,8 @@ const BudgetGrid = ({ plans, actuals, autopilotMonthly, year, onSave }: BudgetGr
             </tr>
 
             {/* Auto Pilot row — Design S13: "Auto Pilot ⚡ 행 (#FFF7ED 배경)" */}
-            <tr className="border-b border-th-border" style={{ backgroundColor: '#FFF7ED' }}>
-              <td className="sticky left-0 px-3 py-2 font-medium text-orange-700" style={{ backgroundColor: '#FFF7ED' }}>
+            <tr className="border-b border-th-border bg-[#FFF7ED]">
+              <td className="sticky left-0 bg-[#FFF7ED] px-3 py-2 font-medium text-orange-700">
                 Auto Pilot
               </td>
               {MONTHS.map((_, i) => (

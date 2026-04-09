@@ -2,7 +2,7 @@
 // Design Ref: §5.3 S11
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { KpiCard } from '@/modules/ads/shared/components/kpi-card'
 import { EmptyState } from '@/modules/ads/shared/components/empty-state'
 import type { RecommendationItem, RecommendationSummary } from '../types'
@@ -32,27 +32,38 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
   const [recs, setRecs] = useState<RecommendationItem[]>([])
   const [summary, setSummary] = useState<RecommendationSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
 
-  // Filter state — Design S11: "Filter Row (Campaign/Brand/Market)"
+  // Filter state — Brand/Market filtering is already applied via brandMarketId prop
   const [campaignFilter, setCampaignFilter] = useState<string>('all')
-  const [brandFilter, setBrandFilter] = useState<string>('all')
-  const [marketFilter, setMarketFilter] = useState<string>('all')
 
-  useEffect(() => {
-    const fetch_ = async () => {
-      setIsLoading(true)
-      try {
-        const res = await fetch(`/api/ads/recommendations?brand_market_id=${brandMarketId}&status=pending`)
-        if (res.ok) {
-          const json = await res.json() as { data: RecommendationItem[]; summary: RecommendationSummary }
-          setRecs(json.data)
-          setSummary(json.summary)
-        }
-      } catch { /* silent */ }
-      finally { setIsLoading(false) }
+  // H4 fix: extract fetch so we can re-run it after approve actions
+  const fetchRecs = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/ads/recommendations?brand_market_id=${brandMarketId}&status=pending`)
+      if (res.ok) {
+        const json = await res.json() as { data: RecommendationItem[]; summary: RecommendationSummary }
+        setRecs(json.data)
+        setSummary(json.summary)
+      }
+    } catch (err) {
+      // L1 fix: log fetch failures
+      console.error('[ai-recommendations] fetch failed', err)
     }
-    fetch_()
+    finally { setIsLoading(false) }
   }, [brandMarketId])
+
+  useEffect(() => { fetchRecs() }, [fetchRecs])
+
+  const handleApprove = useCallback(async (id: string) => {
+    await onApprove(id)
+    await fetchRecs()
+  }, [onApprove, fetchRecs])
+
+  const handleSkip = useCallback((id: string) => {
+    setSkippedIds((prev) => new Set(prev).add(id))
+  }, [])
 
   // Derive unique filter options
   const campaignOptions = useMemo(() => {
@@ -60,13 +71,14 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
     return names
   }, [recs])
 
-  // Filtered recs
+  // Filtered recs (also drops locally-skipped items)
   const filteredRecs = useMemo(() => {
     return recs.filter((r) => {
+      if (skippedIds.has(r.id)) return false
       if (campaignFilter !== 'all' && r.campaign_name !== campaignFilter) return false
       return true
     })
-  }, [recs, campaignFilter])
+  }, [recs, campaignFilter, skippedIds])
 
   // Category grouping — Design S11: "Category Groups: Bid Adjustments / Negative Keywords / Keyword Promotions"
   const groupedRecs = useMemo(() => {
@@ -91,12 +103,25 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
         </div>
         <div className="flex gap-2">
           <button
-            onClick={async () => { for (const r of filteredRecs) await onApprove(r.id) }}
+            onClick={async () => {
+              // H4 fix: parallel approve + refetch
+              await Promise.allSettled(filteredRecs.map((r) => onApprove(r.id)))
+              await fetchRecs()
+            }}
             className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600"
           >
             Approve All
           </button>
-          <button className="rounded-md border border-th-border px-3 py-1.5 text-xs font-medium text-th-text-secondary hover:bg-th-bg-hover">
+          <button
+            onClick={() => {
+              setSkippedIds((prev) => {
+                const next = new Set(prev)
+                filteredRecs.forEach((r) => next.add(r.id))
+                return next
+              })
+            }}
+            className="rounded-md border border-th-border px-3 py-1.5 text-xs font-medium text-th-text-secondary hover:bg-th-bg-hover"
+          >
             Skip All
           </button>
         </div>
@@ -113,7 +138,7 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
         </div>
       )}
 
-      {/* Filter Row — Design S11: "Campaign/Brand/Market" */}
+      {/* Filter Row — Campaign filter (Brand/Market already scoped by brandMarketId) */}
       <div className="flex items-center gap-3 rounded-lg border border-th-border bg-th-bg-hover px-4 py-2.5">
         <span className="text-[10px] font-medium uppercase tracking-wide text-th-text-muted">Filters</span>
         <select
@@ -126,30 +151,9 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
-        <select
-          value={brandFilter}
-          onChange={(e) => setBrandFilter(e.target.value)}
-          className="rounded border border-th-border bg-surface-card px-2 py-1 text-xs text-th-text-secondary focus:border-orange-500 focus:outline-none"
-        >
-          <option value="all">All Brands</option>
-          <option value="spigen">Spigen</option>
-          <option value="legato">Legato</option>
-          <option value="cyrill">Cyrill</option>
-        </select>
-        <select
-          value={marketFilter}
-          onChange={(e) => setMarketFilter(e.target.value)}
-          className="rounded border border-th-border bg-surface-card px-2 py-1 text-xs text-th-text-secondary focus:border-orange-500 focus:outline-none"
-        >
-          <option value="all">All Markets</option>
-          <option value="US">US</option>
-          <option value="CA">CA</option>
-          <option value="DE">DE</option>
-          <option value="JP">JP</option>
-        </select>
-        {(campaignFilter !== 'all' || brandFilter !== 'all' || marketFilter !== 'all') && (
+        {campaignFilter !== 'all' && (
           <button
-            onClick={() => { setCampaignFilter('all'); setBrandFilter('all'); setMarketFilter('all') }}
+            onClick={() => setCampaignFilter('all')}
             className="text-[10px] text-orange-600 hover:text-orange-700"
           >
             Clear
@@ -199,10 +203,11 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
                           )}
                         </div>
                         <div className="flex gap-1 ml-3 shrink-0">
-                          <button onClick={() => onApprove(rec.id)} className="rounded bg-th-text px-3 py-1 text-xs font-medium text-white hover:bg-th-text">
+                          {/* H4 fix: per-row approve refetches; skip removes locally */}
+                          <button onClick={() => handleApprove(rec.id)} className="rounded bg-th-text px-3 py-1 text-xs font-medium text-white hover:bg-th-text">
                             Approve
                           </button>
-                          <button className="rounded bg-th-bg-tertiary px-3 py-1 text-xs text-th-text-secondary hover:bg-th-bg-tertiary">
+                          <button onClick={() => handleSkip(rec.id)} className="rounded bg-th-bg-tertiary px-3 py-1 text-xs text-th-text-secondary hover:bg-th-bg-hover">
                             Skip
                           </button>
                         </div>

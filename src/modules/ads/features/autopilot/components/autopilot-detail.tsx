@@ -3,6 +3,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { KpiCard } from '@/modules/ads/shared/components/kpi-card'
 import { ProgressBar } from '@/modules/ads/shared/components/progress-bar'
 import { GoalModeSelector } from './goal-mode-selector'
@@ -22,6 +23,7 @@ type AutopilotDetailProps = {
 }
 
 const AutopilotDetail = ({ campaign, activityLog, profileId, onPause, onRollback, onGoalModeChanged, onBack }: AutopilotDetailProps) => {
+  const router = useRouter()
   const [goalMode, setGoalMode] = useState<GoalMode>(campaign.goal_mode ?? 'growth')
 
   const handleGoalModeChanged = (mode: GoalMode) => {
@@ -51,7 +53,11 @@ const AutopilotDetail = ({ campaign, activityLog, profileId, onPause, onRollback
               Pause
             </button>
           )}
-          <button className="rounded-md border border-th-border px-3 py-1.5 text-xs font-medium text-th-text-secondary hover:bg-th-bg-hover">
+          {/* H6 fix: Settings now navigates to the campaign detail Settings tab */}
+          <button
+            onClick={() => router.push(`/ads/campaigns/${campaign.id}`)}
+            className="rounded-md border border-th-border px-3 py-1.5 text-xs font-medium text-th-text-secondary hover:bg-th-bg-hover"
+          >
             Settings
           </button>
         </div>

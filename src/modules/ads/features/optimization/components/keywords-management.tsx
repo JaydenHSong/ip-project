@@ -29,13 +29,25 @@ const KeywordsManagement = ({ campaignId, brandMarketId, onApprove }: KeywordsMa
     const fetch_ = async () => {
       setIsLoading(true)
       try {
+        // C3 fix: fetch keyword stats AND recommendations in parallel so the
+        // KPI strip is actually populated.
         const params = new URLSearchParams({ brand_market_id: brandMarketId, campaign_id: campaignId, status: 'pending' })
-        const res = await fetch(`/api/ads/recommendations?${params}`)
-        if (res.ok) {
-          const json = await res.json() as { data: RecommendationItem[] }
+        const [recsRes, statsRes] = await Promise.all([
+          fetch(`/api/ads/recommendations?${params}`),
+          fetch(`/api/ads/optimization/keyword-stats/${campaignId}`),
+        ])
+        if (recsRes.ok) {
+          const json = await recsRes.json() as { data: RecommendationItem[] }
           setRecs(json.data.filter((r) => r.recommendation_type === 'promote' || r.recommendation_type === 'negate'))
         }
-      } catch { /* silent */ }
+        if (statsRes.ok) {
+          const json = await statsRes.json() as { data: KeywordStats }
+          setStats(json.data)
+        }
+      } catch (err) {
+        // L1 fix: log fetch failures for devtools/Sentry visibility
+        console.error('[keywords-management] fetch failed', err)
+      }
       finally { setIsLoading(false) }
     }
     fetch_()

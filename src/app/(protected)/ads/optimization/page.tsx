@@ -2,7 +2,7 @@
 // Design Ref: §2.2 — Track C
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useMarketContext } from '@/modules/ads/shared/hooks/use-market-context'
 import { useCampaigns } from '@/modules/ads/shared/hooks/use-campaigns'
 import { OptimizationLayout } from '@/modules/ads/features/optimization/components/optimization-layout'
@@ -19,9 +19,11 @@ const AdsOptimizationPage = () => {
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null)
 
   // Auto-select first campaign
-  if (!selectedCampaignId && campaigns.length > 0) {
-    setSelectedCampaignId(campaigns[0].id)
-  }
+  useEffect(() => {
+    if (!selectedCampaignId && campaigns.length > 0) {
+      setSelectedCampaignId(campaigns[0].id)
+    }
+  }, [selectedCampaignId, campaigns])
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId)
 

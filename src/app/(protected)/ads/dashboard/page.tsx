@@ -55,8 +55,9 @@ const AdsDashboardPage = () => {
           setDirectorData(json.data)
         }
       }
-    } catch {
-      // API not ready — silent
+    } catch (err) {
+      // L1 fix: log so users (and Sentry/console) can see when fetch fails.
+      console.error('[ads/dashboard] fetch failed', err)
     } finally {
       setIsLoading(false)
     }

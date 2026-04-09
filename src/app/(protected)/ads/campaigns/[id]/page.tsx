@@ -21,7 +21,9 @@ const CampaignDetailPage = ({ params }: { params: Promise<{ id: string }> }) => 
       if (!res.ok) throw new Error('Failed to fetch campaign')
       const json = await res.json() as { data: CampaignDetail }
       setCampaign(json.data)
-    } catch {
+    } catch (err) {
+      // L1 fix: log fetch failures
+      console.error('[ads/campaigns/[id]] fetch failed', err)
       setCampaign(null)
     } finally {
       setIsLoading(false)
@@ -34,7 +36,8 @@ const CampaignDetailPage = ({ params }: { params: Promise<{ id: string }> }) => 
 
   const handleUpdate = async (campaignId: string, data: UpdateCampaignRequest) => {
     const res = await fetch(`/api/ads/campaigns/${campaignId}`, {
-      method: 'PUT',
+      // L3 fix: PATCH is the RESTful verb for partial updates
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })

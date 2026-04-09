@@ -25,11 +25,12 @@ const getSpendIntelligence = async (brandMarketId: string) => {
     .order('analyzed_at', { ascending: false })
     .limit(50)
 
-  // 2. Campaign names + 7d metrics
+  // 2. Campaign names + budgets + 7d metrics
+  // C5 fix: also fetch daily_budget/max_bid_cap so quick fixes can compute real recommended values
   const campaignIds = [...new Set((diagnostics ?? []).map((d) => d.campaign_id))]
   const { data: campaigns } = await supabase
     .from('campaigns')
-    .select('id, name, marketing_code')
+    .select('id, name, marketing_code, daily_budget, max_bid_cap')
     .in('id', campaignIds.length > 0 ? campaignIds : ['__none__'])
 
   const campaignMap = new Map((campaigns ?? []).map((c) => [c.id, c]))
@@ -141,19 +142,39 @@ const getSpendIntelligence = async (brandMarketId: string) => {
   }))
 
   // 6. Quick Fixes
-  const quickFixes: QuickFixAction[] = topWasters.slice(0, 5).map((w) => ({
-    id: w.campaign_id,
-    campaign_id: w.campaign_id,
-    campaign_name: w.campaign_name,
-    action_type: w.acos > 50 ? 'pause' : w.acos > 35 ? 'reduce_budget' : 'adjust_bids',
-    description: w.acos > 50
-      ? `Pause campaign (ACoS ${w.acos.toFixed(0)}% is 2x+ target)`
-      : w.acos > 35
-      ? `Reduce daily budget by 20% (ACoS ${w.acos.toFixed(0)}%)`
-      : `Lower bid cap by 15% (ACoS ${w.acos.toFixed(0)}%)`,
-    estimated_impact: w.spend_7d * 0.2,
-    severity: w.waste_score > 60 ? 'high' : w.waste_score > 30 ? 'medium' : 'low',
-  }))
+  // C5 fix: server pre-computes recommended_value (20% budget cut, 15% bid cut) using
+  // actual campaign data so client never has to hardcode 0.
+  const BUDGET_REDUCTION_RATIO = 0.8 // reduce to 80% (20% cut)
+  const BID_REDUCTION_RATIO = 0.85 // reduce to 85% (15% cut)
+  const quickFixes: QuickFixAction[] = topWasters.slice(0, 5).map((w) => {
+    const camp = campaignMap.get(w.campaign_id)
+    const currentBudget = camp?.daily_budget ?? null
+    const currentBidCap = camp?.max_bid_cap ?? null
+    const actionType: QuickFixAction['action_type'] =
+      w.acos > 50 ? 'pause' : w.acos > 35 ? 'reduce_budget' : 'adjust_bids'
+
+    return {
+      id: w.campaign_id,
+      campaign_id: w.campaign_id,
+      campaign_name: w.campaign_name,
+      action_type: actionType,
+      description: actionType === 'pause'
+        ? `Pause campaign (ACoS ${w.acos.toFixed(0)}% is 2x+ target)`
+        : actionType === 'reduce_budget'
+        ? `Reduce daily budget by 20% (ACoS ${w.acos.toFixed(0)}%)`
+        : `Lower bid cap by 15% (ACoS ${w.acos.toFixed(0)}%)`,
+      estimated_impact: w.spend_7d * 0.2,
+      severity: w.waste_score > 60 ? 'high' : w.waste_score > 30 ? 'medium' : 'low',
+      current_daily_budget: currentBudget,
+      recommended_daily_budget: currentBudget != null
+        ? Math.max(1, Number((currentBudget * BUDGET_REDUCTION_RATIO).toFixed(2)))
+        : null,
+      current_max_bid_cap: currentBidCap,
+      recommended_max_bid_cap: currentBidCap != null
+        ? Math.max(0.02, Number((currentBidCap * BID_REDUCTION_RATIO).toFixed(2)))
+        : null,
+    }
+  })
 
   return {
     summary,

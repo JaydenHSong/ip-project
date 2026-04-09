@@ -7,7 +7,9 @@ import { useRouter } from 'next/navigation'
 import { useMarketContext } from '@/modules/ads/shared/hooks/use-market-context'
 import { KpiCard } from '@/modules/ads/shared/components/kpi-card'
 import { AutopilotList } from '@/modules/ads/features/autopilot/components/autopilot-list'
+import { CampaignCreateModal } from '@/modules/ads/features/campaigns/components/campaign-create-modal'
 import type { AutopilotCampaignItem, AutopilotKpi } from '@/modules/ads/features/autopilot/types'
+import type { CreateCampaignRequest } from '@/modules/ads/features/campaigns/types'
 
 const AdsAutopilotPage = () => {
   const router = useRouter()
@@ -15,6 +17,8 @@ const AdsAutopilotPage = () => {
   const [campaigns, setCampaigns] = useState<AutopilotCampaignItem[]>([])
   const [kpi, setKpi] = useState<AutopilotKpi | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  // M4 fix: open create modal in autopilot mode in-page
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const fetchData = useCallback(async () => {
     if (!selectedMarketId) { setIsLoading(false); return }
@@ -26,7 +30,10 @@ const AdsAutopilotPage = () => {
         setCampaigns(json.data.campaigns)
         setKpi(json.data.kpi)
       }
-    } catch { /* silent */ }
+    } catch (err) {
+      // L1 fix: log fetch failures
+      console.error('[ads/autopilot] fetch failed', err)
+    }
     finally { setIsLoading(false) }
   }, [selectedMarketId])
 
@@ -35,10 +42,24 @@ const AdsAutopilotPage = () => {
   const handleAction = async (id: string, action: 'pause' | 'resume' | 'emergency_stop') => {
     const status = action === 'pause' || action === 'emergency_stop' ? 'paused' : 'active'
     await fetch(`/api/ads/campaigns/${id}`, {
-      method: 'PUT',
+      // L3 fix: PATCH is the RESTful verb for partial updates
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     })
+    await fetchData()
+  }
+
+  const handleCreateSubmit = async (data: CreateCampaignRequest) => {
+    const res = await fetch('/api/ads/campaigns', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) {
+      const err = await res.json() as { error: { message: string } }
+      throw new Error(err.error.message)
+    }
     await fetchData()
   }
 
@@ -50,7 +71,7 @@ const AdsAutopilotPage = () => {
           <p className="mt-0.5 text-sm text-th-text-muted">AI-managed campaigns with full automation.</p>
         </div>
         <button
-          onClick={() => router.push('/ads/campaigns')}
+          onClick={() => setIsCreateOpen(true)}
           className="rounded-md bg-orange-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-orange-600"
         >
           + New Auto Pilot Campaign
@@ -91,6 +112,14 @@ const AdsAutopilotPage = () => {
         isLoading={isLoading}
         onRowClick={(id) => router.push(`/ads/autopilot/${id}`)}
         onAction={handleAction}
+      />
+
+      {/* M4 fix: open create modal in autopilot mode */}
+      <CampaignCreateModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSubmit={handleCreateSubmit}
+        defaultMode="autopilot"
       />
     </div>
   )
