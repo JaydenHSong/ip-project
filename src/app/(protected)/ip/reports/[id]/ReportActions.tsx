@@ -39,6 +39,8 @@ export const ReportActions = ({
   const [loading, setLoading] = useState<string | null>(null)
   const [showRewriteModal, setShowRewriteModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showCloneConfirm, setShowCloneConfirm] = useState(false)
+  const [cloneWarningDaysAgo, setCloneWarningDaysAgo] = useState<number | null>(null)
   const [showDeclineModal, setShowDeclineModal] = useState(false)
   const [declineReason, setDeclineReason] = useState('')
   const [rewriteStep, setRewriteStep] = useState<1 | 2>(1)
@@ -176,12 +178,28 @@ export const ReportActions = ({
     }
   }
 
-  const handleClone = async () => {
+  const handleClone = async (force = false) => {
     setLoading('clone')
     try {
-      const res = await fetch(`/api/reports/${reportId}/clone`, { method: 'POST' })
+      const res = await fetch(`/api/reports/${reportId}/clone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force }),
+      })
       if (!res.ok) {
-        const err = await res.json().catch(() => null)
+        const err = await res.json().catch(() => null) as {
+          error?: {
+            code?: string
+            message?: string
+            details?: { daysAgo?: number }
+          }
+        } | null
+        if (res.status === 409 && err?.error?.code === 'RECENT_CLONE_EXISTS') {
+          setCloneWarningDaysAgo(err.error.details?.daysAgo ?? null)
+          setShowCloneConfirm(true)
+          setLoading(null)
+          return
+        }
         throw new Error(err?.error?.message ?? `Clone failed (${res.status})`)
       }
       const result = await res.json()
@@ -331,7 +349,7 @@ export const ReportActions = ({
             variant="outline"
             size="sm"
             loading={loading === 'clone'}
-            onClick={handleClone}
+            onClick={() => handleClone()}
           >
             Clone as New
           </Button>
@@ -384,6 +402,43 @@ export const ReportActions = ({
           </Button>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={showCloneConfirm}
+        onClose={() => {
+          if (loading === 'clone') return
+          setShowCloneConfirm(false)
+          setCloneWarningDaysAgo(null)
+        }}
+        title="Clone confirmation"
+      >
+        <p className="text-sm text-th-text-secondary">
+          {cloneWarningDaysAgo != null
+            ? `${cloneWarningDaysAgo}일 전에 동일 케이스에서 생성한 Clone 이력이 있습니다. 그래도 새로 만드시겠습니까?`
+            : '동일 케이스에서 생성한 Clone 이력이 있습니다. 그래도 새로 만드시겠습니까?'}
+        </p>
+        <div className="mt-4 flex justify-end gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={loading === 'clone'}
+            onClick={() => {
+              setShowCloneConfirm(false)
+              setCloneWarningDaysAgo(null)
+            }}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            loading={loading === 'clone'}
+            onClick={() => handleClone(true)}
+          >
+            계속 생성
+          </Button>
+        </div>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal

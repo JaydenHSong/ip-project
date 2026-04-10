@@ -5,6 +5,15 @@ import { createClient } from '@/lib/supabase/server'
 // POST /api/reports/:id/clone — 기존 케이스 복사 → 새 draft 생성
 export const POST = withAuth(async (req, { params }) => {
   const { id } = params
+  let force = false
+
+  try {
+    const body = await req.json() as { force?: boolean }
+    force = body.force === true
+  } catch {
+    // body 없는 기존 호출 호환
+    force = false
+  }
 
   if (!id) {
     return NextResponse.json(
@@ -48,6 +57,36 @@ export const POST = withAuth(async (req, { params }) => {
 
   if (existingClone) {
     return NextResponse.json({ data: { id: existingClone.id, existing: true } })
+  }
+
+  // 최근 동일 클론 이력이 있으면 사용자 확인 후 생성하도록 경고
+  const { data: latestClone } = await supabase
+    .from('reports')
+    .select('id, created_at')
+    .eq('parent_report_id', id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (latestClone && !force) {
+    const latestAt = new Date(latestClone.created_at as string)
+    const now = Date.now()
+    const daysAgo = Math.max(0, Math.floor((now - latestAt.getTime()) / (1000 * 60 * 60 * 24)))
+
+    return NextResponse.json(
+      {
+        error: {
+          code: 'RECENT_CLONE_EXISTS',
+          message: '최근 동일 클론 이력이 있습니다.',
+          details: {
+            latestCloneId: latestClone.id,
+            latestCloneAt: latestClone.created_at,
+            daysAgo,
+          },
+        },
+      },
+      { status: 409 },
+    )
   }
 
   // 새 draft 생성 (parent_report_id로 원본 연결)
