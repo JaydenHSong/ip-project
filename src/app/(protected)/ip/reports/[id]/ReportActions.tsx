@@ -14,6 +14,7 @@ type ReportActionsProps = {
   reportId: string
   status: string
   brFormType?: string | null
+  approvePayload?: Record<string, unknown>
   userRole: string
   createdBy?: string | null
   currentUserId?: string | null
@@ -26,6 +27,7 @@ export const ReportActions = ({
   reportId,
   status,
   brFormType,
+  approvePayload,
   userRole,
   createdBy,
   currentUserId,
@@ -64,7 +66,7 @@ export const ReportActions = ({
       const res = await fetch(`/api/reports/${reportId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify(approvePayload ?? {}),
       })
       if (!res.ok) {
         const err = await res.json()

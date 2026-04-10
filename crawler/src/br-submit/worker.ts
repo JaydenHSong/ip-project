@@ -588,8 +588,11 @@ const processBrSubmitJob = async (job: Job<BrSubmitJobData>, sentinelClient?: { 
 
     const { filled, missed } = await fillBrForm(formFrame, data)
 
-    // 필수 필드 누락 체크
-    const requiredMissed = missed.filter((f) => f === 'description' || f === 'urls')
+    // 필수 필드 누락 체크 (폼 설정의 required 플래그 기준)
+    const requiredKeys = BR_FORM_CONFIG[data.formType].fields
+      .filter((field) => field.required)
+      .map((field) => field.key)
+    const requiredMissed = missed.filter((f) => requiredKeys.includes(f))
     if (requiredMissed.length > 0) {
       throw new Error(`Required fields missed: ${requiredMissed.join(', ')}`)
     }

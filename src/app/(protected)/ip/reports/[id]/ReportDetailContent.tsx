@@ -312,25 +312,26 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     setApproving(true)
     try {
+      const approvePayload = {
+        edited_draft_title: editTitle,
+        edited_draft_subject: editSubject,
+        edited_draft_body: editBody,
+        ...(showBrFormType ? { br_form_type: brFormType } : {}),
+        ...(showBrFormType && isBrSubmittable(brFormType) ? {
+          br_extra_fields: {
+            ...(brFields.product_urls ? { product_urls: brFields.product_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
+            ...(brFields.seller_storefront_url ? { seller_storefront_url: brFields.seller_storefront_url } : {}),
+            ...(brFields.policy_url ? { policy_url: brFields.policy_url } : {}),
+            ...(brFields.asins ? { asins: brFields.asins.split(/[,;\n]/).map((a) => a.trim()).filter(Boolean) } : {}),
+            ...(brFields.review_urls ? { review_urls: brFields.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
+            ...(brFields.order_id ? { order_id: brFields.order_id } : {}),
+          },
+        } : {}),
+      }
       const res = await fetch(`/api/reports/${report.id}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          edited_draft_title: editTitle,
-          edited_draft_subject: editSubject,
-          edited_draft_body: editBody,
-          ...(showBrFormType ? { br_form_type: brFormType } : {}),
-          ...(showBrFormType && isBrSubmittable(brFormType) ? {
-            br_extra_fields: {
-              ...(brFields.product_urls ? { product_urls: brFields.product_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
-              ...(brFields.seller_storefront_url ? { seller_storefront_url: brFields.seller_storefront_url } : {}),
-              ...(brFields.policy_url ? { policy_url: brFields.policy_url } : {}),
-              ...(brFields.asins ? { asins: brFields.asins.split(/[,;\n]/).map((a) => a.trim()).filter(Boolean) } : {}),
-              ...(brFields.review_urls ? { review_urls: brFields.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
-              ...(brFields.order_id ? { order_id: brFields.order_id } : {}),
-            },
-          } : {}),
-        }),
+        body: JSON.stringify(approvePayload),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -599,6 +600,22 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                 reportId={report.id}
                 status={currentStatus}
                 brFormType={report.br_form_type}
+                approvePayload={{
+                  edited_draft_title: editTitle,
+                  edited_draft_subject: editSubject,
+                  edited_draft_body: editBody,
+                  ...(showBrFormType ? { br_form_type: brFormType } : {}),
+                  ...(showBrFormType && isBrSubmittable(brFormType) ? {
+                    br_extra_fields: {
+                      ...(brFields.product_urls ? { product_urls: brFields.product_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
+                      ...(brFields.seller_storefront_url ? { seller_storefront_url: brFields.seller_storefront_url } : {}),
+                      ...(brFields.policy_url ? { policy_url: brFields.policy_url } : {}),
+                      ...(brFields.asins ? { asins: brFields.asins.split(/[,;\n]/).map((a) => a.trim()).filter(Boolean) } : {}),
+                      ...(brFields.review_urls ? { review_urls: brFields.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
+                      ...(brFields.order_id ? { order_id: brFields.order_id } : {}),
+                    },
+                  } : {}),
+                }}
                 userRole={userRole}
                 createdBy={report.created_by}
                 currentUserId={currentUserId}
@@ -623,6 +640,22 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                 reportId={report.id}
                 status={currentStatus}
                 brFormType={report.br_form_type}
+                approvePayload={{
+                  edited_draft_title: editTitle,
+                  edited_draft_subject: editSubject,
+                  edited_draft_body: editBody,
+                  ...(showBrFormType ? { br_form_type: brFormType } : {}),
+                  ...(showBrFormType && isBrSubmittable(brFormType) ? {
+                    br_extra_fields: {
+                      ...(brFields.product_urls ? { product_urls: brFields.product_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
+                      ...(brFields.seller_storefront_url ? { seller_storefront_url: brFields.seller_storefront_url } : {}),
+                      ...(brFields.policy_url ? { policy_url: brFields.policy_url } : {}),
+                      ...(brFields.asins ? { asins: brFields.asins.split(/[,;\n]/).map((a) => a.trim()).filter(Boolean) } : {}),
+                      ...(brFields.review_urls ? { review_urls: brFields.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean) } : {}),
+                      ...(brFields.order_id ? { order_id: brFields.order_id } : {}),
+                    },
+                  } : {}),
+                }}
                 userRole={userRole}
                 createdBy={report.created_by}
                 currentUserId={currentUserId}
