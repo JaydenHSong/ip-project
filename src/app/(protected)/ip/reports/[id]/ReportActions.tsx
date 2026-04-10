@@ -41,6 +41,7 @@ export const ReportActions = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showCloneConfirm, setShowCloneConfirm] = useState(false)
   const [cloneWarningDaysAgo, setCloneWarningDaysAgo] = useState<number | null>(null)
+  const [showForceResolveConfirm, setShowForceResolveConfirm] = useState(false)
   const [showDeclineModal, setShowDeclineModal] = useState(false)
   const [declineReason, setDeclineReason] = useState('')
   const [rewriteStep, setRewriteStep] = useState<1 | 2>(1)
@@ -277,6 +278,28 @@ export const ReportActions = ({
     }
   }
 
+  const handleForceResolved = async () => {
+    setLoading('forceResolved')
+    try {
+      const res = await fetch(`/api/reports/${reportId}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolution_type: 'content_modified' }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.error?.message ?? 'Force resolve failed')
+      }
+      setShowForceResolveConfirm(false)
+      setLoading(null)
+      addToast({ type: 'success', title: 'Resolved', message: '해결 처리되어 Completed Reports로 이동합니다.' })
+      router.replace('/ip/reports/completed?status=resolved')
+    } catch (e) {
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
+      setLoading(null)
+    }
+  }
+
   return (
     <>
       <div className="flex flex-wrap gap-2">
@@ -391,6 +414,18 @@ export const ReportActions = ({
         )}
 
         {/* Delete */}
+        {status === 'monitoring' && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-st-success-text/30 text-st-success-text hover:bg-st-success-bg"
+            onClick={() => setShowForceResolveConfirm(true)}
+          >
+            Force Resolved
+          </Button>
+        )}
+
+        {/* Delete */}
         {canDelete && (
           <Button
             variant="outline"
@@ -436,6 +471,39 @@ export const ReportActions = ({
             onClick={() => handleClone(true)}
           >
             계속 생성
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Force Resolved Confirmation Modal */}
+      <Modal
+        open={showForceResolveConfirm}
+        onClose={() => {
+          if (loading === 'forceResolved') return
+          setShowForceResolveConfirm(false)
+        }}
+        title="해결 처리"
+      >
+        <p className="text-sm text-th-text-secondary">
+          이 신고를 강제로 해결(Resolved) 처리하시겠습니까?
+          처리 후 Completed Reports로 이동합니다.
+        </p>
+        <div className="mt-4 flex justify-end gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={loading === 'forceResolved'}
+            onClick={() => setShowForceResolveConfirm(false)}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            size="sm"
+            className="bg-st-success-text hover:opacity-90"
+            loading={loading === 'forceResolved'}
+            onClick={handleForceResolved}
+          >
+            해결 처리
           </Button>
         </div>
       </Modal>
