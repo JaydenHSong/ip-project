@@ -193,6 +193,7 @@ export const ReportsContent = ({
     return null
   })
   const [previewReportId, setPreviewReportId] = useState<string | null>(null)
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({})
 
   const handleSelectReport = useCallback((id: string) => {
     setPreviewReportId(id)
@@ -231,6 +232,15 @@ export const ReportsContent = ({
     router.push(url.pathname + url.search)
   }, [sortField, sortDir, router])
   const sortedData = filteredData
+  const displaySortedData = useMemo(
+    () => sortedData.filter((report) => {
+      const nextStatus = statusOverrides[report.id]
+      if (!nextStatus) return true
+      if (statusFilter === 'monitoring' && nextStatus !== 'monitoring') return false
+      return true
+    }),
+    [sortedData, statusOverrides, statusFilter],
+  )
 
   const { hiddenIds, toggleColumn, resetToDefault } = useColumnVisibility({
     columns: REPORT_QUEUE_COLUMNS,
@@ -261,12 +271,22 @@ export const ReportsContent = ({
   }, [])
 
   const handleToggleSelectAll = useCallback(() => {
-    const allIds = sortedData.map((r) => r.id)
+    const allIds = displaySortedData.map((r) => r.id)
     setSelectedIds((prev) => {
       if (allIds.length > 0 && allIds.every((id) => prev.has(id))) return new Set()
       return new Set(allIds)
     })
-  }, [sortedData])
+  }, [displaySortedData])
+
+  const handlePreviewStatusChange = useCallback((reportId: string, nextStatus: string) => {
+    setStatusOverrides((prev) => ({ ...prev, [reportId]: nextStatus }))
+    setSelectedIds((prev) => {
+      if (!prev.has(reportId)) return prev
+      const next = new Set(prev)
+      next.delete(reportId)
+      return next
+    })
+  }, [])
 
   // 선택된 리포트들의 상태별 카운트
   const selectedStatuses = (() => {
@@ -377,7 +397,7 @@ export const ReportsContent = ({
               : t('reports.noReports')}
           </div>
         ) : (
-          sortedData.map((report) => (
+          displaySortedData.map((report) => (
             <ReportMobileCard
               key={report.id}
               report={report}
@@ -401,7 +421,7 @@ export const ReportsContent = ({
               {visibleColumns.map((col, i) => {
                 if (col.id === 'checkbox') return (
                   <th key={col.id} className="px-3 py-3">
-                    <input type="checkbox" className="accent-th-accent" checked={sortedData.length > 0 && sortedData.every((r) => selectedIds.has(r.id))} onChange={handleToggleSelectAll} />
+                    <input type="checkbox" className="accent-th-accent" checked={displaySortedData.length > 0 && displaySortedData.every((r) => selectedIds.has(r.id))} onChange={handleToggleSelectAll} />
                   </th>
                 )
                 if (col.id === 'no') return (
@@ -428,7 +448,7 @@ export const ReportsContent = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-th-border">
-            {sortedData.length === 0 ? (
+            {displaySortedData.length === 0 ? (
               <tr>
                 <td colSpan={visibleColumns.length} className="px-4 py-10 text-center text-sm text-th-text-muted">
                   {filters.search || filters.violationType || filters.marketplace
@@ -437,8 +457,9 @@ export const ReportsContent = ({
                 </td>
               </tr>
             ) : (
-              sortedData.map((report) => {
+              displaySortedData.map((report) => {
                 const row = report as ReportRow & Record<string, unknown>
+                const effectiveStatus = statusOverrides[report.id] ?? report.status
                 const cellMap: Record<string, React.ReactNode> = {
                   checkbox: (
                     <td key="checkbox" className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
@@ -447,7 +468,7 @@ export const ReportsContent = ({
                   ),
                   no: <td key="no" className="px-4 py-3.5"><span className="text-xs text-th-text-muted">{String(report.report_number).padStart(5, '0')}</span></td>,
                   status: (() => {
-                    const lastActivity = report.status === 'monitoring' ? Math.max(
+                    const lastActivity = effectiveStatus === 'monitoring' ? Math.max(
                       row.br_last_amazon_reply_at ? new Date(row.br_last_amazon_reply_at as string).getTime() : 0,
                       row.br_last_our_reply_at ? new Date(row.br_last_our_reply_at as string).getTime() : 0,
                       row.br_submitted_at ? new Date(row.br_submitted_at as string).getTime() : 0,
@@ -458,7 +479,7 @@ export const ReportsContent = ({
                     return (
                       <td key="status" className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <StatusBadge status={report.status as ReportStatus} type="report" />
+                          <StatusBadge status={effectiveStatus as ReportStatus} type="report" />
                           {isClone && <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">Clone</span>}
                         </div>
                       </td>
@@ -557,6 +578,7 @@ export const ReportsContent = ({
         reportId={previewReportId}
         onClose={() => { setPreviewReportId(null); router.refresh() }}
         userRole={userRole}
+        onReportStatusChange={handlePreviewStatusChange}
       />
     </div>
   )

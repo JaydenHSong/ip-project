@@ -15,9 +15,10 @@ type ReportPreviewPanelProps = {
   onClose: () => void
   userRole?: string
   currentUserId?: string
+  onReportStatusChange?: (reportId: string, nextStatus: string) => void
 }
 
-export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId }: ReportPreviewPanelProps) => {
+export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId, onReportStatusChange }: ReportPreviewPanelProps) => {
   const { t } = useI18n()
   const router = useRouter()
   const [activeId, setActiveId] = useState<string | null>(reportId)
@@ -160,6 +161,10 @@ export const ReportPreviewPanel = ({ reportId, onClose, userRole, currentUserId 
           monitoringStartedAt={data.monitoring_started_at as string | null}
           embedded
           onNavigate={(id) => setActiveId(id)}
+          onStatusChange={(nextStatus) => {
+            setData((prev) => prev ? { ...prev, status: nextStatus } : prev)
+            if (activeId) onReportStatusChange?.(activeId, nextStatus)
+          }}
         />
         </div>
       )}

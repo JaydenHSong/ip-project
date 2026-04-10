@@ -111,6 +111,7 @@ type ReportDetailContentProps = {
   monitoringStartedAt?: string | null
   embedded?: boolean
   onNavigate?: (reportId: string) => void
+  onStatusChange?: (nextStatus: string) => void
 }
 
 import { getAmazonUrl } from '@/lib/utils/amazon-url'
@@ -178,7 +179,7 @@ const CaseIdManualInput = ({ reportId, onSaved }: { reportId: string; onSaved: (
   )
 }
 
-export const ReportDetailContent = ({ report, listing, listingId, creatorName, canEdit, userRole, currentUserId, timeline, snapshots, monitoringStartedAt, embedded, onNavigate }: ReportDetailContentProps) => {
+export const ReportDetailContent = ({ report, listing, listingId, creatorName, canEdit, userRole, currentUserId, timeline, snapshots, monitoringStartedAt, embedded, onNavigate, onStatusChange }: ReportDetailContentProps) => {
   const { t } = useI18n()
   const { addToast } = useToast()
   const router = useRouter()
@@ -616,6 +617,10 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                     },
                   } : {}),
                 }}
+                onReportStatusChange={(nextStatus) => {
+                  setCurrentStatus(nextStatus)
+                  onStatusChange?.(nextStatus)
+                }}
                 userRole={userRole}
                 createdBy={report.created_by}
                 currentUserId={currentUserId}
@@ -655,6 +660,10 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                       ...(brFields.order_id ? { order_id: brFields.order_id } : {}),
                     },
                   } : {}),
+                }}
+                onReportStatusChange={(nextStatus) => {
+                  setCurrentStatus(nextStatus)
+                  onStatusChange?.(nextStatus)
                 }}
                 userRole={userRole}
                 createdBy={report.created_by}

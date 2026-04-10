@@ -15,6 +15,7 @@ type ReportActionsProps = {
   status: string
   brFormType?: string | null
   approvePayload?: Record<string, unknown>
+  onReportStatusChange?: (nextStatus: string) => void
   userRole: string
   createdBy?: string | null
   currentUserId?: string | null
@@ -28,6 +29,7 @@ export const ReportActions = ({
   status,
   brFormType,
   approvePayload,
+  onReportStatusChange,
   userRole,
   createdBy,
   currentUserId,
@@ -173,6 +175,9 @@ export const ReportActions = ({
         const err = await res.json()
         throw new Error(err.error?.message ?? 'Force resubmit failed')
       }
+      const result = await res.json() as { status?: string }
+      const nextStatus = typeof result.status === 'string' ? result.status : 'br_submitting'
+      onReportStatusChange?.(nextStatus)
       router.refresh()
     } catch (e) {
       addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
