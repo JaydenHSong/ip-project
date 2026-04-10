@@ -29,7 +29,7 @@ const MODULES: ModuleConfig[] = [
       { label: 'Campaigns', labelKey: 'nav.campaigns', path: '/ip/campaigns', icon: 'search' },
       { label: 'Report Queue', labelKey: 'nav.reportQueue', path: '/ip/reports', icon: 'file-text' },
       { label: 'Completed Reports', labelKey: 'nav.completedReports', path: '/ip/reports/completed', icon: 'check-circle' },
-      { label: 'IP Registry', labelKey: 'nav.ipRegistry', path: '/ip/patents', icon: 'copyright' },
+      { label: 'IP Registry', labelKey: 'nav.patents', path: '/ip/patents', icon: 'copyright' },
       { label: 'Notices', labelKey: 'nav.notices', path: '/ip/notices', icon: 'bell' },
     ],
   },

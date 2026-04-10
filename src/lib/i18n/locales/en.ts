@@ -7,6 +7,7 @@ export const en = {
     completedReports: 'Completed Reports',
     archivedReports: 'Archived Reports',
     patents: 'IP Registry',
+    ipRegistry: 'IP Registry',
     auditLogs: 'Audit Logs',
     notices: 'Notices',
     settings: 'Settings',

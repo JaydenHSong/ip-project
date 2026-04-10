@@ -98,7 +98,7 @@ const ROLE_LABELS: Record<Role, string> = {
 
 export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
   const pathname = usePathname()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const currentModule = getCurrentModule(pathname)
 
@@ -166,7 +166,7 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
       <ModuleSwitcher currentModule={currentModule} collapsed={collapsed} userRole={user.role} />
 
       {/* Main Nav */}
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      <nav key={locale} className="flex-1 space-y-1 px-2 py-4">
         {mainItems.map(renderNavItem)}
       </nav>
 

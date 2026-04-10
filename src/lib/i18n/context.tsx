@@ -14,11 +14,9 @@ const I18nContext = createContext<I18nContextValue | null>(null)
 
 export const I18nProvider = ({ children }: { children: ReactNode }) => {
   const [locale, setLocaleState] = useState<Locale>('en')
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setLocaleState(getStoredLocale())
-    setMounted(true)
   }, [])
 
   const changeLocale = useCallback((newLocale: Locale) => {
@@ -36,10 +34,7 @@ export const I18nProvider = ({ children }: { children: ReactNode }) => {
 
   const msgs = getMessages(locale)
 
-  if (!mounted) {
-    return <>{children}</>
-  }
-
+  // Always provide context so children never use useI18n() fallback (en-only) during initial render.
   return (
     <I18nContext.Provider value={{ locale, t, changeLocale, messages: msgs }}>
       {children}

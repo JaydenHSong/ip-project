@@ -14,7 +14,7 @@ type MobileTabBarProps = {
 
 export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
   const pathname = usePathname()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [showMore, setShowMore] = useState(false)
 
   const tabs = [
@@ -71,7 +71,10 @@ export const MobileTabBar = ({ userRole }: MobileTabBarProps) => {
       )}
 
       {/* Tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 mx-2 mb-[env(safe-area-inset-bottom)] rounded-2xl border border-th-sidebar-border bg-th-sidebar-bg shadow-lg md:hidden">
+      <nav
+        key={locale}
+        className="fixed bottom-0 left-0 right-0 z-50 mx-2 mb-[env(safe-area-inset-bottom)] rounded-2xl border border-th-sidebar-border bg-th-sidebar-bg shadow-lg md:hidden"
+      >
         <div className="flex h-16 items-stretch">
           {tabs.map((tab) => {
             const isActive = isReportsTabActive(tab.href)

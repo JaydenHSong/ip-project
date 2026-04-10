@@ -7,6 +7,7 @@ export const ko = {
     completedReports: '신고 완료',
     archivedReports: 'Archive',
     patents: 'IP 레지스트리',
+    ipRegistry: 'IP 레지스트리',
     auditLogs: '감사 로그',
     notices: '공지사항',
     settings: '설정',
