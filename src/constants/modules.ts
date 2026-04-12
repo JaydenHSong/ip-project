@@ -41,7 +41,7 @@ const MODULES: ModuleConfig[] = [
     status: 'active',
     minRole: 'owner',
     menuItems: [
-      { label: 'Dashboard', labelKey: 'nav.adsDashboard', path: '/ads/dashboard', icon: 'layout-dashboard' },
+      { label: 'AD Dashboard', labelKey: 'nav.adsDashboard', path: '/ads/dashboard', icon: 'layout-dashboard' },
       { label: 'Campaigns', labelKey: 'nav.adsCampaigns', path: '/ads/campaigns', icon: 'target' },
       { label: 'Optimization', labelKey: 'nav.adsOptimization', path: '/ads/optimization', icon: 'sliders-horizontal' },
       { label: 'Auto Pilot', labelKey: 'nav.adsAutopilot', path: '/ads/autopilot', icon: 'bot' },

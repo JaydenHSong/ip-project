@@ -122,7 +122,10 @@ export const Sidebar = ({ user, collapsed, onToggle }: SidebarProps) => {
     const isActive =
       !hasMoreSpecificMatch && (pathname === item.href || pathname.startsWith(`${item.href}/`))
     const Icon = item.icon
-    const label = t(item.labelKey) || item.label || item.labelKey
+    // Fix: when t() returns the key itself (missing translation), fall back to item.label.
+    // Previously `t(key) || label` would always pick the key string since it was truthy.
+    const translated = t(item.labelKey)
+    const label = (translated && translated !== item.labelKey) ? translated : (item.label ?? item.labelKey)
 
     return (
       <Link

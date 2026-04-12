@@ -148,17 +148,17 @@ const BudgetGrid = ({ plans, actuals, autopilotMonthly, year, onSave }: BudgetGr
               </td>
             </tr>
 
-            {/* Auto Pilot row — Design S13: "Auto Pilot ⚡ 행 (#FFF7ED 배경)" */}
-            <tr className="border-b border-th-border bg-[#FFF7ED]">
-              <td className="sticky left-0 bg-[#FFF7ED] px-3 py-2 font-medium text-orange-700">
+            {/* Auto Pilot row — theme-aware soft orange that works in light + dark */}
+            <tr className="border-b border-th-border bg-th-accent-soft">
+              <td className="sticky left-0 bg-th-accent-soft px-3 py-2 font-medium text-th-accent-text">
                 Auto Pilot
               </td>
               {MONTHS.map((_, i) => (
-                <td key={i} className="px-2 py-2 text-center text-orange-600 font-mono">
+                <td key={i} className="px-2 py-2 text-center text-th-accent-text font-mono">
                   ${fmt(autopilotMonthly[i] ?? 0)}
                 </td>
               ))}
-              <td className="px-3 py-2 text-right font-mono font-medium text-orange-700">
+              <td className="px-3 py-2 text-right font-mono font-medium text-th-accent-text">
                 ${fmt(autopilotMonthly.reduce((s, v) => s + v, 0))}
               </td>
             </tr>
