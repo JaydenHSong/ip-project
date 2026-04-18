@@ -8,10 +8,15 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "harness:ads": "node tools/harness/ads-preset-check.mjs",
+    "harness:ads:staged": "node tools/harness/ads-preset-check.mjs --staged",
+    "harness:ads:full": "pnpm typecheck && pnpm lint && pnpm harness:ads",
     "test": "echo \"No tests configured yet\"",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:demo": "DEMO_MODE=true playwright test"
+    "test:e2e:demo": "DEMO_MODE=true playwright test",
+    "test:e2e:s03": "playwright test --config=tools/playwright/playwright.config.ts tools/playwright/tests/s03-campaigns-dashboard.spec.ts",
+    "test:e2e:s03:update": "playwright test --config=tools/playwright/playwright.config.ts tools/playwright/tests/s03-campaigns-dashboard.spec.ts --update-snapshots"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

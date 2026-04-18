@@ -1,13 +1,13 @@
-// POST /api/ads/budgets/import — Excel/CSV budget import (S13)
-// Design Ref: §4.2
+// POST /api/ads/budgets/import — CSV: channel(sp|sb|sd|total), month, amount
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { saveBudgets } from '@/modules/ads/features/budget-planning/queries'
 import type { BudgetEntry } from '@/modules/ads/features/budget-planning/types'
-import type { Channel } from '@/modules/ads/shared/types'
+import type { Role } from '@/types/users'
+import { resolveBudgetOrgUnitId } from '@/modules/ads/features/budget-planning/resolve-budget-org'
 
-const VALID_CHANNELS = new Set(['sp', 'sb', 'sd'])
+const VALID_CHANNELS = new Set(['sp', 'sb', 'sd', 'total'])
 
 export const POST = withAuth(async (req, { user }) => {
   try {
@@ -15,6 +15,7 @@ export const POST = withAuth(async (req, { user }) => {
     const file = formData.get('file') as File | null
     const brandMarketId = formData.get('brand_market_id') as string | null
     const year = formData.get('year') as string | null
+    const requestedOrg = formData.get('org_unit_id') as string | null
 
     if (!file || !brandMarketId || !year) {
       return NextResponse.json(
@@ -23,7 +24,17 @@ export const POST = withAuth(async (req, { user }) => {
       )
     }
 
-    // Parse CSV
+    const resolved = await resolveBudgetOrgUnitId(
+      user.id,
+      user.role as Role,
+      brandMarketId,
+      requestedOrg && requestedOrg.length > 0 ? requestedOrg : null,
+    )
+
+    if (!resolved.ok) {
+      return NextResponse.json({ error: { code: 'FORBIDDEN', message: resolved.message } }, { status: 403 })
+    }
+
     const text = await file.text()
     const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
 
@@ -31,7 +42,6 @@ export const POST = withAuth(async (req, { user }) => {
     const errors: { row: number; message: string }[] = []
     const skipped = 0
 
-    // Skip header if present
     const startRow = lines[0]?.toLowerCase().includes('channel') ? 1 : 0
 
     for (let i = startRow; i < lines.length; i++) {
@@ -58,11 +68,11 @@ export const POST = withAuth(async (req, { user }) => {
         continue
       }
 
-      entries.push({ channel: channel as Channel, month, amount })
+      entries.push({ channel: channel as BudgetEntry['channel'], month, amount })
     }
 
     if (entries.length > 0) {
-      await saveBudgets(brandMarketId, Number(year), entries, user.id)
+      await saveBudgets(brandMarketId, Number(year), resolved.orgUnitId, entries, user.id)
     }
 
     return NextResponse.json({
@@ -78,4 +88,4 @@ export const POST = withAuth(async (req, { user }) => {
       { status: 500 },
     )
   }
-}, ['admin', 'owner'])
+}, ['admin', 'owner', 'editor'])

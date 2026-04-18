@@ -11,6 +11,7 @@ export const DEMO_USER = {
   role: 'owner' as const,
   avatar_url: null,
   is_active: true,
+  last_login_at: null as string | null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
 }

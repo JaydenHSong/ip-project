@@ -11,6 +11,8 @@ import type { CeoDashboardData } from '../types'
 type CeoDashboardProps = {
   data: CeoDashboardData | null
   isLoading?: boolean
+  errorMessage?: string | null
+  onRetry?: () => void
 }
 
 const AI_STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -23,7 +25,24 @@ const SkeletonCard = () => (
   <div className="h-48 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
 )
 
-const CeoDashboard = ({ data, isLoading }: CeoDashboardProps) => {
+const CeoDashboard = ({ data, isLoading, errorMessage, onRetry }: CeoDashboardProps) => {
+  if (errorMessage) {
+    return (
+      <div className="rounded-lg border border-th-border bg-surface-card p-6 text-center">
+        <p className="text-sm text-red-700">{errorMessage}</p>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-4 rounded-md bg-th-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            Retry
+          </button>
+        ) : null}
+      </div>
+    )
+  }
+
   if (isLoading || !data) {
     return (
       <div className="space-y-6">

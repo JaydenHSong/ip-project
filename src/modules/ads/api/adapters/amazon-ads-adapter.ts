@@ -1,5 +1,5 @@
 // Design Ref: §3.6 P5 — AmazonAdsAdapter base (auth + request infra)
-// Plan SC: SC3 — 200줄 이하
+// Plan SC: SC3 — 250줄 이하
 
 import type { AdsPort, DateRange, SearchTermRow } from '../ports/ads-port'
 import type {

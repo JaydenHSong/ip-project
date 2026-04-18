@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { ChevronRight, Plus, Pencil, Trash2, Building2, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { ORG_LEVEL_LABELS, ORG_LEVEL_ORDER } from '@/lib/org-units'
@@ -26,6 +26,23 @@ type ModuleAccess = {
 }
 
 type TreeNode = OrgUnit & { children: TreeNode[] }
+
+/** 자기 자신 + 모든 하위 id (상위로 옮길 때 순환 방지용) */
+function getDescendantIdsIncludingSelf(rootId: string, allUnits: OrgUnit[]): Set<string> {
+  const byParent = new Map<string | null, OrgUnit[]>()
+  for (const u of allUnits) {
+    const p = u.parent_id
+    if (!byParent.has(p)) byParent.set(p, [])
+    byParent.get(p)!.push(u)
+  }
+  const ids = new Set<string>()
+  const walk = (id: string) => {
+    ids.add(id)
+    for (const c of byParent.get(id) ?? []) walk(c.id)
+  }
+  walk(rootId)
+  return ids
+}
 
 function buildTree(units: OrgUnit[]): TreeNode[] {
   const map = new Map<string, TreeNode>()
@@ -174,6 +191,80 @@ export const OrganizationSettings = ({ isOwner }: { isOwner: boolean }) => {
 
   const tree = buildTree(units)
 
+  const parentSelectOptions = useMemo(() => {
+    const active = units.filter((u) => u.is_active).sort((a, b) => a.name.localeCompare(b.name))
+    if (modalMode === 'edit' && editTarget) {
+      const blocked = getDescendantIdsIncludingSelf(editTarget.id, units)
+      return active.filter((u) => !blocked.has(u.id))
+    }
+    return active
+  }, [units, modalMode, editTarget])
+
+  const parentSelectDisplayOptions = useMemo(() => {
+    const byId = new Map(units.map((u) => [u.id, u]))
+    const allowed = new Set(parentSelectOptions.map((u) => u.id))
+    const byParent = new Map<string | null, OrgUnit[]>()
+
+    for (const u of parentSelectOptions) {
+      const p = u.parent_id
+      if (!byParent.has(p)) byParent.set(p, [])
+      byParent.get(p)!.push(u)
+    }
+
+    const sortNodes = (arr: OrgUnit[]) =>
+      arr.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+
+    for (const arr of byParent.values()) sortNodes(arr)
+
+    const buildPath = (id: string) => {
+      const parts: string[] = []
+      let cur = byId.get(id)
+      while (cur) {
+        parts.unshift(cur.name)
+        cur = cur.parent_id ? byId.get(cur.parent_id) : undefined
+      }
+      return parts.join(' / ')
+    }
+
+    const options: { id: string; label: string; path: string }[] = []
+    const visit = (parentId: string | null, depth: number) => {
+      const children = byParent.get(parentId) ?? []
+      for (const node of children) {
+        if (!allowed.has(node.id)) continue
+        const indent = '· '.repeat(Math.max(depth, 0))
+        const level = ORG_LEVEL_LABELS[node.level as OrgLevel] ?? node.level
+        options.push({
+          id: node.id,
+          label: `${indent}${node.name} (${level})`,
+          path: buildPath(node.id),
+        })
+        visit(node.id, depth + 1)
+      }
+    }
+
+    // Render true roots first.
+    visit(null, 0)
+    // Then render nodes whose parent is not in allowed set (can happen in edit filter).
+    for (const node of parentSelectOptions) {
+      if (node.parent_id && !allowed.has(node.parent_id) && !options.some((o) => o.id === node.id)) {
+        const level = ORG_LEVEL_LABELS[node.level as OrgLevel] ?? node.level
+        options.push({
+          id: node.id,
+          label: `${node.name} (${level})`,
+          path: buildPath(node.id),
+        })
+        visit(node.id, 1)
+      }
+    }
+
+    return options
+  }, [parentSelectOptions, units])
+
+  const selectedParentPath = useMemo(() => {
+    if (!formParentId) return null
+    return parentSelectDisplayOptions.find((o) => o.id === formParentId)?.path ?? null
+  }, [formParentId, parentSelectDisplayOptions])
+
   // 하위 추가
   const handleAdd = (parentId: string, parentLevel: string) => {
     const parentIdx = ORG_LEVEL_ORDER.indexOf(parentLevel as OrgLevel)
@@ -218,7 +309,12 @@ export const OrganizationSettings = ({ isOwner }: { isOwner: boolean }) => {
       await fetch('/api/settings/org-units', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editTarget.id, name: formName.trim(), level: formLevel }),
+        body: JSON.stringify({
+          id: editTarget.id,
+          name: formName.trim(),
+          level: formLevel,
+          parent_id: formParentId,
+        }),
       })
     }
 
@@ -361,12 +457,40 @@ export const OrganizationSettings = ({ isOwner }: { isOwner: boolean }) => {
                   value={formLevel}
                   onChange={(e) => setFormLevel(e.target.value)}
                   className="w-full rounded-lg border border-th-border bg-th-bg px-3 py-2 text-sm text-th-text"
-                  disabled={modalMode === 'edit'}
                 >
                   {ORG_LEVEL_ORDER.map((level) => (
                     <option key={level} value={level}>{ORG_LEVEL_LABELS[level]}</option>
                   ))}
                 </select>
+                {modalMode === 'edit' ? (
+                  <p className="mt-1 text-[11px] leading-snug text-th-text-muted">
+                    레벨을 바꾸면 상위 조직과의 순서(회사→부문→…)가 맞는지 확인하세요. 잘못된 위치면 상위 노드 아래로 옮기는 편이 안전할 수 있습니다.
+                  </p>
+                ) : null}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-th-text-muted">상위 조직</label>
+                <select
+                  value={formParentId ?? ''}
+                  onChange={(e) => setFormParentId(e.target.value || null)}
+                  className="w-full rounded-lg border border-th-border bg-th-bg px-3 py-2 text-sm text-th-text"
+                >
+                  <option value="">(최상위 — 루트)</option>
+                  {parentSelectDisplayOptions.map((u) => (
+                    <option key={u.id} value={u.id} title={u.path}>
+                      {u.label}
+                    </option>
+                  ))}
+                </select>
+                {selectedParentPath ? (
+                  <p className="mt-1 text-[11px] leading-snug text-th-text-secondary">
+                    선택 경로: {selectedParentPath}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-[11px] leading-snug text-th-text-muted">
+                  예: Screen Protector를 iBD 직속 사업부로 두려면 상위를 iBD 노드로 지정하고, 레벨을 사업부(business_unit)로 맞춥니다.
+                </p>
               </div>
             </div>
 

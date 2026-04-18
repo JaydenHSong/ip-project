@@ -64,6 +64,10 @@ crawl-results/
 # Playwright MCP cache
 .playwright-mcp/
 
+# AD Playwright local artifacts (see tools/playwright/README.md)
+tools/playwright/output/
+tools/playwright/.auth/
+
 # Non-web components (extension/sentinel-fetch는 별도 관리, crawler는 Railway 배포에 필요)
 extension/
 sentinel-fetch/

@@ -3,142 +3,63 @@
 // Page Tabs: Campaigns | Budget Planning (Design S03)
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMarketContext } from '@/modules/ads/shared/hooks/use-market-context'
-import { CampaignStatusStrip } from '@/modules/ads/features/campaigns/components/campaign-status-strip'
-import { CampaignTable } from '@/modules/ads/features/campaigns/components/campaign-table'
 import { CampaignCreateModal } from '@/modules/ads/features/campaigns/components/campaign-create-modal'
-import { AiQueuePreview } from '@/modules/ads/features/campaigns/components/ai-queue-preview'
-import { BudgetKpiStrip } from '@/modules/ads/features/budget-planning/components/budget-kpi-strip'
-import { BudgetGrid } from '@/modules/ads/features/budget-planning/components/budget-grid'
 import type { CampaignFilters, SortConfig } from '@/modules/ads/features/campaigns/components/campaign-table'
-import type { CampaignListItem, CampaignKpiSummary, CreateCampaignRequest } from '@/modules/ads/features/campaigns/types'
-import type { BudgetListResponse, BudgetKpiData, BudgetEntry } from '@/modules/ads/features/budget-planning/types'
-
-type PageTab = 'campaigns' | 'budget_planning'
-type KpiView = 'personal' | 'team'
+import type { CreateCampaignRequest } from '@/modules/ads/features/campaigns/types'
+import { PageTabsHeader } from './components/page-tabs-header'
+import type { PageTab } from './components/page-tabs-header'
+import { MarketerDashboard } from './components/marketer-dashboard'
+import { BudgetPlanningTabContent } from './components/budget-planning-tab-content'
+import { useCampaignsPageData } from './hooks/use-campaigns-page-data'
 
 const AdsCampaignsPage = () => {
   const router = useRouter()
   const { selectedMarketId } = useMarketContext()
-
-  // Page-level state
   const [pageTab, setPageTab] = useState<PageTab>('campaigns')
-  const [kpiView, setKpiView] = useState<KpiView>('team')
-
-  // Campaign state
-  const [campaigns, setCampaigns] = useState<CampaignListItem[]>([])
-  const [kpi, setKpi] = useState<CampaignKpiSummary | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 })
   const [filters, setFilters] = useState<CampaignFilters>({
     status: '',
     mode: '',
     search: '',
   })
-  const [sort, setSort] = useState<SortConfig>({ key: 'created_at', dir: 'desc' })
+  /** status asc: active → archived → learning → paused(lexicographic), then newest first */
+  const [sort, setSort] = useState<SortConfig>({ key: 'status', dir: 'asc' })
 
-  // M1 fix: minimal Budget Planning tab — reuse existing BudgetKpiStrip + BudgetGrid
   const currentYear = new Date().getFullYear()
-  const [budgetData, setBudgetData] = useState<BudgetListResponse['data'] | null>(null)
-  const [isBudgetLoading, setIsBudgetLoading] = useState(false)
-
-  const fetchBudget = useCallback(async () => {
-    if (!selectedMarketId) {
-      setBudgetData(null)
-      return
-    }
-    setIsBudgetLoading(true)
-    try {
-      const res = await fetch(`/api/ads/budgets?brand_market_id=${selectedMarketId}&year=${currentYear}`)
-      if (res.ok) {
-        const json = await res.json() as BudgetListResponse
-        setBudgetData(json.data)
-      }
-    } catch (err) {
-      console.error('[ads/campaigns budget] fetch failed', err)
-    } finally {
-      setIsBudgetLoading(false)
-    }
-  }, [selectedMarketId, currentYear])
-
-  useEffect(() => {
-    if (pageTab === 'budget_planning') {
-      fetchBudget()
-    }
-  }, [pageTab, fetchBudget])
-
-  const budgetKpi: BudgetKpiData | null = budgetData ? {
-    annual_planned: budgetData.plans.reduce((s, p) => s + p.annual_total, 0),
-    ytd_spent: budgetData.ytd.spent,
-    ytd_planned: budgetData.ytd.planned,
-    remaining: budgetData.ytd.remaining,
-    autopilot_total: budgetData.autopilot_monthly.reduce((s, v) => s + v, 0),
-  } : null
-
-  const handleBudgetSave = async (entries: BudgetEntry[]) => {
-    if (!selectedMarketId) return
-    const res = await fetch('/api/ads/budgets', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brand_market_id: selectedMarketId, year: currentYear, entries }),
-    })
-    if (res.ok) {
-      await fetchBudget()
-    }
-  }
-
-  // Fetch campaigns
-  const fetchCampaigns = useCallback(async () => {
-    if (!selectedMarketId) {
-      setCampaigns([])
-      setKpi(null)
-      setIsLoading(false)
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      const params = new URLSearchParams({
-        brand_market_id: selectedMarketId,
-        include_kpi: 'true',
-        page: String(pagination.page),
-        limit: String(pagination.limit),
-        sort_by: sort.key,
-        sort_dir: sort.dir,
-      })
-      if (filters.status) params.set('status', filters.status)
-      if (filters.mode) params.set('mode', filters.mode)
-      if (filters.search) params.set('search', filters.search)
-      // Personal/Team KPI toggle — Design S03 "개인<->팀 전환"
-      if (kpiView === 'personal') params.set('assigned_to', 'me')
-
-      const res = await fetch(`/api/ads/campaigns?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch campaigns')
-
-      const json = await res.json() as {
-        data: CampaignListItem[]
-        pagination: { page: number; limit: number; total: number }
-        kpi: CampaignKpiSummary | null
-      }
-
-      setCampaigns(json.data)
-      setPagination(json.pagination)
-      if (json.kpi) setKpi(json.kpi)
-    } catch (err) {
-      // L1 fix: log so users (and Sentry/console) can see when fetch fails.
-      console.error('[ads/campaigns] fetch failed', err)
-      setCampaigns([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [selectedMarketId, pagination.page, pagination.limit, sort, filters, kpiView])
-
-  useEffect(() => {
-    fetchCampaigns()
-  }, [fetchCampaigns])
+  const {
+    campaigns,
+    kpi,
+    marketLabel,
+    marketplace,
+    userDisplayName,
+    userRole,
+    recommendations,
+    budgetData,
+    budgetKpi,
+    budgetOrgUnitId,
+    setBudgetOrgUnitId,
+    isLoading,
+    recLoading,
+    isBudgetLoading,
+    budgetError,
+    fetchBudget,
+    campaignsError,
+    recError,
+    pagination,
+    setPagination,
+    fetchCampaigns,
+    fetchRecommendations,
+    handleBudgetSave,
+  } = useCampaignsPageData({
+    selectedMarketId,
+    pageTab,
+    currentYear,
+    filters,
+    sort,
+  })
 
   // Handlers
   const handleRowClick = (id: string) => {
@@ -155,192 +76,59 @@ const AdsCampaignsPage = () => {
       const err = await res.json() as { error: { message: string } }
       throw new Error(err.error.message)
     }
-    await fetchCampaigns()
+    await Promise.all([fetchCampaigns(), fetchRecommendations()])
   }
 
-  const handleBulkAction = async (action: string, ids: string[]) => {
-    const statusMap: Record<string, string> = {
-      pause: 'paused',
-      resume: 'active',
-      archive: 'archived',
-    }
-
-    const newStatus = statusMap[action]
-    if (!newStatus) return
-
-    await Promise.all(
-      ids.map((id) =>
-        fetch(`/api/ads/campaigns/${id}`, {
-          // L3 fix: PATCH is the RESTful verb for partial updates
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus }),
-        }),
-      ),
-    )
-    await fetchCampaigns()
-  }
+  const refreshSummaries = useCallback(
+    () => Promise.all([fetchCampaigns(), fetchRecommendations()]).then(() => undefined),
+    [fetchCampaigns, fetchRecommendations],
+  )
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Page header + Tab bar — Design S03 */}
-      <div>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-th-text">Campaigns</h1>
-            <p className="mt-0.5 text-sm text-th-text-muted">
-              Manage your Amazon ad campaigns across all brands and markets.
-            </p>
-          </div>
-        </div>
-
-        {/* Page Tabs: Campaigns | Budget Planning — Design S03 */}
-        <div className="mt-4 flex border-b border-th-border">
-          <button
-            onClick={() => setPageTab('campaigns')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              pageTab === 'campaigns'
-                ? 'border-b-2 border-orange-500 text-orange-600'
-                : 'text-th-text-muted hover:text-th-text-secondary'
-            }`}
-          >
-            Campaigns
-          </button>
-          <button
-            onClick={() => setPageTab('budget_planning')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              pageTab === 'budget_planning'
-                ? 'border-b-2 border-orange-500 text-orange-600'
-                : 'text-th-text-muted hover:text-th-text-secondary'
-            }`}
-          >
-            Budget Planning
-          </button>
-        </div>
-      </div>
+    <div className="space-y-5 p-6">
+      <PageTabsHeader pageTab={pageTab} onTabChange={setPageTab} />
 
       {pageTab === 'campaigns' ? (
-        <>
-          {/* KPI Strip with personal/team toggle — Design S03 */}
-          <div>
-            <div className="mb-2 flex items-center justify-end">
-              <div className="inline-flex rounded-lg border border-th-accent/30 bg-surface-card p-0.5">
-                <button
-                  onClick={() => setKpiView('personal')}
-                  className={`px-4 py-1.5 text-xs font-semibold transition-colors rounded-md ${
-                    kpiView === 'personal'
-                      ? 'bg-th-accent text-white shadow-sm'
-                      : 'text-th-text-muted hover:text-th-text'
-                  }`}
-                >
-                  Personal
-                </button>
-                <button
-                  onClick={() => setKpiView('team')}
-                  className={`px-4 py-1.5 text-xs font-semibold transition-colors rounded-md ${
-                    kpiView === 'team'
-                      ? 'bg-th-accent text-white shadow-sm'
-                      : 'text-th-text-muted hover:text-th-text'
-                  }`}
-                >
-                  Team
-                </button>
-              </div>
-            </div>
-            <CampaignStatusStrip summary={kpi} isLoading={isLoading} />
-          </div>
-
-          {/* AI Queue Preview — Design S03: "AI Queue 미리보기 4칸" */}
-          {selectedMarketId && (
-            <div>
-              <h3 className="text-sm font-medium text-th-text mb-2">AI Action Queue</h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {campaigns.filter((c) => c.mode === 'autopilot').slice(0, 4).map((c) => (
-                  <AiQueuePreview
-                    key={c.id}
-                    campaignId={c.id}
-                    brandMarketId={selectedMarketId}
-                    maxItems={3}
-                    className="h-full"
-                  />
-                ))}
-                {campaigns.filter((c) => c.mode === 'autopilot').length === 0 && !isLoading && (
-                  <p className="col-span-full text-sm text-th-text-muted py-4 text-center">
-                    No Auto Pilot campaigns — AI Queue is empty
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Campaign Table */}
-          <CampaignTable
-            campaigns={campaigns}
-            isLoading={isLoading}
-            filters={filters}
-            sort={sort}
-            onFiltersChange={setFilters}
-            onSortChange={setSort}
-            onRowClick={handleRowClick}
-            onCreateClick={() => setIsCreateOpen(true)}
-            onBulkAction={handleBulkAction}
-          />
-
-          {/* Pagination */}
-          {pagination.total > pagination.limit && (
-            <div className="flex items-center justify-between text-sm">
-              <p className="text-th-text-muted">
-                Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  disabled={pagination.page <= 1}
-                  onClick={() => setPagination((p) => ({ ...p, page: p.page - 1 }))}
-                  className="rounded border border-th-border px-3 py-1 text-th-text-secondary hover:bg-th-bg-hover disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  disabled={pagination.page * pagination.limit >= pagination.total}
-                  onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
-                  className="rounded border border-th-border px-3 py-1 text-th-text-secondary hover:bg-th-bg-hover disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-        </>
+        <MarketerDashboard
+          selectedMarketId={selectedMarketId}
+          marketLabel={marketLabel}
+          userDisplayName={userDisplayName}
+          campaigns={campaigns}
+          kpi={kpi}
+          budgetKpi={budgetKpi}
+          recommendations={recommendations}
+          isLoading={isLoading}
+          recLoading={recLoading}
+          campaignsError={campaignsError}
+          recError={recError}
+          filters={filters}
+          sort={sort}
+          pagination={pagination}
+          onFiltersChange={setFilters}
+          onSortChange={setSort}
+          onRowClick={handleRowClick}
+          onCreateClick={() => setIsCreateOpen(true)}
+          onRetryCampaigns={fetchCampaigns}
+          onRetryRecommendations={fetchRecommendations}
+          onRefreshSummaries={refreshSummaries}
+          onPaginationChange={setPagination}
+        />
       ) : (
-        /* Budget Planning Tab — M1 fix: minimal Track B assembled from existing
-           BudgetKpiStrip + BudgetGrid components. Annual 12-month plan editor per channel. */
-        <>
-          {!selectedMarketId ? (
-            <div className="rounded-lg border border-dashed border-th-border bg-surface-card p-8 text-center">
-              <p className="text-sm text-th-text-muted">Select a market to view annual budget planning.</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <BudgetKpiStrip data={budgetKpi} isLoading={isBudgetLoading} />
-              {budgetData && (
-                <BudgetGrid
-                  plans={budgetData.plans}
-                  actuals={budgetData.actuals}
-                  autopilotMonthly={budgetData.autopilot_monthly}
-                  year={currentYear}
-                  onSave={handleBudgetSave}
-                />
-              )}
-              {!budgetData && !isBudgetLoading && (
-                <div className="rounded-lg border border-dashed border-th-border bg-surface-card p-8 text-center">
-                  <p className="text-sm text-th-text-muted">
-                    No annual budget yet for {currentYear}. Save values in the grid above to get started.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </>
+        <BudgetPlanningTabContent
+          selectedMarketId={selectedMarketId}
+          currentYear={currentYear}
+          budgetData={budgetData}
+          budgetKpi={budgetKpi}
+          isBudgetLoading={isBudgetLoading}
+          budgetError={budgetError}
+          onRetryBudget={fetchBudget}
+          onBudgetSave={handleBudgetSave}
+          userRole={userRole}
+          budgetOrgUnitId={budgetOrgUnitId}
+          onBudgetTeamChange={(id) => setBudgetOrgUnitId(id)}
+          marketLabel={marketLabel}
+          marketplace={marketplace}
+        />
       )}
 
       {/* Create Modal */}

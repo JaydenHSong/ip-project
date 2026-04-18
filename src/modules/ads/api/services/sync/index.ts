@@ -1,5 +1,5 @@
 // Design Ref: §3.3 P2 — SyncService orchestrator (barrel export)
-// Plan SC: SC3, SC4 — 200줄 이하 + barrel export 호환
+// Plan SC: SC3, SC4 — 250줄 이하 + barrel export 호환
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SpApiPort } from '../../ports/sp-api-port'

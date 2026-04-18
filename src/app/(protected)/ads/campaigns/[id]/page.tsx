@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { use } from 'react'
+import AdsCampaignsPage from '../page'
 import { CampaignDetailPanel } from '@/modules/ads/features/campaigns/components/campaign-detail-panel'
 import type { CampaignDetail, UpdateCampaignRequest } from '@/modules/ads/features/campaigns/types'
 
@@ -13,18 +14,19 @@ const CampaignDetailPage = ({ params }: { params: Promise<{ id: string }> }) => 
   const router = useRouter()
   const [campaign, setCampaign] = useState<CampaignDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const fetchCampaign = useCallback(async () => {
     setIsLoading(true)
+    setErrorMessage(null)
     try {
       const res = await fetch(`/api/ads/campaigns/${id}`)
       if (!res.ok) throw new Error('Failed to fetch campaign')
       const json = await res.json() as { data: CampaignDetail }
       setCampaign(json.data)
     } catch (err) {
-      // L1 fix: log fetch failures
-      console.error('[ads/campaigns/[id]] fetch failed', err)
       setCampaign(null)
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to fetch campaign details')
     } finally {
       setIsLoading(false)
     }
@@ -53,13 +55,19 @@ const CampaignDetailPage = ({ params }: { params: Promise<{ id: string }> }) => 
   }
 
   return (
-    <CampaignDetailPanel
-      campaign={campaign}
-      isOpen={true}
-      isLoading={isLoading}
-      onClose={handleClose}
-      onUpdate={handleUpdate}
-    />
+    <>
+      {/* Keep Campaigns table visible and open detail as a side layer. */}
+      <AdsCampaignsPage />
+      <CampaignDetailPanel
+        campaign={campaign}
+        isOpen={true}
+        isLoading={isLoading}
+        errorMessage={errorMessage}
+        onRetry={fetchCampaign}
+        onClose={handleClose}
+        onUpdate={handleUpdate}
+      />
+    </>
   )
 }
 
