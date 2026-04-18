@@ -24,7 +24,7 @@ const getRecommendations = async (params: {
   if (params.type) qb = qb.eq('recommendation_type', params.type)
   if (params.status) qb = qb.eq('status', params.status)
 
-  qb = qb.order('estimated_impact', { ascending: false, nullsFirst: false })
+  qb = qb.order('estimated_impact', { ascending: false })
   if (params.limit) qb = qb.limit(params.limit)
 
   const { data, error } = await qb

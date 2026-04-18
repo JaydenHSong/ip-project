@@ -47,6 +47,7 @@ npx vercel --prod       # Production 배포 (확인 후)
 - Server Components 기본, 필요시에만 `"use client"`
 - 절대 경로: `@/components/...`, `@/lib/...`
 - named export 사용 (page.tsx 제외)
+- **단일 소스 파일 권장 상한: 250줄** — ESLint `max-lines`(공백·주석 제외)와 동일. AD 변경분은 `pnpm harness:ads` / `pnpm harness:ads:staged`로 추가 검사(프리커밋 연동 시 동일 스크립트).
 
 ## Module Isolation (절대 규칙)
 

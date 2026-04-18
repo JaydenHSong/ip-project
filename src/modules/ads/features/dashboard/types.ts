@@ -88,10 +88,53 @@ type DirectorDashboardData = {
   autopilot_impact: AutopilotImpact
   team_performance: TeamPerformanceItem[]
   pending_actions: PendingActionItem[]
+  /** Exact unresolved count; list may be capped for display */
+  pending_actions_total: number
 }
 
 type DirectorDashboardResponse = {
   data: DirectorDashboardData
+}
+
+// ─── S03 Marketer Dashboard ───
+
+type MarketerAlertItem = {
+  id: string
+  alert_type: string
+  severity: 'critical' | 'warning' | 'info'
+  title: string
+  created_at: string
+}
+
+type MarketerRecommendationItem = {
+  id: string
+  type: string
+  priority: number
+  status: string
+  created_at: string
+  /** Keyword or context line for list display */
+  keyword_text: string
+}
+
+type MarketerDashboardData = {
+  campaigns: {
+    id: string
+    name: string
+    status: string
+    mode: string
+    target_acos: number | null
+    daily_budget: number | null
+    weekly_budget: number | null
+  }[]
+  campaign_count: number
+  alerts: MarketerAlertItem[]
+  alert_count: number
+  recommendations: MarketerRecommendationItem[]
+  recommendation_count: number
+}
+
+type MarketerDashboardResponse = {
+  data: MarketerDashboardData
 }
 
 export type {
@@ -109,4 +152,9 @@ export type {
   AutopilotImpact,
   DirectorDashboardData,
   DirectorDashboardResponse,
+  // Marketer
+  MarketerAlertItem,
+  MarketerRecommendationItem,
+  MarketerDashboardData,
+  MarketerDashboardResponse,
 }

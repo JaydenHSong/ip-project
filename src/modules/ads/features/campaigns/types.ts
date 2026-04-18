@@ -42,6 +42,9 @@ type CampaignListItem = {
   confidence_score: number | null
   last_action: string | null
   created_at: string
+  /** 일예산 소진 등으로 멈춘 직후 pause 구분용 (목록 `select('*')`에서 전달) */
+  paused_at?: string | null
+  updated_at?: string
 }
 
 type CampaignListResponse = {

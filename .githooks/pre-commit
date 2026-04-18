@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -e
+
+echo "[pre-commit] Running ADS harness preset (staged files)..."
+pnpm harness:ads:staged

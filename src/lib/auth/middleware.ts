@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClientFromToken } from '@/lib/supabase/server-token'
+import { isDemoMode } from '@/lib/demo'
+import { DEMO_USER } from '@/lib/demo/data'
 import type { Role, User } from '@/types/users'
 
 type AuthContext = {
@@ -18,6 +20,17 @@ type ApiHandler = (
 export const withAuth = (handler: ApiHandler, allowedRoles: Role[]): ((req: NextRequest, routeContext?: { params: Promise<Record<string, string>> }) => Promise<NextResponse>) => {
   return async (req: NextRequest, routeContext?: { params: Promise<Record<string, string>> }) => {
     const params = await routeContext?.params ?? {}
+
+    if (isDemoMode()) {
+      const user = DEMO_USER as User
+      if (!allowedRoles.includes(user.role)) {
+        return NextResponse.json(
+          { error: { code: 'FORBIDDEN', message: '접근 권한이 없습니다.' } },
+          { status: 403 },
+        )
+      }
+      return handler(req, { user, params })
+    }
 
     // Extension Bearer 토큰 우선, 없으면 쿠키 기반 클라이언트
     const authHeader = req.headers.get('authorization')

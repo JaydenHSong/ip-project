@@ -1,115 +1,161 @@
-// AD Optimizer — Budget Planning Server Queries
-// Design Ref: §4.2 Budget endpoints
+// AD Optimizer — Budget Planning (team × market; read may aggregate SP/SB/SD; save uses `total` or legacy channels)
 
-import { createAdsAdminClient } from '@/lib/supabase/admin'
-import type { BudgetListQuery, ChannelBudget, YtdSummary, BudgetEntry, BudgetChangeLogItem } from './types'
+import { createAdminClient, createAdsAdminClient } from '@/lib/supabase/admin'
 import type { Channel } from '@/modules/ads/shared/types'
+import type {
+  BudgetListQuery,
+  TeamMonthlyBudget,
+  ChannelBudget,
+  YtdSummary,
+  BudgetEntry,
+  BudgetChangeLogItem,
+} from './types'
+import { getActualsByChannel, getMarketWideMonthlySpendTotal } from './queries-budget-actuals'
 
 const CHANNELS: Channel[] = ['sp', 'sb', 'sd']
+const SAVE_CHANNELS = ['sp', 'sb', 'sd', 'total'] as const
+type SaveChannel = (typeof SAVE_CHANNELS)[number]
+const LEGACY_CHANNELS = ['sp', 'sb', 'sd'] as const
+const TEAM_CHANNEL = 'total'
+
+const sumChannelBudgets = (channels: ChannelBudget[]): TeamMonthlyBudget => {
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1
+    const amount = channels.reduce(
+      (s, c) => s + (c.months.find((m) => m.month === month)?.amount ?? 0),
+      0,
+    )
+    return { month, amount }
+  })
+  return {
+    months,
+    annual_total: months.reduce((s, m) => s + m.amount, 0),
+  }
+}
+
+const buildRowFromTotalOrLegacy = (rows: { channel: string; month: number; amount: number }[]): TeamMonthlyBudget => {
+  const hasTotal = rows.some((r) => r.channel === TEAM_CHANNEL)
+  const useRows = hasTotal
+    ? rows.filter((r) => r.channel === TEAM_CHANNEL)
+    : rows.filter((r) => LEGACY_CHANNELS.includes(r.channel as (typeof LEGACY_CHANNELS)[number]))
+
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const month = i + 1
+    if (hasTotal) {
+      const amount = useRows.find((r) => r.month === month)?.amount ?? 0
+      return { month, amount: Number(amount) }
+    }
+    const amount = useRows.filter((r) => r.month === month).reduce((s, r) => s + Number(r.amount ?? 0), 0)
+    return { month, amount }
+  })
+
+  return {
+    months,
+    annual_total: months.reduce((s, m) => s + m.amount, 0),
+  }
+}
+
+const groupPlansByChannel = (rows: { channel: string; month: number; amount: number }[]): ChannelBudget[] => {
+  return CHANNELS.map((ch) => {
+    const channelRows = rows.filter((r) => r.channel === ch)
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1
+      const amount = channelRows.find((r) => r.month === month)?.amount ?? 0
+      return { month, amount: Number(amount) }
+    })
+    return {
+      channel: ch,
+      months,
+      annual_total: months.reduce((s, m) => s + m.amount, 0),
+    }
+  })
+}
 
 // ─── GET: Budget list ───
 
 const getBudgets = async (query: BudgetListQuery) => {
   const supabase = createAdsAdminClient()
-  const { brand_market_id, year } = query
+  const { brand_market_id, year, org_unit_id } = query
 
-  // 1. Planned budgets
   const { data: planned } = await supabase
     .from('budgets')
     .select('channel, month, amount')
     .eq('brand_market_id', brand_market_id)
+    .eq('org_unit_id', org_unit_id)
     .eq('year', year)
     .eq('is_actual', false)
     .order('channel')
     .order('month')
 
-  // 2. Actual spend (from report_snapshots aggregated monthly)
-  const { data: actuals } = await supabase
-    .from('budgets')
-    .select('channel, month, amount')
-    .eq('brand_market_id', brand_market_id)
-    .eq('year', year)
-    .eq('is_actual', true)
-    .order('channel')
-    .order('month')
+  const rows = planned ?? []
+  const plans_by_channel = groupPlansByChannel(rows)
+  const channelPlannedSum = plans_by_channel.reduce((s, c) => s + c.annual_total, 0)
+  const hasTotalChannel = rows.some((r) => r.channel === TEAM_CHANNEL)
 
-  // Group by channel
-  const groupByChannel = (rows: { channel: string; month: number; amount: number }[]): ChannelBudget[] => {
-    return CHANNELS.map((ch) => {
-      const channelRows = (rows ?? []).filter((r) => r.channel === ch)
-      const months = Array.from({ length: 12 }, (_, i) => ({
-        month: i + 1,
-        amount: channelRows.find((r) => r.month === i + 1)?.amount ?? 0,
-      }))
-      return {
-        channel: ch,
-        months,
-        annual_total: months.reduce((s, m) => s + m.amount, 0),
-      }
-    })
-  }
+  const plan_total: TeamMonthlyBudget =
+    hasTotalChannel && channelPlannedSum === 0
+      ? buildRowFromTotalOrLegacy(rows)
+      : sumChannelBudgets(plans_by_channel)
 
-  const plans = groupByChannel(planned ?? [])
-  const actualData = groupByChannel(actuals ?? [])
+  const actuals_by_channel = await getActualsByChannel(org_unit_id, brand_market_id, year)
+  const actual_total = sumChannelBudgets(actuals_by_channel)
 
-  // 3. YTD summary
+  const marketSpendMonths = await getMarketWideMonthlySpendTotal(brand_market_id, year)
+
   const currentMonth = new Date().getMonth() + 1
-  const ytdPlanned = plans.reduce(
-    (sum, ch) => sum + ch.months.filter((m) => m.month <= currentMonth).reduce((s, m) => s + m.amount, 0),
-    0,
-  )
-  const ytdSpent = actualData.reduce(
-    (sum, ch) => sum + ch.months.filter((m) => m.month <= currentMonth).reduce((s, m) => s + m.amount, 0),
-    0,
-  )
-  const annualPlanned = plans.reduce((s, ch) => s + ch.annual_total, 0)
+  const ytdPlanned = plan_total.months.filter((m) => m.month <= currentMonth).reduce((s, m) => s + m.amount, 0)
+  const ytdSpent = actual_total.months.filter((m) => m.month <= currentMonth).reduce((s, m) => s + m.amount, 0)
+  const ytdSpentMarket = marketSpendMonths.months
+    .filter((m) => m.month <= currentMonth)
+    .reduce((s, m) => s + m.amount, 0)
+  const annualPlanned = plan_total.annual_total
 
   const ytd: YtdSummary = {
     planned: ytdPlanned,
     spent: ytdSpent,
+    spent_market: ytdSpentMarket,
     remaining: annualPlanned - ytdSpent,
     pacing_pct: ytdPlanned > 0 ? (ytdSpent / ytdPlanned) * 100 : 0,
   }
 
-  // 4. Auto Pilot monthly (from autopilot campaigns' weekly_budget × 4.3)
-  const { data: apCampaigns } = await supabase
-    .from('campaigns')
-    .select('weekly_budget')
-    .eq('brand_market_id', brand_market_id)
-    .eq('mode', 'autopilot')
-    .in('status', ['active', 'learning'])
-
-  const monthlyAp = (apCampaigns ?? []).reduce((s, c) => s + ((c.weekly_budget ?? 0) * 4.3), 0)
-  const autopilotMonthly = Array.from({ length: 12 }, () => monthlyAp)
-
   return {
-    plans,
-    actuals: actualData,
-    autopilot_monthly: autopilotMonthly,
+    plans_by_channel,
+    actuals_by_channel,
+    plan_total,
+    actual_total,
     ytd,
   }
 }
 
-// ─── PUT: Save budgets ───
+// ─── PUT: Save budgets (`total` unified or legacy sp/sb/sd) ───
 
-const saveBudgets = async (brandMarketId: string, year: number, entries: BudgetEntry[], userId: string) => {
+const saveBudgets = async (
+  brandMarketId: string,
+  year: number,
+  orgUnitId: string,
+  entries: BudgetEntry[],
+  userId: string,
+) => {
   const supabase = createAdsAdminClient()
 
-  // Upsert each entry
+  const isSaveChannel = (c: string): c is SaveChannel =>
+    (SAVE_CHANNELS as readonly string[]).includes(c)
+
   for (const entry of entries) {
-    // Check if exists
+    if (!isSaveChannel(entry.channel)) continue
+
     const { data: existing } = await supabase
       .from('budgets')
       .select('id, amount')
       .eq('brand_market_id', brandMarketId)
+      .eq('org_unit_id', orgUnitId)
       .eq('year', year)
-      .eq('channel', entry.channel)
+      .eq('channel', entry.channel as string)
       .eq('month', entry.month)
       .eq('is_actual', false)
-      .single()
+      .maybeSingle()
 
     if (existing) {
-      // Update + log change
       if (existing.amount !== entry.amount) {
         await supabase
           .from('budgets')
@@ -125,11 +171,10 @@ const saveBudgets = async (brandMarketId: string, year: number, entries: BudgetE
         })
       }
     } else {
-      // Insert new
       const { data: newBudget } = await supabase
         .from('budgets')
         .insert({
-          org_unit_id: brandMarketId, // TODO: resolve proper org_unit_id
+          org_unit_id: orgUnitId,
           brand_market_id: brandMarketId,
           year,
           month: entry.month,
@@ -158,13 +203,19 @@ const saveBudgets = async (brandMarketId: string, year: number, entries: BudgetE
 
 // ─── GET: Change log ───
 
-const getBudgetChangeLog = async (brandMarketId: string, year: number, limit = 50): Promise<BudgetChangeLogItem[]> => {
+const getBudgetChangeLog = async (
+  brandMarketId: string,
+  orgUnitId: string,
+  year: number,
+  limit = 50,
+): Promise<BudgetChangeLogItem[]> => {
   const supabase = createAdsAdminClient()
 
   const { data: budgetIds } = await supabase
     .from('budgets')
     .select('id')
     .eq('brand_market_id', brandMarketId)
+    .eq('org_unit_id', orgUnitId)
     .eq('year', year)
 
   const ids = (budgetIds ?? []).map((b) => b.id)
@@ -177,9 +228,9 @@ const getBudgetChangeLog = async (brandMarketId: string, year: number, limit = 5
     .order('changed_at', { ascending: false })
     .limit(limit)
 
-  // Get user names
   const userIds = [...new Set((logs ?? []).map((l) => l.user_id))]
-  const { data: users } = await supabase
+  const publicDb = createAdminClient()
+  const { data: users } = await publicDb
     .from('users')
     .select('id, name')
     .in('id', userIds.length > 0 ? userIds : ['__none__'])

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, Trash2, Globe, Tag, Shield } from 'lucide-react'
 import { MARKETPLACES, MARKETPLACE_CODES } from '@/constants/marketplaces'
 
@@ -25,6 +25,8 @@ type OrgUnit = {
   id: string
   name: string
   level: string
+  parent_id: string | null
+  sort_order?: number
 }
 
 type Permission = {
@@ -40,6 +42,15 @@ const MARKETPLACE_OPTIONS = MARKETPLACE_CODES.map(code => ({
   value: code,
   label: `${code} (${MARKETPLACES[code].domain})`,
 }))
+
+const ORG_LEVEL_LABELS: Record<string, string> = {
+  company: '회사',
+  division: '부문',
+  business_unit: '사업부',
+  department: '부서',
+  team: '팀',
+  unit: '유닛',
+}
 
 export const BrandMarketSettings = ({ isOwner }: { isOwner: boolean }) => {
   const [brands, setBrands] = useState<Brand[]>([])
@@ -83,6 +94,59 @@ export const BrandMarketSettings = ({ isOwner }: { isOwner: boolean }) => {
   }, [])
 
   useEffect(() => { fetchAll() }, [fetchAll])
+
+  const orgOptions = useMemo(() => {
+    const children = new Map<string, OrgUnit[]>()
+    const byId = new Map(orgUnits.map((org) => [org.id, org]))
+
+    for (const org of orgUnits) {
+      const pid = org.parent_id ?? '__root__'
+      if (!children.has(pid)) children.set(pid, [])
+      children.get(pid)!.push(org)
+    }
+
+    for (const arr of children.values()) {
+      arr.sort((a, b) => {
+        const sortGap = (a.sort_order ?? 0) - (b.sort_order ?? 0)
+        if (sortGap !== 0) return sortGap
+        return a.name.localeCompare(b.name)
+      })
+    }
+
+    const buildPath = (id: string): string => {
+      const parts: string[] = []
+      let cur = byId.get(id)
+      while (cur) {
+        parts.unshift(cur.name)
+        cur = cur.parent_id ? byId.get(cur.parent_id) : undefined
+      }
+      return parts.join(' / ')
+    }
+
+    const out: { id: string; label: string; path: string; depth: number; level: string }[] = []
+    const walk = (parentId: string | null, depth: number) => {
+      const key = parentId ?? '__root__'
+      for (const org of children.get(key) ?? []) {
+        const indent = '· '.repeat(Math.max(depth, 0))
+        const level = ORG_LEVEL_LABELS[org.level] ?? org.level
+        out.push({
+          id: org.id,
+          label: `${indent}${org.name} (${level})`,
+          path: buildPath(org.id),
+          depth,
+          level,
+        })
+        walk(org.id, depth + 1)
+      }
+    }
+
+    walk(null, 0)
+    return out
+  }, [orgUnits])
+
+  const orgPathById = useMemo(() => {
+    return new Map(orgOptions.map((o) => [o.id, o.path]))
+  }, [orgOptions])
 
   const toggleBrand = (id: string) => {
     setExpandedBrands(prev => {
@@ -289,7 +353,14 @@ export const BrandMarketSettings = ({ isOwner }: { isOwner: boolean }) => {
                 <tbody className="divide-y divide-th-border">
                   {permissions.map(perm => (
                     <tr key={perm.id} className="hover:bg-th-bg-hover">
-                      <td className="px-4 py-2.5 text-th-text">{perm.org_units?.name ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-th-text">
+                        <div className="space-y-0.5">
+                          <p>{perm.org_units?.name ?? '—'}</p>
+                          <p className="text-[11px] text-th-text-muted">
+                            {orgPathById.get(perm.org_unit_id) ?? '경로 정보 없음'}
+                          </p>
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5 text-th-text">{perm.brand_markets?.brands?.name ?? '—'}</td>
                       <td className="px-4 py-2.5 font-mono text-th-text">{perm.brand_markets?.marketplace ?? '—'}</td>
                       <td className="px-4 py-2.5">
@@ -348,8 +419,10 @@ export const BrandMarketSettings = ({ isOwner }: { isOwner: boolean }) => {
                   className="w-full rounded-lg border border-th-border bg-th-bg px-3 py-2 text-sm text-th-text"
                 >
                   <option value="">조직 선택...</option>
-                  {orgUnits.map(org => (
-                    <option key={org.id} value={org.id}>{org.name}</option>
+                  {orgOptions.map(org => (
+                    <option key={org.id} value={org.id} title={org.path}>
+                      {org.label}
+                    </option>
                   ))}
                 </select>
               </div>

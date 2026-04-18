@@ -9,7 +9,7 @@
 
 ## 1. Overview
 
-Amazon Ads API를 통해 캠페인 2,423개를 sync 했으나 **성과 데이터(ACoS, ROAS, Spend, Orders)가 비어 있다**. Report Sync를 수정하여 `ads.report_snapshots`에 일별 데이터를 채우고, 이를 Dashboard/Campaign 화면에 연결한다. 이후 200줄 초과 대형 파일 5개를 분리하여 코드 품질을 맞춘다.
+Amazon Ads API를 통해 캠페인 2,423개를 sync 했으나 **성과 데이터(ACoS, ROAS, Spend, Orders)가 비어 있다**. Report Sync를 수정하여 `ads.report_snapshots`에 일별 데이터를 채우고, 이를 Dashboard/Campaign 화면에 연결한다. 이후 250줄을 초과하는 대형 파일 5개를 분리하여 코드 품질을 맞춘다.
 
 ---
 
@@ -360,7 +360,7 @@ src/modules/ads/api/adapters/
 - [ ] Director Dashboard: Team Performance spend/acos/campaigns_count 표시
 - [ ] Campaign List: 각 캠페인에 spend_7d, acos, roas, orders_7d 표시
 - [ ] Campaign Detail: metrics_7d 섹션 데이터 표시
-- [ ] 모든 분리된 파일 200줄 이하
+- [ ] 모든 분리된 파일 250줄 이하
 - [ ] `pnpm typecheck && pnpm lint && pnpm build` 통과
 
 ---

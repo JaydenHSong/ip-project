@@ -11,6 +11,8 @@ import type { DirectorDashboardData, PendingActionItem } from '../types'
 type DirectorDashboardProps = {
   data: DirectorDashboardData | null
   isLoading?: boolean
+  errorMessage?: string | null
+  onRetry?: () => void
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
@@ -73,7 +75,24 @@ const PendingActionsList = ({ actions }: { actions: PendingActionItem[] }) => {
 
 // ─── Main ───
 
-const DirectorDashboard = ({ data, isLoading }: DirectorDashboardProps) => {
+const DirectorDashboard = ({ data, isLoading, errorMessage, onRetry }: DirectorDashboardProps) => {
+  if (errorMessage) {
+    return (
+      <div className="rounded-lg border border-th-border bg-surface-card p-6 text-center">
+        <p className="text-sm text-red-700">{errorMessage}</p>
+        {onRetry ? (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="mt-4 rounded-md bg-th-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            Retry
+          </button>
+        ) : null}
+      </div>
+    )
+  }
+
   if (isLoading || !data) {
     return (
       <div className="space-y-6">
@@ -159,9 +178,9 @@ const DirectorDashboard = ({ data, isLoading }: DirectorDashboardProps) => {
       <div className="rounded-lg border border-th-border bg-surface-card p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-th-text">Pending Actions</h3>
-          {data.pending_actions.length > 0 && (
+          {data.pending_actions_total > 0 && (
             <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-              {data.pending_actions.length}
+              {data.pending_actions_total}
             </span>
           )}
         </div>

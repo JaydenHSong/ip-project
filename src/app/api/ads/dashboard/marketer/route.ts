@@ -2,9 +2,9 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminClient } from '@/lib/supabase/admin'
 
-export const GET = withAuth(async (req, { user }) => {
+export const GET = withAuth(async (req) => {
   const url = new URL(req.url)
   const brandMarketId = url.searchParams.get('brand_market_id')
 
@@ -16,46 +16,82 @@ export const GET = withAuth(async (req, { user }) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const supabase = createAdsAdminClient()
 
-    // Fetch campaigns assigned to user for the brand_market
+    const { count: marketCampaignCount, error: countError } = await supabase
+      .from('campaigns')
+      .select('id', { count: 'exact', head: true })
+      .eq('brand_market_id', brandMarketId)
+
+    if (countError) throw countError
+
     const { data: campaigns, error: campError } = await supabase
-      .from('ads.campaigns')
+      .from('campaigns')
       .select('id, name, status, mode, target_acos, daily_budget, weekly_budget')
       .eq('brand_market_id', brandMarketId)
-      .eq('assigned_to', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(10)
 
     if (campError) throw campError
 
-    // Fetch active alerts for this brand_market
     const { data: alerts, error: alertError } = await supabase
-      .from('ads.alerts')
-      .select('id, alert_type, severity, status, created_at')
+      .from('alerts')
+      .select('id, alert_type, severity, title, created_at')
       .eq('brand_market_id', brandMarketId)
-      .in('status', ['new', 'escalated'])
+      .eq('is_resolved', false)
       .order('created_at', { ascending: false })
       .limit(10)
 
     if (alertError) throw alertError
 
-    // Fetch pending recommendations
-    const { data: recommendations, error: recError } = await supabase
-      .from('ads.recommendations')
-      .select('id, type, priority, status, created_at')
+    const { count: alertsCount, error: alertCountError } = await supabase
+      .from('alerts')
+      .select('id', { count: 'exact', head: true })
+      .eq('brand_market_id', brandMarketId)
+      .eq('is_resolved', false)
+
+    if (alertCountError) throw alertCountError
+
+    const { data: recRows, error: recError } = await supabase
+      .from('keyword_recommendations')
+      .select('id, recommendation_type, keyword_text, impact_level, estimated_impact, status, created_at')
       .eq('brand_market_id', brandMarketId)
       .eq('status', 'pending')
-      .order('priority', { ascending: false })
+      .order('estimated_impact', { ascending: false })
       .limit(10)
 
     if (recError) throw recError
 
+    const { count: recommendationCount, error: recCountError } = await supabase
+      .from('keyword_recommendations')
+      .select('id', { count: 'exact', head: true })
+      .eq('brand_market_id', brandMarketId)
+      .eq('status', 'pending')
+
+    if (recCountError) throw recCountError
+
+    const priorityFromImpact = (level: string | null) => {
+      if (level === 'high') return 9
+      if (level === 'low') return 3
+      return 5
+    }
+
+    const recommendations = (recRows ?? []).map((r) => ({
+      id: r.id,
+      type: r.recommendation_type,
+      priority: priorityFromImpact(r.impact_level),
+      status: r.status,
+      created_at: r.created_at,
+      keyword_text: r.keyword_text,
+    }))
+
     const data = {
       campaigns: campaigns ?? [],
-      campaign_count: campaigns?.length ?? 0,
+      campaign_count: marketCampaignCount ?? 0,
       alerts: alerts ?? [],
-      alert_count: alerts?.length ?? 0,
-      recommendations: recommendations ?? [],
-      recommendation_count: recommendations?.length ?? 0,
+      alert_count: alertsCount ?? 0,
+      recommendations,
+      recommendation_count: recommendationCount ?? 0,
     }
 
     return NextResponse.json({ data })

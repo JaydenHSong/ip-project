@@ -1,101 +1,28 @@
-// S13 — Channel Breakdown YTD
-// Design Ref: §5.3 S13 "Channel Breakdown YTD"
+// S13 — Team budget YTD (single total; no per-channel split)
 'use client'
 
-import type { ChannelBudget } from '../types'
+import type { TeamMonthlyBudget } from '../types'
 
 type ChannelBreakdownProps = {
-  plans: ChannelBudget[]
-  actuals: ChannelBudget[]
+  plans: TeamMonthlyBudget
+  actuals: TeamMonthlyBudget
   className?: string
-}
-
-const CHANNEL_LABELS: Record<string, string> = {
-  sp: 'Sponsored Products',
-  sb: 'Sponsored Brands',
-  sd: 'Sponsored Display',
-}
-
-const CHANNEL_COLORS: Record<string, string> = {
-  sp: 'bg-th-text',
-  sb: 'bg-orange-500',
-  sd: 'bg-gray-400',
-}
-
-const fmt = (v: number) => {
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`
-  return `$${v.toFixed(0)}`
 }
 
 const ChannelBreakdown = ({ plans, actuals, className = '' }: ChannelBreakdownProps) => {
   const currentMonth = new Date().getMonth() + 1
 
-  const channels = plans.map((p) => {
-    const actual = actuals.find((a) => a.channel === p.channel)
-    const ytdPlanned = p.months.filter((m) => m.month <= currentMonth).reduce((s, m) => s + m.amount, 0)
-    const ytdActual = actual?.months.filter((m) => m.month <= currentMonth).reduce((s, m) => s + m.amount, 0) ?? 0
-    const pct = ytdPlanned > 0 ? (ytdActual / ytdPlanned) * 100 : 0
-
-    return {
-      channel: p.channel,
-      ytd_planned: ytdPlanned,
-      ytd_actual: ytdActual,
-      annual: p.annual_total,
-      pacing_pct: pct,
-    }
-  })
-
-  const totalActual = channels.reduce((s, c) => s + c.ytd_actual, 0)
+  const ytdPlanned = plans.months.filter((m) => m.month <= currentMonth).reduce((s, m) => s + m.amount, 0)
+  const ytdActual = actuals.months.filter((m) => m.month <= currentMonth).reduce((s, m) => s + m.amount, 0)
+  const pct = ytdPlanned > 0 ? Math.min((ytdActual / ytdPlanned) * 100, 100) : 0
 
   return (
     <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
-      <h3 className="text-sm font-medium text-th-text mb-4">Channel Breakdown (YTD)</h3>
-
-      {/* Stacked bar */}
-      <div className="flex h-3 rounded-full overflow-hidden bg-th-bg-tertiary mb-4">
-        {channels.map((ch) => {
-          const widthPct = totalActual > 0 ? (ch.ytd_actual / totalActual) * 100 : 0
-          return (
-            <div
-              key={ch.channel}
-              className={`${CHANNEL_COLORS[ch.channel]} transition-all`}
-              style={{ width: `${widthPct}%` }}
-              title={`${ch.channel.toUpperCase()}: ${fmt(ch.ytd_actual)}`}
-            />
-          )
-        })}
-      </div>
-
-      {/* Detail rows */}
-      <div className="space-y-3">
-        {channels.map((ch) => (
-          <div key={ch.channel} className="flex items-center gap-3">
-            <div className={`h-3 w-3 rounded-sm ${CHANNEL_COLORS[ch.channel]}`} />
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-th-text-secondary">
-                  {CHANNEL_LABELS[ch.channel]}
-                </span>
-                <span className="text-xs text-th-text-muted">
-                  {fmt(ch.ytd_actual)} / {fmt(ch.ytd_planned)}
-                </span>
-              </div>
-              <div className="mt-1 h-1 w-full rounded-full bg-th-bg-tertiary">
-                <div
-                  className={`h-1 rounded-full ${CHANNEL_COLORS[ch.channel]} transition-all`}
-                  style={{ width: `${Math.min(ch.pacing_pct, 100)}%` }}
-                />
-              </div>
-            </div>
-            <span className={`text-xs font-medium ${
-              ch.pacing_pct > 110 ? 'text-red-600' : ch.pacing_pct > 85 ? 'text-emerald-600' : 'text-orange-600'
-            }`}>
-              {ch.pacing_pct.toFixed(0)}%
-            </span>
-          </div>
-        ))}
-      </div>
+      <h3 className="text-sm font-medium text-th-text mb-4">Team budget (YTD)</h3>
+      <svg viewBox="0 0 100 6" className="w-full h-4 text-orange-500" preserveAspectRatio="none" aria-hidden>
+        <rect x="0" y="0" width="100" height="6" className="fill-th-bg-hover" rx="1" />
+        <rect x="0" y="0" width={pct} height="6" className="fill-current" rx="1" />
+      </svg>
     </div>
   )
 }

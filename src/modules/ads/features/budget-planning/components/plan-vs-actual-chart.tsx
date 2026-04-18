@@ -1,28 +1,29 @@
-// S13 — Plan vs Actual Bar Chart
-// Design Ref: §5.3 S13 "Plan vs Actual 바 차트"
+// S13 — Plan vs Actual Bar Chart (team total)
 'use client'
 
-import type { ChannelBudget } from '../types'
+import type { TeamMonthlyBudget } from '../types'
 
 type PlanVsActualChartProps = {
-  plans: ChannelBudget[]
-  actuals: ChannelBudget[]
+  plans: TeamMonthlyBudget
+  actuals: TeamMonthlyBudget
   className?: string
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const MONTHS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
 
 const PlanVsActualChart = ({ plans, actuals, className = '' }: PlanVsActualChartProps) => {
-  // Aggregate all channels per month
-  const monthlyPlan = Array.from({ length: 12 }, (_, i) =>
-    plans.reduce((sum, ch) => sum + (ch.months.find((m) => m.month === i + 1)?.amount ?? 0), 0),
-  )
-  const monthlyActual = Array.from({ length: 12 }, (_, i) =>
-    actuals.reduce((sum, ch) => sum + (ch.months.find((m) => m.month === i + 1)?.amount ?? 0), 0),
+  const monthlyPlan = Array.from({ length: 12 }, (_, i) => plans.months.find((m) => m.month === i + 1)?.amount ?? 0)
+  const monthlyActual = Array.from(
+    { length: 12 },
+    (_, i) => actuals.months.find((m) => m.month === i + 1)?.amount ?? 0,
   )
 
   const maxVal = Math.max(...monthlyPlan, ...monthlyActual, 1)
-  const barHeight = 120
+  const chartH = 100
+  const barW = 3
+  const gap = 4
+  const groupW = barW * 2 + gap
+  const totalW = 12 * groupW + 8
 
   return (
     <div className={`rounded-lg border border-th-border bg-surface-card p-4 ${className}`}>
@@ -39,37 +40,45 @@ const PlanVsActualChart = ({ plans, actuals, className = '' }: PlanVsActualChart
           </div>
         </div>
       </div>
-
-      <div className="flex items-end gap-1" style={{ height: barHeight }}>
+      <svg
+        viewBox={`0 0 ${totalW} ${chartH + 16}`}
+        className="w-full h-36"
+        role="img"
+        aria-label="Plan versus actual by month"
+      >
         {MONTHS.map((label, i) => {
-          const planH = (monthlyPlan[i] / maxVal) * barHeight
-          const actualH = (monthlyActual[i] / maxVal) * barHeight
+          const x0 = 4 + i * groupW
+          const ph = (monthlyPlan[i] / maxVal) * chartH
+          const ah = (monthlyActual[i] / maxVal) * chartH
           return (
-            <div key={label} className="flex-1 flex flex-col items-center gap-0.5">
-              <div className="flex items-end gap-0.5 w-full">
-                {/* Plan bar */}
-                <div
-                  className="flex-1 rounded-t bg-th-bg-tertiary transition-all"
-                  style={{ height: `${planH}px` }}
-                  title={`Plan: $${monthlyPlan[i].toLocaleString()}`}
-                />
-                {/* Actual bar */}
-                <div
-                  className="flex-1 rounded-t bg-orange-500 transition-all"
-                  style={{ height: `${actualH}px` }}
-                  title={`Actual: $${monthlyActual[i].toLocaleString()}`}
-                />
-              </div>
-            </div>
+            <g key={label}>
+              <rect
+                x={x0}
+                y={chartH - ph}
+                width={barW}
+                height={ph}
+                className="fill-th-text-muted/40"
+              />
+              <rect
+                x={x0 + barW + 1}
+                y={chartH - ah}
+                width={barW}
+                height={ah}
+                className="fill-orange-500"
+              />
+              <text
+                x={x0 + barW}
+                y={chartH + 12}
+                textAnchor="middle"
+                className="fill-th-text-muted"
+                fontSize={9}
+              >
+                {label}
+              </text>
+            </g>
           )
         })}
-      </div>
-      {/* X labels */}
-      <div className="flex gap-1 mt-1">
-        {MONTHS.map((label) => (
-          <div key={label} className="flex-1 text-center text-[10px] text-th-text-muted">{label}</div>
-        ))}
-      </div>
+      </svg>
     </div>
   )
 }
