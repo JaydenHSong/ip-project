@@ -5,6 +5,7 @@ import { createAdsAdminClient } from '@/lib/supabase/admin'
 import { adsTable } from '@/lib/supabase/table-names'
 import type { CeoDashboardData, AcosHeatmapCell, BrandSummary, RoasTrendPoint } from '../types'
 import { getMonthRange } from './month-range'
+import { computePrevAcosByBrandMarket } from './compute-prev-period'
 
 const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => {
   const supabase = createAdsAdminClient()
@@ -72,32 +73,7 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
     : failCount > 0 ? 'warning' as const
     : 'healthy' as const
 
-  const prevMonthStart = new Date()
-  prevMonthStart.setMonth(prevMonthStart.getMonth() - 1, 1)
-  const prevMonthEnd = new Date()
-  prevMonthEnd.setDate(0)
-  const prevStart = prevMonthStart.toISOString().split('T')[0]
-  const prevEnd = prevMonthEnd.toISOString().split('T')[0]
-
-  const { data: prevSnapshots } = await supabase
-    .from('report_snapshots')
-    .select('brand_market_id, spend, sales')
-    .in('brand_market_id', bmIds.length > 0 ? bmIds : ['__none__'])
-    .eq('report_level', 'campaign')
-    .gte('report_date', prevStart)
-    .lte('report_date', prevEnd)
-
-  const prevAcosByBm = new Map<string, number>()
-  const prevSpendByBm = new Map<string, number>()
-  const prevSalesByBm = new Map<string, number>()
-  for (const s of prevSnapshots ?? []) {
-    prevSpendByBm.set(s.brand_market_id, (prevSpendByBm.get(s.brand_market_id) ?? 0) + (s.spend ?? 0))
-    prevSalesByBm.set(s.brand_market_id, (prevSalesByBm.get(s.brand_market_id) ?? 0) + (s.sales ?? 0))
-  }
-  for (const [bmId, prevSpend] of prevSpendByBm) {
-    const prevSales = prevSalesByBm.get(bmId) ?? 0
-    prevAcosByBm.set(bmId, prevSales > 0 ? (prevSpend / prevSales) * 100 : 0)
-  }
+  const prevAcosByBm = await computePrevAcosByBrandMarket(supabase, bmIds)
 
   const acosHeatmap: AcosHeatmapCell[] = bms.map((bm) => {
     const bmId = bm.id
