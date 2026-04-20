@@ -4,7 +4,7 @@
 > **Author**: Jayden Song (PM) + Claude (CTO)
 > **Date**: 2026-03-24
 > **Status**: Draft
-> **Depends on**: `spigen-platform-architecture.plan.md` Phase 3
+> **Depends on**: `docs/00-architecture/spigen-platform-architecture.plan.md` Phase 3
 
 ---
 
