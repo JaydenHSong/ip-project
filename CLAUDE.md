@@ -80,8 +80,8 @@ npx vercel --prod       # Production 배포 (확인 후)
 
 ## Architecture Reference
 
-- Platform Plan: `docs/01-plan/features/spigen-platform-architecture.plan.md`
-- Platform Design: `docs/02-design/features/spigen-platform-architecture.design.md`
+- Platform Plan: `docs/00-architecture/spigen-platform-architecture.plan.md`
+- Platform Design: `docs/00-architecture/spigen-platform-architecture.design.md`
 - Permission System: `docs/01-plan/features/org-permission-system.plan.md`
 - Safety Rules: `docs/BOUNDARIES.md`
 - Module onboarding: `docs/ONBOARDING.md`

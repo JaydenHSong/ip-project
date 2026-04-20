@@ -59,5 +59,5 @@
 
 ## 자세한 내용
 
-- Full Plan: `docs/01-plan/features/spigen-platform-architecture.plan.md`
-- Full Design: `docs/02-design/features/spigen-platform-architecture.design.md`
+- Full Plan: `docs/00-architecture/spigen-platform-architecture.plan.md`
+- Full Design: `docs/00-architecture/spigen-platform-architecture.design.md`

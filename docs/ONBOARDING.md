@@ -245,7 +245,7 @@ https://docs.google.com/spreadsheets/d/1Z6m2ez4ITpjeQVr4zeLmLFyr-Ac-JyPVxluE3UQE
 ## 10. 문의
 
 - PM: Jayden Song (jsong@spigen.com)
-- 아키텍처: `docs/01-plan/features/spigen-platform-architecture.plan.md`
-- 디자인: `docs/02-design/features/spigen-platform-architecture.design.md`
+- 아키텍처: `docs/00-architecture/spigen-platform-architecture.plan.md`
+- 디자인: `docs/00-architecture/spigen-platform-architecture.design.md`
 - 권한 시스템: `docs/01-plan/features/org-permission-system.plan.md`
 - 안전장치: `docs/BOUNDARIES.md`

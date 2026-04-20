@@ -5,7 +5,7 @@
 | Item | Detail |
 |:--|:--|
 | **Feature** | Platform Architecture — 모듈형 단일 앱 전환 |
-| **Plan** | `docs/01-plan/features/spigen-platform-architecture.plan.md` |
+| **Plan** | `docs/00-architecture/spigen-platform-architecture.plan.md` |
 | **Created** | 2026-03-20 |
 
 ### Value Delivered
