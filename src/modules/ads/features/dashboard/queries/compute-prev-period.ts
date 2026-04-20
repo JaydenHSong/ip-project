@@ -3,6 +3,7 @@
 // Design Ref: §4.2 Heatmap delta logic (extracted from get-ceo-dashboard.ts)
 
 import { createAdsAdminClient } from '@/lib/supabase/admin'
+import { adsTable } from '@/lib/supabase/table-names'
 
 type AdsClient = ReturnType<typeof createAdsAdminClient>
 type PrevAcosByKey = Map<string, number>
@@ -98,7 +99,7 @@ const computeAutopilotImpact = async (
 
   // Note: ads.automation_log (singular) — bug fix from automation_logs (plural)
   const { data: logs } = await supabase
-    .from('automation_log')
+    .from(adsTable('automation_log'))
     .select('id, action_detail')
     .eq('source', 'algorithm')
     .gte('executed_at', sevenDaysAgo)

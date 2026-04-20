@@ -2,6 +2,7 @@
 // Design Ref: §4.2 Recommendations, Rules, Dayparting endpoints
 
 import { createAdsAdminClient } from '@/lib/supabase/admin'
+import { adsTable } from '@/lib/supabase/table-names'
 import type { RecommendationItem, RecommendationSummary, BudgetPacingDetail, KeywordStatsStrip, DaypartingGroup, HeatmapCell } from './types'
 
 // ─── Recommendations ───
@@ -92,7 +93,7 @@ const approveRecommendation = async (id: string, adjustedBid?: number) => {
 
   // Log automation action
   const { data: log } = await supabase
-    .from('automation_log')
+    .from(adsTable('automation_log'))
     .insert({
       campaign_id: rec.campaign_id,
       keyword_id: rec.keyword_id,

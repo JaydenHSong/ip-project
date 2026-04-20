@@ -2,6 +2,7 @@
 // Design Ref: §4.2
 
 import { createAdsAdminClient } from '@/lib/supabase/admin'
+import { adsTable } from '@/lib/supabase/table-names'
 import type { CeoDashboardData, AcosHeatmapCell, BrandSummary, RoasTrendPoint } from '../types'
 import { getMonthRange } from './month-range'
 
@@ -59,7 +60,7 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
 
   // Bug fix: table is ads.automation_log (singular), not automation_logs
   const { data: recentLogs } = await supabase
-    .from('automation_log')
+    .from(adsTable('automation_log'))
     .select('guardrail_blocked, api_success')
     .gte('executed_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
     .limit(100)

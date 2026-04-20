@@ -16,7 +16,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:demo": "DEMO_MODE=true playwright test",
     "test:e2e:s03": "playwright test --config=tools/playwright/playwright.config.ts tools/playwright/tests/s03-campaigns-dashboard.spec.ts",
-    "test:e2e:s03:update": "playwright test --config=tools/playwright/playwright.config.ts tools/playwright/tests/s03-campaigns-dashboard.spec.ts --update-snapshots"
+    "test:e2e:s03:update": "playwright test --config=tools/playwright/playwright.config.ts tools/playwright/tests/s03-campaigns-dashboard.spec.ts --update-snapshots",
+    "types:supabase": "echo 'Regenerate src/lib/supabase/database.types.ts via Supabase MCP (mcp__supabase__generate_typescript_types) and commit. CLI fallback: pnpm dlx supabase gen types typescript --project-id njbhqrrdnmiarjjpgqwd --schema public,ads > src/lib/supabase/database.types.ts'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

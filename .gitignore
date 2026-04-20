@@ -86,8 +86,9 @@ docs/design-exports/
 # Pencil design files
 *.pen
 
-# Supabase (migrations already applied)
-supabase/
+# Supabase migrations folder at repo root (already applied)
+# Use anchored pattern so src/lib/supabase/ is NOT ignored.
+/supabase/
 
 # Tests (local only)
 e2e/

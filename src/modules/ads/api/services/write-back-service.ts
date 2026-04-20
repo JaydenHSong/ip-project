@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AdsPort } from '../ports/ads-port'
 import { checkGuardrails } from '@/modules/ads/engine/guardrails'
 import type { GuardrailCheckParams } from '@/modules/ads/engine/types'
+import { adsTable } from '@/lib/supabase/table-names'
 
 export type WriteBackAction = {
   type: 'bid_adjust' | 'budget_adjust' | 'campaign_state' | 'keyword_add' | 'keyword_negate'
@@ -229,7 +230,7 @@ export class WriteBackService {
     guardrailId: string | null,
     reason: string | null,
   ): Promise<void> {
-    await this.db.from('automation_log').insert({
+    await this.db.from(adsTable('automation_log')).insert({
       campaign_id: action.campaign_id,
       keyword_id: action.keyword_id ?? null,
       batch_id: crypto.randomUUID(),
