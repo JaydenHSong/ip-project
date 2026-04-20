@@ -10,6 +10,11 @@ import type {
   PendingActionItem,
 } from '../types'
 import { getMonthRange } from './month-range'
+import {
+  computePrevAcosByBrandMarket,
+  computePrevAcosByTeam,
+  computeAutopilotImpact,
+} from './compute-prev-period'
 
 const getDirectorDashboard = async (
   orgUnitId: string,
@@ -86,6 +91,9 @@ const getDirectorDashboard = async (
     })
   }
 
+  // Compute previous-month ACoS by bm for delta computation (shared helper)
+  const prevAcosByBm = await computePrevAcosByBrandMarket(supabase, brandMarketIds)
+
   const marketPerformance: AcosHeatmapCell[] = []
   for (const [bmId, spend] of spendByBm) {
     const bm = bmLookup.get(bmId)
@@ -93,25 +101,17 @@ const getDirectorDashboard = async (
       .filter((s) => s.brand_market_id === bmId)
       .reduce((sum, s) => sum + (s.sales ?? 0), 0)
     const acos = sales > 0 ? (spend / sales) * 100 : 0
+    const prevAcos = prevAcosByBm.get(bmId) ?? 0
     marketPerformance.push({
       brand: bm?.brand_name ?? 'Unknown',
       market: bm?.marketplace ?? 'US',
       acos,
-      delta: 0,
+      delta: prevAcos > 0 ? acos - prevAcos : 0,
     })
   }
 
-  const { data: apLogs } = await supabase
-    .from('automation_logs')
-    .select('id, action_type')
-    .eq('source', 'algorithm')
-    .gte('executed_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-
-  const autopilotImpact = {
-    acos_change: 0,
-    savings: 0,
-    actions_7d: (apLogs ?? []).length,
-  }
+  // Plan §1.2 fix: compute real autopilot impact (was hardcoded 0/0)
+  const autopilotImpact = await computeAutopilotImpact(supabase, brandMarketIds)
 
   const { data: teams } = await supabase
     .from('org_units')
@@ -156,15 +156,20 @@ const getDirectorDashboard = async (
     teamSales.set(teamId, (teamSales.get(teamId) ?? 0) + (s.sales ?? 0))
   }
 
+  // Compute previous-month ACoS by team for delta_acos (shared helper)
+  const prevAcosByTeam = await computePrevAcosByTeam(supabase, campaignToTeam)
+
   const teamPerformance: TeamPerformanceItem[] = (teams ?? []).map((t) => {
     const spend = teamSpend.get(t.id) ?? 0
     const sales = teamSales.get(t.id) ?? 0
+    const acos = sales > 0 ? (spend / sales) * 100 : 0
+    const prevAcos = prevAcosByTeam.get(t.id) ?? 0
     return {
       org_unit_id: t.id,
       team_name: t.name,
       spend,
-      acos: sales > 0 ? (spend / sales) * 100 : 0,
-      delta_acos: 0,
+      acos,
+      delta_acos: prevAcos > 0 ? acos - prevAcos : 0,
       campaigns_count: teamCampaignCounts.get(t.id) ?? 0,
     }
   })

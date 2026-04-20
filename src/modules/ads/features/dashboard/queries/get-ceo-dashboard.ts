@@ -40,7 +40,9 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
       spend_mtd: spend,
       sales_mtd: sales,
       acos: sales > 0 ? (spend / sales) * 100 : 0,
-      tacos: 0,
+      // tacos requires account-level total sales (Sales & Traffic report).
+      // Until report_level='account' snapshots are ingested, return null so UI can show "—".
+      tacos: null,
       roas: spend > 0 ? sales / spend : 0,
       roas_trend: [],
       orders_mtd: orders,
@@ -55,8 +57,9 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
     .in('brand_market_id', bmIds.length > 0 ? bmIds : ['__none__'])
     .eq('is_resolved', false)
 
+  // Bug fix: table is ads.automation_log (singular), not automation_logs
   const { data: recentLogs } = await supabase
-    .from('automation_logs')
+    .from('automation_log')
     .select('guardrail_blocked, api_success')
     .gte('executed_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
     .limit(100)

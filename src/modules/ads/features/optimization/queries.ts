@@ -92,7 +92,7 @@ const approveRecommendation = async (id: string, adjustedBid?: number) => {
 
   // Log automation action
   const { data: log } = await supabase
-    .from('automation_logs')
+    .from('automation_log')
     .insert({
       campaign_id: rec.campaign_id,
       keyword_id: rec.keyword_id,
