@@ -69,8 +69,11 @@ arc-{module}/
 | 모듈 | 패키지 | 상태 |
 |:--|:--|:--|
 | AD Optimizer | `arc-ads/` | ✅ 생성됨 |
-| Listing Management | `arc-listings/` | 미생성 |
-| Product Library | `arc-products/` | 미생성 |
-| Product Planning | `arc-planning/` | 미생성 |
-| Finance | `arc-finance/` | 미생성 |
-| Logistics | `arc-logistics/` | 미생성 |
+| **Product Library** | **`arc-products/`** | **✅ 생성됨 (Phase 1)** |
+| Reimbursement | `arc-reimb/` | 미생성 (Phase 1 병렬) |
+| Listing Management | `arc-listings/` | 미생성 (Phase 2) |
+| Finance | `arc-finance/` | 미생성 (Phase 3) |
+| OMS | `arc-oms/` | 미생성 (Phase 4) |
+| Product Planning | `arc-planning/` | 미생성 (Phase 5) |
+
+> Phase 순서는 `docs/01-plan/features/platform-roadmap-2026.plan.md` 참조
