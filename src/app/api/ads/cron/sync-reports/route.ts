@@ -1,25 +1,20 @@
-// POST /api/ads/cron/sync-reports — Cron: Reporting → report_snapshots (daily 2AM)
+// Cron: Reporting → report_snapshots (daily 2AM)
+// Design Ref: ft-runtime-hardening §3.3 — createCronHandler 통일
 
-import { NextResponse } from 'next/server'
+import { createCronHandler } from '@/lib/api/cron-handler'
 import { syncReports } from '@/modules/ads/cron/sync-reports'
 
-export async function POST(req: Request) {
-  const authHeader = req.headers.get('authorization')
+const handler = createCronHandler(
+  async (ctx) => {
+    const result = await syncReports(ctx)
+    return {
+      data: result,
+      summary: `Synced ${result.synced} (created ${result.created}, updated ${result.updated}, errors ${result.errors})`,
+    }
+  },
+  { name: 'sync-reports', maxDuration: 300 },
+)
 
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json(
-      { error: { code: 'UNAUTHORIZED', message: 'Invalid CRON_SECRET' } },
-      { status: 401 },
-    )
-  }
-
-  try {
-    const result = await syncReports()
-    return NextResponse.json({ success: true, message: 'Report sync completed', data: result })
-  } catch (err) {
-    return NextResponse.json(
-      { error: { code: 'CRON_ERROR', message: err instanceof Error ? err.message : 'Unknown error' } },
-      { status: 500 },
-    )
-  }
-}
+export const GET = handler.GET
+export const POST = handler.POST
+export const maxDuration = 300

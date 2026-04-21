@@ -1,11 +1,10 @@
 // Shared previous-period aggregation for delta computations
 // Used by both CEO and Director dashboards to avoid divergence.
 // Design Ref: §4.2 Heatmap delta logic (extracted from get-ceo-dashboard.ts)
+// Design Ref: ft-runtime-hardening §3.6 — ctx 주입
 
-import { createAdsAdminClient } from '@/lib/supabase/admin'
-import { adsTable } from '@/lib/supabase/table-names'
+import type { AdsAdminContext } from '@/lib/supabase/ads-context'
 
-type AdsClient = ReturnType<typeof createAdsAdminClient>
 type PrevAcosByKey = Map<string, number>
 
 const getPrevMonthRange = () => {
@@ -21,14 +20,14 @@ const getPrevMonthRange = () => {
 
 // Computes ACoS by brand_market_id for the previous calendar month
 const computePrevAcosByBrandMarket = async (
-  supabase: AdsClient,
+  ctx: AdsAdminContext,
   brandMarketIds: string[],
 ): Promise<PrevAcosByKey> => {
   const { start, end } = getPrevMonthRange()
   const filter = brandMarketIds.length > 0 ? brandMarketIds : ['__none__']
 
-  const { data: prev } = await supabase
-    .from('report_snapshots')
+  const { data: prev } = await ctx.ads
+    .from(ctx.adsTable('report_snapshots'))
     .select('brand_market_id, spend, sales')
     .in('brand_market_id', filter)
     .eq('report_level', 'campaign')
@@ -53,15 +52,15 @@ const computePrevAcosByBrandMarket = async (
 // Computes ACoS by team (org_unit_id) for the previous calendar month.
 // Requires a campaignToTeam map built by the caller.
 const computePrevAcosByTeam = async (
-  supabase: AdsClient,
+  ctx: AdsAdminContext,
   campaignToTeam: Map<string, string>,
 ): Promise<PrevAcosByKey> => {
   const { start, end } = getPrevMonthRange()
   const campaignIds = Array.from(campaignToTeam.keys())
   const filter = campaignIds.length > 0 ? campaignIds : ['__none__']
 
-  const { data: prev } = await supabase
-    .from('report_snapshots')
+  const { data: prev } = await ctx.ads
+    .from(ctx.adsTable('report_snapshots'))
     .select('campaign_id, spend, sales')
     .in('campaign_id', filter)
     .eq('report_level', 'campaign')
@@ -88,7 +87,7 @@ const computePrevAcosByTeam = async (
 // Computes 7-day automation impact: actions count + sum of estimated savings.
 // Plan SC: Director must show acos_change & savings (not 0 placeholders).
 const computeAutopilotImpact = async (
-  supabase: AdsClient,
+  ctx: AdsAdminContext,
   brandMarketIds: string[],
 ): Promise<{ acos_change: number; savings: number; actions_7d: number }> => {
   const filter = brandMarketIds.length > 0 ? brandMarketIds : ['__none__']
@@ -98,8 +97,8 @@ const computeAutopilotImpact = async (
   const fourteenDaysAgoDate = fourteenDaysAgo.split('T')[0]
 
   // Note: ads.automation_log (singular) — bug fix from automation_logs (plural)
-  const { data: logs } = await supabase
-    .from(adsTable('automation_log'))
+  const { data: logs } = await ctx.ads
+    .from(ctx.adsTable('automation_log'))
     .select('id, action_detail')
     .eq('source', 'algorithm')
     .gte('executed_at', sevenDaysAgo)
@@ -115,8 +114,8 @@ const computeAutopilotImpact = async (
   }
 
   // acos_change: compare last 7d ACoS vs prior 7d (14d ago to 7d ago)
-  const { data: snaps } = await supabase
-    .from('report_snapshots')
+  const { data: snaps } = await ctx.ads
+    .from(ctx.adsTable('report_snapshots'))
     .select('report_date, spend, sales')
     .in('brand_market_id', filter)
     .eq('report_level', 'campaign')

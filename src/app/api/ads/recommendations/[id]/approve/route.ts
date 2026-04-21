@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 import { approveRecommendation } from '@/modules/ads/features/optimization/queries'
 import { createWriteBackService, isMockMode } from '@/modules/ads/api/factory'
 import type { ApproveRequest } from '@/modules/ads/features/optimization/types'
@@ -29,16 +29,16 @@ export const POST = withAuth(async (req, { params }) => {
       const profileId = process.env.AMAZON_ADS_PROFILE_ID_US ?? ''
       if (profileId) {
         // Fetch recommendation + campaign for Amazon IDs
-        const supabase = createAdminClient()
-        const { data: rec } = await supabase
-          .from('ads.keyword_recommendations')
+        const ctx = createAdsAdminContext()
+        const { data: rec } = await ctx.ads
+          .from(ctx.adsTable('keyword_recommendations'))
           .select('recommendation_type, keyword_text, current_bid, suggested_bid, campaign_id')
           .eq('id', id)
           .single()
 
         if (rec) {
-          const { data: campaign } = await supabase
-            .from('ads.campaigns')
+          const { data: campaign } = await ctx.ads
+            .from(ctx.adsTable('campaigns'))
             .select('amazon_campaign_id, max_bid_cap')
             .eq('id', rec.campaign_id)
             .single()

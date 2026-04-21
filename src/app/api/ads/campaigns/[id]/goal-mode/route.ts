@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 const VALID_GOAL_MODES = ['launch', 'growth', 'profit', 'defend'] as const
 
@@ -27,11 +27,11 @@ export const PATCH = withAuth(async (req, { params }) => {
   }
 
   try {
-    const db = createAdminClient()
+    const ctx = createAdsAdminContext()
 
     // Verify campaign exists and is autopilot mode
-    const { data: campaign } = await db
-      .from('ads.campaigns')
+    const { data: campaign } = await ctx.ads
+      .from(ctx.adsTable('campaigns'))
       .select('id, mode, goal_mode')
       .eq('id', id)
       .single()
@@ -50,8 +50,8 @@ export const PATCH = withAuth(async (req, { params }) => {
       )
     }
 
-    const { error } = await db
-      .from('ads.campaigns')
+    const { error } = await ctx.ads
+      .from(ctx.adsTable('campaigns'))
       .update({ goal_mode: body.goal_mode })
       .eq('id', id)
 

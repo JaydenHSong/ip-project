@@ -1,8 +1,10 @@
 // AD Optimizer — Keyword Pipeline Daily Cron (FR-05)
 // Design Ref: §5 — Schedule: 0 6 * * * (매일 6AM UTC)
+// Design Ref: ft-runtime-hardening §3.4 — ctx 주입 entry point
 // Plan SC: SC-05 키워드 수확, SC-06 키워드 제거
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AdsAdminContext, AnyAdsDb } from '@/lib/supabase/ads-context'
+import { createWriteBackService } from '@/modules/ads/api/factory'
 import type { WriteBackAction } from '../api/services/write-back-service'
 import { fetchAutoPilotCampaigns } from './autopilot-run'
 import { runKeywordPipeline } from '../engine/autopilot/keyword-pipeline'
@@ -15,10 +17,15 @@ type PipelineCronResult = {
   errors: string[]
 }
 
-/** Daily keyword pipeline: harvest + negate for all autopilot campaigns. */
-async function runKeywordPipelineCron(
+type PipelineCronBatchResult = {
+  profiles: Array<{ profile_id: string } & PipelineCronResult>
+  message?: string
+}
+
+/** Daily keyword pipeline for a single profile: harvest + negate for all autopilot campaigns. */
+async function runKeywordPipelineForProfile(
   profileId: string,
-  db: SupabaseClient,
+  db: AnyAdsDb,
   executeBatch: (actions: WriteBackAction[]) => Promise<unknown>,
 ): Promise<PipelineCronResult> {
   const result: PipelineCronResult = { promoted: 0, negated: 0, skipped: 0, errors: [] }
@@ -83,5 +90,40 @@ async function runKeywordPipelineCron(
   return result
 }
 
-export { runKeywordPipelineCron }
-export type { PipelineCronResult }
+/**
+ * Cron entry point: iterate over all active profiles and run keyword pipeline.
+ * Called by /api/ads/cron/keyword-pipeline route via createCronHandler.
+ * Design Ref: ft-runtime-hardening §3.4
+ */
+async function runKeywordPipelineCron(ctx: AdsAdminContext): Promise<PipelineCronBatchResult> {
+  const { data: profiles, error } = await ctx.ads
+    .from(ctx.adsTable('marketplace_profiles'))
+    .select('id')
+    .eq('status', 'active')
+
+  if (error) {
+    throw new Error(`Failed to fetch marketplace profiles: ${error.message}`)
+  }
+
+  if (!profiles?.length) {
+    return { profiles: [], message: 'No active profiles' }
+  }
+
+  const results = await Promise.all(
+    profiles.map(async (p) => {
+      const pid = p.id as string
+      const wbService = createWriteBackService(pid)
+      const profileResult = await runKeywordPipelineForProfile(
+        pid,
+        ctx.ads,
+        (actions) => wbService.executeBatch(actions as WriteBackAction[]),
+      )
+      return { profile_id: pid, ...profileResult }
+    }),
+  )
+
+  return { profiles: results }
+}
+
+export { runKeywordPipelineCron, runKeywordPipelineForProfile }
+export type { PipelineCronResult, PipelineCronBatchResult }

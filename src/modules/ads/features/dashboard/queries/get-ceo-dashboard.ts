@@ -1,25 +1,28 @@
 // S01 — CEO dashboard aggregation (server)
 // Design Ref: §4.2
+// Design Ref: ft-runtime-hardening §3.6 — cross-schema 분리 (brand_markets = public, report_snapshots = ads)
 
-import { createAdsAdminClient } from '@/lib/supabase/admin'
-import { adsTable } from '@/lib/supabase/table-names'
+import type { AdsAdminContext } from '@/lib/supabase/ads-context'
 import type { CeoDashboardData, AcosHeatmapCell, BrandSummary, RoasTrendPoint } from '../types'
 import { getMonthRange } from './month-range'
 import { computePrevAcosByBrandMarket } from './compute-prev-period'
 
-const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => {
-  const supabase = createAdsAdminClient()
+const getCeoDashboard = async (
+  ctx: AdsAdminContext,
+  orgUnitId: string,
+): Promise<CeoDashboardData> => {
   const { start } = getMonthRange()
 
-  const { data: brandMarkets } = await supabase
-    .from('brand_markets')
+  // brand_markets lives in PUBLIC schema
+  const { data: brandMarkets } = await ctx.public
+    .from(ctx.publicTable('brand_markets'))
     .select('id, brand_name, marketplace')
     .eq('org_unit_id', orgUnitId)
 
   const bms = brandMarkets ?? []
   const bmIds = bms.map((bm) => bm.id)
-  const { data: snapshots } = await supabase
-    .from('report_snapshots')
+  const { data: snapshots } = await ctx.ads
+    .from(ctx.adsTable('report_snapshots'))
     .select('brand_market_id, spend, sales, orders, acos, roas')
     .in('brand_market_id', bmIds.length > 0 ? bmIds : ['__none__'])
     .eq('report_level', 'campaign')
@@ -53,15 +56,15 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
 
   const brands = Array.from(brandMap.values())
 
-  const { count: alertsCount } = await supabase
-    .from('alerts')
+  const { count: alertsCount } = await ctx.ads
+    .from(ctx.adsTable('alerts'))
     .select('id', { count: 'exact', head: true })
     .in('brand_market_id', bmIds.length > 0 ? bmIds : ['__none__'])
     .eq('is_resolved', false)
 
   // Bug fix: table is ads.automation_log (singular), not automation_logs
-  const { data: recentLogs } = await supabase
-    .from(adsTable('automation_log'))
+  const { data: recentLogs } = await ctx.ads
+    .from(ctx.adsTable('automation_log'))
     .select('guardrail_blocked, api_success')
     .gte('executed_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
     .limit(100)
@@ -73,7 +76,7 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
     : failCount > 0 ? 'warning' as const
     : 'healthy' as const
 
-  const prevAcosByBm = await computePrevAcosByBrandMarket(supabase, bmIds)
+  const prevAcosByBm = await computePrevAcosByBrandMarket(ctx, bmIds)
 
   const acosHeatmap: AcosHeatmapCell[] = bms.map((bm) => {
     const bmId = bm.id
@@ -94,8 +97,8 @@ const getCeoDashboard = async (orgUnitId: string): Promise<CeoDashboardData> => 
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
 
-  const { data: trendSnapshots } = await supabase
-    .from('report_snapshots')
+  const { data: trendSnapshots } = await ctx.ads
+    .from(ctx.adsTable('report_snapshots'))
     .select('report_date, brand_market_id, spend, sales')
     .in('brand_market_id', bmIds.length > 0 ? bmIds : ['__none__'])
     .eq('report_level', 'campaign')

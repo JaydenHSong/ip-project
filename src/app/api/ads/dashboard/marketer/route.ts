@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdsAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export const GET = withAuth(async (req) => {
   const url = new URL(req.url)
@@ -16,17 +16,17 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdsAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { count: marketCampaignCount, error: countError } = await supabase
-      .from('campaigns')
+    const { count: marketCampaignCount, error: countError } = await ctx.ads
+      .from(ctx.adsTable('campaigns'))
       .select('id', { count: 'exact', head: true })
       .eq('brand_market_id', brandMarketId)
 
     if (countError) throw countError
 
-    const { data: campaigns, error: campError } = await supabase
-      .from('campaigns')
+    const { data: campaigns, error: campError } = await ctx.ads
+      .from(ctx.adsTable('campaigns'))
       .select('id, name, status, mode, target_acos, daily_budget, weekly_budget')
       .eq('brand_market_id', brandMarketId)
       .order('updated_at', { ascending: false })
@@ -34,8 +34,8 @@ export const GET = withAuth(async (req) => {
 
     if (campError) throw campError
 
-    const { data: alerts, error: alertError } = await supabase
-      .from('alerts')
+    const { data: alerts, error: alertError } = await ctx.ads
+      .from(ctx.adsTable('alerts'))
       .select('id, alert_type, severity, title, created_at')
       .eq('brand_market_id', brandMarketId)
       .eq('is_resolved', false)
@@ -44,16 +44,16 @@ export const GET = withAuth(async (req) => {
 
     if (alertError) throw alertError
 
-    const { count: alertsCount, error: alertCountError } = await supabase
-      .from('alerts')
+    const { count: alertsCount, error: alertCountError } = await ctx.ads
+      .from(ctx.adsTable('alerts'))
       .select('id', { count: 'exact', head: true })
       .eq('brand_market_id', brandMarketId)
       .eq('is_resolved', false)
 
     if (alertCountError) throw alertCountError
 
-    const { data: recRows, error: recError } = await supabase
-      .from('keyword_recommendations')
+    const { data: recRows, error: recError } = await ctx.ads
+      .from(ctx.adsTable('keyword_recommendations'))
       .select('id, recommendation_type, keyword_text, impact_level, estimated_impact, status, created_at')
       .eq('brand_market_id', brandMarketId)
       .eq('status', 'pending')
@@ -62,8 +62,8 @@ export const GET = withAuth(async (req) => {
 
     if (recError) throw recError
 
-    const { count: recommendationCount, error: recCountError } = await supabase
-      .from('keyword_recommendations')
+    const { count: recommendationCount, error: recCountError } = await ctx.ads
+      .from(ctx.adsTable('keyword_recommendations'))
       .select('id', { count: 'exact', head: true })
       .eq('brand_market_id', brandMarketId)
       .eq('status', 'pending')

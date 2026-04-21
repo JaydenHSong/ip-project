@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export const POST = withAuth(async (req) => {
   const body = await req.json() as {
@@ -22,10 +22,10 @@ export const POST = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    let query = supabase
-      .from('ads.report_snapshots')
+    let query = ctx.ads
+      .from(ctx.adsTable('report_snapshots'))
       .select('*')
       .eq('brand_market_id', body.brand_market_id)
       .gte('report_date', body.date_from)

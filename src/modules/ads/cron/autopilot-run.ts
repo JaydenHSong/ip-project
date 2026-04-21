@@ -1,8 +1,14 @@
 // AD Optimizer — AutoPilot Hourly Cron (FR-01)
 // Design Ref: §5 — Schedule: 0 * * * * (매 시간)
+// Design Ref: ft-runtime-hardening §3.4 — ctx 주입 entry point
 // Plan SC: 모든 AutoPilot 캠페인 주기적 평가
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AdsAdminContext } from '@/lib/supabase/ads-context'
+
+// Schema-agnostic client type for cron helpers — accepts both public and ads schemas
+// Design Ref: ft-runtime-hardening §7.1 — ctx.ads/ctx.public 모두 수용
+type AnyDb = AdsAdminContext['ads'] | AdsAdminContext['public']
+import { createWriteBackService } from '@/modules/ads/api/factory'
 import type { AutoPilotContext, MetricsSnapshot } from '../engine/types'
 import { runAutoPilot } from '../engine/autopilot/orchestrator'
 
@@ -13,10 +19,15 @@ type CronResult = {
   errors: string[]
 }
 
+type AutoPilotCronResult = {
+  profiles: Array<{ profile_id: string } & CronResult>
+  message?: string
+}
+
 /** Fetch all active autopilot campaigns for a profile. */
 async function fetchAutoPilotCampaigns(
   profileId: string,
-  db: SupabaseClient,
+  db: AnyDb,
 ): Promise<AutoPilotContext[]> {
   const { data } = await db
     .from('campaigns')
@@ -43,7 +54,7 @@ async function fetchAutoPilotCampaigns(
 /** Fetch 7-day metrics snapshot for a campaign. */
 async function fetchMetricsSnapshot(
   campaignId: string,
-  db: SupabaseClient,
+  db: AnyDb,
 ): Promise<MetricsSnapshot> {
   const { data } = await db
     .from('report_snapshots')
@@ -70,10 +81,10 @@ async function fetchMetricsSnapshot(
   }
 }
 
-/** Main cron entry point: run autopilot for all campaigns in a profile. */
-async function runAutoPilotCron(
+/** Run autopilot for all campaigns in a single profile. */
+async function runAutoPilotForProfile(
   profileId: string,
-  db: SupabaseClient,
+  db: AnyDb,
   executeBatch: (actions: import('@/modules/ads/api/services/write-back-service').WriteBackAction[]) => Promise<import('@/modules/ads/api/services/write-back-service').WriteBackResult[]>,
 ): Promise<CronResult> {
   const result: CronResult = { campaigns_processed: 0, total_actions: 0, total_blocked: 0, errors: [] }
@@ -98,5 +109,40 @@ async function runAutoPilotCron(
   return result
 }
 
-export { runAutoPilotCron, fetchAutoPilotCampaigns, fetchMetricsSnapshot }
-export type { CronResult }
+/**
+ * Cron entry point: iterate over all active profiles and run autopilot.
+ * Called by /api/ads/cron/autopilot-run route via createCronHandler.
+ * Design Ref: ft-runtime-hardening §3.4
+ */
+async function runAutoPilotCron(ctx: AdsAdminContext): Promise<AutoPilotCronResult> {
+  const { data: profiles, error } = await ctx.ads
+    .from(ctx.adsTable('marketplace_profiles'))
+    .select('id')
+    .eq('status', 'active')
+
+  if (error) {
+    throw new Error(`Failed to fetch marketplace profiles: ${error.message}`)
+  }
+
+  if (!profiles?.length) {
+    return { profiles: [], message: 'No active profiles' }
+  }
+
+  const results = await Promise.all(
+    profiles.map(async (p) => {
+      const pid = p.id as string
+      const wbService = createWriteBackService(pid)
+      const profileResult = await runAutoPilotForProfile(
+        pid,
+        ctx.ads,
+        (actions) => wbService.executeBatch(actions),
+      )
+      return { profile_id: pid, ...profileResult }
+    }),
+  )
+
+  return { profiles: results }
+}
+
+export { runAutoPilotCron, runAutoPilotForProfile, fetchAutoPilotCampaigns, fetchMetricsSnapshot }
+export type { CronResult, AutoPilotCronResult }

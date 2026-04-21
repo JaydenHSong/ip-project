@@ -2,11 +2,13 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 import { syncReports } from '@/modules/ads/cron/sync-reports'
 
 export const GET = withAuth(async () => {
   try {
-    const result = await syncReports()
+    const ctx = createAdsAdminContext()
+    const result = await syncReports(ctx)
     return NextResponse.json({ success: true, data: result })
   } catch (err) {
     return NextResponse.json(

@@ -2,7 +2,7 @@
 // Design Ref: §3.7 — 자동 수확 + 제거 파이프라인
 // Plan SC: SC-05 키워드 수확, SC-06 키워드 제거 (전환 오탈 0)
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AnyAdsDb } from '@/lib/supabase/ads-context'
 import type { AutoPilotContext } from '../types'
 import type { GoalStrategy } from './goal-strategy'
 import { getStrategy, getInternalAcosTarget } from './goal-strategy'
@@ -41,7 +41,7 @@ type HarvestResult = {
 async function findHarvestCandidates(
   campaign: AutoPilotContext,
   strategy: GoalStrategy,
-  db: SupabaseClient,
+  db: AnyAdsDb,
 ): Promise<HarvestCandidate[]> {
   const internalTarget = getInternalAcosTarget(campaign.target_acos, campaign.goal_mode)
 
@@ -73,7 +73,7 @@ async function findHarvestCandidates(
 async function findNegateCandidates(
   campaign: AutoPilotContext,
   strategy: GoalStrategy,
-  db: SupabaseClient,
+  db: AnyAdsDb,
 ): Promise<NegateCandidate[]> {
   const { data } = await db
     .from('keywords')
@@ -99,7 +99,7 @@ async function findNegateCandidates(
 /** Filter out search terms already existing as exact keywords. */
 async function filterExistingExact(
   candidates: HarvestCandidate[],
-  db: SupabaseClient,
+  db: AnyAdsDb,
 ): Promise<HarvestCandidate[]> {
   if (!candidates.length) return []
 
@@ -119,7 +119,7 @@ async function filterExistingExact(
 async function runKeywordPipeline(
   profileId: string,
   campaigns: AutoPilotContext[],
-  db: SupabaseClient,
+  db: AnyAdsDb,
 ): Promise<HarvestResult> {
   const result: HarvestResult = { promoted: [], negated: [], skipped_harvest: 0, skipped_negate: 0 }
 

@@ -1,15 +1,19 @@
 // Cron: Reporting → report_snapshots (daily 2AM)
 // Design Ref: §5.1 — Delegates to SyncService via factory
+// Design Ref: ft-runtime-hardening §3.4 — ctx 주입 entry point
 
-import { createAdsAdminClient } from '@/lib/supabase/admin'
+import type { AdsAdminContext } from '@/lib/supabase/ads-context'
 import { createSyncService } from '@/modules/ads/api/factory'
 import type { SyncResult } from '@/modules/ads/api/services/sync'
 
-export async function syncReports(): Promise<SyncResult> {
-  const supabase = createAdsAdminClient()
-
-  const { data: profiles, error } = await supabase
-    .from('marketplace_profiles')
+/**
+ * Cron entry point: fetch active profiles and sync yesterday's reports.
+ * Called by /api/ads/cron/sync-reports route via createCronHandler
+ * AND by /api/ads/amazon/sync-reports manual trigger.
+ */
+export async function syncReports(ctx: AdsAdminContext): Promise<SyncResult> {
+  const { data: profiles, error } = await ctx.ads
+    .from(ctx.adsTable('marketplace_profiles'))
     .select('ads_profile_id')
     .eq('is_active', true)
     .not('ads_profile_id', 'is', null)
