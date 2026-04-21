@@ -45,19 +45,16 @@ export function SyncStatusBadges({ initial }: Props) {
   useEffect(() => {
     const poll = async () => {
       try {
-        const res = await fetch('/api/products/unmapped?limit=1', { cache: 'no-store' });
+        // Dedicated /api/products/sync/status returns both ERP and channel_match summaries
+        // so both badges update accurately after each pipeline run (I4 fix).
+        const res = await fetch('/api/products/sync/status', { cache: 'no-store' });
         if (!res.ok) return;
         const body = await res.json();
-        // lastSyncedAt is in channel_match latest summary; refresh via separate endpoint is ideal,
-        // but we reuse listUnmapped's last_synced_at which reflects channel_match.
-        // For erp freshness, we'd need /api/products/sync/status — deferred (P1).
-        if (body.lastSyncedAt) {
-          setSummaries((prev) => ({
-            ...prev,
-            channel_match: prev.channel_match
-              ? { ...prev.channel_match, finishedAt: body.lastSyncedAt }
-              : null,
-          }));
+        if (body && (body.erp !== undefined || body.channel_match !== undefined)) {
+          setSummaries({
+            erp: body.erp ?? null,
+            channel_match: body.channel_match ?? null,
+          });
         }
       } catch { /* swallow */ }
     };

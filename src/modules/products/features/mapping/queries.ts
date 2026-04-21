@@ -80,7 +80,7 @@ export async function getByAsin(
     .schema('products')
     .from('asin_mapping')
     .select(
-      'asin, marketplace, is_primary, status, products:product_id (sku, product_name, category, brands:brand_id (name))'
+      'asin, marketplace, is_primary, status, matched_via, last_synced_at, products:product_id (sku, product_name, category, brands:brand_id (name))'
     )
     .eq('asin', asin)
     .eq('marketplace', marketplace)
@@ -95,6 +95,8 @@ export async function getByAsin(
     marketplace: Marketplace;
     is_primary: boolean;
     status: MappingStatus;
+    matched_via: 'ean' | 'prefix8' | 'manual' | 'enrich' | null;
+    last_synced_at: string | null;
     products: {
       sku: string;
       product_name: string;
@@ -113,6 +115,8 @@ export async function getByAsin(
     marketplace: row.marketplace,
     isPrimary: row.is_primary,
     status: row.status,
+    matchedVia: row.matched_via,
+    lastSyncedAt: row.last_synced_at,
   };
 }
 

@@ -30,9 +30,11 @@ test.describe('products-sync · Provider v1 contract', () => {
       for (const key of ['sku', 'productName', 'brand', 'category', 'marketplace', 'isPrimary', 'status']) {
         expect(body, `v1 field missing: ${key}`).toHaveProperty(key);
       }
-      // new optional fields may be null for legacy rows but must be present keys when sync has run
-      if (body.matched_via != null) {
-        expect(['ean', 'prefix8', 'manual', 'enrich']).toContain(body.matched_via);
+      // products-sync extensions (FR-14) — now REQUIRED keys (may be null for legacy)
+      expect(body).toHaveProperty('matchedVia');
+      expect(body).toHaveProperty('lastSyncedAt');
+      if (body.matchedVia !== null) {
+        expect(['ean', 'prefix8', 'manual', 'enrich']).toContain(body.matchedVia);
       }
     }
   });
