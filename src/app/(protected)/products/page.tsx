@@ -4,6 +4,9 @@
 import Link from 'next/link';
 import { listProducts } from '@/modules/products/features/catalog/queries';
 import { CatalogTable } from '@/modules/products/features/catalog/components/catalog-table';
+import { readLatestStageSummaries } from '@/modules/products/features/sync/queries';
+import { SyncStatusBadges } from '@/modules/products/features/sync/features/sync-badge/sync-status-badges';
+import { SyncNowButton } from '@/modules/products/features/sync/features/sync-badge/sync-now-button';
 import type { LifecycleStatus } from '@/modules/products/shared/types';
 
 type SearchParams = {
@@ -39,7 +42,7 @@ export default async function CatalogPage({ searchParams }: Props) {
 
   return (
     <div>
-      <Header total={result.pagination.total} />
+      <Header total={result.pagination.total} syncSummaries={await readLatestStageSummaries()} />
       <div className="px-8 py-6">
         <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] overflow-hidden">
           <CatalogTable rows={result.data} />
@@ -58,7 +61,9 @@ export default async function CatalogPage({ searchParams }: Props) {
   );
 }
 
-function Header({ total }: { total: number }) {
+type SyncSummaries = Awaited<ReturnType<typeof readLatestStageSummaries>>;
+
+function Header({ total, syncSummaries }: { total: number; syncSummaries: SyncSummaries }) {
   return (
     <div className="border-b border-[var(--border-primary)] bg-[var(--surface-card)] px-8 py-5">
       <div className="flex items-start justify-between gap-4">
@@ -72,8 +77,18 @@ function Header({ total }: { total: number }) {
           <p className="text-sm text-[var(--text-tertiary)] mt-1">
             {total.toLocaleString()} SKUs · 자재 리스팅 (최신 배치)
           </p>
+          <div className="mt-3">
+            <SyncStatusBadges initial={syncSummaries} />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <SyncNowButton />
+          <Link
+            href="/products/unmapped"
+            className="rounded-lg border border-[var(--border-primary)] bg-[var(--surface-card)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)]"
+          >
+            Unmapped Queue →
+          </Link>
           <a
             href="/csv-template/products.csv"
             download="products-template.csv"
