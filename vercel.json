@@ -35,6 +35,10 @@
     {
       "path": "/api/ads/cron/ai-weekly-review",
       "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/products/sync/all",
+      "schedule": "0 17 * * *"
     }
   ]
 }

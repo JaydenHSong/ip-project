@@ -126,3 +126,24 @@ export async function lookupProductIdBySku(sku: string): Promise<string | null> 
   if (error) throw new Error(`[channel-mapping-sink] product lookup: ${error.message}`);
   return (data as { id: string } | null)?.id ?? null;
 }
+
+/**
+ * Batch variant — single query for many SKUs. Returns Map<sku, productId>.
+ * Missing SKUs are absent from the map (caller must handle as unmapped).
+ */
+export async function batchLookupProductIds(skus: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (skus.length === 0) return map;
+  const db = createAdminClient();
+  const { data, error } = await db
+    .schema('products')
+    .from('products')
+    .select('id,sku')
+    .in('sku', skus)
+    .eq('version', 'V1');
+  if (error) throw new Error(`[channel-mapping-sink] batch lookup: ${error.message}`);
+  for (const r of (data ?? []) as Array<{ id: string; sku: string }>) {
+    map.set(r.sku, r.id);
+  }
+  return map;
+}
