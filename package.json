@@ -11,6 +11,7 @@
     "harness:ads": "node tools/harness/ads-preset-check.mjs",
     "harness:ads:staged": "node tools/harness/ads-preset-check.mjs --staged",
     "harness:ads:full": "pnpm typecheck && pnpm lint && pnpm harness:ads",
+    "verify:products": "bash tools/scripts/verify-products.sh",
     "test": "echo \"No tests configured yet\"",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -29,7 +30,8 @@
     "react-dom": "19.2.3",
     "recharts": "^3.7.0",
     "tailwind-merge": "^3.5.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
