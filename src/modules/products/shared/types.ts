@@ -204,7 +204,8 @@ export type BulkUpsertResponse = {
   errors: Array<{ row: number; message: string }>;
 };
 
-// ⚠️ Provider v1 — 변경 금지 (변경 시 /api/products/v2/by-asin 신규 엔드포인트로)
+// ⚠️ Provider v1 — 필드 삭제/이름 변경 금지 (변경 시 /api/products/v2/by-asin 신규 엔드포인트로)
+// Additions OK (backward compatible): matched_via, last_synced_at added by products-sync feature.
 export type ByAsinResponse = {
   sku: string;
   productName: string;
@@ -213,6 +214,9 @@ export type ByAsinResponse = {
   marketplace: Marketplace;
   isPrimary: boolean;
   status: MappingStatus;
+  // products-sync extensions (FR-14):
+  matchedVia: 'ean' | 'prefix8' | 'manual' | 'enrich' | null;
+  lastSyncedAt: string | null;
 };
 
 export type ByAsinNotFoundResponse = {

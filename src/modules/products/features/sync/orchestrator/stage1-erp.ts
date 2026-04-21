@@ -5,7 +5,11 @@
 // Honors metadata.source='manual' protection (FR-13).
 
 import { createSqDataHubClient } from '../adapters/sq-datahub/client';
-import { readErpDelta, ERP_SOURCE_TABLE_KEY } from '../adapters/sq-datahub/erp-source';
+import {
+  readErpDelta,
+  ERP_SOURCE_TABLE_KEY,
+  fetchErpColumnHash,
+} from '../adapters/sq-datahub/erp-source';
 import { upsertErpProductsBatch, type UpsertContext } from '../adapters/ip-project/products-sink';
 import {
   startRun,
@@ -13,6 +17,7 @@ import {
   readWatermark,
   updateWatermark,
 } from '../adapters/ip-project/sync-runs-writer';
+import { notifySchemaDrift } from '../adapters/slack/notifier';
 import type { Stage1Result, TriggerKind } from '../domain/types';
 
 export type Stage1Input = {
@@ -53,6 +58,11 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
       brandId: input.brandId,
     };
 
+    // Drift detection (FR-19): compare column signature before/after processing.
+    // If empty (RPC not installed) both sides equal '' → no-op; when installed
+    // and signatures differ, abort with schema_drift status.
+    const schemaHashBefore = await fetchErpColumnHash(sq);
+
     const iter = readErpDelta(sq, watermarkBefore);
     while (true) {
       const next = await iter.next();
@@ -71,6 +81,41 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
       for (const r of batch) {
         if (r.sourceUpdatedAt > (watermarkAfter ?? '')) watermarkAfter = r.sourceUpdatedAt;
       }
+    }
+
+    // Drift detection after processing — if schema changed mid-run, abort WITHOUT
+    // advancing watermark so the next run can retry cleanly on fixed schema.
+    const schemaHashAfter = await fetchErpColumnHash(sq);
+    if (schemaHashBefore && schemaHashAfter && schemaHashBefore !== schemaHashAfter) {
+      const errorMessage = `Schema drift detected on ${ERP_SOURCE_TABLE_KEY}: column signature changed mid-run.`;
+      await finishRun({
+        runId,
+        status: 'schema_drift',
+        rowsFetched,
+        rowsInserted,
+        rowsUpdated,
+        rowsSkipped,
+        errorMessage,
+      });
+      await notifySchemaDrift({
+        pipelineId: input.pipelineId,
+        stage: 'erp',
+        runId,
+        sourceTable: ERP_SOURCE_TABLE_KEY,
+        detectedAt: new Date().toISOString(),
+      });
+      return {
+        runId,
+        status: 'schema_drift',
+        rowsFetched,
+        rowsInserted,
+        rowsUpdated,
+        rowsSkipped,
+        watermarkBefore,
+        watermarkAfter: watermarkBefore, // do NOT advance
+        durationMs: Date.now() - startedAt,
+        errorMessage,
+      };
     }
 
     await finishRun({
