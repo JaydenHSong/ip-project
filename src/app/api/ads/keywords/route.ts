@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 // ─── GET: List keywords by campaign ───
 
@@ -19,10 +19,10 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    let query = supabase
-      .from('ads.keywords')
+    let query =ctx.ads
+      .from(ctx.adsTable('keywords'))
       .select('*', { count: 'exact' })
       .eq('campaign_id', campaignId)
 
@@ -84,7 +84,7 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
     const rows = body.keywords.map((kw) => ({
       campaign_id: body.campaign_id,
@@ -95,8 +95,8 @@ export const POST = withAuth(async (req, { user }) => {
       created_by: user.id,
     }))
 
-    const { data, error } = await supabase
-      .from('ads.keywords')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('keywords'))
       .insert(rows)
       .select()
 

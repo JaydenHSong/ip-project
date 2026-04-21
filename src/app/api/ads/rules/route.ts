@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 // ─── GET: List rules ───
 
@@ -19,10 +19,10 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    let query = supabase
-      .from('ads.rules')
+    let query =ctx.ads
+      .from(ctx.adsTable('rules'))
       .select('*', { count: 'exact' })
       .eq('brand_market_id', brandMarketId)
 
@@ -76,10 +76,10 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.rules')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('rules'))
       .insert({
         brand_market_id: body.brand_market_id,
         rule_type: body.rule_type,

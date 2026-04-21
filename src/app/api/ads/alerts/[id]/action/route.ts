@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export const POST = withAuth(async (req, { params, user }) => {
   const { id } = params
@@ -28,7 +28,7 @@ export const POST = withAuth(async (req, { params, user }) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -56,8 +56,8 @@ export const POST = withAuth(async (req, { params, user }) => {
       updates.action_note = body.note
     }
 
-    const { data, error } = await supabase
-      .from('ads.alerts')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('alerts'))
       .update(updates)
       .eq('id', id)
       .select()

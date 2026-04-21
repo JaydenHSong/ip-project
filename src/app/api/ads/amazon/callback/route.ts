@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { tokenStore } from '@/modules/ads/api/infra/token-store'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -39,14 +39,14 @@ export async function GET(request: NextRequest) {
     }>
 
     // Store tokens for each profile
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
     for (const profile of profiles) {
       const profileId = String(profile.profileId)
       await tokenStore.storeToken(profileId, tokenSet)
 
       // Upsert marketplace_profiles
-      await supabase
-        .from('ads.marketplace_profiles')
+      await ctx.ads
+        .from(ctx.adsTable('marketplace_profiles'))
         .upsert({
           profile_id: profileId,
           marketplace_id: profile.accountInfo.marketplaceStringId,

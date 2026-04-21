@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 // ─── GET: List dayparting schedules ───
 
@@ -19,10 +19,10 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.dayparting_schedules')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('dayparting_schedules'))
       .select('*')
       .eq('brand_market_id', brandMarketId)
       .order('name', { ascending: true })
@@ -64,10 +64,10 @@ export const PUT = withAuth(async (req, { user }) => {
   if (body.is_active !== undefined) updates.is_active = body.is_active
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.dayparting_schedules')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('dayparting_schedules'))
       .update(updates)
       .eq('id', body.id)
       .select()

@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 // ─── PUT: Update keyword ───
 
@@ -36,10 +36,10 @@ export const PUT = withAuth(async (req, { params }) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.keywords')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('keywords'))
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -76,10 +76,10 @@ export const DELETE = withAuth(async (_req, { params }) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.keywords')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('keywords'))
       .delete()
       .eq('id', id)
       .select()

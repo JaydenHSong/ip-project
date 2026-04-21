@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export const POST = withAuth(async (request: NextRequest, { params }) => {
   const profileId = params.id
@@ -16,10 +16,10 @@ export const POST = withAuth(async (request: NextRequest, { params }) => {
     )
   }
 
-  const supabase = createAdminClient()
+  const ctx = createAdsAdminContext()
 
-  const { error } = await supabase
-    .from('ads.marketplace_profiles')
+  const { error } = await ctx.ads
+    .from(ctx.adsTable('marketplace_profiles'))
     .upsert({
       profile_id: profileId,
       marketplace_id: body.marketplace_id,

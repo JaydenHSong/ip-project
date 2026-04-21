@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 // ─── GET: AI recommended schedule ───
 
@@ -19,11 +19,11 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
     // Fetch hourly weights to generate AI recommendation
-    const { data: weights, error } = await supabase
-      .from('ads.dayparting_hourly_weights')
+    const { data: weights, error } = await ctx.ads
+      .from(ctx.adsTable('dayparting_hourly_weights'))
       .select('*')
       .eq('brand_market_id', brandMarketId)
       .order('day_of_week', { ascending: true })
@@ -67,10 +67,10 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.dayparting_schedules')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('dayparting_schedules'))
       .insert({
         brand_market_id: body.brand_market_id,
         name: body.schedule_name,

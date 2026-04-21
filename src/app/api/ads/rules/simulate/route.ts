@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export const POST = withAuth(async (req) => {
   const body = await req.json() as {
@@ -21,12 +21,12 @@ export const POST = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
     const lookbackDays = body.lookback_days ?? 7
 
     // Fetch campaigns that match the brand_market for simulation
-    const { data: campaigns, error } = await supabase
-      .from('ads.campaigns')
+    const { data: campaigns, error } = await ctx.ads
+      .from(ctx.adsTable('campaigns'))
       .select('id, name, status, target_acos, daily_budget')
       .eq('brand_market_id', body.brand_market_id)
       .eq('status', 'active')
