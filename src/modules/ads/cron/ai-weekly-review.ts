@@ -152,7 +152,8 @@ async function runWeeklyReviewCron(ctx: AdsAdminContext): Promise<WeeklyReviewCr
   const { data: profiles, error } = await ctx.ads
     .from(ctx.adsTable('marketplace_profiles'))
     .select('id')
-    .eq('status', 'active')
+    .eq('is_active', true)
+    .not('ads_profile_id', 'is', null)
 
   if (error) {
     throw new Error(`Failed to fetch marketplace profiles: ${error.message}`)
