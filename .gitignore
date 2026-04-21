@@ -89,9 +89,11 @@ docs/design-exports/
 # Supabase (migrations already applied)
 supabase/
 
-# Tests (local only)
+# Tests (local only — but track in-source unit tests under src/)
 e2e/
 tests/
+!src/**/tests/
+!src/**/tests/**
 playwright.config.ts
 
 # Scripts (local only)
