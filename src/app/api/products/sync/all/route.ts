@@ -67,6 +67,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 const manualHandler = withAuth(async (req: NextRequest, { user }) => {
+  const startedAt = Date.now();
+  console.log(`[sync/all] manual request received user=${user.id}`);
   const raw = await req.json().catch(() => ({}));
   const parsed = BodySchema.safeParse({ ...raw, trigger: 'manual' });
   if (!parsed.success) {
@@ -78,6 +80,7 @@ const manualHandler = withAuth(async (req: NextRequest, { user }) => {
 
   try {
     const ctx = await resolveProductsCtx(user);
+    console.log(`[sync/all] ctx resolved orgUnit=${ctx.orgUnitId} (${Date.now() - startedAt}ms)`);
     const result = await runPipeline({
       trigger: 'manual',
       triggeredBy: user.id,
@@ -87,11 +90,15 @@ const manualHandler = withAuth(async (req: NextRequest, { user }) => {
       forceFull: parsed.data.force_full,
       stages: parsed.data.stages,
     });
+    console.log(
+      `[sync/all] responding status=${result.overallStatus} totalMs=${Date.now() - startedAt}`,
+    );
     return NextResponse.json(result, {
       status: result.overallStatus === 'failed' ? 500 : 200,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[sync/all] failed after ${Date.now() - startedAt}ms: ${msg}`);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }, [...ADMIN_ROLES]);

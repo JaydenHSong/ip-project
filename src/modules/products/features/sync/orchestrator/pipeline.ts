@@ -28,6 +28,10 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const pipelineId = randomUUID();
   const startedAt = Date.now();
   const stages = input.stages ?? ['erp', 'channel_match'];
+  const tag = `[pipeline ${pipelineId.slice(0, 8)}]`;
+  console.log(
+    `${tag} start trigger=${input.trigger} stages=[${stages.join(',')}] forceFull=${Boolean(input.forceFull)}`,
+  );
   const results: Array<Stage1Result | Stage2Result> = [];
 
   // ── Stage 1: ERP ────────────────────────────────────────────────────────
@@ -90,6 +94,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
 
   // ── Aggregate status ────────────────────────────────────────────────────
   const overallStatus = aggregateStatus(results);
+  console.log(
+    `${tag} done overallStatus=${overallStatus} totalDurationMs=${Date.now() - startedAt}`,
+  );
 
   return {
     pipelineId,

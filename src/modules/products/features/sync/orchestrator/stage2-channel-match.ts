@@ -38,9 +38,16 @@ export type Stage2Input = {
   forceFull?: boolean;
 };
 
+// Soft deadline — stage aborts gracefully before Vercel kills the lambda.
+const STAGE2_SOFT_DEADLINE_MS = 140_000;
+
 export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Result> {
   const startedAt = Date.now();
+  const deadlineAt = startedAt + STAGE2_SOFT_DEADLINE_MS;
+  const tag = `[stage2 ${input.pipelineId.slice(0, 8)}]`;
+
   const watermarkBefore = input.forceFull ? null : await readWatermark(AMAZON_SOURCE_TABLE_KEY);
+  console.log(`${tag} start watermarkBefore=${watermarkBefore ?? 'null'} forceFull=${Boolean(input.forceFull)}`);
 
   const runId = await startRun({
     pipelineId: input.pipelineId,
@@ -56,22 +63,28 @@ export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Re
   let rowsUnmapped = 0;
   let rowsQueued = 0;
   let watermarkAfter: string | null = watermarkBefore;
+  let softTimedOut = false;
 
   try {
     const sq = createSqDataHubClient();
 
     // Build ERP index once (in-memory map ~10MB)
+    const erpStart = Date.now();
     const erpRows = await readErpActiveAll(sq);
     const erpIndex = buildErpIndex(erpRows);
+    console.log(`${tag} erpIndex built rows=${erpRows.length} indexMs=${Date.now() - erpStart}`);
 
     const iter = readAmazonDelta(sq, watermarkBefore);
+    let batchN = 0;
     while (true) {
+      const batchStart = Date.now();
       const next = await iter.next();
       if (next.done) {
         if (typeof next.value === 'string' && next.value) watermarkAfter = next.value;
         break;
       }
       const batch = next.value;
+      batchN += 1;
       rowsFetched += batch.length;
 
       await processBatch(batch, erpIndex, runId, input.userId, (m, u, q) => {
@@ -82,6 +95,21 @@ export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Re
 
       for (const r of batch) {
         if (r.updatedAt > (watermarkAfter ?? '')) watermarkAfter = r.updatedAt;
+      }
+
+      // Persist watermark per-batch for resumability.
+      if (watermarkAfter && watermarkAfter !== watermarkBefore) {
+        await updateWatermark(AMAZON_SOURCE_TABLE_KEY, watermarkAfter, runId);
+      }
+
+      console.log(
+        `${tag} batch ${batchN} rows=${batch.length} batchMs=${Date.now() - batchStart} elapsed=${Date.now() - startedAt}`,
+      );
+
+      if (Date.now() > deadlineAt) {
+        softTimedOut = true;
+        console.warn(`${tag} soft deadline hit after batch ${batchN} — exiting gracefully`);
+        break;
       }
     }
 
@@ -95,9 +123,9 @@ export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Re
       watermarkAfter,
     });
 
-    if (watermarkAfter && watermarkAfter !== watermarkBefore) {
-      await updateWatermark(AMAZON_SOURCE_TABLE_KEY, watermarkAfter, runId);
-    }
+    console.log(
+      `${tag} done status=success rowsFetched=${rowsFetched} mapped=${rowsMapped} unmapped=${rowsUnmapped} queued=${rowsQueued} totalMs=${Date.now() - startedAt}${softTimedOut ? ' (partial, soft deadline)' : ''}`,
+    );
 
     return {
       runId,
@@ -112,6 +140,7 @@ export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Re
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} failed after ${Date.now() - startedAt}ms: ${errorMessage}`);
     await finishRun({
       runId,
       status: 'failed',
