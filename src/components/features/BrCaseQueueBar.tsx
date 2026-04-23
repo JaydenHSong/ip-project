@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Badge } from '@/components/ui/Badge'
+import { REPORT_READ_UPDATED_EVENT } from '@/lib/reports/report-read'
 
 type QueueSummary = {
   action_required: number
@@ -23,6 +24,7 @@ type QueueItem = {
 
 const buildQueueItems = (summary: QueueSummary): QueueItem[] => [
   { key: 'action_required', label: 'Action Required', variant: 'danger', param: 'needs_attention' },
+  { key: 'new_reply', label: 'New Reply', variant: 'info', param: 'new_reply' },
   { key: 'clone_suggested', label: `Clone Suggested (${summary.clone_threshold_days}d+)`, variant: 'warning', param: 'clone_suggested' },
 ]
 
@@ -32,13 +34,20 @@ export const BrCaseQueueBar = () => {
   const pathname = usePathname()
   const [summary, setSummary] = useState<QueueSummary | null>(null)
   const activeQueue = searchParams.get('smart_queue')
+  const ownerFilter = searchParams.get('owner') ?? 'all'
 
   const fetchSummary = useCallback(() => {
-    fetch('/api/dashboard/br-case-summary')
+    const params = new URLSearchParams()
+    if (ownerFilter !== 'all') {
+      params.set('owner', ownerFilter)
+    }
+
+    const query = params.toString()
+    fetch(query ? `/api/dashboard/br-case-summary?${query}` : '/api/dashboard/br-case-summary', { cache: 'no-store' })
       .then((res) => res.json())
       .then((data: QueueSummary) => setSummary(data))
       .catch(() => {})
-  }, [])
+  }, [ownerFilter])
 
   // 마운트 + 페이지 이동 시 (리포트 상세에서 돌아올 때) 갱신
   useEffect(() => {
@@ -50,6 +59,12 @@ export const BrCaseQueueBar = () => {
     const handleFocus = () => fetchSummary()
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
+  }, [fetchSummary])
+
+  useEffect(() => {
+    const handleReadUpdated = () => fetchSummary()
+    window.addEventListener(REPORT_READ_UPDATED_EVENT, handleReadUpdated)
+    return () => window.removeEventListener(REPORT_READ_UPDATED_EVENT, handleReadUpdated)
   }, [fetchSummary])
 
   if (!summary) return null

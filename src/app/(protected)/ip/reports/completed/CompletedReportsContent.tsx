@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef, useTransition } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useI18n } from '@/lib/i18n/context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -67,10 +67,9 @@ type CompletedReportsContentProps = {
   sortDir: 'asc' | 'desc'
 }
 
-export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, page, totalPages, totalCount, pageSize, searchQuery, sortField, sortDir }: CompletedReportsContentProps) => {
+export const CompletedReportsContent = ({ reports, statusFilter, userRole, ownerFilter, totalCount, pageSize, searchQuery, sortField, sortDir }: CompletedReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
-  const pathname = usePathname()
   const { addToast } = useToast()
   const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '', dateFrom: '', dateTo: '' })
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -423,24 +422,34 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
           ))
         ) : (
           sortedData.map((report) => (
-            <Link key={report.id} href={`/ip/reports/${report.id}`}>
-              <div className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
-                <div className="flex items-start justify-between">
-                  <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
-                  <StatusBadge status={report.status as ReportStatus} type="report" />
-                </div>
-                <p className="mt-2 font-mono text-sm">
-                  {report.listings?.asin ? (
-                    <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>{report.listings.asin}</a>
-                  ) : '—'}
-                </p>
-                <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
-                <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
-                  <span>{report.pd_case_id ? `PD: ${report.pd_case_id}` : '—'}</span>
-                  <span>{formatDate(report.created_at)}</span>
-                </div>
+            <div
+              key={report.id}
+              role="link"
+              tabIndex={0}
+              className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover"
+              onClick={() => router.push(`/ip/reports/${report.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  router.push(`/ip/reports/${report.id}`)
+                }
+              }}
+            >
+              <div className="flex items-start justify-between">
+                <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
+                <StatusBadge status={report.status as ReportStatus} type="report" />
               </div>
-            </Link>
+              <p className="mt-2 font-mono text-sm">
+                {report.listings?.asin ? (
+                  <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>{report.listings.asin}</a>
+                ) : '—'}
+              </p>
+              <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>
+              <div className="mt-2 flex items-center justify-between text-xs text-th-text-muted">
+                <span>{report.pd_case_id ? `PD: ${report.pd_case_id}` : '—'}</span>
+                <span>{formatDate(report.created_at)}</span>
+              </div>
+            </div>
           ))
         )}
       </div>

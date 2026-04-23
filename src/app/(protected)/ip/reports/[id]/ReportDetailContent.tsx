@@ -16,6 +16,7 @@ import { ReportTimeline } from './ReportTimeline'
 import { SnapshotViewer } from './SnapshotViewer'
 import { BrTemplateList } from './BrTemplateList'
 import { BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT } from '@/lib/reports/br-data'
+import { parseReportNote } from '@/lib/reports/report-note'
 import { BR_FORM_TYPES, isBrSubmittable, brFormHasField, toBrFormType, type BrFormTypeCode } from '@/constants/br-form-types'
 import { VIOLATION_FILTER_OPTIONS } from '@/components/ui/ViolationBadge'
 import { AiAnalysisTab } from '@/components/features/AiAnalysisTab'
@@ -31,6 +32,7 @@ import { formatDateTime } from '@/lib/utils/date'
 import type { ReportSnapshot } from '@/types/monitoring'
 import { MARKETPLACES } from '@/constants/marketplaces'
 import { FetchStatusBar } from '@/components/features/FetchStatusBar'
+import { REPORT_READ_UPDATED_EVENT, shouldMarkReportAsRead } from '@/lib/reports/report-read'
 
 type ReportDetailContentProps = {
   report: {
@@ -183,6 +185,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
   const { t } = useI18n()
   const { addToast } = useToast()
   const router = useRouter()
+  const markReadKeyRef = useRef<string | null>(null)
 
   const [currentStatus, setCurrentStatus] = useState(report.status)
   const COMPLETED_STATUSES = ['resolved', 'unresolved', 'resubmitted', 'escalated', 'archived', 'cancelled']
@@ -224,10 +227,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
     }
 
     // 2순위: note (Extension이 JSON으로 저장한 초기 데이터)
-    let extra: Record<string, unknown> = {}
-    if (report.note) {
-      try { extra = JSON.parse(report.note) as Record<string, unknown> } catch { /* not JSON, ignore */ }
-    }
+    const extra = parseReportNote(report.note).data ?? {}
     return {
       product_urls: arrToLines(extra.product_urls) || (defaultProductUrl),
       seller_storefront_url: (extra.seller_storefront_url as string) ?? '',
@@ -255,11 +255,42 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
   const [memoSaving, setMemoSaving] = useState(false)
   const [memoSaved, setMemoSaved] = useState(false)
   const memoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const parsedNote = parseReportNote(report.note)
+  const parsedNoteEntries = parsedNote.data
+    ? Object.entries(parsedNote.data).filter(([, value]) => value != null && String(value).trim())
+    : []
   const [relatedData, setRelatedData] = useState<{
     parent_chain: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
     children: Array<{ id: string; status: string; br_case_status: string | null; escalation_level: number | null; created_at: string; user_violation_type: string }>
     same_listing: Array<{ id: string; status: string; br_case_id: string | null; br_case_status: string | null; created_at: string; user_violation_type: string; violation_category: string | null; br_form_type: string; listings: { asin: string; title: string } | null }>
   } | null>(null)
+
+  useEffect(() => {
+    const markKey = shouldMarkReportAsRead({
+      status: report.status,
+      br_last_amazon_reply_at: report.br_last_amazon_reply_at,
+    })
+      ? `${report.id}:${report.br_last_amazon_reply_at ?? ''}`
+      : null
+
+    if (!markKey || markReadKeyRef.current === markKey) return
+
+    markReadKeyRef.current = markKey
+
+    fetch(`/api/reports/${report.id}/mark-read`, {
+      method: 'POST',
+      cache: 'no-store',
+    })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data: { marked?: boolean } | null) => {
+        if (data?.marked) {
+          window.dispatchEvent(new CustomEvent(REPORT_READ_UPDATED_EVENT, { detail: { reportId: report.id } }))
+        }
+      })
+      .catch(() => {
+        markReadKeyRef.current = null
+      })
+  }, [report.id, report.status, report.br_last_amazon_reply_at])
 
   // Fetch related reports data
   useEffect(() => {
@@ -823,7 +854,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                 <CaseChain
                   currentId={report.id}
                   parentChain={relatedData.parent_chain}
-                  children={relatedData.children}
+                  childChain={relatedData.children}
                 />
               </div>
             )}
@@ -842,32 +873,30 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-xs text-th-text-tertiary">Type</span>
                 <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? ''} violationCategory={report.violation_category} size="md" />
-                {report.note && (() => {
-                  try {
-                    const parsed = JSON.parse(report.note) as Record<string, string>
-                    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-                      const entries = Object.entries(parsed).filter(([, v]) => v && String(v).trim())
-                      if (entries.length > 0) {
-                        return entries.map(([key, value]) => (
-                          <Fragment key={key}>
-                            <span className="text-th-border">|</span>
-                            <span className="text-xs text-th-text-tertiary capitalize">{key.replace(/_/g, ' ')}</span>
-                            <span className="text-sm text-th-text">{String(value)}</span>
-                          </Fragment>
-                        ))
-                      }
-                    }
-                  } catch {
-                    // not JSON
-                  }
-                  return (
+                {parsedNote.contextText && (
+                  <>
+                    <span className="text-th-border">|</span>
+                    <span className="text-xs text-th-text-tertiary">Note</span>
+                    <span className="text-sm text-th-text">{parsedNote.contextText}</span>
+                  </>
+                )}
+                {parsedNoteEntries.length > 0 ? (
+                  parsedNoteEntries.map(([key, value]) => (
+                    <Fragment key={key}>
+                      <span className="text-th-border">|</span>
+                      <span className="text-xs text-th-text-tertiary capitalize">{key.replace(/_/g, ' ')}</span>
+                      <span className="text-sm text-th-text">{String(value)}</span>
+                    </Fragment>
+                  ))
+                ) : (
+                  !parsedNote.contextText && report.note && !report.note.includes('{') && (
                     <>
                       <span className="text-th-border">|</span>
                       <span className="text-xs text-th-text-tertiary">Reason</span>
                       <span className="text-sm text-th-text">{report.note}</span>
                     </>
                   )
-                })()}
+                )}
               </div>
               {report.disagreement_flag && (
                 <div className="mt-3 rounded-lg border border-st-warning-text/30 bg-st-warning-bg px-3 py-2">

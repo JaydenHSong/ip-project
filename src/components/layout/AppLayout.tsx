@@ -13,16 +13,21 @@ import type { User } from '@/types/users'
 
 type AppLayoutProps = {
   user: User
+  isDemo: boolean
   children: React.ReactNode
 }
 
-export const AppLayout = ({ user, children }: AppLayoutProps) => {
+export const AppLayout = ({ user, isDemo, children }: AppLayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     initTheme()
     const saved = localStorage.getItem('sentinel-sidebar-collapsed')
-    if (saved === 'true') setSidebarCollapsed(true)
+    const frame = window.requestAnimationFrame(() => {
+      if (saved === 'true') setSidebarCollapsed(true)
+    })
+
+    return () => window.cancelAnimationFrame(frame)
   }, [])
 
   const handleToggleSidebar = () => {
@@ -45,7 +50,7 @@ export const AppLayout = ({ user, children }: AppLayoutProps) => {
           />
         </div>
         <div className="flex flex-1 flex-col overflow-hidden">
-          <Header user={user} />
+          <Header user={user} isDemo={isDemo} />
           <main className="min-w-0 flex-1 overflow-y-auto scroll-smooth p-4 pb-20 md:p-6 md:pb-6">
             {children}
           </main>

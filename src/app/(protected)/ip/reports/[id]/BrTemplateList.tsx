@@ -54,14 +54,35 @@ export const BrTemplateList = ({
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    setSearch('')
-    setExpandedCategory(null)
-    fetch(`/api/br-templates?form_type=${formType}`)
-      .then((res) => res.json())
-      .then((data: { templates: BrTemplate[] }) => setTemplates(data.templates ?? []))
-      .catch(() => setTemplates([]))
-      .finally(() => setLoading(false))
+    let cancelled = false
+
+    const loadTemplates = async () => {
+      setLoading(true)
+      setSearch('')
+      setExpandedCategory(null)
+
+      try {
+        const res = await fetch(`/api/br-templates?form_type=${formType}`)
+        const data = await res.json() as { templates: BrTemplate[] }
+        if (!cancelled) {
+          setTemplates(data.templates ?? [])
+        }
+      } catch {
+        if (!cancelled) {
+          setTemplates([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadTemplates()
+
+    return () => {
+      cancelled = true
+    }
   }, [formType])
 
   const filtered = useMemo(() => {

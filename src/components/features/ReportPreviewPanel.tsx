@@ -4,11 +4,10 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
 import { SlidePanel } from '@/components/ui/SlidePanel'
-import { StatusBadge } from '@/components/ui/StatusBadge'
 import { CaseCloseButton } from '@/components/features/case-thread/CaseCloseButton'
 import { buildTimelineEvents } from '@/lib/timeline'
 import { ReportDetailContent } from '@/app/(protected)/ip/reports/[id]/ReportDetailContent'
-import type { ReportStatus, TimelineEvent } from '@/types/reports'
+import type { TimelineEvent } from '@/types/reports'
 
 type ReportPreviewPanelProps = {
   reportId: string | null

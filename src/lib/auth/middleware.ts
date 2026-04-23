@@ -22,14 +22,15 @@ export const withAuth = (handler: ApiHandler, allowedRoles: Role[]): ((req: Next
     const params = await routeContext?.params ?? {}
 
     if (isDemoMode()) {
-      const user = DEMO_USER as User
-      if (!allowedRoles.includes(user.role)) {
+      const demoUser = DEMO_USER as User
+      if (!allowedRoles.includes(demoUser.role)) {
         return NextResponse.json(
           { error: { code: 'FORBIDDEN', message: '접근 권한이 없습니다.' } },
           { status: 403 },
         )
       }
-      return handler(req, { user, params })
+
+      return handler(req, { user: demoUser, params })
     }
 
     // Extension Bearer 토큰 우선, 없으면 쿠키 기반 클라이언트

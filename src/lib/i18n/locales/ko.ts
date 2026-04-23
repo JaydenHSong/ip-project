@@ -185,6 +185,7 @@ export const ko = {
     },
     table: {
       channel: 'CH',
+      submitted: '제출일',
       updated: '수정일',
       resolved: '해결일',
       lastUpdated: '최근 수정',

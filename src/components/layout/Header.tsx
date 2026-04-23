@@ -12,14 +12,19 @@ import type { User } from '@/types/users'
 
 type HeaderProps = {
   user: User
+  isDemo: boolean
 }
 
-export const Header = ({ user }: HeaderProps) => {
+export const Header = ({ user, isDemo }: HeaderProps) => {
   const [isDark, setIsDark] = useState(true)
   const { locale, t, changeLocale } = useI18n()
 
   useEffect(() => {
-    setIsDark(getStoredTheme() === 'dark')
+    const frame = window.requestAnimationFrame(() => {
+      setIsDark(getStoredTheme() === 'dark')
+    })
+
+    return () => window.cancelAnimationFrame(frame)
   }, [])
 
   const handleToggleTheme = () => {
@@ -70,7 +75,7 @@ export const Header = ({ user }: HeaderProps) => {
         </button>
 
         {/* Notification Bell — Admin only */}
-        {(user.role === 'owner' || user.role === 'admin') && <NotificationBell userId={user.id} />}
+        {(user.role === 'owner' || user.role === 'admin') && <NotificationBell userId={user.id} isDemo={isDemo} />}
       </div>
     </header>
   )

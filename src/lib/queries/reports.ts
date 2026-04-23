@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_REPORTS } from '@/lib/demo/data'
+import { getLastBrActivityAt, hasUnreadAmazonReply } from '@/lib/reports/br-case-queue'
 import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 import type { User } from '@/types/users'
 
@@ -10,6 +12,7 @@ export type ReportQueryParams = {
   br_form_type?: string
   br_case_status?: string
   smart_queue?: string
+  preview?: string
   search?: string
   date_from?: string
   date_to?: string
@@ -34,6 +37,7 @@ const SORT_MAP: Record<string, string> = {
   violation: 'br_form_type',
   seller: 'listing_snapshot->>seller_name',
   date: 'created_at',
+  submitted: 'br_submitted_at',
   updated: 'updated_at',
   resolved: 'resolved_at',
 }
@@ -73,7 +77,7 @@ export async function fetchReports(
   const sortField = params.sort_field && SORT_MAP[params.sort_field] ? SORT_MAP[params.sort_field] : 'created_at'
   const sortAsc = params.sort_dir === 'asc'
 
-  const isPostFiltered = params.smart_queue === 'clone_suggested' || params.smart_queue === 'expired'
+  const isPostFiltered = params.smart_queue === 'clone_suggested' || params.smart_queue === 'expired' || params.smart_queue === 'new_reply'
 
   let query = supabase
     .from('reports')
@@ -82,6 +86,8 @@ export async function fetchReports(
       { count: 'exact' },
     )
     .order(sortField, { ascending: sortAsc, nullsFirst: false })
+    // Stable tie-breaker so offset pagination does not repeat rows when the primary sort value is identical.
+    .order('id', { ascending: sortAsc, nullsFirst: false })
 
   // post-filter 시에는 페이지네이션 제거 (전체 가져와서 필터 후 슬라이스)
   if (!isPostFiltered) {
@@ -112,10 +118,10 @@ export async function fetchReports(
   // Smart queue — threshold는 system_configs에서 읽음
   if (params.smart_queue === 'needs_attention') {
     query = query.eq('br_case_status', 'needs_attention')
-  } else if (params.smart_queue === 'new_reply') {
-    query = query.not('br_last_amazon_reply_at', 'is', null)
   } else if (params.smart_queue === 'clone_suggested' || params.smart_queue === 'expired') {
     // 마지막 활동일 기준 필터는 쿼리 후 처리 (아래 postFilter)
+  } else if (params.smart_queue === 'new_reply') {
+    // read_at 비교가 필요해서 쿼리 후 처리 (아래 postFilter)
   }
 
   // Search filter
@@ -180,20 +186,50 @@ export async function fetchReports(
     return r
   }) as typeof DEMO_REPORTS
 
-  // 마지막 활동일 기준 post-filter (clone_suggested, expired)
+  let readStatusMap: Record<string, string> = {}
+  if (params.smart_queue === 'new_reply' && reports.length > 0) {
+    const reportIds = reports.map((report) => report.id)
+    const adminSupabase = createAdminClient()
+    const { data: readRows } = await adminSupabase
+      .from('report_read_status')
+      .select('report_id, read_at')
+      .eq('user_id', user.id)
+
+    if (readRows) {
+      readStatusMap = Object.fromEntries(
+        readRows
+          .filter((row) => reportIds.includes(row.report_id))
+          .map((row) => [row.report_id, row.read_at]),
+      )
+    }
+  }
+
+  // 마지막 활동일 / unread amazon reply 기준 post-filter
   let filteredTotal = count ?? 0
   if (isPostFiltered) {
     const now = Date.now()
     const cloneMs = cloneThresholdDays * 24 * 60 * 60 * 1000
     const expireMs = maxMonitoringDays * 24 * 60 * 60 * 1000
     reports = reports.filter((r: Record<string, unknown>) => {
+      if (params.smart_queue === 'new_reply') {
+        return hasUnreadAmazonReply(
+          {
+            br_case_status: r.br_case_status as string | null,
+            br_last_amazon_reply_at: r.br_last_amazon_reply_at as string | null,
+            br_last_our_reply_at: r.br_last_our_reply_at as string | null,
+          },
+          readStatusMap[r.id as string],
+        )
+      }
+
       if (r.br_case_status === 'closed') return false
-      const lastActivity = Math.max(
-        r.br_last_amazon_reply_at ? new Date(r.br_last_amazon_reply_at as string).getTime() : 0,
-        r.br_last_our_reply_at ? new Date(r.br_last_our_reply_at as string).getTime() : 0,
-        r.br_submitted_at ? new Date(r.br_submitted_at as string).getTime() : 0,
-        r.created_at ? new Date(r.created_at as string).getTime() : 0,
-      )
+      const lastActivity = getLastBrActivityAt({
+        br_case_status: r.br_case_status as string | null,
+        br_last_amazon_reply_at: r.br_last_amazon_reply_at as string | null,
+        br_last_our_reply_at: r.br_last_our_reply_at as string | null,
+        br_submitted_at: r.br_submitted_at as string | null,
+        created_at: r.created_at as string | null,
+      })
       const idle = now - lastActivity
       if (params.smart_queue === 'expired') return idle > expireMs
       return idle > cloneMs && idle <= expireMs

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { isDemoMode } from '@/lib/demo'
+import { markDemoNoticeRead } from '@/lib/demo/runtime'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const POST = withAuth(async (req, { user, params }) => {
@@ -9,6 +11,11 @@ export const POST = withAuth(async (req, { user, params }) => {
       { error: { code: 'VALIDATION_ERROR', message: 'Notice ID is required.' } },
       { status: 400 },
     )
+  }
+
+  if (isDemoMode()) {
+    markDemoNoticeRead(user.id, noticeId)
+    return NextResponse.json({ success: true })
   }
 
   const supabase = createAdminClient()

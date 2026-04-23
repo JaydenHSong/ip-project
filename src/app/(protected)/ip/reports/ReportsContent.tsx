@@ -55,6 +55,7 @@ type ReportRow = {
   ai_confidence_score: number | null
   disagreement_flag: boolean
   created_at: string
+  br_submitted_at?: string | null
   related_asins?: { asin: string; marketplace?: string; url?: string }[]
   listings: { asin: string; title: string; marketplace: string; seller_name: string | null } | null
   users?: { name: string } | null
@@ -71,6 +72,7 @@ type ReportsContentProps = {
   statusFilter: string
   brFormTypeFilter: string
   smartQueue: string
+  previewId: string | null
   userRole: Role
   ownerFilter: 'my' | 'all'
   searchQuery: string
@@ -92,6 +94,7 @@ export const ReportsContent = ({
   statusFilter,
   brFormTypeFilter,
   smartQueue,
+  previewId,
   userRole,
   ownerFilter,
   searchQuery,
@@ -167,38 +170,22 @@ export const ReportsContent = ({
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   }, [])
-  const [showNewReport, setShowNewReport] = useState(false)
-  const [prefillAsin, setPrefillAsin] = useState('')
-  const [prefillMarketplace, setPrefillMarketplace] = useState('')
   const searchParamsHook = useSearchParams()
-
-  // Auto-open modal/panel from URL params
-  useEffect(() => {
-    if (searchParamsHook.get('new') === '1') {
-      setPrefillAsin(searchParamsHook.get('asin') ?? '')
-      setPrefillMarketplace(searchParamsHook.get('marketplace') ?? '')
-      setShowNewReport(true)
-    }
-    const previewId = searchParamsHook.get('preview')
-    if (previewId) {
-      setPreviewReportId(previewId)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const shouldOpenNewReport = searchParamsHook.get('new') === '1'
+  const [showNewReport, setShowNewReport] = useState(shouldOpenNewReport)
+  const [prefillAsin, setPrefillAsin] = useState(() => shouldOpenNewReport ? (searchParamsHook.get('asin') ?? '') : '')
+  const [prefillMarketplace, setPrefillMarketplace] = useState(() => shouldOpenNewReport ? (searchParamsHook.get('marketplace') ?? '') : '')
+  const [previewReportId, setPreviewReportId] = useState<string | null>(previewId)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
   const bulkActions = useBulkActions(selectedIds, clearSelection)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
-  const [highlightedId, setHighlightedId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') return sessionStorage.getItem('sentinel-highlight-report')
-    return null
-  })
-  const [previewReportId, setPreviewReportId] = useState<string | null>(null)
+  const [highlightedId, setHighlightedId] = useState<string | null>(previewId)
   const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({})
 
   const handleSelectReport = useCallback((id: string) => {
     setPreviewReportId(id)
     setHighlightedId(id)
-    sessionStorage.setItem('sentinel-highlight-report', id)
   }, [])
 
   const getSearchableText = useCallback(
@@ -436,7 +423,7 @@ export const ReportsContent = ({
                   seller: t('reports.seller'),
                   requester: t('reports.createdBy'),
                   date: t('common.date'),
-                  updated: t('reports.table.updated' as Parameters<typeof t>[0]),
+                  updated: t('reports.table.submitted' as Parameters<typeof t>[0]),
                   resolved: t('reports.table.resolved' as Parameters<typeof t>[0]),
                 }
                 return col.sortField ? (
@@ -516,7 +503,7 @@ export const ReportsContent = ({
                   seller: <td key="seller" className="px-4 py-3.5 text-th-text-secondary truncate">{report.listings?.seller_name ?? '—'}</td>,
                   requester: <td key="requester" className="px-4 py-3.5 text-th-text-secondary truncate">{report.users?.name ?? '—'}</td>,
                   date: <td key="date" className="px-4 py-3.5 text-th-text-muted">{formatDate(report.created_at)}</td>,
-                  updated: <td key="updated" className="px-4 py-3.5 text-th-text-muted">{formatDate(row.updated_at as string)}</td>,
+                  updated: <td key="updated" className="px-4 py-3.5 text-th-text-muted">{formatDate(report.br_submitted_at ?? null)}</td>,
                   resolved: <td key="resolved" className="px-4 py-3.5 text-th-text-muted">{formatDate(row.resolved_at as string)}</td>,
                 }
                 return (

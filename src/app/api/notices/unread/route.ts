@@ -1,8 +1,19 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { isDemoMode } from '@/lib/demo'
+import { getUnreadDemoNotices } from '@/lib/demo/runtime'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const GET = withAuth(async (_req, { user }) => {
+  if (isDemoMode()) {
+    const data = getUnreadDemoNotices(user.id)
+
+    return NextResponse.json({
+      data,
+      count: data.length,
+    })
+  }
+
   const supabase = createAdminClient()
 
   const { data, error } = await supabase.rpc('get_unread_notices', {

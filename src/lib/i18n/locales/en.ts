@@ -185,6 +185,7 @@ export const en = {
     },
     table: {
       channel: 'CH',
+      submitted: 'Submitted',
       updated: 'Updated',
       resolved: 'Resolved',
       lastUpdated: 'Last Updated',

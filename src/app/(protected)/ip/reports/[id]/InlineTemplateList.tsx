@@ -34,10 +34,14 @@ export const InlineTemplateList = ({
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    fetch('/api/templates')
-      .then((res) => res.json())
-      .then((data: ReportTemplate[]) => {
+    let cancelled = false
+
+    const loadTemplates = async () => {
+      setLoading(true)
+
+      try {
+        const res = await fetch('/api/templates')
+        const data = await res.json() as ReportTemplate[]
         const sorted = [...data].sort((a, b) => {
           const aMatch = currentViolationType && a.violation_types.includes(currentViolationType) ? 1 : 0
           const bMatch = currentViolationType && b.violation_types.includes(currentViolationType) ? 1 : 0
@@ -45,10 +49,26 @@ export const InlineTemplateList = ({
           if (a.is_default !== b.is_default) return a.is_default ? -1 : 1
           return b.usage_count - a.usage_count
         })
-        setTemplates(sorted)
-      })
-      .catch(() => setTemplates([]))
-      .finally(() => setLoading(false))
+
+        if (!cancelled) {
+          setTemplates(sorted)
+        }
+      } catch {
+        if (!cancelled) {
+          setTemplates([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadTemplates()
+
+    return () => {
+      cancelled = true
+    }
   }, [currentViolationType])
 
   const filtered = templates.filter((tmpl) => {

@@ -1,9 +1,35 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { getLastBrActivityAt, hasUnreadAmazonReply } from '@/lib/reports/br-case-queue'
+import { isDemoMode } from '@/lib/demo'
+import { DEMO_MONITORING_REPORTS } from '@/lib/demo/monitoring'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 
 // GET /api/dashboard/br-case-summary — BR 케이스 큐 카운트 (개인별 New Reply)
-export const GET = withAuth(async (_req, { user }) => {
+export const GET = withAuth(async (req, { user }) => {
+  const ownerParam = req.nextUrl.searchParams.get('owner')
+  const canSeeAll = user.role !== 'viewer'
+  const effectiveOwner = canSeeAll
+    ? (ownerParam ?? ((user.role === 'owner' || user.role === 'admin') ? 'all' : 'my')) as 'my' | 'all'
+    : 'my'
+
+  if (isDemoMode()) {
+    const rows = DEMO_MONITORING_REPORTS
+      .filter((report) => ['monitoring', 'br_submitting'].includes(report.status))
+      .filter((report) => effectiveOwner === 'all' || report.created_by === user.id)
+
+    return NextResponse.json({
+      action_required: 0,
+      new_reply: 0,
+      clone_suggested: 0,
+      expired: 0,
+      total: rows.length,
+      clone_threshold_days: 14,
+      max_monitoring_days: 90,
+    })
+  }
+
   const supabase = await createClient()
 
   // 모니터링 설정값 조회
@@ -16,22 +42,30 @@ export const GET = withAuth(async (_req, { user }) => {
   const maxMonitoringDays = configMap.br_max_monitoring_days ?? 90
 
   // 모니터링 중인 리포트만 대상
-  const { data: reports } = await supabase
+  let reportsQuery = supabase
     .from('reports')
     .select('id, br_case_status, br_last_amazon_reply_at, br_last_our_reply_at, br_submitted_at, created_at')
     .in('status', ['monitoring', 'br_submitting'])
+  if (effectiveOwner === 'my') {
+    reportsQuery = reportsQuery.eq('created_by', user.id)
+  }
+  const { data: reports } = await reportsQuery
 
   // 현재 유저의 읽음 상태 조회
   const reportIds = (reports ?? []).map(r => r.id)
   let readStatusMap: Record<string, string> = {}
   if (reportIds.length > 0) {
-    const { data: readRows } = await supabase
+    const adminSupabase = createAdminClient()
+    const { data: readRows } = await adminSupabase
       .from('report_read_status')
       .select('report_id, read_at')
       .eq('user_id', user.id)
-      .in('report_id', reportIds)
     if (readRows) {
-      readStatusMap = Object.fromEntries(readRows.map(r => [r.report_id, r.read_at]))
+      readStatusMap = Object.fromEntries(
+        readRows
+          .filter((row) => reportIds.includes(row.report_id))
+          .map((row) => [row.report_id, row.read_at]),
+      )
     }
   }
 
@@ -48,20 +82,9 @@ export const GET = withAuth(async (_req, { user }) => {
   for (const r of rows) {
     if (r.br_case_status === 'needs_attention') actionRequired++
 
-    if (r.br_last_amazon_reply_at) {
-      const amazonReply = new Date(r.br_last_amazon_reply_at).getTime()
-      const ourReply = r.br_last_our_reply_at ? new Date(r.br_last_our_reply_at).getTime() : 0
-      const myReadAt = readStatusMap[r.id] ? new Date(readStatusMap[r.id]).getTime() : 0
-      if (amazonReply > ourReply && amazonReply > myReadAt) newReply++
-    }
+    if (hasUnreadAmazonReply(r, readStatusMap[r.id])) newReply++
 
-    // 마지막 활동일 기준: amazon 답변 > 우리 답변 > 제출일 > 생성일
-    const lastActivity = Math.max(
-      r.br_last_amazon_reply_at ? new Date(r.br_last_amazon_reply_at).getTime() : 0,
-      r.br_last_our_reply_at ? new Date(r.br_last_our_reply_at).getTime() : 0,
-      r.br_submitted_at ? new Date(r.br_submitted_at).getTime() : 0,
-      r.created_at ? new Date(r.created_at).getTime() : 0,
-    )
+    const lastActivity = getLastBrActivityAt(r)
     if (lastActivity > 0 && r.br_case_status !== 'closed') {
       const idle = now - lastActivity
       if (idle > maxMonitoringMs) {
