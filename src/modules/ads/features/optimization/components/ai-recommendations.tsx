@@ -5,6 +5,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { KpiCard } from '@/modules/ads/shared/components/kpi-card'
 import { EmptyState } from '@/modules/ads/shared/components/empty-state'
+import { useSkipRecommendations } from '../hooks/use-skip-recommendations'
+// Design Ref: ft-optimization-ui-wiring §3.2 S4
 import type { RecommendationItem, RecommendationSummary } from '../types'
 
 type AiRecommendationsProps = {
@@ -28,14 +30,27 @@ const TYPE_LABELS: Record<string, string> = {
 
 const CATEGORY_ORDER = ['bid_adjust', 'promote', 'negate', 'new_keyword']
 
+type MarketOption = {
+  id: string
+  brand_name: string
+  marketplace: string
+}
+
 const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps) => {
   const [recs, setRecs] = useState<RecommendationItem[]>([])
   const [summary, setSummary] = useState<RecommendationSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
 
-  // Filter state — Brand/Market filtering is already applied via brandMarketId prop
+  // Filter state
   const [campaignFilter, setCampaignFilter] = useState<string>('all')
+  // Design Ref: ft-optimization-ui-wiring §3.2 S6 — I3 Brand/Market 다중선택 필터
+  const [brandFilter, setBrandFilter] = useState<string>('all')
+  const [marketFilter, setMarketFilter] = useState<string>('all')
+  const [markets, setMarkets] = useState<MarketOption[]>([])
+
+  // Design Ref: ft-optimization-ui-wiring §3.2 S4 — Skip All 서버 연동
+  const { skipAll, isRunning: isSkipping } = useSkipRecommendations(brandMarketId)
 
   // H4 fix: extract fetch so we can re-run it after approve actions
   const fetchRecs = useCallback(async () => {
@@ -56,14 +71,39 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
 
   useEffect(() => { fetchRecs() }, [fetchRecs])
 
+  // Design Ref: ft-optimization-ui-wiring §3.2 S6 — fetch accessible markets for filter
+  useEffect(() => {
+    const fetchMarkets = async () => {
+      try {
+        const res = await fetch('/api/ads/markets')
+        if (res.ok) {
+          const json = await res.json() as { data: MarketOption[] }
+          setMarkets(json.data ?? [])
+        }
+      } catch (err) {
+        console.error('[ai-recommendations] markets fetch failed', err)
+      }
+    }
+    fetchMarkets()
+  }, [])
+
+  const brandOptions = useMemo(() => [...new Set(markets.map((m) => m.brand_name))].sort(), [markets])
+  const marketOptions = useMemo(() => [...new Set(markets.map((m) => m.marketplace))].sort(), [markets])
+  // Find current bm name/market for display
+  const currentBm = useMemo(() => markets.find((m) => m.id === brandMarketId), [markets, brandMarketId])
+
   const handleApprove = useCallback(async (id: string) => {
     await onApprove(id)
     await fetchRecs()
   }, [onApprove, fetchRecs])
 
-  const handleSkip = useCallback((id: string) => {
-    setSkippedIds((prev) => new Set(prev).add(id))
-  }, [])
+  // Design Ref: ft-optimization-ui-wiring §3.2 S4 — per-row skip도 서버 호출
+  const handleSkip = useCallback(async (id: string) => {
+    const result = await skipAll([id])
+    if (result.failed === 0) {
+      setSkippedIds((prev) => new Set(prev).add(id))
+    }
+  }, [skipAll])
 
   // Derive unique filter options
   const campaignOptions = useMemo(() => {
@@ -72,13 +112,20 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
   }, [recs])
 
   // Filtered recs (also drops locally-skipped items)
+  // Design Ref: ft-optimization-ui-wiring §3.2 S6 — Brand/Market/Campaign combined filtering
+  // Note: since recs are already scoped to single brandMarketId via backend, Brand/Market
+  // filters here act as "ensure rec matches current context" — useful when markets list is stale.
   const filteredRecs = useMemo(() => {
     return recs.filter((r) => {
       if (skippedIds.has(r.id)) return false
       if (campaignFilter !== 'all' && r.campaign_name !== campaignFilter) return false
+      if ((brandFilter !== 'all' || marketFilter !== 'all') && currentBm) {
+        if (brandFilter !== 'all' && currentBm.brand_name !== brandFilter) return false
+        if (marketFilter !== 'all' && currentBm.marketplace !== marketFilter) return false
+      }
       return true
     })
-  }, [recs, campaignFilter, skippedIds])
+  }, [recs, campaignFilter, brandFilter, marketFilter, currentBm, skippedIds])
 
   // Category grouping — Design S11: "Category Groups: Bid Adjustments / Negative Keywords / Keyword Promotions"
   const groupedRecs = useMemo(() => {
@@ -113,16 +160,23 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
             Approve All
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
+              // Design Ref: ft-optimization-ui-wiring §3.2 S4 — Skip All 서버 호출
+              const ids = filteredRecs.map((r) => r.id)
+              const result = await skipAll(ids)
               setSkippedIds((prev) => {
                 const next = new Set(prev)
-                filteredRecs.forEach((r) => next.add(r.id))
+                ids.forEach((id) => { if (!result.failedIds.includes(id)) next.add(id) })
                 return next
               })
+              if (result.failed > 0) {
+                console.warn(`[ai-recommendations] skip: ${result.succeeded}/${result.total} succeeded`)
+              }
             }}
-            className="rounded-md border border-th-border px-3 py-1.5 text-xs font-medium text-th-text-secondary hover:bg-th-bg-hover"
+            disabled={isSkipping}
+            className="rounded-md border border-th-border px-3 py-1.5 text-xs font-medium text-th-text-secondary hover:bg-th-bg-hover disabled:opacity-50"
           >
-            Skip All
+            {isSkipping ? 'Skipping…' : 'Skip All'}
           </button>
         </div>
       </div>
@@ -138,9 +192,43 @@ const AiRecommendations = ({ brandMarketId, onApprove }: AiRecommendationsProps)
         </div>
       )}
 
-      {/* Filter Row — Campaign filter (Brand/Market already scoped by brandMarketId) */}
-      <div className="flex items-center gap-3 rounded-lg border border-th-border bg-th-bg-hover px-4 py-2.5">
+      {/* Filter Row — Design S11 + ft-optimization-ui-wiring §3.2 S6 Brand/Market/Campaign */}
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-th-border bg-th-bg-hover px-4 py-2.5">
         <span className="text-[10px] font-medium uppercase tracking-wide text-th-text-muted">Filters</span>
+
+        {/* Brand filter */}
+        <select
+          value={brandFilter}
+          onChange={(e) => setBrandFilter(e.target.value)}
+          className="rounded border border-th-border bg-surface-card px-2 py-1 text-xs text-th-text-secondary focus:border-orange-500 focus:outline-none"
+          title="Brand filter — scope is the current market; switch market via top nav for cross-brand"
+        >
+          <option value="all">All Brands</option>
+          {brandOptions.map((name) => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+        </select>
+
+        {/* Market filter */}
+        <select
+          value={marketFilter}
+          onChange={(e) => setMarketFilter(e.target.value)}
+          className="rounded border border-th-border bg-surface-card px-2 py-1 text-xs text-th-text-secondary focus:border-orange-500 focus:outline-none"
+        >
+          <option value="all">All Markets</option>
+          {marketOptions.map((name) => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+        </select>
+
+        {/* Current context badge */}
+        {currentBm && (
+          <span className="rounded bg-th-bg-tertiary px-2 py-0.5 text-[10px] font-medium text-th-text-secondary">
+            Current: {currentBm.brand_name} / {currentBm.marketplace}
+          </span>
+        )}
+
+        {/* Campaign filter */}
         <select
           value={campaignFilter}
           onChange={(e) => setCampaignFilter(e.target.value)}

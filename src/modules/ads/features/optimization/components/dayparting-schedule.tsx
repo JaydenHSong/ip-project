@@ -5,30 +5,20 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { EmptyState } from '@/modules/ads/shared/components/empty-state'
+import { HeatmapGrid } from './heatmap-grid'
+// Design Ref: ft-optimization-ui-wiring §2.1 S3 — shared heatmap + C4 AI buttons
 import type { DaypartingGroup, HeatmapCell, DaypartingGroupStatus } from '../types'
 
 type DaypartingScheduleProps = {
   brandMarketId: string
 }
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const HOURS = Array.from({ length: 24 }, (_, i) => i)
-
-// C4 fix: 5-step color scale so the heatmap actually communicates dayparting
-// weight visually. Uses orange brand ramp (off → light → high) for accessibility
-// and consistency with the rest of the app.
-const getWeightColor = (weight: number): string => {
-  if (weight <= 0) return 'bg-th-bg-tertiary'
-  if (weight < 0.3) return 'bg-orange-100'
-  if (weight < 0.6) return 'bg-orange-300'
-  if (weight < 0.8) return 'bg-orange-500'
-  return 'bg-orange-700'
-}
-
 const DaypartingSchedule = ({ brandMarketId }: DaypartingScheduleProps) => {
   const [groups, setGroups] = useState<DaypartingGroup[]>([])
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isAdjusting, setIsAdjusting] = useState(false)
+  const [isApplyingAi, setIsApplyingAi] = useState(false)
 
   useEffect(() => {
     const fetch_ = async () => {
@@ -50,8 +40,6 @@ const DaypartingSchedule = ({ brandMarketId }: DaypartingScheduleProps) => {
   }, [brandMarketId])
 
   const currentGroup = groups.find((g) => g.id === selectedGroup)
-  const currentHour = new Date().getHours()
-  const currentDay = new Date().getDay()
 
   const handleToggleGroup = useCallback(async () => {
     if (!currentGroup) return
@@ -66,6 +54,53 @@ const DaypartingSchedule = ({ brandMarketId }: DaypartingScheduleProps) => {
     } catch (err) {
       // L1 fix: log toggle failures
       console.error('[dayparting-schedule] toggle failed', err)
+    }
+  }, [currentGroup])
+
+  // Design Ref: ft-optimization-ui-wiring §3.2 S3 — heatmap cell click toggle
+  const handleCellToggle = useCallback(async (day: number, hour: number) => {
+    if (!currentGroup || !isAdjusting) return
+    const existing = currentGroup.heatmap.find((c) => c.day === day && c.hour === hour)
+    const currentWeight = existing?.weight ?? 0
+    // Simple toggle: 0 → 1.0 → 0
+    const nextWeight = currentWeight > 0 ? 0 : 1.0
+    const newCell: HeatmapCell = { day, hour, weight: nextWeight, is_active: nextWeight > 0 }
+    const newHeatmap: HeatmapCell[] = [
+      ...currentGroup.heatmap.filter((c) => !(c.day === day && c.hour === hour)),
+      newCell,
+    ]
+    const updated: DaypartingGroup = { ...currentGroup, heatmap: newHeatmap }
+    setGroups((prev) => prev.map((g) => g.id === updated.id ? updated : g))
+    try {
+      await fetch(`/api/ads/dayparting/schedules/${currentGroup.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ heatmap: newHeatmap }),
+      })
+    } catch (err) {
+      console.error('[dayparting-schedule] cell toggle failed', err)
+    }
+  }, [currentGroup, isAdjusting])
+
+  // Design Ref: ft-optimization-ui-wiring §3.2 S2 — C4 Apply AI Schedule
+  const handleApplyAiSchedule = useCallback(async () => {
+    if (!currentGroup?.ai_recommended) return
+    const aiHeatmap = currentGroup.ai_recommended
+    setIsApplyingAi(true)
+    try {
+      const res = await fetch(`/api/ads/dayparting/schedules/${currentGroup.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ heatmap: aiHeatmap }),
+      })
+      if (res.ok) {
+        const updated: DaypartingGroup = { ...currentGroup, heatmap: aiHeatmap, ai_recommended: null }
+        setGroups((prev) => prev.map((g) => g.id === updated.id ? updated : g))
+      }
+    } catch (err) {
+      console.error('[dayparting-schedule] ai apply failed', err)
+    } finally {
+      setIsApplyingAi(false)
     }
   }, [currentGroup])
 
@@ -147,61 +182,35 @@ const DaypartingSchedule = ({ brandMarketId }: DaypartingScheduleProps) => {
         <EmptyState title="No dayparting groups" description="Create a group to manage time-based bid adjustments." />
       )}
 
-      {/* 24h×7d Heatmap — Design S07 */}
+      {/* 24h×7d Heatmap — Design S07 + ft-optimization-ui-wiring §3.2 S3 */}
       {currentGroup && (
         <div className="rounded-lg border border-th-border bg-surface-card p-4">
-          <h3 className="text-sm font-medium text-th-text mb-3">Schedule Heatmap</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th className="w-10" />
-                  {HOURS.map((h) => (
-                    <th key={h} className="text-[9px] text-th-text-muted text-center px-0 w-5">
-                      {h % 4 === 0 ? `${h}` : ''}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {DAYS.map((day, dayIdx) => (
-                  <tr key={day}>
-                    <td className="text-[10px] text-th-text-muted pr-2 font-medium">{day}</td>
-                    {HOURS.map((hour) => {
-                      const cell = currentGroup.heatmap.find((c: HeatmapCell) => c.day === dayIdx && c.hour === hour)
-                      const weight = cell?.weight ?? 0
-                      const isNow = dayIdx === currentDay && hour === currentHour
-                      return (
-                        <td key={hour} className="px-0 py-0">
-                          <div
-                            className={`h-4 w-full ${getWeightColor(weight)} ${
-                              isNow ? 'ring-2 ring-orange-500 ring-inset' : ''
-                            }`}
-                            title={`${day} ${hour}:00 — weight: ${weight.toFixed(2)}`}
-                          />
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-th-text">
+              Schedule Heatmap
+              {isAdjusting && (
+                <span className="ml-2 rounded bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                  Edit mode — click cells to toggle
+                </span>
+              )}
+            </h3>
+            <button
+              onClick={() => setIsAdjusting((v) => !v)}
+              className={`rounded-md px-2 py-1 text-[11px] font-medium ${
+                isAdjusting
+                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                  : 'bg-th-bg-tertiary text-th-text-secondary hover:bg-th-bg-hover'
+              }`}
+            >
+              {isAdjusting ? 'Done adjusting' : 'Adjust manually'}
+            </button>
           </div>
 
-          {/* Heatmap Legend — C4 fix: matches getWeightColor 5-step scale */}
-          <div className="flex items-center gap-1 mt-3">
-            <span className="text-[9px] text-th-text-muted mr-1">Off</span>
-            <div className="h-2.5 w-4 rounded-sm bg-th-bg-tertiary" />
-            <div className="h-2.5 w-4 rounded-sm bg-orange-100" />
-            <div className="h-2.5 w-4 rounded-sm bg-orange-300" />
-            <div className="h-2.5 w-4 rounded-sm bg-orange-500" />
-            <div className="h-2.5 w-4 rounded-sm bg-orange-700" />
-            <span className="text-[9px] text-th-text-muted ml-1">High</span>
-            <div className="ml-3 flex items-center gap-1">
-              <div className="h-2.5 w-4 rounded-sm ring-2 ring-orange-500 ring-inset" />
-              <span className="text-[9px] text-th-text-muted">Now</span>
-            </div>
-          </div>
+          <HeatmapGrid
+            cells={currentGroup.heatmap}
+            onCellToggle={isAdjusting ? handleCellToggle : undefined}
+            highlightNow
+          />
 
           {/* AI Schedule Strip — Design S07: "#18181B 다크 바, Apply/Adjust" */}
           {currentGroup.ai_recommended && (
@@ -214,10 +223,17 @@ const DaypartingSchedule = ({ brandMarketId }: DaypartingScheduleProps) => {
                 <span className="text-[10px] text-th-text-muted">Based on last 30d conversion data</span>
               </div>
               <div className="flex gap-2">
-                <button className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600">
-                  Apply AI Schedule
+                <button
+                  onClick={handleApplyAiSchedule}
+                  disabled={isApplyingAi}
+                  className="rounded-md bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+                >
+                  {isApplyingAi ? 'Applying…' : 'Apply AI Schedule'}
                 </button>
-                <button className="rounded-md bg-th-bg-tertiary px-3 py-1.5 text-xs text-th-text-muted hover:bg-th-bg-hover">
+                <button
+                  onClick={() => setIsAdjusting(true)}
+                  className="rounded-md bg-th-bg-tertiary px-3 py-1.5 text-xs text-th-text-muted hover:bg-th-bg-hover"
+                >
                   Adjust
                 </button>
               </div>
