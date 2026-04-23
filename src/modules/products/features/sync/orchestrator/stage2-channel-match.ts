@@ -39,7 +39,10 @@ export type Stage2Input = {
 };
 
 // Soft deadline — stage aborts gracefully before Vercel kills the lambda.
-const STAGE2_SOFT_DEADLINE_MS = 140_000;
+// Runs after Stage 1 inside the same 300s route invocation. Observation:
+// readErpActiveAll (~10 PostgREST pages × ~3s) + Amazon delta upserts + unmapped
+// inserts all fit well under 70s. Stage 1 gets the larger share for cold start.
+const STAGE2_SOFT_DEADLINE_MS = 70_000;
 
 export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Result> {
   const startedAt = Date.now();

@@ -9,7 +9,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ErpRow } from '../../domain/types';
 
 const TABLE = 'spg_operation_sis_z1ppr0010_1000';
-const BATCH_SIZE = 500;
+// 1000 (up from 500): regex filter does seq-scan against 1.8M rows per query;
+// larger batch amortizes that scan over more useful rows without proportionally
+// increasing time. Supabase upsert tolerates 1000-row payloads cleanly.
+// readErpActiveAll uses BATCH_SIZE * 2 = 2000 for full-scan efficiency.
+const BATCH_SIZE = 1000;
 
 // Spigen SKU regex: ACS/AMP/AMM + 5 digits OR legacy '000' + 2 letters + 5 digits
 // Sampling showed these patterns cover 98.8% of channel listings.
@@ -117,7 +121,7 @@ export async function readErpActiveAll(client: SupabaseClient): Promise<ErpRow[]
       .or('material_status.is.null,material_status.not.in.(Z3,Z5,Z6)')
       .order('id', { ascending: true })
       .gt('id', lastId)
-      .limit(BATCH_SIZE * 4); // 2,000 per page for full scan efficiency
+      .limit(BATCH_SIZE * 2); // 2,000 per page for full scan efficiency
 
     if (error) throw new Error(`[erp-source] full-scan failed: ${error.message}`);
 
@@ -128,7 +132,7 @@ export async function readErpActiveAll(client: SupabaseClient): Promise<ErpRow[]
       all.push(toErpRow(r));
       if (r.id > lastId) lastId = r.id;
     }
-    if (rows.length < BATCH_SIZE * 4) break;
+    if (rows.length < BATCH_SIZE * 2) break;
   }
   return all;
 }
