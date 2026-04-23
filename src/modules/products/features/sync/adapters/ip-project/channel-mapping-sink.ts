@@ -30,9 +30,23 @@ export async function upsertChannelMappingBatch(
 
   const db = createAdminClient();
   const syncedAt = new Date().toISOString();
+  const key = (extId: string, mp: string, ch: string) => `${extId}|${mp}|${ch}`;
 
-  // 1. Look up existing rows by (external_id, marketplace, channel)
-  const extIds = items.map((i) => i.channelRow.externalId);
+  // Dedupe within batch — sq_datahub sometimes emits multiple rows for the same
+  // (external_id, marketplace, channel) triple (inactive + active variants).
+  // Keep the last occurrence so the latest state wins.
+  const byKey = new Map<string, ChannelMappingUpsert>();
+  for (const item of items) {
+    byKey.set(
+      key(item.channelRow.externalId, item.channelRow.marketplace, item.channelRow.channel),
+      item,
+    );
+  }
+  const deduped = Array.from(byKey.values());
+  const skippedDupes = items.length - deduped.length;
+
+  // Look up existing rows by external_id (channel/marketplace filtered in-memory).
+  const extIds = deduped.map((i) => i.channelRow.externalId);
   const { data: existing, error: readErr } = await db
     .schema('products')
     .from('channel_mapping')
@@ -40,7 +54,6 @@ export async function upsertChannelMappingBatch(
     .in('external_id', extIds);
   if (readErr) throw new Error(`[channel-mapping-sink] lookup: ${readErr.message}`);
 
-  const key = (extId: string, mp: string, ch: string) => `${extId}|${mp}|${ch}`;
   const existingMap = new Map<string, { id: string; is_primary: boolean; product_id: string }>();
   for (const e of existing ?? []) {
     existingMap.set(key(e.external_id, e.marketplace, e.channel), {
@@ -53,7 +66,7 @@ export async function upsertChannelMappingBatch(
   const toInsert: Array<Record<string, unknown>> = [];
   const toUpdate: Array<{ id: string; patch: Record<string, unknown> }> = [];
 
-  for (const item of items) {
+  for (const item of deduped) {
     const { channelRow, productId, matchedVia } = item;
     const k = key(channelRow.externalId, channelRow.marketplace, channelRow.channel);
     const existingRow = existingMap.get(k);
@@ -89,11 +102,16 @@ export async function upsertChannelMappingBatch(
   let updated = 0;
 
   if (toInsert.length > 0) {
+    // Use upsert with onConflict to defend against race conditions and any
+    // residual in-batch dupes the dedupe above missed (e.g., same external_id
+    // appearing in different channels but the DB constraint is only on
+    // (external_id, marketplace) from the asin_mapping legacy shape).
+    // ignoreDuplicates=false so existing rows get updated to latest state.
     const { error: insErr } = await db
       .schema('products')
       .from('channel_mapping')
-      .insert(toInsert);
-    if (insErr) throw new Error(`[channel-mapping-sink] insert: ${insErr.message}`);
+      .upsert(toInsert, { onConflict: 'external_id,marketplace', ignoreDuplicates: false });
+    if (insErr) throw new Error(`[channel-mapping-sink] upsert: ${insErr.message}`);
     inserted = toInsert.length;
   }
 
@@ -107,7 +125,7 @@ export async function upsertChannelMappingBatch(
     updated += 1;
   }
 
-  return { fetched: items.length, inserted, updated, skipped: 0 };
+  return { fetched: items.length, inserted, updated, skipped: skippedDupes };
 }
 
 /**
