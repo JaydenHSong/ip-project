@@ -19,7 +19,9 @@ const BodySchema = z.object({
 
 const ADMIN_ROLES = ['admin', 'owner'] as const;
 
-export const maxDuration = 60;
+// 300s (Vercel Pro max): initial ERP scan (~1.8M rows → ~20k Spigen) can exceed 60s.
+// Incremental runs via watermark stay well under the limit.
+export const maxDuration = 300;
 
 // Cron path — bypass withAuth when Vercel cron signature present.
 async function runCron(req: NextRequest): Promise<NextResponse> {
