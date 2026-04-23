@@ -31,8 +31,11 @@ export type Stage1Input = {
 };
 
 // Soft deadline (ms) — stage aborts gracefully before Vercel kills the lambda.
-// Route maxDuration=300s; stage budget ~140s leaves room for Stage 2 + cleanup.
-const STAGE1_SOFT_DEADLINE_MS = 140_000;
+// Route maxDuration=300s. First-run observation: Stage 1 is the bottleneck
+// (regex seq-scan of 1.8M SAP rows → ~67 rows/sec). Stage 2 finishes in <30s.
+// Allocate 220s to Stage 1 so cold-start fills the full ~20k Spigen catalog
+// in one invocation, leaving 70s for Stage 2 + final cleanup.
+const STAGE1_SOFT_DEADLINE_MS = 220_000;
 
 export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
   const startedAt = Date.now();
