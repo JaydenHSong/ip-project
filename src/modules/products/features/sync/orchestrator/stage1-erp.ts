@@ -30,10 +30,17 @@ export type Stage1Input = {
   forceFull?: boolean;
 };
 
+// Soft deadline (ms) — stage aborts gracefully before Vercel kills the lambda.
+// Route maxDuration=300s; stage budget ~140s leaves room for Stage 2 + cleanup.
+const STAGE1_SOFT_DEADLINE_MS = 140_000;
+
 export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
   const startedAt = Date.now();
+  const deadlineAt = startedAt + STAGE1_SOFT_DEADLINE_MS;
+  const tag = `[stage1 ${input.pipelineId.slice(0, 8)}]`;
 
   const watermarkBefore = input.forceFull ? null : await readWatermark(ERP_SOURCE_TABLE_KEY);
+  console.log(`${tag} start watermarkBefore=${watermarkBefore ?? 'null'} forceFull=${Boolean(input.forceFull)}`);
 
   const runId = await startRun({
     pipelineId: input.pipelineId,
@@ -49,6 +56,7 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
   let rowsUpdated = 0;
   let rowsSkipped = 0;
   let watermarkAfter: string | null = watermarkBefore;
+  let softTimedOut = false;
 
   try {
     const sq = createSqDataHubClient();
@@ -62,15 +70,19 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
     // If empty (RPC not installed) both sides equal '' → no-op; when installed
     // and signatures differ, abort with schema_drift status.
     const schemaHashBefore = await fetchErpColumnHash(sq);
+    console.log(`${tag} schemaHashBefore captured (${Date.now() - startedAt}ms)`);
 
     const iter = readErpDelta(sq, watermarkBefore);
+    let batchN = 0;
     while (true) {
+      const batchStart = Date.now();
       const next = await iter.next();
       if (next.done) {
         if (typeof next.value === 'string' && next.value) watermarkAfter = next.value;
         break;
       }
       const batch = next.value;
+      batchN += 1;
       rowsFetched += batch.length;
 
       const result = await upsertErpProductsBatch(batch, ctx);
@@ -81,11 +93,27 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
       for (const r of batch) {
         if (r.sourceUpdatedAt > (watermarkAfter ?? '')) watermarkAfter = r.sourceUpdatedAt;
       }
+
+      // Persist watermark per-batch so partial progress survives timeouts.
+      if (watermarkAfter && watermarkAfter !== watermarkBefore) {
+        await updateWatermark(ERP_SOURCE_TABLE_KEY, watermarkAfter, runId);
+      }
+
+      console.log(
+        `${tag} batch ${batchN} rows=${batch.length} (+${result.inserted}/~${result.updated}/skip=${result.skipped}) batchMs=${Date.now() - batchStart} elapsed=${Date.now() - startedAt}`,
+      );
+
+      if (Date.now() > deadlineAt) {
+        softTimedOut = true;
+        console.warn(`${tag} soft deadline hit after batch ${batchN} — exiting gracefully`);
+        break;
+      }
     }
 
     // Drift detection after processing — if schema changed mid-run, abort WITHOUT
     // advancing watermark so the next run can retry cleanly on fixed schema.
-    const schemaHashAfter = await fetchErpColumnHash(sq);
+    // Skip drift check on soft timeout (we didn't scan the full window).
+    const schemaHashAfter = softTimedOut ? schemaHashBefore : await fetchErpColumnHash(sq);
     if (schemaHashBefore && schemaHashAfter && schemaHashBefore !== schemaHashAfter) {
       const errorMessage = `Schema drift detected on ${ERP_SOURCE_TABLE_KEY}: column signature changed mid-run.`;
       await finishRun({
@@ -128,9 +156,9 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
       watermarkAfter,
     });
 
-    if (watermarkAfter && watermarkAfter !== watermarkBefore) {
-      await updateWatermark(ERP_SOURCE_TABLE_KEY, watermarkAfter, runId);
-    }
+    console.log(
+      `${tag} done status=success rowsFetched=${rowsFetched} +${rowsInserted}/~${rowsUpdated}/skip=${rowsSkipped} totalMs=${Date.now() - startedAt}${softTimedOut ? ' (partial, soft deadline)' : ''}`,
+    );
 
     return {
       runId,
@@ -145,6 +173,7 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`${tag} failed after ${Date.now() - startedAt}ms: ${errorMessage}`);
     await finishRun({
       runId,
       status: 'failed',
