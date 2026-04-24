@@ -3,22 +3,14 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { simulateRuleSchema } from '@/modules/ads/features/rules/schemas'
 
 export const POST = withAuth(async (req) => {
-  const body = await req.json() as {
-    brand_market_id: string
-    rule_type: string
-    conditions: unknown
-    actions: unknown
-    lookback_days?: number
-  }
-
-  if (!body.brand_market_id || !body.rule_type || !body.conditions || !body.actions) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'brand_market_id, rule_type, conditions, and actions are required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — covers required fields + lookback_days range.
+  const parsed = await parseBody(req, simulateRuleSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
     const ctx = createAdsAdminContext()

@@ -4,6 +4,8 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { createKeywordsSchema } from '@/modules/ads/features/keywords/schemas'
 
 // ─── GET: List keywords by campaign ───
 
@@ -66,22 +68,10 @@ export const GET = withAuth(async (req) => {
 // ─── POST: Bulk create keywords ───
 
 export const POST = withAuth(async (req, { user }) => {
-  const body = await req.json() as {
-    campaign_id: string
-    keywords: Array<{
-      keyword_text: string
-      match_type: 'broad' | 'phrase' | 'exact'
-      bid: number
-      state?: string
-    }>
-  }
-
-  if (!body.campaign_id || !body.keywords?.length) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'campaign_id and keywords array are required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — covers required fields + per-keyword match_type/bid.
+  const parsed = await parseBody(req, createKeywordsSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
     const ctx = createAdsAdminContext()

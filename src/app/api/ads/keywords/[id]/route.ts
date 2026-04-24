@@ -4,6 +4,8 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { updateKeywordSchema } from '@/modules/ads/features/keywords/schemas'
 
 // ─── PUT: Update keyword ───
 
@@ -17,11 +19,10 @@ export const PUT = withAuth(async (req, { params }) => {
     )
   }
 
-  const body = await req.json() as {
-    bid?: number
-    state?: string
-    match_type?: string
-  }
+  // Plan SC-3: Zod validation — partial update; match_type/state enum enforced.
+  const parsed = await parseBody(req, updateKeywordSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   const updates: Record<string, unknown> = {}
   if (body.bid !== undefined) updates.bid = body.bid
