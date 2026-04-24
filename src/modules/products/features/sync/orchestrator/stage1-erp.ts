@@ -31,11 +31,16 @@ export type Stage1Input = {
 };
 
 // Soft deadline (ms) — stage aborts gracefully before Vercel kills the lambda.
-// Route maxDuration=300s. First-run observation: Stage 1 is the bottleneck
-// (regex seq-scan of 1.8M SAP rows → ~67 rows/sec). Stage 2 finishes in <30s.
-// Allocate 220s to Stage 1 so cold-start fills the full ~20k Spigen catalog
-// in one invocation, leaving 70s for Stage 2 + final cleanup.
-const STAGE1_SOFT_DEADLINE_MS = 220_000;
+// Route maxDuration=300s. Observation from 2026-04-24 run:
+// Stage 1 with 220s soft deadline overshot to 273s actual (+53s) because each
+// BATCH_SIZE=1000 batch costs ~30-40s and the deadline check was POST-batch,
+// not PRE-batch. That left Stage 2 <30s which Vercel killed before finishRun().
+// Fix: tighter budget 180s + pre-batch deadline check in the loop below.
+// Worst-case overshoot ≤ 1 batch (~40s) → hard cap ~220s, leaves 80s for S2.
+const STAGE1_SOFT_DEADLINE_MS = 180_000;
+// Estimated ceiling per batch (fetch + upsert + watermark). If less than this
+// remains before soft deadline, skip starting a new batch.
+const STAGE1_BATCH_BUDGET_MS = 45_000;
 
 export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
   const startedAt = Date.now();
@@ -78,6 +83,15 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
     const iter = readErpDelta(sq, watermarkBefore);
     let batchN = 0;
     while (true) {
+      // Pre-batch deadline check: don't start a new batch if we can't finish it.
+      if (Date.now() + STAGE1_BATCH_BUDGET_MS > deadlineAt) {
+        softTimedOut = true;
+        console.warn(
+          `${tag} pre-batch deadline guard — ${deadlineAt - Date.now()}ms remaining, need ~${STAGE1_BATCH_BUDGET_MS}ms for next batch — exiting`,
+        );
+        break;
+      }
+
       const batchStart = Date.now();
       const next = await iter.next();
       if (next.done) {
