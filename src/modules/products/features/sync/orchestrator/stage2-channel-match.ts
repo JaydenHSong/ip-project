@@ -39,10 +39,13 @@ export type Stage2Input = {
 };
 
 // Soft deadline — stage aborts gracefully before Vercel kills the lambda.
-// Runs after Stage 1 inside the same 300s route invocation. Observation:
-// readErpActiveAll (~10 PostgREST pages × ~3s) + Amazon delta upserts + unmapped
-// inserts all fit well under 70s. Stage 1 gets the larger share for cold start.
-const STAGE2_SOFT_DEADLINE_MS = 70_000;
+// Stage 1 worst case ~220s (180s soft + 40s overshoot). Route max 300s.
+// Budget 100s here with 20s headroom before the hard limit. readErpActiveAll
+// (~10 pages × 3s) + Amazon delta + unmapped inserts comfortably fit.
+const STAGE2_SOFT_DEADLINE_MS = 100_000;
+// Pre-batch deadline guard margin — a channel-match batch (lookup + upsert +
+// unmapped inserts) is cheaper than Stage 1's fetch+upsert; budget 20s.
+const STAGE2_BATCH_BUDGET_MS = 20_000;
 
 export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Result> {
   const startedAt = Date.now();
@@ -80,6 +83,15 @@ export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Re
     const iter = readAmazonDelta(sq, watermarkBefore);
     let batchN = 0;
     while (true) {
+      // Pre-batch deadline check: don't start a new batch if we can't finish.
+      if (Date.now() + STAGE2_BATCH_BUDGET_MS > deadlineAt) {
+        softTimedOut = true;
+        console.warn(
+          `${tag} pre-batch deadline guard — ${deadlineAt - Date.now()}ms remaining — exiting`,
+        );
+        break;
+      }
+
       const batchStart = Date.now();
       const next = await iter.next();
       if (next.done) {
