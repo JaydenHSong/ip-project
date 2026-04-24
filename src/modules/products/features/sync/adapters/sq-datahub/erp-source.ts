@@ -9,11 +9,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ErpRow } from '../../domain/types';
 
 const TABLE = 'spg_operation_sis_z1ppr0010_1000';
-// 1000 (up from 500): regex filter does seq-scan against 1.8M rows per query;
-// larger batch amortizes that scan over more useful rows without proportionally
-// increasing time. Supabase upsert tolerates 1000-row payloads cleanly.
-// readErpActiveAll uses BATCH_SIZE * 2 = 2000 for full-scan efficiency.
-const BATCH_SIZE = 1000;
+// 500: regex LIKE seq-scan against 1.8M SAP rows hits Supabase's default
+// statement_timeout (~8s) with LIMIT ≥ 1000. LIMIT 500 proven to complete
+// under the timeout (first sync run on 2026-04-23 succeeded at 500).
+// readErpActiveAll doubles this (BATCH_SIZE * 2 = 1000) for its simpler
+// non-delta query — if that also starts hitting timeouts, drop to 500.
+const BATCH_SIZE = 500;
 
 // Spigen SKU regex: ACS/AMP/AMM + 5 digits OR legacy '000' + 2 letters + 5 digits
 // Sampling showed these patterns cover 98.8% of channel listings.
