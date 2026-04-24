@@ -7,8 +7,10 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { parseBody } from '@/lib/api/validate-body'
 import { getCampaignById, updateCampaign, archiveCampaign } from '@/modules/ads/features/campaigns/queries'
-import type { UpdateCampaignRequest } from '@/modules/ads/features/campaigns/types'
+import { updateCampaignSchema } from '@/modules/ads/features/campaigns/schemas'
+import type { UpdateCampaignInput } from '@/modules/ads/features/campaigns/schemas'
 
 // ─── GET: Campaign detail ───
 
@@ -53,18 +55,14 @@ export const PUT = withAuth(async (req, { params }) => {
     )
   }
 
-  const body = await req.json() as UpdateCampaignRequest
+  // Plan SC-3: Zod validation — covers target_acos range. Allowed-field filter preserved below.
+  const parsed = await parseBody(req, updateCampaignSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
-  // Validate target_acos if provided
-  if (body.target_acos != null && (body.target_acos < 1 || body.target_acos > 100)) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'target_acos must be between 1 and 100' } },
-      { status: 400 },
-    )
-  }
-
-  // Only allow specific fields to be updated
-  const allowedFields: (keyof UpdateCampaignRequest)[] = [
+  // Only allow specific fields to be updated (schema already restricts, but we keep an
+  // explicit allow-list in case schema evolves with additional non-route fields).
+  const allowedFields: (keyof UpdateCampaignInput)[] = [
     'name', 'status', 'target_acos', 'daily_budget',
     'weekly_budget', 'max_bid_cap', 'mode', 'assigned_to',
   ]

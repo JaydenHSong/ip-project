@@ -4,8 +4,8 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdsAdminContext } from '@/lib/supabase/ads-context'
-
-const VALID_GOAL_MODES = ['launch', 'growth', 'profit', 'defend'] as const
+import { parseBody } from '@/lib/api/validate-body'
+import { goalModeSchema } from '@/modules/ads/features/campaigns/schemas'
 
 export const PATCH = withAuth(async (req, { params }) => {
   const { id } = params
@@ -17,14 +17,10 @@ export const PATCH = withAuth(async (req, { params }) => {
     )
   }
 
-  const body = await req.json() as { goal_mode?: string }
-
-  if (!body.goal_mode || !(VALID_GOAL_MODES as readonly string[]).includes(body.goal_mode)) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: `goal_mode must be one of: ${VALID_GOAL_MODES.join(', ')}` } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — replaces manual VALID_GOAL_MODES enum check.
+  const parsed = await parseBody(req, goalModeSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
     const ctx = createAdsAdminContext()

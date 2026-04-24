@@ -5,8 +5,10 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { parseBody } from '@/lib/api/validate-body'
 import { getCampaigns, getCampaignKpiSummary, createCampaign } from '@/modules/ads/features/campaigns/queries'
-import type { CampaignListQuery, CreateCampaignRequest } from '@/modules/ads/features/campaigns/types'
+import { createCampaignSchema } from '@/modules/ads/features/campaigns/schemas'
+import type { CampaignListQuery } from '@/modules/ads/features/campaigns/types'
 
 // ─── GET: List campaigns ───
 
@@ -60,22 +62,10 @@ export const GET = withAuth(async (req, { user }) => {
 // ─── POST: Create campaign ───
 
 export const POST = withAuth(async (req, { user }) => {
-  const body = await req.json() as CreateCampaignRequest
-
-  // Validate required fields
-  if (!body.brand_market_id || !body.campaign_type || !body.mode || !body.name) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'Missing required fields: brand_market_id, campaign_type, mode, name' } },
-      { status: 400 },
-    )
-  }
-
-  if (body.target_acos < 1 || body.target_acos > 100) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'target_acos must be between 1 and 100' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — covers required fields + target_acos range (was manual above).
+  const parsed = await parseBody(req, createCampaignSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
     // Resolve user's org_unit from user_org_units
