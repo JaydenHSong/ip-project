@@ -31,16 +31,16 @@ export type Stage1Input = {
 };
 
 // Soft deadline (ms) — stage aborts gracefully before Vercel kills the lambda.
-// Route maxDuration=300s. Observation from 2026-04-24 run:
-// Stage 1 with 220s soft deadline overshot to 273s actual (+53s) because each
-// BATCH_SIZE=1000 batch costs ~30-40s and the deadline check was POST-batch,
-// not PRE-batch. That left Stage 2 <30s which Vercel killed before finishRun().
-// Fix: tighter budget 180s + pre-batch deadline check in the loop below.
-// Worst-case overshoot ≤ 1 batch (~40s) → hard cap ~220s, leaves 80s for S2.
-const STAGE1_SOFT_DEADLINE_MS = 180_000;
-// Estimated ceiling per batch (fetch + upsert + watermark). If less than this
-// remains before soft deadline, skip starting a new batch.
-const STAGE1_BATCH_BUDGET_MS = 45_000;
+// Route maxDuration=300s. With BATCH_SIZE=500 (required to stay under
+// Supabase statement_timeout — 1000 hit "canceling statement" error on
+// 2026-04-24), a batch costs ~28s. Budget 200s for Stage 1 = ~6-7 batches
+// = ~3000-3500 rows per invocation. Pre-batch guard prevents starting a
+// batch we can't finish; worst-case overshoot = ~30s → 230s. Leaves ~70s
+// for Stage 2 + final cleanup within the 300s hard limit.
+const STAGE1_SOFT_DEADLINE_MS = 200_000;
+// Estimated ceiling per batch (fetch + upsert + watermark) for BATCH_SIZE=500.
+// If less remains before soft deadline, skip starting a new batch.
+const STAGE1_BATCH_BUDGET_MS = 30_000;
 
 export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
   const startedAt = Date.now();
