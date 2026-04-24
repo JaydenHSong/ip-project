@@ -4,9 +4,10 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
 import { approveRecommendation } from '@/modules/ads/features/optimization/queries'
 import { createWriteBackService, isMockMode } from '@/modules/ads/api/factory'
-import type { ApproveRequest } from '@/modules/ads/features/optimization/types'
+import { approveRecommendationSchema } from '@/modules/ads/features/recommendations/schemas'
 import type { WriteBackAction } from '@/modules/ads/api/services/write-back-service'
 
 export const POST = withAuth(async (req, { params }) => {
@@ -19,8 +20,12 @@ export const POST = withAuth(async (req, { params }) => {
     )
   }
 
+  // Plan SC-3: Zod validation — adjusted_bid is optional but must be non-negative if present.
+  const parsed = await parseBody(req, approveRecommendationSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
+
   try {
-    const body = await req.json() as ApproveRequest
     const result = await approveRecommendation(id, body.adjusted_bid)
 
     // §4.6: Write-back to Amazon (if enabled)

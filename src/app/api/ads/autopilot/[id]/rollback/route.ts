@@ -3,20 +3,17 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { parseBody } from '@/lib/api/validate-body'
 import { rollbackActions } from '@/modules/ads/features/autopilot/queries'
-import type { RollbackRequest } from '@/modules/ads/features/autopilot/types'
+import { rollbackAutopilotSchema } from '@/modules/ads/features/autopilot/schemas'
 
 export const POST = withAuth(async (req, { user }) => {
+  // Plan SC-3: Zod validation — log_ids array required, min 1.
+  const parsed = await parseBody(req, rollbackAutopilotSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
+
   try {
-    const body = await req.json() as RollbackRequest
-
-    if (!body.log_ids?.length) {
-      return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: 'log_ids array is required' } },
-        { status: 400 },
-      )
-    }
-
     const result = await rollbackActions(body.log_ids, user.id)
     return NextResponse.json({ data: result })
   } catch (err) {

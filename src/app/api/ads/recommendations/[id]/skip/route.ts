@@ -3,7 +3,9 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { parseBody } from '@/lib/api/validate-body'
 import { skipRecommendation } from '@/modules/ads/features/optimization/skip-recommendation'
+import { skipRecommendationSchema } from '@/modules/ads/features/recommendations/schemas'
 
 export const POST = withAuth(async (req, { params }) => {
   const { id } = params
@@ -15,13 +17,10 @@ export const POST = withAuth(async (req, { params }) => {
     )
   }
 
-  const body = (await req.json().catch(() => ({}))) as { brand_market_id?: string }
-  if (!body.brand_market_id) {
-    return NextResponse.json(
-      { error: { code: 'MISSING_PARAM', message: 'brand_market_id is required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — brand_market_id required for tenant scoping.
+  const parsed = await parseBody(req, skipRecommendationSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
     const result = await skipRecommendation(id, body.brand_market_id)

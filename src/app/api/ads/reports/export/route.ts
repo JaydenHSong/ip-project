@@ -3,23 +3,14 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { exportReportSchema } from '@/modules/ads/features/reports/schemas'
 
 export const POST = withAuth(async (req) => {
-  const body = await req.json() as {
-    brand_market_id: string
-    campaign_ids?: string[]
-    date_from: string
-    date_to: string
-    metrics?: string[]
-    format?: 'csv' | 'xlsx'
-  }
-
-  if (!body.brand_market_id || !body.date_from || !body.date_to) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'brand_market_id, date_from, and date_to are required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — required date fields + YYYY-MM-DD format enforced.
+  const parsed = await parseBody(req, exportReportSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
     const ctx = createAdsAdminContext()

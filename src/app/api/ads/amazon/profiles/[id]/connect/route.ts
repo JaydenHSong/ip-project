@@ -4,17 +4,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { connectProfileSchema } from '@/modules/ads/features/amazon/schemas'
 
 export const POST = withAuth(async (request: NextRequest, { params }) => {
   const profileId = params.id
 
-  const body = await request.json() as { marketplace_id?: string }
-  if (!body.marketplace_id) {
-    return NextResponse.json(
-      { error: { code: 'MISSING_FIELD', message: 'marketplace_id is required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — marketplace_id required.
+  const parsed = await parseBody(request, connectProfileSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   const ctx = createAdsAdminContext()
 

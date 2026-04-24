@@ -3,10 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { parseBody } from '@/lib/api/validate-body'
 import { createSyncService } from '@/modules/ads/api/factory'
+import { amazonSyncSchema } from '@/modules/ads/features/amazon/schemas'
 import type { SyncResult, AnalysisResult } from '@/modules/ads/api/services/sync'
-
-type SyncType = 'campaigns' | 'reports' | 'keywords' | 'all'
 
 export const POST = withAuth(async (request: NextRequest) => {
   const profileId = process.env.AMAZON_ADS_PROFILE_ID_US ?? ''
@@ -18,16 +18,10 @@ export const POST = withAuth(async (request: NextRequest) => {
     )
   }
 
-  const body = await request.json() as { type?: SyncType }
-  const syncType = body.type ?? 'all'
-
-  const validTypes: SyncType[] = ['campaigns', 'reports', 'keywords', 'all']
-  if (!validTypes.includes(syncType)) {
-    return NextResponse.json(
-      { error: { code: 'INVALID_TYPE', message: `type must be one of: ${validTypes.join(', ')}` } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — type enum enforced; defaults to 'all' below.
+  const parsed = await parseBody(request, amazonSyncSchema)
+  if (!parsed.success) return parsed.response
+  const syncType = parsed.data.type ?? 'all'
 
   const syncService = createSyncService(profileId)
   const results: Record<string, SyncResult | AnalysisResult> = {}
