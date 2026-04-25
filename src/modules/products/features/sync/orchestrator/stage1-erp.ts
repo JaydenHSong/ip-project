@@ -9,6 +9,7 @@ import {
   readErpDelta,
   ERP_SOURCE_TABLE_KEY,
   fetchErpColumnHash,
+  type ErpCursor,
 } from '../adapters/sq-datahub/erp-source';
 import { upsertErpProductsBatch, type UpsertContext } from '../adapters/ip-project/products-sink';
 import {
@@ -16,6 +17,7 @@ import {
   finishRun,
   readWatermark,
   updateWatermark,
+  type Watermark,
 } from '../adapters/ip-project/sync-runs-writer';
 import { notifySchemaDrift } from '../adapters/slack/notifier';
 import type { Stage1Result, TriggerKind } from '../domain/types';
@@ -47,8 +49,12 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
   const deadlineAt = startedAt + STAGE1_SOFT_DEADLINE_MS;
   const tag = `[stage1 ${input.pipelineId.slice(0, 8)}]`;
 
-  const watermarkBefore = input.forceFull ? null : await readWatermark(ERP_SOURCE_TABLE_KEY);
-  console.log(`${tag} start watermarkBefore=${watermarkBefore ?? 'null'} forceFull=${Boolean(input.forceFull)}`);
+  const watermarkBefore: Watermark = input.forceFull
+    ? { ts: null, id: 0 }
+    : await readWatermark(ERP_SOURCE_TABLE_KEY);
+  console.log(
+    `${tag} start watermarkBefore=(ts=${watermarkBefore.ts ?? 'null'}, id=${watermarkBefore.id}) forceFull=${Boolean(input.forceFull)}`,
+  );
 
   const runId = await startRun({
     pipelineId: input.pipelineId,
@@ -56,14 +62,14 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
     trigger: input.trigger,
     triggeredBy: input.triggeredBy,
     sourceTable: ERP_SOURCE_TABLE_KEY,
-    watermarkBefore,
+    watermarkBefore: watermarkBefore.ts,
   });
 
   let rowsFetched = 0;
   let rowsInserted = 0;
   let rowsUpdated = 0;
   let rowsSkipped = 0;
-  let watermarkAfter: string | null = watermarkBefore;
+  let watermarkAfter: Watermark = watermarkBefore;
   let softTimedOut = false;
 
   try {
@@ -80,7 +86,8 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
     const schemaHashBefore = await fetchErpColumnHash(sq);
     console.log(`${tag} schemaHashBefore captured (${Date.now() - startedAt}ms)`);
 
-    const iter = readErpDelta(sq, watermarkBefore);
+    const initialCursor: ErpCursor = { ts: watermarkBefore.ts, id: watermarkBefore.id };
+    const iter = readErpDelta(sq, initialCursor);
     let batchN = 0;
     while (true) {
       // Pre-batch deadline check: don't start a new batch if we can't finish it.
@@ -95,29 +102,29 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
       const batchStart = Date.now();
       const next = await iter.next();
       if (next.done) {
-        if (typeof next.value === 'string' && next.value) watermarkAfter = next.value;
+        // Generator return value is the final cursor — adopt it.
+        if (next.value) watermarkAfter = { ts: next.value.ts, id: next.value.id };
         break;
       }
-      const batch = next.value;
+      const { rows, cursor } = next.value;
       batchN += 1;
-      rowsFetched += batch.length;
+      rowsFetched += rows.length;
 
-      const result = await upsertErpProductsBatch(batch, ctx);
+      const result = await upsertErpProductsBatch(rows, ctx);
       rowsInserted += result.inserted;
       rowsUpdated += result.updated;
       rowsSkipped += result.skipped;
 
-      for (const r of batch) {
-        if (r.sourceUpdatedAt > (watermarkAfter ?? '')) watermarkAfter = r.sourceUpdatedAt;
-      }
+      // Composite watermark advances to the batch's last (ts, id) by ORDER BY.
+      watermarkAfter = { ts: cursor.ts, id: cursor.id };
 
       // Persist watermark per-batch so partial progress survives timeouts.
-      if (watermarkAfter && watermarkAfter !== watermarkBefore) {
+      if (watermarkAfter.ts && (watermarkAfter.ts !== watermarkBefore.ts || watermarkAfter.id !== watermarkBefore.id)) {
         await updateWatermark(ERP_SOURCE_TABLE_KEY, watermarkAfter, runId);
       }
 
       console.log(
-        `${tag} batch ${batchN} rows=${batch.length} (+${result.inserted}/~${result.updated}/skip=${result.skipped}) batchMs=${Date.now() - batchStart} elapsed=${Date.now() - startedAt}`,
+        `${tag} batch ${batchN} rows=${rows.length} (+${result.inserted}/~${result.updated}/skip=${result.skipped}) cursor=(ts=${cursor.ts ?? 'null'}, id=${cursor.id}) batchMs=${Date.now() - batchStart} elapsed=${Date.now() - startedAt}`,
       );
 
       if (Date.now() > deadlineAt) {
@@ -156,8 +163,8 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
         rowsInserted,
         rowsUpdated,
         rowsSkipped,
-        watermarkBefore,
-        watermarkAfter: watermarkBefore, // do NOT advance
+        watermarkBefore: watermarkBefore.ts,
+        watermarkAfter: watermarkBefore.ts, // do NOT advance
         durationMs: Date.now() - startedAt,
         errorMessage,
       };
@@ -170,11 +177,11 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
       rowsInserted,
       rowsUpdated,
       rowsSkipped,
-      watermarkAfter,
+      watermarkAfter: watermarkAfter.ts,
     });
 
     console.log(
-      `${tag} done status=success rowsFetched=${rowsFetched} +${rowsInserted}/~${rowsUpdated}/skip=${rowsSkipped} totalMs=${Date.now() - startedAt}${softTimedOut ? ' (partial, soft deadline)' : ''}`,
+      `${tag} done status=success rowsFetched=${rowsFetched} +${rowsInserted}/~${rowsUpdated}/skip=${rowsSkipped} cursor=(ts=${watermarkAfter.ts ?? 'null'}, id=${watermarkAfter.id}) totalMs=${Date.now() - startedAt}${softTimedOut ? ' (partial, soft deadline)' : ''}`,
     );
 
     return {
@@ -184,8 +191,8 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
       rowsInserted,
       rowsUpdated,
       rowsSkipped,
-      watermarkBefore,
-      watermarkAfter,
+      watermarkBefore: watermarkBefore.ts,
+      watermarkAfter: watermarkAfter.ts,
       durationMs: Date.now() - startedAt,
     };
   } catch (err) {
@@ -207,8 +214,8 @@ export async function runErpStage(input: Stage1Input): Promise<Stage1Result> {
       rowsInserted,
       rowsUpdated,
       rowsSkipped,
-      watermarkBefore,
-      watermarkAfter,
+      watermarkBefore: watermarkBefore.ts,
+      watermarkAfter: watermarkAfter.ts,
       durationMs: Date.now() - startedAt,
       errorMessage,
     };
