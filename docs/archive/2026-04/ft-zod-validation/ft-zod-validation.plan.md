@@ -410,12 +410,14 @@ src/app/api/ads/rules/route.ts
 src/app/api/ads/rules/simulate/route.ts
 ```
 
-### 9.2 예상 신규 파일 13개
+### 9.2 예상 신규 파일 12개
+
+> Note (post-implementation): `budgets`는 기존 `budget-planning` feature 폴더에 schemas.ts를 추가하는 것으로 통합 — 신규 폴더 생성 없음. 따라서 schema 파일 10개 (당초 11개 예상에서 -1).
 
 ```
 src/lib/api/validate-body.ts                                (1)
 src/modules/ads/features/campaigns/schemas.ts               (2)
-src/modules/ads/features/budgets/schemas.ts                 (3)
+src/modules/ads/features/budget-planning/schemas.ts         (3) ← 기존 폴더 사용
 src/modules/ads/features/rules/schemas.ts                   (4)
 src/modules/ads/features/keywords/schemas.ts                (5)
 src/modules/ads/features/recommendations/schemas.ts         (6)
@@ -424,8 +426,8 @@ src/modules/ads/features/optimization/schemas.ts            (8)
 src/modules/ads/features/alerts/schemas.ts                  (9)
 src/modules/ads/features/reports/schemas.ts                 (10)
 src/modules/ads/features/amazon/schemas.ts                  (11)
-e2e/zod-validation.spec.ts                                  (12)
-docs/02-design/features/ft-zod-validation.design.md         (13, Design phase에서)
+e2e/zod-validation.spec.ts                                  (12, gitignored)
+docs/02-design/features/ft-zod-validation.design.md         (Design phase 산출물)
 ```
 
 ### 9.3 예상 수정 파일 22개
@@ -433,7 +435,7 @@ docs/02-design/features/ft-zod-validation.design.md         (13, Design phase에
 - 20 route files (`src/app/api/ads/**/route.ts`)
 - `package.json` + `pnpm-lock.yaml`
 
-**총 변경 규모 추정**: +800 LOC(신규) / +200/-100(기존 20 routes의 cast→parse 변환), 13 new files / 22 modified.
+**총 변경 규모 추정**: +800 LOC(신규) / +200/-100(기존 20 routes의 cast→parse 변환), 12 new files / 22 modified.
 
 ---
 

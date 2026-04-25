@@ -214,11 +214,11 @@ export const POST = withAuth(async (req) => {
 | 1 | `/api/ads/campaigns` | POST | `createCampaignSchema` | `modules/ads/features/campaigns/schemas.ts` |
 | 2 | `/api/ads/campaigns/[id]` | PUT/PATCH | `updateCampaignSchema` | 同上 |
 | 3 | `/api/ads/campaigns/[id]/goal-mode` | PATCH | `goalModeSchema` | 同上 |
-| 4 | `/api/ads/budgets` | POST | `saveBudgetSchema` | `modules/ads/features/budgets/schemas.ts` |
+| 4 | `/api/ads/budgets` | PUT | `saveBudgetSchema` | `modules/ads/features/budget-planning/schemas.ts` |
 | 5 | `/api/ads/rules` | POST | `createRuleSchema` | `modules/ads/features/rules/schemas.ts` |
 | 6 | `/api/ads/rules/[id]` | PUT/PATCH | `updateRuleSchema` | 同上 |
 | 7 | `/api/ads/rules/simulate` | POST | `simulateRuleSchema` | 同上 |
-| 8 | `/api/ads/keywords` | POST | `createKeywordSchema` | `modules/ads/features/keywords/schemas.ts` |
+| 8 | `/api/ads/keywords` | POST | `createKeywordsSchema` | `modules/ads/features/keywords/schemas.ts` |
 | 9 | `/api/ads/keywords/[id]` | PUT/PATCH | `updateKeywordSchema` | 同上 |
 | 10 | `/api/ads/recommendations/[id]/approve` | POST | `approveRecommendationSchema` | `modules/ads/features/recommendations/schemas.ts` |
 | 11 | `/api/ads/recommendations/[id]/skip` | POST | `skipRecommendationSchema` | 同上 |
