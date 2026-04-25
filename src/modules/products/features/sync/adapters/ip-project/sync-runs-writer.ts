@@ -75,36 +75,52 @@ export async function finishRun(input: FinishRunInput): Promise<void> {
   if (error) throw new Error(`[sync-runs-writer] finish: ${error.message}`);
 }
 
+export type Watermark = {
+  /** Last source_updated_at processed (timestamptz string). null = never synced. */
+  ts: string | null;
+  /** Last source-table id processed at that timestamp. 0 = beginning. */
+  id: number;
+};
+
 /**
- * Read current watermark for a source_table. Returns null if never synced.
+ * Read current composite watermark for a source_table. Returns {ts:null, id:0}
+ * if never synced. Uses (ts, id) cursor to avoid getting stuck on bulk-update
+ * timestamp clusters in the source table.
  */
-export async function readWatermark(sourceTable: string): Promise<string | null> {
+export async function readWatermark(sourceTable: string): Promise<Watermark> {
   const db = createAdminClient();
   const { data, error } = await db
     .schema('products')
     .from('sync_watermarks')
-    .select('last_updated_at')
+    .select('last_updated_at,last_id')
     .eq('source_table', sourceTable)
     .maybeSingle();
   if (error) throw new Error(`[sync-runs-writer] readWatermark: ${error.message}`);
-  return (data as { last_updated_at: string | null } | null)?.last_updated_at ?? null;
+  const row = data as { last_updated_at: string | null; last_id: number | null } | null;
+  return {
+    ts: row?.last_updated_at ?? null,
+    id: row?.last_id ?? 0,
+  };
 }
 
 /**
- * Update watermark after a successful stage. Only call on status='success' or 'partial'.
+ * Update composite watermark after a successful batch.
+ * Both ts and id advance together. id resets to 0 when ts strictly advances.
  */
 export async function updateWatermark(
   sourceTable: string,
-  lastUpdatedAt: string,
+  watermark: Watermark,
   lastRunId: string,
 ): Promise<void> {
+  if (watermark.ts === null) return; // nothing to persist
   const db = createAdminClient();
   const { error } = await db
     .schema('products')
     .from('sync_watermarks')
     .update({
       last_run_at: new Date().toISOString(),
-      last_updated_at: lastUpdatedAt,
+      last_updated_at: watermark.ts,
+      last_id: watermark.id,
       last_run_id: lastRunId,
     })
     .eq('source_table', sourceTable);
@@ -131,6 +147,7 @@ export async function resetWatermark(sourceTable: string, toTimestamp: string | 
     .from('sync_watermarks')
     .update({
       last_updated_at: toTimestamp,
+      last_id: 0, // reset composite cursor companion
       last_run_at: new Date().toISOString(),
     })
     .eq('source_table', sourceTable);

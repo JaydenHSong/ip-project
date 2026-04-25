@@ -52,7 +52,12 @@ export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Re
   const deadlineAt = startedAt + STAGE2_SOFT_DEADLINE_MS;
   const tag = `[stage2 ${input.pipelineId.slice(0, 8)}]`;
 
-  const watermarkBefore = input.forceFull ? null : await readWatermark(AMAZON_SOURCE_TABLE_KEY);
+  // Amazon stage uses ts-only cursor (no observed bulk-update clusters); read
+  // composite Watermark but only thread the ts portion into channel-source.
+  const wmBefore = input.forceFull
+    ? { ts: null as string | null, id: 0 }
+    : await readWatermark(AMAZON_SOURCE_TABLE_KEY);
+  const watermarkBefore: string | null = wmBefore.ts;
   console.log(`${tag} start watermarkBefore=${watermarkBefore ?? 'null'} forceFull=${Boolean(input.forceFull)}`);
 
   const runId = await startRun({
@@ -112,9 +117,14 @@ export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Re
         if (r.updatedAt > (watermarkAfter ?? '')) watermarkAfter = r.updatedAt;
       }
 
-      // Persist watermark per-batch for resumability.
+      // Persist watermark per-batch for resumability. Amazon stage uses
+      // ts-only cursor; id stays at 0 for the composite-cursor companion.
       if (watermarkAfter && watermarkAfter !== watermarkBefore) {
-        await updateWatermark(AMAZON_SOURCE_TABLE_KEY, watermarkAfter, runId);
+        await updateWatermark(
+          AMAZON_SOURCE_TABLE_KEY,
+          { ts: watermarkAfter, id: 0 },
+          runId,
+        );
       }
 
       console.log(

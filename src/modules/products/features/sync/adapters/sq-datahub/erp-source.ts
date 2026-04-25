@@ -56,21 +56,34 @@ function toErpRow(raw: RawSisRow): ErpRow {
   };
 }
 
+/** Composite cursor companion for keyset pagination. */
+export type ErpCursor = { ts: string | null; id: number };
+
+/** Each batch ships its rows + the (ts, id) cursor at the batch's last row. */
+export type ErpDeltaBatch = {
+  rows: ErpRow[];
+  cursor: ErpCursor;
+};
+
 /**
- * Delta reader — yields batches of ErpRow since `watermark`.
- * Batch size 500 matches NFR-01 throughput target.
+ * Delta reader — yields batches of ErpRow since `watermark`, using a composite
+ * (updated_at, id) cursor. This avoids the "stuck on bulk-update timestamp"
+ * problem where many rows share the same updated_at and the previous cursor
+ * (timestamp + per-call lastId) would re-process the same cluster forever.
  *
- * Example:
- *   for await (const batch of readErpDelta(client, '2026-04-20T00:00:00Z')) {
- *     await productsSink.upsertBatch(batch, { source: 'erp', userId });
- *   }
+ * Keyset predicate per batch:
+ *   WHERE (updated_at > cursor.ts)
+ *      OR (updated_at = cursor.ts AND id > cursor.id)
+ *
+ * Generator return value is the final cursor (use to persist watermark after
+ * stage completes; per-batch cursor is also yielded so callers can persist
+ * progress mid-stream for resumability).
  */
 export async function* readErpDelta(
   client: SupabaseClient,
-  watermark: string | null,
-): AsyncGenerator<ErpRow[], string | null> {
-  let lastId = 0;
-  let maxUpdatedAt = watermark;
+  watermark: ErpCursor,
+): AsyncGenerator<ErpDeltaBatch, ErpCursor> {
+  let cursor: ErpCursor = { ts: watermark.ts, id: watermark.id };
 
   while (true) {
     let query = client
@@ -80,11 +93,16 @@ export async function* readErpDelta(
       .filter('material', 'match', SPIGEN_SKU_PATTERN)
       .order('updated_at', { ascending: true })
       .order('id', { ascending: true })
-      .gt('id', lastId)
       .limit(BATCH_SIZE);
 
-    if (watermark) {
-      query = query.gte('updated_at', watermark);
+    if (cursor.ts) {
+      // Composite seek past (cursor.ts, cursor.id).
+      query = query.or(
+        `updated_at.gt.${cursor.ts},and(updated_at.eq.${cursor.ts},id.gt.${cursor.id})`,
+      );
+    } else if (cursor.id > 0) {
+      // First-ever sync but partial id progress (defensive).
+      query = query.gt('id', cursor.id);
     }
 
     const { data, error } = await query;
@@ -93,16 +111,15 @@ export async function* readErpDelta(
     const rows = (data ?? []) as RawSisRow[];
     if (rows.length === 0) break;
 
-    for (const r of rows) {
-      if (r.updated_at > (maxUpdatedAt ?? '')) maxUpdatedAt = r.updated_at;
-      if (r.id > lastId) lastId = r.id;
-    }
+    // Last row has max (updated_at, id) by ORDER BY contract.
+    const last = rows[rows.length - 1];
+    cursor = { ts: last.updated_at, id: last.id };
 
-    yield rows.map(toErpRow);
+    yield { rows: rows.map(toErpRow), cursor };
     if (rows.length < BATCH_SIZE) break;
   }
 
-  return maxUpdatedAt;
+  return cursor;
 }
 
 /**
