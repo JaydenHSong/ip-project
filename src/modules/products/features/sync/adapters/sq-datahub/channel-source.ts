@@ -17,12 +17,30 @@ import { validateEan13 } from '../../domain/normalize';
 const TABLE = 'spg_amazon_all_listings';
 const BATCH_SIZE = 500;
 
-// Phase 1 scope: Amazon US/CA only. Entries are OVERRIDABLE via env later if needed.
-// See Plan Open Question #1 and Design §6.3 for the reasoning.
-export const AMAZON_CHANNEL_MARKETPLACE_MAP: Record<number, string> = {
+// Default Phase 1 mapping (Amazon US/CA). Override at runtime via env var
+//   ARC_PRODUCTS_CHANNEL_MAP="1002:US,1003:CA,1004:MX,1005:UK,..."
+// to onboard new marketplaces without a code change. Each entry is `id:code`,
+// where `code` is the products.channel_mapping.marketplace enum value.
+const DEFAULT_AMAZON_CHANNEL_MARKETPLACE_MAP: Record<number, string> = {
   1002: 'US',
   1003: 'CA', // tentative — Seller Central verification pending
 };
+
+function parseChannelMapEnv(raw: string | undefined): Record<number, string> | null {
+  if (!raw || !raw.trim()) return null;
+  const map: Record<number, string> = {};
+  for (const entry of raw.split(',')) {
+    const [idStr, code] = entry.split(':').map((s) => s.trim());
+    const id = Number(idStr);
+    if (!Number.isFinite(id) || !code) continue;
+    map[id] = code;
+  }
+  return Object.keys(map).length > 0 ? map : null;
+}
+
+export const AMAZON_CHANNEL_MARKETPLACE_MAP: Record<number, string> =
+  parseChannelMapEnv(process.env.ARC_PRODUCTS_CHANNEL_MAP) ??
+  DEFAULT_AMAZON_CHANNEL_MARKETPLACE_MAP;
 
 export const AMAZON_PHASE1_CHANNEL_IDS: number[] = Object.keys(AMAZON_CHANNEL_MARKETPLACE_MAP)
   .map(Number);
