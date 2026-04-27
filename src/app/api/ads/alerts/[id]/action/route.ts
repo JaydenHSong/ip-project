@@ -2,7 +2,9 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { alertActionSchema } from '@/modules/ads/features/alerts/schemas'
 
 export const POST = withAuth(async (req, { params, user }) => {
   const { id } = params
@@ -14,21 +16,13 @@ export const POST = withAuth(async (req, { params, user }) => {
     )
   }
 
-  const body = await req.json() as {
-    action: 'dismiss' | 'snooze' | 'resolve' | 'escalate'
-    snooze_until?: string
-    note?: string
-  }
-
-  if (!body.action) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'action is required (dismiss | snooze | resolve | escalate)' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — action enum enforced; optional snooze_until/note.
+  const parsed = await parseBody(req, alertActionSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -56,8 +50,8 @@ export const POST = withAuth(async (req, { params, user }) => {
       updates.action_note = body.note
     }
 
-    const { data, error } = await supabase
-      .from('ads.alerts')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('alerts'))
       .update(updates)
       .eq('id', id)
       .select()

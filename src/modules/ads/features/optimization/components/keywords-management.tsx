@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react'
 import { KpiCard } from '@/modules/ads/shared/components/kpi-card'
 import { BulkActionBar } from '@/modules/ads/shared/components/bulk-action-bar'
 import { EmptyState } from '@/modules/ads/shared/components/empty-state'
+import { useSkipRecommendations } from '../hooks/use-skip-recommendations'
+// Design Ref: ft-optimization-ui-wiring §3.2 S4
 import type { RecommendationItem, KeywordStatsStrip as KeywordStats } from '../types'
 
 type KeywordsManagementProps = {
@@ -23,6 +25,8 @@ const KeywordsManagement = ({ campaignId, brandMarketId, onApprove }: KeywordsMa
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
+  // Design Ref: ft-optimization-ui-wiring §3.2 S4 — Skip All 서버 연동
+  const { skipAll, isRunning: isSkipping } = useSkipRecommendations(brandMarketId)
 
   useEffect(() => {
     if (!campaignId || !brandMarketId) return
@@ -151,11 +155,21 @@ const KeywordsManagement = ({ campaignId, brandMarketId, onApprove }: KeywordsMa
         selectedCount={selectedIds.size}
         actions={[
           { key: 'approve_all', label: 'Approve All' },
-          { key: 'skip_all', label: 'Skip All' },
+          { key: 'skip_all', label: isSkipping ? 'Skipping…' : 'Skip All' },
         ]}
         onAction={async (action) => {
+          const ids = Array.from(selectedIds)
           if (action === 'approve_all') {
-            for (const id of selectedIds) await onApprove(id)
+            for (const id of ids) await onApprove(id)
+          } else if (action === 'skip_all') {
+            // Design Ref: ft-optimization-ui-wiring §3.2 S4 — 서버 호출
+            const result = await skipAll(ids)
+            if (result.succeeded > 0) {
+              setRecs((prev) => prev.filter((r) => !ids.includes(r.id) || result.failedIds.includes(r.id)))
+            }
+            if (result.failed > 0) {
+              console.warn(`[keywords-management] skip: ${result.succeeded}/${result.total} succeeded`)
+            }
           }
           setSelectedIds(new Set())
         }}

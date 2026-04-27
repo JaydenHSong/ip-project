@@ -3,27 +3,25 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
 import { createWriteBackService } from '@/modules/ads/api/factory'
-import { runAutoPilotCron } from '@/modules/ads/cron/autopilot-run'
+import { runAutoPilotForProfile } from '@/modules/ads/cron/autopilot-run'
+import { runAutopilotSchema } from '@/modules/ads/features/autopilot/schemas'
 
 export const POST = withAuth(async (req) => {
-  const body = await req.json() as { profile_id?: string; campaign_ids?: string[] }
-
-  if (!body.profile_id) {
-    return NextResponse.json(
-      { error: { code: 'MISSING_PARAM', message: 'profile_id is required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — profile_id required.
+  const parsed = await parseBody(req, runAutopilotSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
-    const db = createAdminClient()
+    const ctx = createAdsAdminContext()
     const writeBackService = createWriteBackService(body.profile_id)
 
-    const result = await runAutoPilotCron(
+    const result = await runAutoPilotForProfile(
       body.profile_id,
-      db,
+      ctx.ads,
       (actions) => writeBackService.executeBatch(actions),
     )
 

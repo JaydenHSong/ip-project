@@ -38,12 +38,33 @@ export const AiAccuracyWidget = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setLoading(true)
-    fetch(`/api/ai/accuracy?period=${period}`)
-      .then((res) => res.json())
-      .then((d) => setData(d))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false))
+    let cancelled = false
+
+    const loadAccuracy = async () => {
+      setLoading(true)
+
+      try {
+        const res = await fetch(`/api/ai/accuracy?period=${period}`)
+        const nextData = await res.json() as AccuracyData
+        if (!cancelled) {
+          setData(nextData)
+        }
+      } catch {
+        if (!cancelled) {
+          setData(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadAccuracy()
+
+    return () => {
+      cancelled = true
+    }
   }, [period])
 
   if (loading) {

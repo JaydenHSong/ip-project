@@ -17,6 +17,39 @@ type UseInfiniteScrollReturn<T> = {
   sentinelRef: React.RefObject<HTMLDivElement | null>
 }
 
+const getItemId = <T,>(item: T): string | number | null => {
+  if (typeof item !== 'object' || item === null || !('id' in item)) {
+    return null
+  }
+
+  const candidate = item.id
+  return typeof candidate === 'string' || typeof candidate === 'number' ? candidate : null
+}
+
+const mergeUniqueItems = <T,>(existing: T[], incoming: T[]): T[] => {
+  const seen = new Set<string>()
+  const merged: T[] = []
+
+  const append = (item: T) => {
+    const itemId = getItemId(item)
+    if (itemId === null) {
+      merged.push(item)
+      return
+    }
+
+    const key = String(itemId)
+    if (seen.has(key)) return
+
+    seen.add(key)
+    merged.push(item)
+  }
+
+  existing.forEach(append)
+  incoming.forEach(append)
+
+  return merged
+}
+
 export const useInfiniteScroll = <T>({
   initialData,
   totalCount,
@@ -32,7 +65,7 @@ export const useInfiniteScroll = <T>({
 
   // 필터/초기 데이터 변경 시 리셋
   useEffect(() => {
-    setData(initialData)
+    setData(mergeUniqueItems([], initialData))
     setOffset(initialData.length)
     setTotal(totalCount)
   }, [initialData, totalCount])
@@ -54,7 +87,7 @@ export const useInfiniteScroll = <T>({
       if (!res.ok) throw new Error('Fetch failed')
 
       const result = (await res.json()) as { data: T[]; totalCount: number }
-      setData((prev) => [...prev, ...result.data])
+      setData((prev) => mergeUniqueItems(prev, result.data))
       setOffset((prev) => prev + result.data.length)
       setTotal(result.totalCount)
     } catch {

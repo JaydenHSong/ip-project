@@ -3,7 +3,9 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { aiScheduleSchema } from '@/modules/ads/features/optimization/schemas'
 
 // ─── GET: AI recommended schedule ───
 
@@ -19,11 +21,11 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
     // Fetch hourly weights to generate AI recommendation
-    const { data: weights, error } = await supabase
-      .from('ads.dayparting_hourly_weights')
+    const { data: weights, error } = await ctx.ads
+      .from(ctx.adsTable('dayparting_hourly_weights'))
       .select('*')
       .eq('brand_market_id', brandMarketId)
       .order('day_of_week', { ascending: true })
@@ -53,24 +55,16 @@ export const GET = withAuth(async (req) => {
 // ─── POST: Apply AI recommended schedule ───
 
 export const POST = withAuth(async (req, { user }) => {
-  const body = await req.json() as {
-    brand_market_id: string
-    schedule_name: string
-    schedule_data: unknown
-  }
-
-  if (!body.brand_market_id || !body.schedule_name || !body.schedule_data) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'brand_market_id, schedule_name, and schedule_data are required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — required fields enforced; schedule_data stays opaque.
+  const parsed = await parseBody(req, aiScheduleSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.dayparting_schedules')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('dayparting_schedules'))
       .insert({
         brand_market_id: body.brand_market_id,
         name: body.schedule_name,

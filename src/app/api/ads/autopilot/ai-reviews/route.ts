@@ -3,7 +3,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export const GET = withAuth(async (req) => {
   const url = new URL(req.url)
@@ -18,9 +18,9 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const db = createAdminClient()
-    const { data, count } = await db
-      .from('ads.ai_reviews')
+    const ctx = createAdsAdminContext()
+    const { data, count } = await ctx.ads
+      .from(ctx.adsTable('ai_reviews'))
       .select('*', { count: 'exact' })
       .eq('marketplace_profile_id', profileId)
       .order('created_at', { ascending: false })

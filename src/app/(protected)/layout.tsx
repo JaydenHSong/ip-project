@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/session'
+import { isDemoMode } from '@/lib/demo'
 import { AppLayout } from '@/components/layout/AppLayout'
 
 const ProtectedLayout = async ({
@@ -13,7 +14,7 @@ const ProtectedLayout = async ({
     redirect('/login')
   }
 
-  return <AppLayout user={user}>{children}</AppLayout>
+  return <AppLayout user={user} isDemo={isDemoMode()}>{children}</AppLayout>
 }
 
 export default ProtectedLayout

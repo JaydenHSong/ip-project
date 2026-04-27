@@ -1,8 +1,9 @@
 // AD Optimizer — AI Weekly Review Cron (FR-06)
 // Design Ref: §5 — Schedule: 0 8 * * 1 (매주 월요일 8AM UTC)
+// Design Ref: ft-runtime-hardening §3.4 — ctx 주입 entry point
 // Plan SC: AI 판단 근거 100% 로그
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AdsAdminContext, AnyAdsDb } from '@/lib/supabase/ads-context'
 import type { CampaignSummary } from '../engine/autopilot/prompts/weekly-review'
 import { fetchAutoPilotCampaigns, fetchMetricsSnapshot } from './autopilot-run'
 import { runWeeklyReview } from '../engine/autopilot/ai-reviewer'
@@ -15,10 +16,15 @@ type WeeklyReviewCronResult = {
   errors: string[]
 }
 
-/** Weekly AI review: analyze all autopilot campaigns and store recommendations. */
-async function runWeeklyReviewCron(
+type WeeklyReviewCronBatchResult = {
+  profiles: Array<{ profile_id: string } & WeeklyReviewCronResult>
+  message?: string
+}
+
+/** Weekly AI review for a single profile: analyze all autopilot campaigns and store recommendations. */
+async function runWeeklyReviewForProfile(
   profileId: string,
-  db: SupabaseClient,
+  db: AnyAdsDb,
 ): Promise<WeeklyReviewCronResult> {
   const result: WeeklyReviewCronResult = {
     campaigns_reviewed: 0, recommendations_count: 0,
@@ -98,7 +104,7 @@ type KwBottomSummary = { text: string; acos: number; spend: number }
 
 async function fetchKeywordSummaries(
   campaignId: string,
-  db: SupabaseClient,
+  db: AnyAdsDb,
 ): Promise<{ topKw: KwSummary[]; bottomKw: KwBottomSummary[] }> {
   // Top: highest orders, low ACoS
   const { data: top } = await db
@@ -137,5 +143,36 @@ async function fetchKeywordSummaries(
   return { topKw, bottomKw }
 }
 
-export { runWeeklyReviewCron }
-export type { WeeklyReviewCronResult }
+/**
+ * Cron entry point: iterate over all active profiles and run weekly review.
+ * Called by /api/ads/cron/ai-weekly-review route via createCronHandler.
+ * Design Ref: ft-runtime-hardening §3.4
+ */
+async function runWeeklyReviewCron(ctx: AdsAdminContext): Promise<WeeklyReviewCronBatchResult> {
+  const { data: profiles, error } = await ctx.ads
+    .from(ctx.adsTable('marketplace_profiles'))
+    .select('id')
+    .eq('is_active', true)
+    .not('ads_profile_id', 'is', null)
+
+  if (error) {
+    throw new Error(`Failed to fetch marketplace profiles: ${error.message}`)
+  }
+
+  if (!profiles?.length) {
+    return { profiles: [], message: 'No active profiles' }
+  }
+
+  const results = await Promise.all(
+    profiles.map(async (p) => {
+      const pid = p.id as string
+      const profileResult = await runWeeklyReviewForProfile(pid, ctx.ads)
+      return { profile_id: pid, ...profileResult }
+    }),
+  )
+
+  return { profiles: results }
+}
+
+export { runWeeklyReviewCron, runWeeklyReviewForProfile }
+export type { WeeklyReviewCronResult, WeeklyReviewCronBatchResult }

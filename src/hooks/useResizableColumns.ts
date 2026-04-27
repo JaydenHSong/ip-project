@@ -62,89 +62,105 @@ const scaleToFit = (defaults: number[], containerWidth: number, minWidth: number
   return defaults.map((w) => Math.max(minWidth, Math.round(w * ratio)))
 }
 
+const applyMinimumWidths = (widths: number[], minWidths: number[] | undefined, fallbackMinWidth: number): number[] =>
+  widths.map((width, index) => Math.max(width, minWidths?.[index] ?? fallbackMinWidth))
+
 export const useResizableColumns = ({
   storageKey,
   defaultWidths,
   minWidth = 40,
   minWidths,
 }: UseResizableColumnsOptions): UseResizableColumnsReturn => {
-  const getMinWidth = (index: number) => minWidths?.[index] ?? minWidth
+  const getMinWidth = useCallback((index: number) => minWidths?.[index] ?? minWidth, [minWidths, minWidth])
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const initializedRef = useRef(false)
-  const [widths, setWidths] = useState<number[]>(() => {
-    const saved = loadWidths(storageKey, defaultWidths)
-    if (!saved) return defaultWidths
-    // Enforce per-column minimums on saved widths
-    return minWidths ? saved.map((w, i) => Math.max(w, minWidths[i] ?? minWidth)) : saved
-  })
+  const [widths, setWidths] = useState<number[] | null>(null)
   const dragRef = useRef<{ index: number; startX: number; startWidth: number } | null>(null)
 
-  // On mount: if no saved widths, scale defaults to fill container
+  // After hydration, restore saved widths or auto-fit once using the real container width.
   useEffect(() => {
-    if (initializedRef.current) return
-    initializedRef.current = true
-    const saved = loadWidths(storageKey, defaultWidths)
-    if (saved) return // user has custom widths, keep them
-    const el = containerRef.current
-    if (!el) return
-    const cw = el.clientWidth
-    if (cw > 0) {
-      const scaled = scaleToFit(defaultWidths, cw, minWidth)
-      setWidths(scaled)
-    }
-  }, [storageKey, defaultWidths, minWidth])
+    const frame = window.requestAnimationFrame(() => {
+      const saved = loadWidths(storageKey, defaultWidths)
+      if (saved) {
+        setWidths(applyMinimumWidths(saved, minWidths, minWidth))
+        return
+      }
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!dragRef.current) return
-      const { index, startX, startWidth } = dragRef.current
-      const delta = e.clientX - startX
-      const newWidth = Math.max(getMinWidth(index), startWidth + delta)
-      setWidths((prev) => {
-        const next = [...prev]
-        next[index] = newWidth
-        return next
-      })
-    },
-    [getMinWidth],
-  )
+      const el = containerRef.current
+      if (!el) {
+        setWidths(defaultWidths)
+        return
+      }
 
-  const handleMouseUp = useCallback(() => {
-    if (!dragRef.current) return
-    dragRef.current = null
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
-    setWidths((current) => {
-      saveWidths(storageKey, current)
-      return current
+      const cw = el.clientWidth
+      if (cw > 0) {
+        const scaled = applyMinimumWidths(scaleToFit(defaultWidths, cw, minWidth), minWidths, minWidth)
+        setWidths(scaled)
+        return
+      }
+
+      setWidths(defaultWidths)
     })
-    document.removeEventListener('mousemove', handleMouseMove)
-    document.removeEventListener('mouseup', handleMouseUp)
-  }, [storageKey, handleMouseMove])
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [storageKey, defaultWidths, minWidth, minWidths])
 
   const handleMouseDown = useCallback(
     (index: number, e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      dragRef.current = { index, startX: e.clientX, startWidth: widths[index] }
+      const currentWidths = widths ?? defaultWidths
+      dragRef.current = { index, startX: e.clientX, startWidth: currentWidths[index] }
       document.body.style.cursor = 'col-resize'
       document.body.style.userSelect = 'none'
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
+
+      const onMouseMove = (event: MouseEvent) => {
+        if (!dragRef.current) return
+
+        const { index: activeIndex, startX, startWidth } = dragRef.current
+        const delta = event.clientX - startX
+        const newWidth = Math.max(getMinWidth(activeIndex), startWidth + delta)
+        setWidths((prev) => {
+          const next = [...(prev ?? defaultWidths)]
+          next[activeIndex] = newWidth
+          return next
+        })
+      }
+
+      const onMouseUp = () => {
+        if (!dragRef.current) return
+
+        dragRef.current = null
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+        setWidths((current) => {
+          const next = current ?? defaultWidths
+          saveWidths(storageKey, next)
+          return next
+        })
+        document.removeEventListener('mousemove', onMouseMove)
+        document.removeEventListener('mouseup', onMouseUp)
+      }
+
+      document.addEventListener('mousemove', onMouseMove)
+      document.addEventListener('mouseup', onMouseUp)
     },
-    [widths, handleMouseMove, handleMouseUp],
+    [widths, defaultWidths, getMinWidth, storageKey],
   )
 
   const tableStyle = useMemo<React.CSSProperties>(
-    () => ({ width: widths.reduce((sum, w) => sum + w, 0) }),
+    () => widths ? { width: widths.reduce((sum, w) => sum + w, 0) } : {},
     [widths],
   )
 
   const getColStyle = useCallback(
-    (index: number): React.CSSProperties => ({
-      width: widths[index],
-      minWidth: getMinWidth(index),
-    }),
+    (index: number): React.CSSProperties => {
+      if (!widths) return {}
+
+      return {
+        width: widths[index],
+        minWidth: getMinWidth(index),
+      }
+    },
     [widths, getMinWidth],
   )
 
@@ -155,9 +171,9 @@ export const useResizableColumns = ({
         // Reset this column to fit-scaled default
         const el = containerRef.current
         const cw = el?.clientWidth ?? 0
-        const scaled = cw > 0 ? scaleToFit(defaultWidths, cw, minWidth) : defaultWidths
+        const scaled = applyMinimumWidths(cw > 0 ? scaleToFit(defaultWidths, cw, minWidth) : defaultWidths, minWidths, minWidth)
         setWidths((prev) => {
-          const next = [...prev]
+          const next = [...(prev ?? scaled)]
           next[index] = scaled[index]
           saveWidths(storageKey, next)
           return next
@@ -176,16 +192,16 @@ export const useResizableColumns = ({
       role: 'separator',
       'aria-label': `Resize column ${index + 1}`,
     }),
-    [handleMouseDown, defaultWidths, storageKey, minWidth],
+    [handleMouseDown, defaultWidths, storageKey, minWidth, minWidths],
   )
 
   const resetWidths = useCallback(() => {
     const el = containerRef.current
     const cw = el?.clientWidth ?? 0
-    const scaled = cw > 0 ? scaleToFit(defaultWidths, cw, minWidth) : defaultWidths
+    const scaled = applyMinimumWidths(cw > 0 ? scaleToFit(defaultWidths, cw, minWidth) : defaultWidths, minWidths, minWidth)
     setWidths(scaled)
     saveWidths(storageKey, scaled)
-  }, [defaultWidths, storageKey, minWidth])
+  }, [defaultWidths, storageKey, minWidth, minWidths])
 
-  return { widths, containerRef, tableStyle, getColStyle, getResizeHandleProps, resetWidths }
+  return { widths: widths ?? defaultWidths, containerRef, tableStyle, getColStyle, getResizeHandleProps, resetWidths }
 }

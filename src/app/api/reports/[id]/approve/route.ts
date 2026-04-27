@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notifyApproved } from '@/lib/notifications/google-chat'
 import { buildBrSubmitData } from '@/lib/reports/br-data'
 import type { BrExtraFields } from '@/lib/reports/br-data'
+import { parseReportNote } from '@/lib/reports/report-note'
 import type { ApproveReportRequest } from '@/types/api'
 import type { BrFormType } from '@/types/reports'
 import { isBrSubmittable, BR_FORM_TYPE_CODES, type BrFormTypeCode } from '@/constants/br-form-types'
@@ -63,23 +64,29 @@ export const POST = withAuth(async (req, { params }) => {
   // extraFields: 프론트 전달값 우선, 없으면 note(Extension 데이터)에서 자동 추출
   let extraFields: BrExtraFields | undefined = body.br_extra_fields
   if (!extraFields && report.note) {
-    try {
-      const noteData = JSON.parse(report.note) as Record<string, unknown>
+    const noteData = parseReportNote(report.note).data
+    if (noteData) {
       const noteExtra: Record<string, unknown> = {}
-      if (noteData.review_urls && typeof noteData.review_urls === 'string') {
+      if (typeof noteData.review_urls === 'string') {
         noteExtra.review_urls = noteData.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
+      } else if (Array.isArray(noteData.review_urls)) {
+        noteExtra.review_urls = noteData.review_urls.map((u) => String(u).trim()).filter(Boolean)
       }
-      if (noteData.product_urls && typeof noteData.product_urls === 'string') {
+      if (typeof noteData.product_urls === 'string') {
         noteExtra.product_urls = noteData.product_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
+      } else if (Array.isArray(noteData.product_urls)) {
+        noteExtra.product_urls = noteData.product_urls.map((u) => String(u).trim()).filter(Boolean)
       }
-      if (noteData.asins && typeof noteData.asins === 'string') {
+      if (typeof noteData.asins === 'string') {
         noteExtra.asins = noteData.asins.split(/[,;\n]/).map((a: string) => a.trim()).filter(Boolean)
+      } else if (Array.isArray(noteData.asins)) {
+        noteExtra.asins = noteData.asins.map((asin) => String(asin).trim()).filter(Boolean)
       }
       if (noteData.seller_storefront_url) noteExtra.seller_storefront_url = noteData.seller_storefront_url
       if (noteData.policy_url) noteExtra.policy_url = noteData.policy_url
       if (noteData.order_id) noteExtra.order_id = noteData.order_id
       if (Object.keys(noteExtra).length > 0) extraFields = noteExtra as BrExtraFields
-    } catch { /* note is not JSON, skip */ }
+    }
   }
 
   const brSubmitData = listing && brReportable

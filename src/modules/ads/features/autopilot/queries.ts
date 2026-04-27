@@ -2,6 +2,7 @@
 // Design Ref: §4.2 /api/ads/autopilot
 
 import { createAdsAdminClient } from '@/lib/supabase/admin'
+import { adsTable } from '@/lib/supabase/table-names'
 import type { AutopilotKpi, AutopilotCampaignItem, ActivityLogEntry } from './types'
 
 // ─── S08: List + KPI ───
@@ -35,7 +36,7 @@ const getAutopilotList = async (brandMarketId: string) => {
   // Get last action for each campaign
   for (const item of items) {
     const { data: lastLog } = await supabase
-      .from('automation_logs')
+      .from(adsTable('automation_log'))
       .select('action_type, executed_at')
       .eq('campaign_id', item.id)
       .order('executed_at', { ascending: false })
@@ -54,7 +55,7 @@ const getAutopilotList = async (brandMarketId: string) => {
   const paused = items.filter((c) => c.status === 'paused')
 
   const { count: actionsCount } = await supabase
-    .from('automation_logs')
+    .from(adsTable('automation_log'))
     .select('id', { count: 'exact', head: true })
     .in('campaign_id', items.map((i) => i.id).length > 0 ? items.map((i) => i.id) : ['__none__'])
     .gte('executed_at', sevenDaysAgo)
@@ -79,7 +80,7 @@ const getAutopilotDetail = async (campaignId: string) => {
 
   // Activity log (last 50 actions)
   const { data: logs } = await supabase
-    .from('automation_logs')
+    .from(adsTable('automation_log'))
     .select('id, action_type, source, reason, keyword_id, action_detail, guardrail_blocked, guardrail_reason, is_rolled_back, executed_at')
     .eq('campaign_id', campaignId)
     .order('executed_at', { ascending: false })
@@ -123,7 +124,7 @@ const rollbackActions = async (logIds: string[], userId: string) => {
 
   for (const logId of logIds) {
     const { error } = await supabase
-      .from('automation_logs')
+      .from(adsTable('automation_log'))
       .update({
         is_rolled_back: true,
         rolled_back_at: new Date().toISOString(),

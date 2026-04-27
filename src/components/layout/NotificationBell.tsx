@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Bell } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
-import { isDemoMode } from '@/lib/demo'
+import { DEMO_NOTIFICATIONS } from '@/lib/demo/monitoring'
 import { createClient } from '@/lib/supabase/client'
 
 type Notification = {
@@ -16,40 +16,20 @@ type Notification = {
   created_at: string
 }
 
-const DEMO_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'notif-001',
-    type: 'followup_change_detected',
-    title: 'Change Detected',
-    message: 'Change detected in B0D1234567 - Title modified.',
-    metadata: { report_id: 'rpt-005', asin: 'B0D1234567' },
-    is_read: false,
-    created_at: '2026-02-22T10:05:00Z',
-  },
-  {
-    id: 'notif-002',
-    type: 'patent_sync_completed',
-    title: 'IP Sync Complete',
-    message: 'Monday.com sync — 1202 items (+5, ~3, 0 err)',
-    metadata: { total: 1202, created: 5, updated: 3 },
-    is_read: false,
-    created_at: '2026-03-03T09:00:00Z',
-  },
-]
-
 type NotificationBellProps = {
   userId: string | null
+  isDemo: boolean
 }
 
-export const NotificationBell = ({ userId }: NotificationBellProps) => {
+export const NotificationBell = ({ userId, isDemo }: NotificationBellProps) => {
   const { t } = useI18n()
   const [showDropdown, setShowDropdown] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const fetchNotifications = useCallback(async () => {
-    if (isDemoMode() || !userId) {
-      setNotifications(DEMO_NOTIFICATIONS)
+    if (isDemo || !userId) {
+      setNotifications(DEMO_NOTIFICATIONS as Notification[])
       return
     }
 
@@ -64,10 +44,14 @@ export const NotificationBell = ({ userId }: NotificationBellProps) => {
     if (data) {
       setNotifications(data as Notification[])
     }
-  }, [userId])
+  }, [isDemo, userId])
 
   useEffect(() => {
-    fetchNotifications()
+    const frame = window.requestAnimationFrame(() => {
+      void fetchNotifications()
+    })
+
+    return () => window.cancelAnimationFrame(frame)
   }, [fetchNotifications])
 
   useEffect(() => {
@@ -85,7 +69,7 @@ export const NotificationBell = ({ userId }: NotificationBellProps) => {
   const handleMarkAllRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
 
-    if (!isDemoMode() && userId) {
+    if (!isDemo && userId) {
       const supabase = createClient()
       await supabase
         .from('notifications')

@@ -3,10 +3,11 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
 import { approveRecommendation } from '@/modules/ads/features/optimization/queries'
 import { createWriteBackService, isMockMode } from '@/modules/ads/api/factory'
-import type { ApproveRequest } from '@/modules/ads/features/optimization/types'
+import { approveRecommendationSchema } from '@/modules/ads/features/recommendations/schemas'
 import type { WriteBackAction } from '@/modules/ads/api/services/write-back-service'
 
 export const POST = withAuth(async (req, { params }) => {
@@ -19,8 +20,12 @@ export const POST = withAuth(async (req, { params }) => {
     )
   }
 
+  // Plan SC-3: Zod validation — adjusted_bid is optional but must be non-negative if present.
+  const parsed = await parseBody(req, approveRecommendationSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
+
   try {
-    const body = await req.json() as ApproveRequest
     const result = await approveRecommendation(id, body.adjusted_bid)
 
     // §4.6: Write-back to Amazon (if enabled)
@@ -29,16 +34,16 @@ export const POST = withAuth(async (req, { params }) => {
       const profileId = process.env.AMAZON_ADS_PROFILE_ID_US ?? ''
       if (profileId) {
         // Fetch recommendation + campaign for Amazon IDs
-        const supabase = createAdminClient()
-        const { data: rec } = await supabase
-          .from('ads.keyword_recommendations')
+        const ctx = createAdsAdminContext()
+        const { data: rec } = await ctx.ads
+          .from(ctx.adsTable('keyword_recommendations'))
           .select('recommendation_type, keyword_text, current_bid, suggested_bid, campaign_id')
           .eq('id', id)
           .single()
 
         if (rec) {
-          const { data: campaign } = await supabase
-            .from('ads.campaigns')
+          const { data: campaign } = await ctx.ads
+            .from(ctx.adsTable('campaigns'))
             .select('amazon_campaign_id, max_bid_cap')
             .eq('id', rec.campaign_id)
             .single()

@@ -55,7 +55,10 @@ export const middleware = async (req: NextRequest): Promise<NextResponse> => {
   }
 
   // Cron / Crawler / Ops API는 자체 인증 사용 — 미들웨어 스킵
+  // /api/ads/cron/* 추가 — ft-runtime-hardening에서 발견: Vercel Cron이 CRON_SECRET 검증 전에
+  // 세션 쿠키 없음으로 /login redirect되어 핸들러 도달 실패
   if (req.nextUrl.pathname.startsWith('/api/cron/') ||
+      req.nextUrl.pathname.startsWith('/api/ads/cron/') ||
       req.nextUrl.pathname.startsWith('/api/crawler/') ||
       req.nextUrl.pathname.startsWith('/api/ops/')) {
     return res

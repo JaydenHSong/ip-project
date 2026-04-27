@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { buildBrSubmitData, type BrExtraFields } from '@/lib/reports/br-data'
+import { parseReportNote } from '@/lib/reports/report-note'
 import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
 // POST /api/reports/:id/force-resubmit — 강제 재제출 (BR)
@@ -66,16 +67,20 @@ export const POST = withAuth(async (req, { params }) => {
 
     // note fallback: br_submit_data에 review_urls가 없거나 상품 URL만 있으면 note에서 보충
     if (!extraFields.review_urls && report.note) {
-      try {
-        const noteData = JSON.parse(report.note) as Record<string, unknown>
-        if (noteData.review_urls && typeof noteData.review_urls === 'string') {
+      const noteData = parseReportNote(report.note).data
+      if (noteData) {
+        if (typeof noteData.review_urls === 'string') {
           extraFields.review_urls = noteData.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
+        } else if (Array.isArray(noteData.review_urls)) {
+          extraFields.review_urls = noteData.review_urls.map((u) => String(u).trim()).filter(Boolean)
         }
-        if (!extraFields.asins && noteData.asins && typeof noteData.asins === 'string') {
+        if (!extraFields.asins && typeof noteData.asins === 'string') {
           extraFields.asins = noteData.asins.split(/[,;\n]/).map((a: string) => a.trim()).filter(Boolean)
+        } else if (!extraFields.asins && Array.isArray(noteData.asins)) {
+          extraFields.asins = noteData.asins.map((asin) => String(asin).trim()).filter(Boolean)
         }
         if (!extraFields.order_id && noteData.order_id) extraFields.order_id = noteData.order_id
-      } catch { /* note is not JSON, skip */ }
+      }
     }
 
     const brSubmitData = listing

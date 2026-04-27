@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { isDemoMode } from '@/lib/demo'
+import { getDemoNotices } from '@/lib/demo/runtime'
 import { NOTICE_CATEGORIES } from '@/types/notices'
 import type { NoticeCategory } from '@/types/notices'
 
@@ -11,6 +13,20 @@ export const GET = withAuth(async (req) => {
   const limit = Math.min(50, Math.max(1, Number(searchParams.get('limit')) || 20))
   const category = searchParams.get('category') as NoticeCategory | null
   const offset = (page - 1) * limit
+
+  if (isDemoMode()) {
+    let notices = getDemoNotices()
+    if (category && NOTICE_CATEGORIES.includes(category)) {
+      notices = notices.filter((notice) => notice.category === category)
+    }
+
+    return NextResponse.json({
+      notices: notices.slice(offset, offset + limit),
+      total: notices.length,
+      page,
+      limit,
+    })
+  }
 
   const supabase = await createClient()
 
@@ -75,6 +91,21 @@ export const POST = withAuth(async (req, { user }) => {
       { error: { code: 'VALIDATION_ERROR', message: 'Invalid category.' } },
       { status: 400 },
     )
+  }
+
+  if (isDemoMode()) {
+    const now = new Date().toISOString()
+    return NextResponse.json({
+      id: `demo-notice-${Date.now()}`,
+      category: category || 'notice',
+      title: title.trim(),
+      content: content.trim(),
+      is_pinned: is_pinned === true,
+      created_by: user.id,
+      created_at: now,
+      updated_at: now,
+      users: { name: user.name, email: user.email },
+    }, { status: 201 })
   }
 
   const supabase = await createClient()

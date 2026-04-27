@@ -16,18 +16,18 @@ type ChainNode = {
 type CaseChainProps = {
   currentId: string
   parentChain: ChainNode[]
-  children: ChainNode[]
+  childChain: ChainNode[]
 }
 
-export const CaseChain = ({ currentId, parentChain, children }: CaseChainProps) => {
+export const CaseChain = ({ currentId, parentChain, childChain }: CaseChainProps) => {
   const router = useRouter()
   const allNodes: (ChainNode & { isCurrent?: boolean })[] = [
     ...parentChain,
     { id: currentId, isCurrent: true, status: '', br_case_status: null, escalation_level: null, created_at: '', user_violation_type: '' },
-    ...children,
+    ...childChain,
   ]
 
-  if (parentChain.length === 0 && children.length === 0) return null
+  if (parentChain.length === 0 && childChain.length === 0) return null
 
   return (
     <div className="flex items-center gap-1 overflow-x-auto py-1">

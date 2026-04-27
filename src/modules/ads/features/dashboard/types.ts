@@ -8,7 +8,8 @@ type BrandMarketMetrics = {
   spend_mtd: number
   sales_mtd: number
   acos: number
-  tacos: number
+  // null when account-level total sales unavailable (Sales & Traffic report not yet ingested)
+  tacos: number | null
   roas: number
   roas_trend: number[]  // 30-day sparkline
   orders_mtd: number

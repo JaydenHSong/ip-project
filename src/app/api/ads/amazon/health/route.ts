@@ -6,7 +6,7 @@ import { withAuth } from '@/lib/auth/middleware'
 import { adsConfig } from '@/modules/ads/api/infra/api-config'
 import { tokenStore } from '@/modules/ads/api/infra/token-store'
 import { rateLimiter } from '@/modules/ads/api/infra/rate-limiter'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 type HealthStatus = 'connected' | 'disconnected' | 'error' | 'mock'
 
@@ -56,9 +56,9 @@ export const GET = withAuth(async () => {
   }
 
   // Check last sync from DB
-  const supabase = createAdminClient()
-  const { data: lastSync } = await supabase
-    .from('ads.marketplace_profiles')
+  const ctx = createAdsAdminContext()
+  const { data: lastSync } = await ctx.ads
+    .from(ctx.adsTable('marketplace_profiles'))
     .select('last_sync_at')
     .eq('profile_id', profileId)
     .single()

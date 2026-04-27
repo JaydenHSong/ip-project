@@ -1,25 +1,20 @@
-// POST /api/ads/cron/sync-campaigns — Cron: Ads API → ads.campaigns (hourly)
+// Cron: Ads API → ads.campaigns (hourly)
+// Design Ref: ft-runtime-hardening §3.3 — createCronHandler 통일
 
-import { NextResponse } from 'next/server'
+import { createCronHandler } from '@/lib/api/cron-handler'
 import { syncCampaigns } from '@/modules/ads/cron/sync-campaigns'
 
-export async function POST(req: Request) {
-  const authHeader = req.headers.get('authorization')
+const handler = createCronHandler(
+  async (ctx) => {
+    const result = await syncCampaigns(ctx)
+    return {
+      data: result,
+      summary: `Synced ${result.synced} (created ${result.created}, updated ${result.updated}, errors ${result.errors})`,
+    }
+  },
+  { name: 'sync-campaigns', maxDuration: 300 },
+)
 
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json(
-      { error: { code: 'UNAUTHORIZED', message: 'Invalid CRON_SECRET' } },
-      { status: 401 },
-    )
-  }
-
-  try {
-    const result = await syncCampaigns()
-    return NextResponse.json({ success: true, message: 'Campaign sync completed', data: result })
-  } catch (err) {
-    return NextResponse.json(
-      { error: { code: 'CRON_ERROR', message: err instanceof Error ? err.message : 'Unknown error' } },
-      { status: 500 },
-    )
-  }
-}
+export const GET = handler.GET
+export const POST = handler.POST
+export const maxDuration = 300

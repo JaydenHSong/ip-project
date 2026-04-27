@@ -25,6 +25,7 @@ const ReportsPage = async ({
       statusFilter={params.status ?? ''}
       brFormTypeFilter={params.br_form_type ?? ''}
       smartQueue={params.smart_queue ?? ''}
+      previewId={params.preview ?? null}
       userRole={user.role}
       ownerFilter={effectiveOwner}
       searchQuery={params.search ?? ''}

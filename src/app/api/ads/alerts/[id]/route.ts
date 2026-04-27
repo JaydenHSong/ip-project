@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export const GET = withAuth(async (_req, { params }) => {
   const { id } = params
@@ -15,10 +15,10 @@ export const GET = withAuth(async (_req, { params }) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.alerts')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('alerts'))
       .select('*')
       .eq('id', id)
       .single()

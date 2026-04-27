@@ -2,7 +2,9 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { updateAutopilotSettingsSchema } from '@/modules/ads/features/autopilot/schemas'
 
 export const PUT = withAuth(async (req, { params }) => {
   const { id } = params
@@ -14,20 +16,10 @@ export const PUT = withAuth(async (req, { params }) => {
     )
   }
 
-  const body = await req.json() as {
-    target_acos?: number
-    weekly_budget?: number
-    daily_budget?: number
-    max_bid_cap?: number
-    bid_strategy?: string
-  }
-
-  if (body.target_acos != null && (body.target_acos < 1 || body.target_acos > 100)) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'target_acos must be between 1 and 100' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — partial update; target_acos range enforced by schema.
+  const parsed = await parseBody(req, updateAutopilotSettingsSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   const updates: Record<string, unknown> = {}
   if (body.target_acos !== undefined) updates.target_acos = body.target_acos
@@ -44,10 +36,10 @@ export const PUT = withAuth(async (req, { params }) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.campaigns')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('campaigns'))
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('mode', 'autopilot')

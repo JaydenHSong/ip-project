@@ -3,7 +3,9 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { updateDaypartingSchema } from '@/modules/ads/features/optimization/schemas'
 
 // ─── GET: List dayparting schedules ───
 
@@ -19,10 +21,10 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.dayparting_schedules')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('dayparting_schedules'))
       .select('*')
       .eq('brand_market_id', brandMarketId)
       .order('name', { ascending: true })
@@ -41,19 +43,10 @@ export const GET = withAuth(async (req) => {
 // ─── PUT: Update schedule ───
 
 export const PUT = withAuth(async (req, { user }) => {
-  const body = await req.json() as {
-    id: string
-    name?: string
-    schedule_data?: unknown
-    is_active?: boolean
-  }
-
-  if (!body.id) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'Schedule id is required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — id required; partial fields validated.
+  const parsed = await parseBody(req, updateDaypartingSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   const updates: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
@@ -64,10 +57,10 @@ export const PUT = withAuth(async (req, { user }) => {
   if (body.is_active !== undefined) updates.is_active = body.is_active
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.dayparting_schedules')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('dayparting_schedules'))
       .update(updates)
       .eq('id', body.id)
       .select()

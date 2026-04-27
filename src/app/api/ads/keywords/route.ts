@@ -3,7 +3,9 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
+import { parseBody } from '@/lib/api/validate-body'
+import { createKeywordsSchema } from '@/modules/ads/features/keywords/schemas'
 
 // ─── GET: List keywords by campaign ───
 
@@ -19,10 +21,10 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    let query = supabase
-      .from('ads.keywords')
+    let query =ctx.ads
+      .from(ctx.adsTable('keywords'))
       .select('*', { count: 'exact' })
       .eq('campaign_id', campaignId)
 
@@ -66,25 +68,13 @@ export const GET = withAuth(async (req) => {
 // ─── POST: Bulk create keywords ───
 
 export const POST = withAuth(async (req, { user }) => {
-  const body = await req.json() as {
-    campaign_id: string
-    keywords: Array<{
-      keyword_text: string
-      match_type: 'broad' | 'phrase' | 'exact'
-      bid: number
-      state?: string
-    }>
-  }
-
-  if (!body.campaign_id || !body.keywords?.length) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'campaign_id and keywords array are required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — covers required fields + per-keyword match_type/bid.
+  const parsed = await parseBody(req, createKeywordsSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
     const rows = body.keywords.map((kw) => ({
       campaign_id: body.campaign_id,
@@ -95,8 +85,8 @@ export const POST = withAuth(async (req, { user }) => {
       created_by: user.id,
     }))
 
-    const { data, error } = await supabase
-      .from('ads.keywords')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('keywords'))
       .insert(rows)
       .select()
 

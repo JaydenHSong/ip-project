@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export const GET = withAuth(async (req) => {
   const url = new URL(req.url)
@@ -16,10 +16,10 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    const { data, error } = await supabase
-      .from('ads.dayparting_hourly_weights')
+    const { data, error } = await ctx.ads
+      .from(ctx.adsTable('dayparting_hourly_weights'))
       .select('*')
       .eq('brand_market_id', brandMarketId)
       .order('day_of_week', { ascending: true })

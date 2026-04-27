@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createAdsAdminContext } from '@/lib/supabase/ads-context'
 
 export const GET = withAuth(async (req) => {
   const url = new URL(req.url)
@@ -16,10 +16,10 @@ export const GET = withAuth(async (req) => {
   }
 
   try {
-    const supabase = createAdminClient()
+    const ctx = createAdsAdminContext()
 
-    let query = supabase
-      .from('ads.report_snapshots')
+    let query = ctx.ads
+      .from(ctx.adsTable('report_snapshots'))
       .select('*', { count: 'exact' })
       .eq('brand_market_id', brandMarketId)
 
@@ -38,9 +38,10 @@ export const GET = withAuth(async (req) => {
       query = query.lte('report_date', dateTo)
     }
 
-    const granularity = url.searchParams.get('granularity')
-    if (granularity) {
-      query = query.eq('granularity', granularity)
+    // report_level (renamed from non-existent 'granularity' — see Reports gap analysis C4)
+    const reportLevel = url.searchParams.get('report_level') ?? url.searchParams.get('granularity')
+    if (reportLevel) {
+      query = query.eq('report_level', reportLevel)
     }
 
     query = query.order('report_date', { ascending: false })

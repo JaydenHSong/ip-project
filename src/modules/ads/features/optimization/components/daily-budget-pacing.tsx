@@ -6,6 +6,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { KpiCard } from '@/modules/ads/shared/components/kpi-card'
 import { ProgressBar } from '@/modules/ads/shared/components/progress-bar'
 import { EmptyState } from '@/modules/ads/shared/components/empty-state'
+import { UnderspendModal } from './underspend-modal'
+// Design Ref: ft-optimization-ui-wiring §3.2 S1 — M05 Underspend Analyze CTA
 import type { BudgetPacingDetail } from '../types'
 
 type DailyBudgetPacingProps = {
@@ -18,6 +20,9 @@ const DailyBudgetPacing = ({ campaignId, daypartingActive = false }: DailyBudget
   const [isLoading, setIsLoading] = useState(true)
   const [isEditingBudget, setIsEditingBudget] = useState(false)
   const [editBudgetValue, setEditBudgetValue] = useState('')
+  const [underspendOpen, setUnderspendOpen] = useState(false)
+  const [aiDismissed, setAiDismissed] = useState(false)
+  const [applyingAi, setApplyingAi] = useState(false)
 
   useEffect(() => {
     if (!campaignId) { setIsLoading(false); return }
@@ -63,13 +68,47 @@ const DailyBudgetPacing = ({ campaignId, daypartingActive = false }: DailyBudget
     setIsEditingBudget(false)
   }, [editBudgetValue, campaignId, data])
 
+  // Design Ref: ft-optimization-ui-wiring §7.2 — Dismiss via localStorage
+  useEffect(() => {
+    if (!campaignId) return
+    const key = `ads.budgetAiDismiss.${campaignId}`
+    setAiDismissed(localStorage.getItem(key) === '1')
+  }, [campaignId])
+
+  const handleApplyAi = useCallback(async () => {
+    if (!data || !campaignId) return
+    const suggested = data.pacing_pct < 60 ? data.daily_budget * 0.7 : data.daily_budget * 1.2
+    const newBudget = Math.round(suggested)
+    setApplyingAi(true)
+    try {
+      const res = await fetch(`/api/ads/campaigns/${campaignId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ daily_budget: newBudget }),
+      })
+      if (res.ok) {
+        setData({ ...data, daily_budget: newBudget, remaining: newBudget - data.spend_today })
+      }
+    } catch (err) {
+      console.error('[daily-budget-pacing] ai apply failed', err)
+    } finally {
+      setApplyingAi(false)
+    }
+  }, [data, campaignId])
+
+  const handleDismissAi = useCallback(() => {
+    if (!campaignId) return
+    localStorage.setItem(`ads.budgetAiDismiss.${campaignId}`, '1')
+    setAiDismissed(true)
+  }, [campaignId])
+
   if (!campaignId) return <EmptyState title="Select a campaign" description="Choose a campaign to see budget pacing" />
   if (isLoading) return <div className="h-64 animate-pulse rounded-lg border border-th-border bg-th-bg-hover" />
   if (!data) return null
 
   const currentHour = new Date().getHours()
   const isUnderspend = data.pacing_pct < 70
-  const isOffTrack = data.pacing_pct < 60 || data.pacing_pct > 110
+  const isOffTrack = (data.pacing_pct < 60 || data.pacing_pct > 110) && !aiDismissed
 
   return (
     <div className="space-y-6">
@@ -107,10 +146,17 @@ const DailyBudgetPacing = ({ campaignId, daypartingActive = false }: DailyBudget
               <p className="text-[10px] text-th-text-muted uppercase tracking-wide">Expected Pacing</p>
               <p className="text-sm font-bold text-emerald-500">85–95%</p>
             </div>
-            <button className="shrink-0 rounded-md bg-orange-500 px-4 py-2 text-xs font-medium text-white hover:bg-orange-600">
-              Apply
+            <button
+              onClick={handleApplyAi}
+              disabled={applyingAi}
+              className="shrink-0 rounded-md bg-orange-500 px-4 py-2 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+            >
+              {applyingAi ? 'Applying…' : 'Apply'}
             </button>
-            <button className="shrink-0 rounded-md bg-th-bg-tertiary px-3 py-2 text-xs text-th-text-muted hover:bg-th-bg-hover">
+            <button
+              onClick={handleDismissAi}
+              className="shrink-0 rounded-md bg-th-bg-tertiary px-3 py-2 text-xs text-th-text-muted hover:bg-th-bg-hover"
+            >
               Dismiss
             </button>
           </div>
@@ -212,15 +258,38 @@ const DailyBudgetPacing = ({ campaignId, daypartingActive = false }: DailyBudget
         </div>
       </div>
 
-      {/* Underspend Watch — Design S05: "조건부, < 70%" */}
+      {/* Underspend Watch — Design S05: "조건부, < 70%" + M05 Analyze CTA */}
       {isUnderspend && (
         <div className="rounded-md border border-orange-200 bg-orange-50 p-3">
-          <p className="text-sm font-medium text-orange-800">Underspend Watch</p>
-          <p className="text-xs text-orange-700 mt-1">
-            Budget utilization is {data.pacing_pct.toFixed(0)}% — below the 70% threshold.
-            Consider reviewing targeting settings or increasing bids.
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-orange-800">Underspend Watch</p>
+              <p className="text-xs text-orange-700 mt-1">
+                Budget utilization is {data.pacing_pct.toFixed(0)}% — below the 70% threshold.
+                Consider reviewing targeting settings or increasing bids.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setUnderspendOpen(true)}
+              className="whitespace-nowrap rounded border border-orange-300 bg-white px-3 py-1 text-xs font-medium text-orange-700 hover:bg-orange-100"
+            >
+              Analyze →
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* M05 Underspend Modal */}
+      {campaignId && (
+        <UnderspendModal
+          campaignId={campaignId}
+          campaignName="Current Campaign"
+          dailyBudget={data.daily_budget}
+          spendToday={data.spend_today}
+          isOpen={underspendOpen}
+          onClose={() => setUnderspendOpen(false)}
+        />
       )}
 
       {/* Dayparting Signal — Design S05: "조건부, dayparting active" */}

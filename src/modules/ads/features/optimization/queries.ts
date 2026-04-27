@@ -2,6 +2,7 @@
 // Design Ref: §4.2 Recommendations, Rules, Dayparting endpoints
 
 import { createAdsAdminClient } from '@/lib/supabase/admin'
+import { adsTable } from '@/lib/supabase/table-names'
 import type { RecommendationItem, RecommendationSummary, BudgetPacingDetail, KeywordStatsStrip, DaypartingGroup, HeatmapCell } from './types'
 
 // ─── Recommendations ───
@@ -55,12 +56,20 @@ const getRecommendations = async (params: {
     created_at: r.created_at,
   }))
 
+  // Design Ref: ft-optimization-ui-wiring §3.2 S5 — I8 fix: est_revenue 추정 공식
+  // estimated_impact(%) × current spend → 예상 revenue 이동 proxy
+  const computeEstRevenue = (rec: RecommendationItem): number => {
+    const impact = rec.estimated_impact ?? 0
+    const spend = rec.metrics?.spend ?? 0
+    return (impact / 100) * spend
+  }
+
   // Summary
   const pending = items.filter((i) => i.status === 'pending')
   const summary: RecommendationSummary = {
     total_pending: pending.length,
     est_acos_impact: pending.reduce((s, i) => s + (i.estimated_impact ?? 0), 0),
-    est_revenue_impact: 0,
+    est_revenue_impact: Math.round(pending.reduce((s, i) => s + computeEstRevenue(i), 0) * 100) / 100,
     est_waste_reduction: pending
       .filter((i) => i.recommendation_type === 'negate')
       .reduce((s, i) => s + (i.metrics?.spend ?? 0), 0),
@@ -92,7 +101,7 @@ const approveRecommendation = async (id: string, adjustedBid?: number) => {
 
   // Log automation action
   const { data: log } = await supabase
-    .from('automation_logs')
+    .from(adsTable('automation_log'))
     .insert({
       campaign_id: rec.campaign_id,
       keyword_id: rec.keyword_id,
@@ -177,7 +186,8 @@ const getKeywordStats = async (campaignId: string): Promise<KeywordStatsStrip> =
     .eq('status', 'pending')
 
   return {
-    auto_count: kws.filter((k) => k.match_type === 'broad').length,
+    // Design Ref: ft-optimization-ui-wiring §3.2 S5 — I4 fix: auto 실제 집계
+    auto_count: kws.filter((k) => k.match_type === 'auto').length,
     broad_count: kws.filter((k) => k.match_type === 'broad').length,
     phrase_count: kws.filter((k) => k.match_type === 'phrase').length,
     exact_count: kws.filter((k) => k.match_type === 'exact').length,

@@ -2,7 +2,7 @@
 // Design Ref: §3.5 — 실행 순서 제어 (핵심)
 // Plan SC: Target ACoS 천장, 이중 안전장치 무결성, reason 100%
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AnyAdsDb } from '@/lib/supabase/ads-context'
 import type { AutoPilotContext, AutoPilotSkipped, MetricsSnapshot, BidCalculation } from '../types'
 import type { WriteBackAction, WriteBackResult } from '@/modules/ads/api/services/write-back-service'
 import type { AiRecommendation } from './ai-reviewer'
@@ -15,7 +15,7 @@ import { calculateBid } from '../bid-calculator'
 import { checkGuardrails } from '../guardrails'
 
 type OrchestratorDeps = {
-  db: SupabaseClient
+  db: AnyAdsDb
   executeBatch: (actions: WriteBackAction[]) => Promise<WriteBackResult[]>
   aiReviewRecommendations?: AiRecommendation[]
 }
@@ -172,7 +172,7 @@ type KeywordMetric = {
 
 async function fetchKeywordMetrics(
   campaign: AutoPilotContext,
-  db: SupabaseClient,
+  db: AnyAdsDb,
 ): Promise<KeywordMetric[]> {
   const { data } = await db
     .from('keywords')

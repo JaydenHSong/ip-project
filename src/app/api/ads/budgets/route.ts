@@ -3,9 +3,10 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
+import { parseBody } from '@/lib/api/validate-body'
 import { getBudgets, saveBudgets } from '@/modules/ads/features/budget-planning/queries'
 import { buildTeamBudgetRollups } from '@/modules/ads/features/budget-planning/budget-team-rollups'
-import type { SaveBudgetRequest } from '@/modules/ads/features/budget-planning/types'
+import { saveBudgetSchema } from '@/modules/ads/features/budget-planning/schemas'
 import type { Role } from '@/types/users'
 import { resolveBudgetOrgUnitId, teamOptionsFromSortedIds } from '@/modules/ads/features/budget-planning/resolve-budget-org'
 
@@ -73,14 +74,10 @@ export const GET = withAuth(async (req, { user }) => {
 }, ['viewer', 'viewer_plus', 'editor', 'admin', 'owner'])
 
 export const PUT = withAuth(async (req, { user }) => {
-  const body = (await req.json()) as SaveBudgetRequest
-
-  if (!body.brand_market_id || !body.year || !body.entries?.length) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'brand_market_id, year, and entries are required' } },
-      { status: 400 },
-    )
-  }
+  // Plan SC-3: Zod validation — covers required fields + entries.length >= 1.
+  const parsed = await parseBody(req, saveBudgetSchema)
+  if (!parsed.success) return parsed.response
+  const body = parsed.data
 
   const resolved = await resolveBudgetOrgUnitId(
     user.id,

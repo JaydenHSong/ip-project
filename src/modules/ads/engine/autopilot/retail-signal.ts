@@ -2,7 +2,7 @@
 // Design Ref: §3.8 — SP-API 재고/BuyBox 반응
 // Plan SC: SC-10 재고 0 → 자동 pause < 1시간
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AnyAdsDb } from '@/lib/supabase/ads-context'
 import type { AutoPilotContext } from '../types'
 
 type RetailSignal = {
@@ -27,7 +27,7 @@ type RetailSignal = {
  */
 async function checkRetailSignals(
   campaigns: AutoPilotContext[],
-  db: SupabaseClient,
+  db: AnyAdsDb,
 ): Promise<RetailSignal[]> {
   if (!campaigns.length) return []
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/session'
+import { isDemoMode } from '@/lib/demo'
+import { getDemoPreference, setDemoPreference } from '@/lib/demo/runtime'
 
 export const GET = async (request: NextRequest): Promise<NextResponse> => {
   const user = await getCurrentUser()
@@ -11,6 +13,10 @@ export const GET = async (request: NextRequest): Promise<NextResponse> => {
   const key = request.nextUrl.searchParams.get('key')
   if (!key) {
     return NextResponse.json({ error: 'Missing key parameter' }, { status: 400 })
+  }
+
+  if (isDemoMode()) {
+    return NextResponse.json({ key, value: getDemoPreference(user.id, key) })
   }
 
   const supabase = await createClient()
@@ -37,6 +43,11 @@ export const PUT = async (request: NextRequest): Promise<NextResponse> => {
   const body = await request.json() as { key?: string; value?: unknown }
   if (!body.key || body.value === undefined) {
     return NextResponse.json({ error: 'Missing key or value' }, { status: 400 })
+  }
+
+  if (isDemoMode()) {
+    setDemoPreference(user.id, body.key, body.value)
+    return NextResponse.json({ success: true })
   }
 
   const supabase = await createClient()

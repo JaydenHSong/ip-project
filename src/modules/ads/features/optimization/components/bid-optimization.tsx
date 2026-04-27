@@ -3,11 +3,15 @@
 // Strategy Strip + Today's Focus × 3 + Apply Top 3 Bar + Keyword Table
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { KpiCard } from '@/modules/ads/shared/components/kpi-card'
 import { BulkActionBar } from '@/modules/ads/shared/components/bulk-action-bar'
 import { EmptyState } from '@/modules/ads/shared/components/empty-state'
-import type { RecommendationItem, StrategyStripData, FocusCard } from '../types'
+import { RuleCreateModal } from './rule-create-modal'
+import { useSkipRecommendations } from '../hooks/use-skip-recommendations'
+import { useRowSelection } from '@/modules/ads/shared/hooks/use-row-selection'
+// Design Ref: ft-optimization-ui-wiring §2.1.2 — useRowSelection hook 재사용
+import type { RecommendationItem, StrategyStripData, FocusCard, RuleFormData } from '../types'
 
 type BidOptimizationProps = {
   campaignId: string | null
@@ -19,28 +23,52 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>([])
   const [strategy, setStrategy] = useState<StrategyStripData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [skippedIds, setSkippedIds] = useState<Set<string>>(new Set())
   const [isApplyingTop3, setIsApplyingTop3] = useState(false)
   const [applyError, setApplyError] = useState<string | null>(null)
+  const [ruleModalOpen, setRuleModalOpen] = useState(false)
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+  // Design Ref: ft-optimization-ui-wiring §2.1.2 — useRowSelection for checkbox state
+  const tableRecs = useMemo(
+    () => recommendations.filter((r) => !skippedIds.has(r.id)).slice(3),
+    [recommendations, skippedIds],
+  )
+  const {
+    selectedIds,
+    toggle: toggleSelect,
+    toggleAll: toggleAllTable,
+    clear: clearSelection,
+    allSelected: allTableSelected,
+    isSelected,
+  } = useRowSelection<RecommendationItem>(tableRecs)
+
+  // Design Ref: ft-optimization-ui-wiring §3.2 S4 — Skip All 서버 연동
+  const { skipAll, isRunning: isSkipping } = useSkipRecommendations(brandMarketId)
+
+  // Design Ref: ft-optimization-ui-wiring §3.2 S1 — M03 Rule Create submit handler
+  const handleCreateRule = async (data: RuleFormData) => {
+    const res = await fetch('/api/ads/rules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, brand_market_id: brandMarketId }),
     })
+    if (!res.ok) throw new Error(`Rule create failed: ${res.status}`)
+    // Refetch strategy to bump active_rules count
+    if (campaignId) {
+      const rulesRes = await fetch(`/api/ads/rules?brand_market_id=${brandMarketId}&is_active=true`)
+      if (rulesRes.ok) {
+        const rulesJson = await rulesRes.json() as { data: unknown[] }
+        setStrategy((prev) => prev ? { ...prev, active_rules: rulesJson.data?.length ?? 0 } : prev)
+      }
+    }
   }
 
-  const handleSkip = (id: string) => {
-    setSkippedIds((prev) => new Set(prev).add(id))
-    setSelectedIds((prev) => {
-      if (!prev.has(id)) return prev
-      const next = new Set(prev)
-      next.delete(id)
-      return next
-    })
+  const handleSkip = async (id: string) => {
+    // Design Ref: ft-optimization-ui-wiring §3.2 S4 — per-row skip도 서버 호출
+    const result = await skipAll([id])
+    if (result.failed === 0) {
+      setSkippedIds((prev) => new Set(prev).add(id))
+    }
   }
 
   const handleApplyTop3 = async () => {
@@ -115,8 +143,6 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
   const visibleRecs = recommendations.filter((r) => !skippedIds.has(r.id))
   const top3 = visibleRecs.slice(0, 3)
   const allRecs = visibleRecs
-  const tableRecs = visibleRecs.slice(3)
-  const allTableSelected = tableRecs.length > 0 && tableRecs.every((r) => selectedIds.has(r.id))
 
   if (!campaignId) {
     return <EmptyState title="Select a campaign" description="Choose a campaign to see bid recommendations" />
@@ -134,15 +160,32 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
 
   return (
     <div className="space-y-6">
-      {/* Strategy Strip — Design S04 */}
+      {/* Strategy Strip + New Rule CTA — Design S04 + ft-optimization-ui-wiring §3.2 S1 */}
       {strategy && (
-        <div className="grid grid-cols-4 gap-3">
-          <KpiCard label="Target ACoS" value={strategy.target_acos ? `${strategy.target_acos}%` : '-'} />
-          <KpiCard label="Max Bid" value={strategy.max_bid ? `$${strategy.max_bid}` : '-'} />
-          <KpiCard label="Daily Limit" value={strategy.daily_limit ? `$${strategy.daily_limit}` : '-'} />
-          <KpiCard label="Active Rules" value={strategy.active_rules} />
+        <div className="flex items-start gap-3">
+          <div className="grid flex-1 grid-cols-4 gap-3">
+            <KpiCard label="Target ACoS" value={strategy.target_acos ? `${strategy.target_acos}%` : '-'} />
+            <KpiCard label="Max Bid" value={strategy.max_bid ? `$${strategy.max_bid}` : '-'} />
+            <KpiCard label="Daily Limit" value={strategy.daily_limit ? `$${strategy.daily_limit}` : '-'} />
+            <KpiCard label="Active Rules" value={strategy.active_rules} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setRuleModalOpen(true)}
+            className="h-[48px] whitespace-nowrap rounded-md border border-th-border bg-th-bg-hover px-3 text-sm font-medium text-th-text-secondary hover:bg-th-bg"
+          >
+            + New Rule
+          </button>
         </div>
       )}
+
+      {/* M03 Rule Create Modal */}
+      <RuleCreateModal
+        isOpen={ruleModalOpen}
+        onClose={() => setRuleModalOpen(false)}
+        onSubmit={handleCreateRule}
+      />
+
 
       {/* Today's Focus × 3 — Design S04 */}
       {top3.length > 0 ? (
@@ -215,25 +258,11 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
               <thead>
                 <tr className="border-b border-th-border">
                   <th className="w-8 px-3 py-2">
-                    {/* H2 fix: header checkbox toggles all table rows */}
+                    {/* Design Ref: §2.1.2 — useRowSelection.toggleAll */}
                     <input
                       type="checkbox"
                       checked={allTableSelected}
-                      onChange={() => {
-                        if (allTableSelected) {
-                          setSelectedIds((prev) => {
-                            const next = new Set(prev)
-                            tableRecs.forEach((r) => next.delete(r.id))
-                            return next
-                          })
-                        } else {
-                          setSelectedIds((prev) => {
-                            const next = new Set(prev)
-                            tableRecs.forEach((r) => next.add(r.id))
-                            return next
-                          })
-                        }
-                      }}
+                      onChange={toggleAllTable}
                       className="rounded border-th-border text-orange-500"
                     />
                   </th>
@@ -249,10 +278,10 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
                 {tableRecs.map((rec) => (
                   <tr key={rec.id} className={`border-b border-th-border ${rec.source === 'algorithm' ? 'border-l-2 border-l-orange-400' : ''}`}>
                     <td className="px-3 py-2">
-                      {/* H2 fix: row checkbox connected to selectedIds */}
+                      {/* Design Ref: §2.1.2 — useRowSelection.isSelected */}
                       <input
                         type="checkbox"
-                        checked={selectedIds.has(rec.id)}
+                        checked={isSelected(rec.id)}
                         onChange={() => toggleSelect(rec.id)}
                         className="rounded border-th-border text-orange-500"
                       />
@@ -283,23 +312,27 @@ const BidOptimization = ({ campaignId, brandMarketId, onApprove }: BidOptimizati
         selectedCount={selectedIds.size}
         actions={[
           { key: 'approve_all', label: 'Approve All' },
-          { key: 'skip_all', label: 'Skip All' },
+          { key: 'skip_all', label: isSkipping ? 'Skipping…' : 'Skip All' },
         ]}
         onAction={async (action) => {
-          // H2 fix: bulk actions actually fire
+          // Design Ref: ft-optimization-ui-wiring §3.2 S4 — Skip All 서버 호출
           const ids = Array.from(selectedIds)
           if (action === 'approve_all') {
             await Promise.allSettled(ids.map((id) => onApprove(id)))
           } else if (action === 'skip_all') {
+            const result = await skipAll(ids)
             setSkippedIds((prev) => {
               const next = new Set(prev)
-              ids.forEach((id) => next.add(id))
+              ids.forEach((id) => { if (!result.failedIds.includes(id)) next.add(id) })
               return next
             })
+            if (result.failed > 0) {
+              console.warn(`[bid-optimization] skip: ${result.succeeded}/${result.total} succeeded, ${result.failed} failed`)
+            }
           }
-          setSelectedIds(new Set())
+          clearSelection()
         }}
-        onClear={() => setSelectedIds(new Set())}
+        onClear={clearSelection}
       />
     </div>
   )

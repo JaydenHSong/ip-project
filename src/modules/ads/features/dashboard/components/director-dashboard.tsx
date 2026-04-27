@@ -3,9 +3,13 @@
 // Budget Pacing, Market Performance, Auto Pilot Impact, Team Performance, Pending Actions
 'use client'
 
+import { useState } from 'react'
 import { KpiCard } from '@/modules/ads/shared/components/kpi-card'
 import { BudgetPacingBar } from './budget-pacing-bar'
 import { AcosHeatmap } from './acos-heatmap'
+import { AlertDetailModal } from '@/modules/ads/features/optimization/components/alert-detail-modal'
+// Design Ref: ft-optimization-ui-wiring §3.2 S1 — M04 wiring via Pending Actions
+import type { AlertDetailData } from '@/modules/ads/features/optimization/types'
 import type { DirectorDashboardData, PendingActionItem } from '../types'
 
 type DirectorDashboardProps = {
@@ -33,7 +37,13 @@ const SkeletonBlock = ({ h = 'h-48' }: { h?: string }) => (
 
 // ─── Pending Actions List ───
 
-const PendingActionsList = ({ actions }: { actions: PendingActionItem[] }) => {
+const PendingActionsList = ({
+  actions,
+  onSelect,
+}: {
+  actions: PendingActionItem[]
+  onSelect: (id: string) => void
+}) => {
   if (actions.length === 0) {
     return <p className="text-sm text-th-text-muted text-center py-6">No pending actions</p>
   }
@@ -57,13 +67,15 @@ const PendingActionsList = ({ actions }: { actions: PendingActionItem[] }) => {
             </p>
             <div className="space-y-1">
               {items.map((a) => (
-                <div
+                <button
                   key={a.id}
-                  className={`rounded border-l-2 px-3 py-2 ${SEVERITY_STYLES[sev]}`}
+                  type="button"
+                  onClick={() => onSelect(a.id)}
+                  className={`block w-full rounded border-l-2 px-3 py-2 text-left hover:brightness-95 ${SEVERITY_STYLES[sev]}`}
                 >
                   <p className="text-xs font-medium text-th-text-secondary">{a.title}</p>
                   <p className="text-[11px] text-th-text-muted">{a.campaign_name} &middot; {a.type}</p>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -76,6 +88,27 @@ const PendingActionsList = ({ actions }: { actions: PendingActionItem[] }) => {
 // ─── Main ───
 
 const DirectorDashboard = ({ data, isLoading, errorMessage, onRetry }: DirectorDashboardProps) => {
+  // Design Ref: ft-optimization-ui-wiring §3.2 S1 — M04 Alert Detail wiring
+  const [selectedAlert, setSelectedAlert] = useState<AlertDetailData | null>(null)
+  const [alertModalOpen, setAlertModalOpen] = useState(false)
+
+  const handleSelectAlert = async (alertId: string) => {
+    try {
+      const res = await fetch(`/api/ads/alerts/${alertId}`)
+      if (!res.ok) return
+      const json = await res.json() as { data: AlertDetailData }
+      setSelectedAlert(json.data)
+      setAlertModalOpen(true)
+    } catch (err) {
+      console.error('[director-dashboard] alert fetch failed', err)
+    }
+  }
+
+  const handleAlertAction = (alertId: string, actionKey: string) => {
+    // Full action wiring deferred to follow-up PDCA (ft-alert-action-router)
+    console.info('[director-dashboard] alert action', alertId, actionKey)
+  }
+
   if (errorMessage) {
     return (
       <div className="rounded-lg border border-th-border bg-surface-card p-6 text-center">
@@ -184,8 +217,16 @@ const DirectorDashboard = ({ data, isLoading, errorMessage, onRetry }: DirectorD
             </span>
           )}
         </div>
-        <PendingActionsList actions={data.pending_actions} />
+        <PendingActionsList actions={data.pending_actions} onSelect={handleSelectAlert} />
       </div>
+
+      {/* M04 Alert Detail Modal */}
+      <AlertDetailModal
+        alert={selectedAlert}
+        isOpen={alertModalOpen}
+        onClose={() => setAlertModalOpen(false)}
+        onAction={handleAlertAction}
+      />
     </div>
   )
 }

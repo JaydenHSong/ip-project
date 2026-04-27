@@ -1,7 +1,8 @@
 // S02 — Director dashboard aggregation (server)
 // Design Ref: §4.2
+// Design Ref: ft-runtime-hardening §3.6 — cross-schema 분리 (brand_markets/org_units = public, 나머지 = ads)
 
-import { createAdsAdminClient } from '@/lib/supabase/admin'
+import type { AdsAdminContext } from '@/lib/supabase/ads-context'
 import type {
   DirectorDashboardData,
   AcosHeatmapCell,
@@ -10,30 +11,36 @@ import type {
   PendingActionItem,
 } from '../types'
 import { getMonthRange } from './month-range'
+import {
+  computePrevAcosByBrandMarket,
+  computePrevAcosByTeam,
+  computeAutopilotImpact,
+} from './compute-prev-period'
 
 const getDirectorDashboard = async (
+  ctx: AdsAdminContext,
   orgUnitId: string,
   brandMarketIds: string[],
 ): Promise<DirectorDashboardData> => {
-  const supabase = createAdsAdminClient()
   const { start, dayOfMonth } = getMonthRange()
   const bmFilter = brandMarketIds.length > 0 ? brandMarketIds : ['__none__']
 
-  const { data: budgetRows } = await supabase
-    .from('budgets')
+  const { data: budgetRows } = await ctx.ads
+    .from(ctx.adsTable('budgets'))
     .select('brand_market_id, channel, amount')
     .in('brand_market_id', bmFilter)
     .eq('is_actual', false)
     .eq('year', new Date().getFullYear())
     .eq('month', new Date().getMonth() + 1)
 
-  const { data: bmInfo } = await supabase
-    .from('brand_markets')
+  // brand_markets lives in PUBLIC schema
+  const { data: bmInfo } = await ctx.public
+    .from(ctx.publicTable('brand_markets'))
     .select('id, brand_name, marketplace')
     .in('id', bmFilter)
 
-  const { data: spendSnapshots } = await supabase
-    .from('report_snapshots')
+  const { data: spendSnapshots } = await ctx.ads
+    .from(ctx.adsTable('report_snapshots'))
     .select('brand_market_id, spend, sales')
     .in('brand_market_id', bmFilter)
     .eq('report_level', 'campaign')
@@ -86,6 +93,9 @@ const getDirectorDashboard = async (
     })
   }
 
+  // Compute previous-month ACoS by bm for delta computation (shared helper)
+  const prevAcosByBm = await computePrevAcosByBrandMarket(ctx, brandMarketIds)
+
   const marketPerformance: AcosHeatmapCell[] = []
   for (const [bmId, spend] of spendByBm) {
     const bm = bmLookup.get(bmId)
@@ -93,34 +103,27 @@ const getDirectorDashboard = async (
       .filter((s) => s.brand_market_id === bmId)
       .reduce((sum, s) => sum + (s.sales ?? 0), 0)
     const acos = sales > 0 ? (spend / sales) * 100 : 0
+    const prevAcos = prevAcosByBm.get(bmId) ?? 0
     marketPerformance.push({
       brand: bm?.brand_name ?? 'Unknown',
       market: bm?.marketplace ?? 'US',
       acos,
-      delta: 0,
+      delta: prevAcos > 0 ? acos - prevAcos : 0,
     })
   }
 
-  const { data: apLogs } = await supabase
-    .from('automation_logs')
-    .select('id, action_type')
-    .eq('source', 'algorithm')
-    .gte('executed_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+  // Plan §1.2 fix: compute real autopilot impact (was hardcoded 0/0)
+  const autopilotImpact = await computeAutopilotImpact(ctx, brandMarketIds)
 
-  const autopilotImpact = {
-    acos_change: 0,
-    savings: 0,
-    actions_7d: (apLogs ?? []).length,
-  }
-
-  const { data: teams } = await supabase
-    .from('org_units')
+  // org_units lives in PUBLIC schema
+  const { data: teams } = await ctx.public
+    .from(ctx.publicTable('org_units'))
     .select('id, name')
     .eq('parent_id', orgUnitId)
 
   const teamIds = (teams ?? []).map((t) => t.id)
-  const { data: teamCampaigns } = await supabase
-    .from('campaigns')
+  const { data: teamCampaigns } = await ctx.ads
+    .from(ctx.adsTable('campaigns'))
     .select('id, org_unit_id, status')
     .in('org_unit_id', teamIds.length > 0 ? teamIds : ['__none__'])
 
@@ -135,8 +138,8 @@ const getDirectorDashboard = async (
   }
 
   const allTeamCampaignIds = (teamCampaigns ?? []).map((c) => c.id)
-  const { data: teamSnapshots } = await supabase
-    .from('report_snapshots')
+  const { data: teamSnapshots } = await ctx.ads
+    .from(ctx.adsTable('report_snapshots'))
     .select('campaign_id, spend, sales')
     .in('campaign_id', allTeamCampaignIds.length > 0 ? allTeamCampaignIds : ['__none__'])
     .eq('report_level', 'campaign')
@@ -156,27 +159,32 @@ const getDirectorDashboard = async (
     teamSales.set(teamId, (teamSales.get(teamId) ?? 0) + (s.sales ?? 0))
   }
 
+  // Compute previous-month ACoS by team for delta_acos (shared helper)
+  const prevAcosByTeam = await computePrevAcosByTeam(ctx, campaignToTeam)
+
   const teamPerformance: TeamPerformanceItem[] = (teams ?? []).map((t) => {
     const spend = teamSpend.get(t.id) ?? 0
     const sales = teamSales.get(t.id) ?? 0
+    const acos = sales > 0 ? (spend / sales) * 100 : 0
+    const prevAcos = prevAcosByTeam.get(t.id) ?? 0
     return {
       org_unit_id: t.id,
       team_name: t.name,
       spend,
-      acos: sales > 0 ? (spend / sales) * 100 : 0,
-      delta_acos: 0,
+      acos,
+      delta_acos: prevAcos > 0 ? acos - prevAcos : 0,
       campaigns_count: teamCampaignCounts.get(t.id) ?? 0,
     }
   })
 
-  const { count: pendingActionsTotal } = await supabase
-    .from('alerts')
+  const { count: pendingActionsTotal } = await ctx.ads
+    .from(ctx.adsTable('alerts'))
     .select('id', { count: 'exact', head: true })
     .in('brand_market_id', bmFilter)
     .eq('is_resolved', false)
 
-  const { data: alerts } = await supabase
-    .from('alerts')
+  const { data: alerts } = await ctx.ads
+    .from(ctx.adsTable('alerts'))
     .select('id, alert_type, severity, title, campaign_id')
     .in('brand_market_id', bmFilter)
     .eq('is_resolved', false)
@@ -184,8 +192,8 @@ const getDirectorDashboard = async (
     .limit(20)
 
   const alertCampaignIds = (alerts ?? []).map((a) => a.campaign_id).filter(Boolean)
-  const { data: alertCampaigns } = await supabase
-    .from('campaigns')
+  const { data: alertCampaigns } = await ctx.ads
+    .from(ctx.adsTable('campaigns'))
     .select('id, name')
     .in('id', alertCampaignIds.length > 0 ? alertCampaignIds : ['__none__'])
 

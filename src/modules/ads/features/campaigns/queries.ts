@@ -2,6 +2,7 @@
 // Design Ref: §4.2 Campaigns endpoints
 
 import { createAdsAdminClient } from '@/lib/supabase/admin'
+import { adsTable } from '@/lib/supabase/table-names'
 import type { CampaignKpiSummary } from './types'
 import { getCampaigns } from './queries-campaign-list'
 
@@ -74,7 +75,7 @@ const getCampaignById = async (id: string) => {
 
   // 4. Recent automation actions (last 10)
   const { data: recentActions } = await supabase
-    .from('automation_logs')
+    .from(adsTable('automation_log'))
     .select('id, action_type, reason, executed_at')
     .eq('campaign_id', id)
     .order('executed_at', { ascending: false })
