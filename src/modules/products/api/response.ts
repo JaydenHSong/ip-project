@@ -52,6 +52,10 @@ export function tooManyRequests(error: string, retryAfter?: number) {
   return NextResponse.json({ error }, { status: 429, headers });
 }
 
+export function notImplemented(error: string, extra?: Record<string, unknown>) {
+  return NextResponse.json({ error, ...(extra ?? {}) }, { status: 501 });
+}
+
 export function serverError(error = 'Internal server error') {
   return NextResponse.json({ error }, { status: 500 });
 }

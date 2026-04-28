@@ -27,11 +27,10 @@ import {
   type AsinMappingDbRow,
   type JoinedMappingRow,
 } from '@/modules/products/shared/row-mappers';
+import { fetchExistingByAsinMarket } from './csv-parser';
 import type { ListMappingQuery } from './validators';
 
-// =============================================================================
 // List (joined product fields for grid rendering)
-// =============================================================================
 
 const JOIN_COLUMNS =
   'id, product_id, asin, marketplace, is_primary, status, brand_market_id, created_by, updated_by, created_at, updated_at, products:product_id (sku, product_name, product_name_ko, device_model, color, model_name_ko, ean_barcode, version)';
@@ -67,9 +66,7 @@ export async function listMapping(q: ListMappingQuery): Promise<MappingListRespo
   return { data: rows.map(rowToMappingRow), pagination };
 }
 
-// =============================================================================
 // Get by ASIN (Provider v1 — SHAPE LOCKED — do NOT change fields)
-// =============================================================================
 
 export async function getByAsin(
   asin: string,
@@ -120,9 +117,7 @@ export async function getByAsin(
   };
 }
 
-// =============================================================================
 // Get by id
-// =============================================================================
 
 export async function getMappingById(id: string): Promise<AsinMapping | null> {
   const db = createAdminClient();
@@ -150,9 +145,7 @@ export async function getMappingRowById(id: string) {
   return rowToMappingRow(data as unknown as JoinedMappingRow);
 }
 
-// =============================================================================
 // Patch (admin is_primary / status / brand_market_id)
-// =============================================================================
 
 export type PatchMappingInput = {
   isPrimary?: boolean;
@@ -188,9 +181,7 @@ export async function softDeleteMapping(id: string, userId: string): Promise<voi
   await patchMapping(id, { status: 'archived' }, userId);
 }
 
-// =============================================================================
 // Bulk upsert (commit after dry-run)
-// =============================================================================
 
 export type BulkUpsertInput = {
   rows: Array<CsvImportRow & { product_id: string }>;
@@ -208,6 +199,7 @@ export async function bulkUpsert(input: BulkUpsertInput): Promise<BulkUpsertResp
 
   for (let start = 0; start < input.rows.length; start += CSV_BATCH_SIZE) {
     const batch = input.rows.slice(start, start + CSV_BATCH_SIZE);
+    const existingMap = await fetchExistingByAsinMarket(batch);
     const payload = batch.map((r) => ({
       product_id: r.product_id,
       asin: r.asin,
@@ -218,23 +210,29 @@ export async function bulkUpsert(input: BulkUpsertInput): Promise<BulkUpsertResp
       updated_by: input.userId,
     }));
 
-    const { error } = await db
+    const { data, error } = await db
       .schema('products')
       .from('asin_mapping')
       .upsert(payload, {
         onConflict: 'asin,marketplace',
         ignoreDuplicates: input.onConflict === 'skip',
-      });
+      })
+      .select('asin,marketplace');
 
     if (error) {
       for (let i = 0; i < batch.length; i++) {
         failed += 1;
         errors.push({ row: start + i + 1, message: error.message });
       }
-    } else if (input.onConflict === 'overwrite') {
-      updated += batch.length;
     } else {
-      inserted += batch.length;
+      const writtenRows = (data ?? []) as Array<{ asin: string; marketplace: string }>;
+      for (const row of writtenRows) {
+        if (input.onConflict === 'overwrite' && existingMap.has(`${row.asin}|${row.marketplace}`)) {
+          updated += 1;
+        } else {
+          inserted += 1;
+        }
+      }
     }
   }
 

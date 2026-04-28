@@ -50,6 +50,11 @@ export type ProductUpsertInput = {
   metadata?: Record<string, unknown>;
 };
 
+export type ProductCatalogPatchInput = {
+  productName?: string;
+  updatedBy: string;
+};
+
 export type UpsertContext = {
   userId: string;     // from withAuth session
   orgUnitId: string;  // from JWT / user preference
@@ -154,6 +159,25 @@ export async function upsertProduct(
   const { data, error } = await db
     .schema('products').from('products')
     .upsert(payload, { onConflict: 'sku,version' })
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return rowToProduct(data as ProductRow);
+}
+
+/** Patch only selected catalog fields. Used by future enrichment paths. */
+export async function patchProductCatalogFields(
+  id: string,
+  input: ProductCatalogPatchInput
+): Promise<Product> {
+  const payload: Record<string, unknown> = { updated_by: input.updatedBy };
+  if (input.productName !== undefined) payload.product_name = input.productName;
+
+  const { data, error } = await createAdminClient()
+    .schema('products').from('products')
+    .update(payload)
+    .eq('id', id)
     .select('*')
     .single();
 

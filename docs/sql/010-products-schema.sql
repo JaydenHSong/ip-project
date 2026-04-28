@@ -158,23 +158,31 @@ BEGIN
     v_user := NULL;
   END;
 
-  IF v_user IS NULL THEN
-    v_user := coalesce(NEW.updated_by, OLD.updated_by);
-  END IF;
-
   IF TG_OP = 'INSERT' THEN
+    IF v_user IS NULL THEN
+      v_user := NEW.updated_by;
+    END IF;
+
     INSERT INTO products.asin_mapping_audit
       (mapping_id, user_id, action, before, after, source)
     VALUES
       (NEW.id, v_user, 'CREATE', NULL, to_jsonb(NEW), 'trigger');
     RETURN NEW;
   ELSIF TG_OP = 'UPDATE' THEN
+    IF v_user IS NULL THEN
+      v_user := coalesce(NEW.updated_by, OLD.updated_by);
+    END IF;
+
     INSERT INTO products.asin_mapping_audit
       (mapping_id, user_id, action, before, after, source)
     VALUES
       (NEW.id, v_user, 'UPDATE', to_jsonb(OLD), to_jsonb(NEW), 'trigger');
     RETURN NEW;
   ELSIF TG_OP = 'DELETE' THEN
+    IF v_user IS NULL THEN
+      v_user := OLD.updated_by;
+    END IF;
+
     INSERT INTO products.asin_mapping_audit
       (mapping_id, user_id, action, before, after, source)
     VALUES
