@@ -55,6 +55,8 @@ export const POST = async (req: Request) => {
       .update({
         status: 'monitoring',
         br_case_id: body.br_case_id ?? null,
+        br_case_id_retry_count: 0,
+        br_case_status: null,
         br_submitted_at: now,
         br_submission_error: null,
         monitoring_started_at: now,
@@ -88,13 +90,6 @@ export const POST = async (req: Request) => {
         rating: listing.rating,
         review_count: listing.review_count,
       })
-    }
-
-    // Case ID 없이 성공한 경우 알림
-    if (!body.br_case_id) {
-      const asin = (report.listing_snapshot as Record<string, unknown> | null)?.asin as string | undefined
-      const { notifyBrFailed } = await import('@/lib/notifications/google-chat')
-      notifyBrFailed(body.report_id, 'Submitted successfully but case ID not extracted', { reportNumber: report.report_number, asin }).catch(() => {})
     }
 
     return NextResponse.json({ status: 'monitoring', br_case_id: body.br_case_id })
