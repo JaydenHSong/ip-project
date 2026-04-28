@@ -63,6 +63,7 @@ src/modules/products/
 | Audit 구현 | **DB Trigger** | ads 모듈 패턴 재사용 + 앱 코드 실수 무관 기록 |
 | Primary 제약 | **Partial UNIQUE** (`WHERE is_primary=true`) | DB level 강제 |
 | Rate limiter | `src/lib/rate-limiter.ts` 공통 util | ads에서 이관 → 다른 모듈도 재사용 |
+| Catalog enrich | **Future / disabled by default** | 현재 운영 흐름은 Supabase `products` 스키마를 SSOT로 사용 |
 
 ## 4. API Contract v1 — 🔒 LOCKED
 
@@ -81,6 +82,7 @@ src/modules/products/
 - Supabase 접근: `createAdminClient().schema('products').from('table')` — dot-notation 금지
 - Audit 기록: DB trigger에 위임 (app 레이어 audit 코드 작성 금지)
 - 타 모듈 참조: `@/modules/products/shared/types`에서 타입 import 가능
+- Amazon enrich 활성화 전: `PRODUCTS_AMAZON_ENRICH_ENABLED=true` 설정 + partial update 경로만 사용
 - 신규 마켓플레이스 추가: `MARKETPLACES`, `MARKETPLACE_LABELS`, `SP_API_REGIONS`, DB CHECK constraint 4곳 모두 업데이트
 
 ### ❌ DON'T

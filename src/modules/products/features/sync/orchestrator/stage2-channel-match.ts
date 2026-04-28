@@ -5,9 +5,7 @@
 // unmapped_queue for failures. Uses in-memory ERP index (~10MB / 20k rows).
 
 import { createSqDataHubClient } from '../adapters/sq-datahub/client';
-import {
-  readErpActiveAll,
-} from '../adapters/sq-datahub/erp-source';
+import { readErpActiveAll } from '../adapters/sq-datahub/erp-source';
 import {
   readAmazonDelta,
   AMAZON_SOURCE_TABLE_KEY,
@@ -117,8 +115,7 @@ export async function runChannelMatchStage(input: Stage2Input): Promise<Stage2Re
         if (r.updatedAt > (watermarkAfter ?? '')) watermarkAfter = r.updatedAt;
       }
 
-      // Persist watermark per-batch for resumability. Amazon stage uses
-      // ts-only cursor; id stays at 0 for the composite-cursor companion.
+      // Persist ts-only watermark per batch for resumability; id stays 0.
       if (watermarkAfter && watermarkAfter !== watermarkBefore) {
         await updateWatermark(
           AMAZON_SOURCE_TABLE_KEY,

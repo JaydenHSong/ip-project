@@ -7,7 +7,7 @@ import { fetchCatalogItem } from '@/modules/products/api/adapters/amazon-catalog
 import { getByAsin } from '@/modules/products/features/mapping/queries';
 import {
   getProductBySku,
-  upsertProduct,
+  patchProductCatalogFields,
 } from '@/modules/products/features/catalog/queries';
 import { enrichQuerySchema } from '@/modules/products/features/mapping/validators';
 import { ASIN_REGEX } from '@/modules/products/shared/constants';
@@ -16,6 +16,7 @@ import {
   notFound,
   badRequest,
   tooManyRequests,
+  notImplemented,
   serverError,
   handleError,
   zodError,
@@ -23,10 +24,19 @@ import {
 import { resolveProductsCtx } from '@/modules/products/api/context';
 
 const EDIT_ROLES = ['editor', 'admin', 'owner'] as const;
+const ENRICH_ENABLED = process.env.PRODUCTS_AMAZON_ENRICH_ENABLED === 'true';
 
 // POST /api/products/by-asin/[asin]/enrich?marketplace=US
+// Future feature. Current production data flow reads from Supabase products tables.
 export const POST = withAuth(async (req: NextRequest, { user, params }) => {
   try {
+    if (!ENRICH_ENABLED) {
+      return notImplemented('Amazon Catalog enrich is disabled', {
+        status: 'future',
+        enableWith: 'PRODUCTS_AMAZON_ENRICH_ENABLED=true',
+      });
+    }
+
     const asin = params.asin;
     if (!ASIN_REGEX.test(asin)) {
       return badRequest('invalid', {
@@ -73,19 +83,10 @@ export const POST = withAuth(async (req: NextRequest, { user, params }) => {
     }
 
     const ctx = await resolveProductsCtx(user);
-    await upsertProduct(
-      {
-        sku: product.sku,
-        version: product.version,
-        productName: result.data.productName || product.productName,
-        modelName: product.modelName,
-        modelNameKo: product.modelNameKo,
-        deviceModel: product.deviceModel,
-        color: product.color,
-        brandId: product.brandId,
-      },
-      { userId: ctx.userId, orgUnitId: product.orgUnitId }
-    );
+    await patchProductCatalogFields(product.id, {
+      productName: result.data.productName || product.productName,
+      updatedBy: ctx.userId,
+    });
 
     return ok({
       enriched: {
