@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { buildBrSubmitData } from '@/lib/reports/br-data'
+import { buildBrSubmitData, extractBrExtraFieldsFromNote, extractBrExtraFieldsFromSubmitData, mergeBrExtraFields } from '@/lib/reports/br-data'
 import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
 // POST /api/reports/bulk-br-resubmit — BR 일괄 재신고
@@ -20,7 +20,7 @@ export const POST = withAuth(async (req, { user }) => {
 
   const { data: reports, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, listing_id, resubmit_count')
+    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, listing_id, resubmit_count, br_submit_data, note')
     .in('id', report_ids)
     .in('status', ['monitoring', 'resolved', 'unresolved'])
 
@@ -57,6 +57,10 @@ export const POST = withAuth(async (req, { user }) => {
             draft_subject: report.draft_subject,
           },
           listing,
+          extraFields: mergeBrExtraFields(
+            extractBrExtraFieldsFromSubmitData(report.br_submit_data as Record<string, unknown> | null),
+            extractBrExtraFieldsFromNote(report.note),
+          ),
         })
       : null
 

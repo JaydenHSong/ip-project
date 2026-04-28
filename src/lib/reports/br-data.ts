@@ -4,6 +4,7 @@
 import type { BrSubmitData } from '@/types/reports'
 import { type BrFormTypeCode, isBrSubmittable, BR_FORM_TYPES, BR_FORM_TYPE_OPTIONS } from '@/constants/br-form-types'
 import { MARKETPLACES } from '@/constants/marketplaces'
+import { parseReportNote } from '@/lib/reports/report-note'
 
 // BR 폼 타입별 description 필드 가이드 — AI 프롬프트 주입용
 const BR_FORM_DESCRIPTION_GUIDE: Record<string, string> = {
@@ -60,6 +61,107 @@ export type BrExtraFields = {
   order_id?: string
 }
 
+const splitTextValues = (value: unknown, separator: RegExp): string[] => {
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => splitTextValues(item, separator))
+  }
+  if (typeof value !== 'string') return []
+
+  return value
+    .split(separator)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+const normalizeLines = (value: unknown): string[] => splitTextValues(value, /[\r\n]+/)
+const normalizeTokens = (value: unknown): string[] => splitTextValues(value, /[,;\r\n]+/)
+
+const isAmazonProductDetailUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value)
+    if (!url.hostname.includes('amazon.')) return false
+    return /^\/(?:dp|gp\/product)\//i.test(url.pathname)
+  } catch {
+    return false
+  }
+}
+
+const removeProductDetailUrls = (urls: string[]): string[] =>
+  urls.filter((url) => !isAmazonProductDetailUrl(url))
+
+const firstNonEmpty = (primary?: string[], fallback?: string[]): string[] | undefined => {
+  if (primary && primary.length > 0) return primary
+  if (fallback && fallback.length > 0) return fallback
+  return undefined
+}
+
+const firstText = (primary?: string, fallback?: string): string | undefined => {
+  if (primary?.trim()) return primary.trim()
+  if (fallback?.trim()) return fallback.trim()
+  return undefined
+}
+
+const hasExtraFields = (extraFields: BrExtraFields): boolean =>
+  Object.values(extraFields).some((value) => Array.isArray(value) ? value.length > 0 : !!value)
+
+export const normalizeBrExtraFields = (value: Record<string, unknown> | BrExtraFields | null | undefined): BrExtraFields | undefined => {
+  if (!value || typeof value !== 'object') return undefined
+
+  const productUrls = normalizeLines(value.product_urls)
+  const reviewUrls = removeProductDetailUrls(normalizeLines(value.review_urls))
+  const asins = normalizeTokens(value.asins)
+
+  const extraFields: BrExtraFields = {}
+  if (productUrls.length > 0) extraFields.product_urls = productUrls
+  if (reviewUrls.length > 0) extraFields.review_urls = reviewUrls
+  if (asins.length > 0) extraFields.asins = asins
+  if (typeof value.seller_storefront_url === 'string' && value.seller_storefront_url.trim()) {
+    extraFields.seller_storefront_url = value.seller_storefront_url.trim()
+  }
+  if (typeof value.policy_url === 'string' && value.policy_url.trim()) {
+    extraFields.policy_url = value.policy_url.trim()
+  }
+  if (typeof value.order_id === 'string' && value.order_id.trim()) {
+    extraFields.order_id = value.order_id.trim()
+  }
+
+  return hasExtraFields(extraFields) ? extraFields : undefined
+}
+
+export const extractBrExtraFieldsFromNote = (note: string | null | undefined): BrExtraFields | undefined => {
+  const noteData = parseReportNote(note).data
+  return normalizeBrExtraFields(noteData)
+}
+
+export const extractBrExtraFieldsFromSubmitData = (
+  submitData: Record<string, unknown> | BrSubmitData | null | undefined,
+): BrExtraFields | undefined => normalizeBrExtraFields(submitData)
+
+export const mergeBrExtraFields = (
+  primary: BrExtraFields | undefined,
+  fallback: BrExtraFields | undefined,
+): BrExtraFields | undefined => {
+  const merged: BrExtraFields = {}
+
+  const productUrls = firstNonEmpty(primary?.product_urls, fallback?.product_urls)
+  const reviewUrls = firstNonEmpty(primary?.review_urls, fallback?.review_urls)
+  const asins = firstNonEmpty(primary?.asins, fallback?.asins)
+
+  if (productUrls) merged.product_urls = productUrls
+  if (reviewUrls) merged.review_urls = reviewUrls
+  if (asins) merged.asins = asins
+
+  const sellerStorefrontUrl = firstText(primary?.seller_storefront_url, fallback?.seller_storefront_url)
+  const policyUrl = firstText(primary?.policy_url, fallback?.policy_url)
+  const orderId = firstText(primary?.order_id, fallback?.order_id)
+
+  if (sellerStorefrontUrl) merged.seller_storefront_url = sellerStorefrontUrl
+  if (policyUrl) merged.policy_url = policyUrl
+  if (orderId) merged.order_id = orderId
+
+  return hasExtraFields(merged) ? merged : undefined
+}
+
 type BuildBrDataInput = {
   report: {
     id: string
@@ -94,7 +196,7 @@ export const buildBrSubmitData = ({ report, listing, extraFields }: BuildBrDataI
     form_type: report.br_form_type,
     subject: buildSubjectWithAsin(report.draft_subject ?? report.draft_title, listing.asin),
     description: report.draft_body ?? '',
-    product_urls: productUrls,
+    product_urls: report.br_form_type === 'product_review' ? [] : productUrls,
     prepared_at: new Date().toISOString(),
   }
 
@@ -103,18 +205,12 @@ export const buildBrSubmitData = ({ report, listing, extraFields }: BuildBrDataI
     data.seller_storefront_url = listing.seller_storefront_url
   }
 
-  // product_review 폼: 리스팅 URL을 review_urls에도 기본값으로 넣기
-  // (실제 BR 폼의 URL 필드가 "product review you want to report" 용도)
-  if (report.br_form_type === 'product_review' && productUrls.length > 0) {
-    data.review_urls = [...productUrls]
-  }
-
   if (listing.asin) {
     data.asins = [listing.asin]
   }
 
   // extraFields 오버라이드 (사용자 입력 우선)
-  if (extraFields?.product_urls && extraFields.product_urls.length > 0) {
+  if (report.br_form_type !== 'product_review' && extraFields?.product_urls && extraFields.product_urls.length > 0) {
     data.product_urls = extraFields.product_urls
   }
   if (extraFields?.seller_storefront_url) {

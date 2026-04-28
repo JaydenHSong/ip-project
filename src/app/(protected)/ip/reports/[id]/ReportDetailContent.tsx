@@ -15,7 +15,7 @@ import { ReportActions } from './ReportActions'
 import { ReportTimeline } from './ReportTimeline'
 import { SnapshotViewer } from './SnapshotViewer'
 import { BrTemplateList } from './BrTemplateList'
-import { BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT } from '@/lib/reports/br-data'
+import { BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT, extractBrExtraFieldsFromNote, extractBrExtraFieldsFromSubmitData, mergeBrExtraFields } from '@/lib/reports/br-data'
 import { parseReportNote } from '@/lib/reports/report-note'
 import { BR_FORM_TYPES, isBrSubmittable, brFormHasField, toBrFormType, type BrFormTypeCode } from '@/constants/br-form-types'
 import { VIOLATION_FILTER_OPTIONS } from '@/components/ui/ViolationBadge'
@@ -213,16 +213,20 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
     const domain = (mpKey && MARKETPLACES[mpKey]?.domain) || 'amazon.com'
     const defaultProductUrl = listing?.asin ? `https://www.${domain}/dp/${listing.asin}` : ''
 
-    // 1순위: br_submit_data (approve 후 저장된 확정 데이터)
+    // br_submit_data가 상품 URL로 오염된 경우 note의 실제 Review URL로 보강
     const bsd = report.br_submit_data
-    if (bsd) {
+    const mergedExtra = mergeBrExtraFields(
+      extractBrExtraFieldsFromSubmitData(bsd as Record<string, unknown> | null | undefined),
+      extractBrExtraFieldsFromNote(report.note),
+    )
+    if (bsd || mergedExtra) {
       return {
-        product_urls: arrToLines(bsd.product_urls) || (defaultProductUrl),
-        seller_storefront_url: bsd.seller_storefront_url ?? '',
-        policy_url: bsd.policy_url ?? '',
-        asins: arrToLines(bsd.asins) || (listing?.asin ?? ''),
-        review_urls: arrToLines(bsd.review_urls),
-        order_id: bsd.order_id ?? '',
+        product_urls: arrToLines(mergedExtra?.product_urls) || defaultProductUrl,
+        seller_storefront_url: mergedExtra?.seller_storefront_url ?? '',
+        policy_url: mergedExtra?.policy_url ?? '',
+        asins: arrToLines(mergedExtra?.asins) || (listing?.asin ?? ''),
+        review_urls: arrToLines(mergedExtra?.review_urls),
+        order_id: mergedExtra?.order_id ?? '',
       }
     }
 

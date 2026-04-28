@@ -84,11 +84,11 @@ export const POST = async (req: Request) => {
 
     // 3회 실패 → Google Chat 알림
     if (maxReached) {
-      const { notifyPdFailed } = await import('@/lib/notifications/google-chat')
+      const { notifyBrFailed } = await import('@/lib/notifications/google-chat')
       const asin = (report.listing_snapshot as Record<string, unknown> | null)?.asin as string | undefined
-      notifyPdFailed(
+      notifyBrFailed(
         body.report_id,
-        `[BR] Case ID 자동 복구 실패 (3/3). 수동 입력 필요`,
+        `Case ID 자동 복구 실패 (3/3). 수동 입력 필요`,
         { reportNumber: report.report_number, asin },
       ).catch(() => {})
     }

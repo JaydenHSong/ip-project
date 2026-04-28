@@ -99,6 +99,23 @@ const notifyPdFailed = async (
   await sendGoogleChatMessage(text)
 }
 
+// BR 제출/케이스 연동 확인 필요 알림
+const notifyBrFailed = async (
+  reportId: string,
+  error: string,
+  extra?: { reportNumber?: number; asin?: string },
+): Promise<void> => {
+  const label = extra?.reportNumber ? `#${String(extra.reportNumber).padStart(5, '0')}` : reportId.slice(0, 8)
+  const asinInfo = extra?.asin ? ` | ASIN: ${extra.asin}` : ''
+  const text = [
+    `🚨 *[A.R.C.]* BR 자동 제출 확인 필요`,
+    `Report: ${label}${asinInfo}`,
+    `오류: ${error.slice(0, 150)}${error.length > 150 ? '...' : ''}`,
+    `→ BR 케이스 상태를 확인해 주세요.`,
+  ].join('\n')
+  await sendGoogleChatMessage(text)
+}
+
 // 재제출 max 초과 알림
 const notifyResubmitMaxExceeded = async (
   reportId: string,
@@ -121,5 +138,6 @@ export {
   notifyRejected,
   notifySubmittedToPD,
   notifyPdFailed,
+  notifyBrFailed,
   notifyResubmitMaxExceeded,
 }

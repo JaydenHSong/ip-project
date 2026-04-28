@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { notifyApproved } from '@/lib/notifications/google-chat'
-import { buildBrSubmitData } from '@/lib/reports/br-data'
+import { buildBrSubmitData, extractBrExtraFieldsFromNote, mergeBrExtraFields, normalizeBrExtraFields } from '@/lib/reports/br-data'
 import type { BrExtraFields } from '@/lib/reports/br-data'
-import { parseReportNote } from '@/lib/reports/report-note'
 import type { ApproveReportRequest } from '@/types/api'
 import type { BrFormType } from '@/types/reports'
 import { isBrSubmittable, BR_FORM_TYPE_CODES, type BrFormTypeCode } from '@/constants/br-form-types'
@@ -61,33 +60,10 @@ export const POST = withAuth(async (req, { params }) => {
   const rawFormType = body.br_form_type ?? report.br_form_type ?? 'other_policy'
   const brFormType = (BR_FORM_TYPE_CODES.includes(rawFormType as BrFormTypeCode) ? rawFormType : 'other_policy') as BrFormTypeCode
   const brReportable = isBrSubmittable(brFormType)
-  // extraFields: 프론트 전달값 우선, 없으면 note(Extension 데이터)에서 자동 추출
-  let extraFields: BrExtraFields | undefined = body.br_extra_fields
-  if (!extraFields && report.note) {
-    const noteData = parseReportNote(report.note).data
-    if (noteData) {
-      const noteExtra: Record<string, unknown> = {}
-      if (typeof noteData.review_urls === 'string') {
-        noteExtra.review_urls = noteData.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
-      } else if (Array.isArray(noteData.review_urls)) {
-        noteExtra.review_urls = noteData.review_urls.map((u) => String(u).trim()).filter(Boolean)
-      }
-      if (typeof noteData.product_urls === 'string') {
-        noteExtra.product_urls = noteData.product_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
-      } else if (Array.isArray(noteData.product_urls)) {
-        noteExtra.product_urls = noteData.product_urls.map((u) => String(u).trim()).filter(Boolean)
-      }
-      if (typeof noteData.asins === 'string') {
-        noteExtra.asins = noteData.asins.split(/[,;\n]/).map((a: string) => a.trim()).filter(Boolean)
-      } else if (Array.isArray(noteData.asins)) {
-        noteExtra.asins = noteData.asins.map((asin) => String(asin).trim()).filter(Boolean)
-      }
-      if (noteData.seller_storefront_url) noteExtra.seller_storefront_url = noteData.seller_storefront_url
-      if (noteData.policy_url) noteExtra.policy_url = noteData.policy_url
-      if (noteData.order_id) noteExtra.order_id = noteData.order_id
-      if (Object.keys(noteExtra).length > 0) extraFields = noteExtra as BrExtraFields
-    }
-  }
+  const extraFields = mergeBrExtraFields(
+    normalizeBrExtraFields(body.br_extra_fields),
+    extractBrExtraFieldsFromNote(report.note),
+  )
 
   const brSubmitData = listing && brReportable
     ? buildBrSubmitData({

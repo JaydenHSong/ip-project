@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildBrSubmitData, type BrExtraFields } from '@/lib/reports/br-data'
-import { parseReportNote } from '@/lib/reports/report-note'
+import { buildBrSubmitData, extractBrExtraFieldsFromNote, extractBrExtraFieldsFromSubmitData, mergeBrExtraFields } from '@/lib/reports/br-data'
 import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
 // POST /api/reports/:id/force-resubmit — 강제 재제출 (BR)
@@ -55,33 +54,10 @@ export const POST = withAuth(async (req, { params }) => {
   // BR track
   const brFormType = (report.br_form_type ?? 'other_policy') as BrFormTypeCode
   if (isBrSubmittable(brFormType)) {
-    // extraFields 복원: 1순위 br_submit_data, 2순위 note(Extension 데이터)
-    const prev = report.br_submit_data as Record<string, unknown> | null
-    const extraFields: Record<string, unknown> = {}
-    if (prev?.review_urls) extraFields.review_urls = prev.review_urls
-    if (prev?.asins) extraFields.asins = prev.asins
-    if (prev?.order_id) extraFields.order_id = prev.order_id
-    if (prev?.seller_storefront_url) extraFields.seller_storefront_url = prev.seller_storefront_url
-    if (prev?.policy_url) extraFields.policy_url = prev.policy_url
-    if (prev?.product_urls) extraFields.product_urls = prev.product_urls
-
-    // note fallback: br_submit_data에 review_urls가 없거나 상품 URL만 있으면 note에서 보충
-    if (!extraFields.review_urls && report.note) {
-      const noteData = parseReportNote(report.note).data
-      if (noteData) {
-        if (typeof noteData.review_urls === 'string') {
-          extraFields.review_urls = noteData.review_urls.split('\n').map((u: string) => u.trim()).filter(Boolean)
-        } else if (Array.isArray(noteData.review_urls)) {
-          extraFields.review_urls = noteData.review_urls.map((u) => String(u).trim()).filter(Boolean)
-        }
-        if (!extraFields.asins && typeof noteData.asins === 'string') {
-          extraFields.asins = noteData.asins.split(/[,;\n]/).map((a: string) => a.trim()).filter(Boolean)
-        } else if (!extraFields.asins && Array.isArray(noteData.asins)) {
-          extraFields.asins = noteData.asins.map((asin) => String(asin).trim()).filter(Boolean)
-        }
-        if (!extraFields.order_id && noteData.order_id) extraFields.order_id = noteData.order_id
-      }
-    }
+    const extraFields = mergeBrExtraFields(
+      extractBrExtraFieldsFromSubmitData(report.br_submit_data as Record<string, unknown> | null),
+      extractBrExtraFieldsFromNote(report.note),
+    )
 
     const brSubmitData = listing
       ? buildBrSubmitData({
@@ -98,7 +74,7 @@ export const POST = withAuth(async (req, { params }) => {
             marketplace: listing.marketplace,
             seller_storefront_url: null,
           },
-          extraFields: Object.keys(extraFields).length > 0 ? extraFields as BrExtraFields : undefined,
+          extraFields,
         })
       : null
 

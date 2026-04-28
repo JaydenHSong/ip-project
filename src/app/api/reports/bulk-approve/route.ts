@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildBrSubmitData } from '@/lib/reports/br-data'
+import { buildBrSubmitData, extractBrExtraFieldsFromNote } from '@/lib/reports/br-data'
 import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
 type BulkApproveRequest = {
@@ -33,7 +33,7 @@ export const POST = withAuth(async (req) => {
   // pending_review 상태인 리포트만 조회
   const { data: reports, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, draft_evidence, listing_id')
+    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, draft_evidence, listing_id, note')
     .in('id', body.report_ids)
     .eq('status', 'pending_review')
 
@@ -74,6 +74,7 @@ export const POST = withAuth(async (req) => {
             draft_subject: report.draft_subject ?? null,
           },
           listing: { asin: listing.asin, url: null, marketplace: listing.marketplace, seller_storefront_url: null },
+          extraFields: extractBrExtraFieldsFromNote(report.note),
         })
       : null
 
