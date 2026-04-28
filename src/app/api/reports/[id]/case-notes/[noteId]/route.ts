@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // PATCH /api/reports/[id]/case-notes/[noteId] — 메모 수정
-export const PATCH = withAuth(async (req, { params }) => {
+export const PATCH = withAuth(async (req, { user, params }) => {
   const { id, noteId } = params
 
   if (!id || !noteId) {
@@ -20,17 +20,13 @@ export const PATCH = withAuth(async (req, { params }) => {
   }
 
   const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) {
-    return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
-  }
 
   const { data: note, error } = await supabase
     .from('br_case_notes')
     .update({ body: body.body.trim(), updated_at: new Date().toISOString() })
     .eq('id', noteId)
     .eq('report_id', id)
-    .eq('user_id', authUser.id)
+    .eq('user_id', user.id)
     .select()
     .single()
 
@@ -45,7 +41,7 @@ export const PATCH = withAuth(async (req, { params }) => {
 }, ['owner', 'admin', 'editor'])
 
 // DELETE /api/reports/[id]/case-notes/[noteId] — 메모 삭제
-export const DELETE = withAuth(async (req, { params }) => {
+export const DELETE = withAuth(async (_req, { user, params }) => {
   const { id, noteId } = params
 
   if (!id || !noteId) {
@@ -53,17 +49,13 @@ export const DELETE = withAuth(async (req, { params }) => {
   }
 
   const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) {
-    return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
-  }
 
   const { error } = await supabase
     .from('br_case_notes')
     .delete()
     .eq('id', noteId)
     .eq('report_id', id)
-    .eq('user_id', authUser.id)
+    .eq('user_id', user.id)
 
   if (error) {
     return NextResponse.json({ error: { code: 'DB_ERROR', message: error.message } }, { status: 500 })

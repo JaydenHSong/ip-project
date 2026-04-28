@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { ManualReportRequest } from '@/types/api'
 
 // POST /api/reports/manual — 웹 수동 신고 생성
-export const POST = withAuth(async (req: NextRequest) => {
+export const POST = withAuth(async (req: NextRequest, { user }) => {
   const body = (await req.json()) as ManualReportRequest
 
   if (!body.asin) {
@@ -83,9 +83,6 @@ export const POST = withAuth(async (req: NextRequest) => {
     }
   }
 
-  // 3. 사용자 ID
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-
   // 4. listing_snapshot 생성 (검색용)
   const { data: listingData } = await supabase
     .from('listings')
@@ -114,7 +111,7 @@ export const POST = withAuth(async (req: NextRequest) => {
       screenshot_urls: body.screenshot_urls || null,
       related_asins: body.related_asins ?? [],
       status: 'draft',
-      created_by: authUser!.id,
+      created_by: user.id,
     })
     .select('id')
     .single()

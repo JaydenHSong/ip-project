@@ -8,7 +8,6 @@ import { Modal } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Textarea'
 import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
-import { formatDate } from '@/lib/utils/date'
 
 type ReportActionsProps = {
   reportId: string
@@ -33,8 +32,6 @@ export const ReportActions = ({
   userRole,
   createdBy,
   currentUserId,
-  resubmitCount,
-  nextResubmitAt,
   backHref = '/ip/reports',
 }: ReportActionsProps) => {
   const router = useRouter()
@@ -50,7 +47,7 @@ export const ReportActions = ({
   const [declineReason, setDeclineReason] = useState('')
   const [rewriteStep, setRewriteStep] = useState<1 | 2>(1)
   const [feedback, setFeedback] = useState('')
-  const [rewritePreview, setRewritePreview] = useState<{ draft_title: string; draft_body: string } | null>(null)
+  const [, setRewritePreview] = useState<{ draft_title: string; draft_body: string } | null>(null)
   const [previewTitle, setPreviewTitle] = useState('')
   const [previewBody, setPreviewBody] = useState('')
 
@@ -362,7 +359,7 @@ export const ReportActions = ({
         )}
 
         {/* Monitoring: BR 재신고 */}
-        {status === 'monitoring' && (
+        {status === 'monitoring' && isAdmin && (
           <Button
             variant="outline"
             size="sm"

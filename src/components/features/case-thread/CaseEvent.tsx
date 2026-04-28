@@ -1,6 +1,7 @@
 'use client'
 
 import type { BrCaseEventType } from '@/types/br-case'
+import { formatDateTime } from '@/lib/utils/date'
 
 const EVENT_LABELS: Record<string, string> = {
   br_submitted: 'Case submitted to BR',
@@ -36,7 +37,7 @@ export const CaseEvent = ({ eventType, oldValue, newValue, createdAt }: CaseEven
       <div className="flex items-center gap-2 text-xs text-th-text-muted">
         <span>{label}</span>
         {detail && <span className="font-medium text-th-text-secondary">{detail}</span>}
-        <span>{new Date(createdAt).toLocaleString()}</span>
+        <span>{formatDateTime(createdAt)}</span>
       </div>
       <div className="h-px flex-1 bg-th-border" />
     </div>

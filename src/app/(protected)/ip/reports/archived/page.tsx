@@ -39,7 +39,7 @@ export default async function ArchivedReportsPage() {
     }))
   } else {
     const supabase = await createClient()
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('reports')
       .select('id, br_form_type, violation_type, user_violation_type, violation_category, status, created_at, archived_at, archive_reason, listing_snapshot, listings!reports_listing_id_fkey(asin, title, marketplace, seller_name)')
       .eq('status', 'archived')

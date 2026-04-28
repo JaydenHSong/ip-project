@@ -8,6 +8,7 @@ import { RefreshCw, Search, X, Pencil, Trash2, Shield, PenTool, Tag, Copyright, 
 import { useI18n } from '@/lib/i18n/context'
 import { useToast } from '@/hooks/useToast'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
+import { formatDate, formatDateTime } from '@/lib/utils/date'
 import { Button } from '@/components/ui/Button'
 import { SortableHeader } from '@/components/ui/SortableHeader'
 import { ScrollTabs } from '@/components/ui/ScrollTabs'
@@ -115,9 +116,7 @@ const emptyForm: AssetFormData = {
 
 export const PatentsContent = ({
   assets,
-  totalPages,
   totalCount,
-  page,
   typeFilter,
   statusFilter,
   countryFilter,
@@ -213,7 +212,7 @@ export const PatentsContent = ({
     const merged = { type: typeFilter, status: statusFilter, country: countryFilter, search: searchQuery, ...overrides }
     Object.entries(merged).forEach(([k, v]) => { if (v) p.set(k, v) })
     const qs = p.toString()
-    return qs ? `/patents?${qs}` : '/patents'
+    return qs ? `/ip/patents?${qs}` : '/ip/patents'
   }, [typeFilter, statusFilter, countryFilter, searchQuery])
 
   const handleSync = useCallback(async () => {
@@ -544,7 +543,7 @@ export const PatentsContent = ({
                 <div className="mt-2 flex items-center gap-3 text-xs text-th-text-muted">
                   <span>{asset.country}</span>
                   {asset.registration_number && <span>Reg: {asset.registration_number}</span>}
-                  {asset.expiry_date && <span>{new Date(asset.expiry_date).toLocaleDateString('en-CA')}</span>}
+                  {asset.expiry_date && <span>{formatDate(asset.expiry_date)}</span>}
                 </div>
               </div>
             </button>
@@ -602,11 +601,11 @@ export const PatentsContent = ({
                   <td className="px-4 py-3.5">{renderStatusBadge(asset.status)}</td>
                   <td className="px-4 py-3.5 font-mono text-xs text-th-text-secondary">{asset.registration_number ?? '-'}</td>
                   <td className="px-4 py-3.5 text-th-text-secondary">
-                    {asset.expiry_date ? new Date(asset.expiry_date).toLocaleDateString('en-CA') : '-'}
+                    {formatDate(asset.expiry_date)}
                   </td>
                   <td className="px-4 py-3.5 text-th-text-muted">{asset.assignee ?? '-'}</td>
                   <td className="whitespace-nowrap px-4 py-3.5 text-xs text-th-text-muted">
-                    {asset.synced_at ? new Date(asset.synced_at).toLocaleDateString('en-CA') : '-'}
+                    {formatDate(asset.synced_at)}
                   </td>
                 </tr>
               ))
@@ -669,7 +668,7 @@ export const PatentsContent = ({
                 <div>
                   <p className="text-xs text-th-text-muted">{t('patents.expiryDate')}</p>
                   <p className="mt-0.5 text-sm font-medium text-th-text">
-                    {selectedAsset.expiry_date ? new Date(selectedAsset.expiry_date).toLocaleDateString('en-CA') : '—'}
+                    {formatDate(selectedAsset.expiry_date)}
                   </p>
                 </div>
                 {selectedAsset.report_url && (
@@ -700,7 +699,7 @@ export const PatentsContent = ({
                 <div>
                   <p className="text-xs text-th-text-muted">{t('patents.applicationDate')}</p>
                   <p className="mt-0.5 text-sm font-medium text-th-text">
-                    {selectedAsset.application_date ? new Date(selectedAsset.application_date).toLocaleDateString('en-CA') : '—'}
+                    {formatDate(selectedAsset.application_date)}
                   </p>
                 </div>
                 <div>
@@ -710,7 +709,7 @@ export const PatentsContent = ({
                 <div>
                   <p className="text-xs text-th-text-muted">{t('patents.registrationDate')}</p>
                   <p className="mt-0.5 text-sm font-medium text-th-text">
-                    {selectedAsset.registration_date ? new Date(selectedAsset.registration_date).toLocaleDateString('en-CA') : '—'}
+                    {formatDate(selectedAsset.registration_date)}
                   </p>
                 </div>
               </div>
@@ -723,6 +722,7 @@ export const PatentsContent = ({
                 <div className="flex flex-wrap gap-3">
                   {selectedAsset.image_urls.map((url, i) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="group relative block h-24 w-24 overflow-hidden rounded-lg border border-th-border transition-shadow hover:shadow-md">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={url} alt={`Image ${i + 1}`} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                     </a>
                   ))}
@@ -772,7 +772,7 @@ export const PatentsContent = ({
                 <p className="font-mono text-sm text-th-text-secondary">{selectedAsset.monday_item_id}</p>
                 {selectedAsset.synced_at && (
                   <p className="mt-1 text-xs text-th-text-muted">
-                    {t('patents.syncLastAt')}: {new Date(selectedAsset.synced_at).toLocaleString()}
+                    {t('patents.syncLastAt')}: {formatDateTime(selectedAsset.synced_at)}
                   </p>
                 )}
               </div>

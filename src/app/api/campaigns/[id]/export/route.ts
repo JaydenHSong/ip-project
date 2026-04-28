@@ -1,6 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
+
+const escapeCsvCell = (value: unknown): string => {
+  const text = String(value ?? '')
+  const sanitized = /^[=+\-@]/.test(text) ? `'${text}` : text
+  const escaped = sanitized.replace(/"/g, '""')
+  return `"${escaped}"`
+}
 
 // GET /api/campaigns/:id/export — 결과 CSV 다운로드
 export const GET = withAuth(async (req, { params }) => {
@@ -47,10 +54,15 @@ export const GET = withAuth(async (req, { params }) => {
   const header = 'ASIN,Title,Seller,Suspect,Reasons,Crawled At\n'
   const rows = (listings ?? [])
     .map((l) => {
-      const title = `"${(l.title ?? '').replace(/"/g, '""')}"`
-      const seller = `"${(l.seller_name ?? '').replace(/"/g, '""')}"`
-      const reasons = `"${(l.suspect_reasons as string[]).join('; ')}"`
-      return `${l.asin},${title},${seller},${l.is_suspect},${reasons},${l.crawled_at}`
+      const reasons = Array.isArray(l.suspect_reasons) ? l.suspect_reasons.join('; ') : ''
+      return [
+        escapeCsvCell(l.asin),
+        escapeCsvCell(l.title),
+        escapeCsvCell(l.seller_name),
+        escapeCsvCell(l.is_suspect),
+        escapeCsvCell(reasons),
+        escapeCsvCell(l.crawled_at),
+      ].join(',')
     })
     .join('\n')
 

@@ -9,7 +9,6 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts'
-import { useI18n } from '@/lib/i18n/context'
 
 type TopViolationsChartProps = {
   data: { code: string; name: string; count: number }[]
@@ -17,8 +16,6 @@ type TopViolationsChartProps = {
 }
 
 export const TopViolationsChart = ({ data, onClickItem }: TopViolationsChartProps) => {
-  const { t } = useI18n()
-
   return (
     <div>
       <div role="img" aria-label="Top violation types chart" className="h-[200px] md:h-[240px]">

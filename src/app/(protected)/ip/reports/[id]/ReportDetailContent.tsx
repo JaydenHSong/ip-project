@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import { BackButton } from '@/components/ui/BackButton'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
@@ -15,7 +14,7 @@ import { ReportActions } from './ReportActions'
 import { ReportTimeline } from './ReportTimeline'
 import { SnapshotViewer } from './SnapshotViewer'
 import { BrTemplateList } from './BrTemplateList'
-import { BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT } from '@/lib/reports/br-data'
+import { BR_FORM_DESCRIPTION_GUIDE, BR_FORM_FIELD_CONTEXT, extractBrExtraFieldsFromNote, extractBrExtraFieldsFromSubmitData, mergeBrExtraFields } from '@/lib/reports/br-data'
 import { parseReportNote } from '@/lib/reports/report-note'
 import { BR_FORM_TYPES, isBrSubmittable, brFormHasField, toBrFormType, type BrFormTypeCode } from '@/constants/br-form-types'
 import { VIOLATION_FILTER_OPTIONS } from '@/components/ui/ViolationBadge'
@@ -24,7 +23,6 @@ import { CaseThread } from '@/components/features/case-thread/CaseThread'
 import { CaseActivityLog } from '@/components/features/case-thread/CaseActivityLog'
 import { CaseChain } from '@/components/features/CaseChain'
 import { RelatedReports } from '@/components/features/RelatedReports'
-import { getBrFormTypeLabel } from '@/constants/br-form-types'
 import type { ReportStatus, TimelineEvent } from '@/types/reports'
 import type { BrCaseStatus } from '@/types/br-case'
 import { useToast } from '@/hooks/useToast'
@@ -32,6 +30,7 @@ import { formatDateTime } from '@/lib/utils/date'
 import type { ReportSnapshot } from '@/types/monitoring'
 import { MARKETPLACES } from '@/constants/marketplaces'
 import { FetchStatusBar } from '@/components/features/FetchStatusBar'
+import { useHydratedNow } from '@/hooks/useHydratedNow'
 import { REPORT_READ_UPDATED_EVENT, shouldMarkReportAsRead } from '@/lib/reports/report-read'
 
 type ReportDetailContentProps = {
@@ -181,10 +180,11 @@ const CaseIdManualInput = ({ reportId, onSaved }: { reportId: string; onSaved: (
   )
 }
 
-export const ReportDetailContent = ({ report, listing, listingId, creatorName, canEdit, userRole, currentUserId, timeline, snapshots, monitoringStartedAt, embedded, onNavigate, onStatusChange }: ReportDetailContentProps) => {
+export const ReportDetailContent = ({ report, listing, listingId, canEdit, userRole, currentUserId, timeline, snapshots, monitoringStartedAt, embedded, onNavigate, onStatusChange }: ReportDetailContentProps) => {
   const { t } = useI18n()
   const { addToast } = useToast()
   const router = useRouter()
+  const now = useHydratedNow()
   const markReadKeyRef = useRef<string | null>(null)
 
   const [currentStatus, setCurrentStatus] = useState(report.status)
@@ -213,16 +213,20 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
     const domain = (mpKey && MARKETPLACES[mpKey]?.domain) || 'amazon.com'
     const defaultProductUrl = listing?.asin ? `https://www.${domain}/dp/${listing.asin}` : ''
 
-    // 1순위: br_submit_data (approve 후 저장된 확정 데이터)
+    // br_submit_data가 상품 URL로 오염된 경우 note의 실제 Review URL로 보강
     const bsd = report.br_submit_data
-    if (bsd) {
+    const mergedExtra = mergeBrExtraFields(
+      extractBrExtraFieldsFromSubmitData(bsd as Record<string, unknown> | null | undefined),
+      extractBrExtraFieldsFromNote(report.note),
+    )
+    if (bsd || mergedExtra) {
       return {
-        product_urls: arrToLines(bsd.product_urls) || (defaultProductUrl),
-        seller_storefront_url: bsd.seller_storefront_url ?? '',
-        policy_url: bsd.policy_url ?? '',
-        asins: arrToLines(bsd.asins) || (listing?.asin ?? ''),
-        review_urls: arrToLines(bsd.review_urls),
-        order_id: bsd.order_id ?? '',
+        product_urls: arrToLines(mergedExtra?.product_urls) || defaultProductUrl,
+        seller_storefront_url: mergedExtra?.seller_storefront_url ?? '',
+        policy_url: mergedExtra?.policy_url ?? '',
+        asins: arrToLines(mergedExtra?.asins) || (listing?.asin ?? ''),
+        review_urls: arrToLines(mergedExtra?.review_urls),
+        order_id: mergedExtra?.order_id ?? '',
       }
     }
 
@@ -237,7 +241,6 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
       order_id: (extra.order_id as string) ?? '',
     }
   })
-  const [brFieldsExpanded, setBrFieldsExpanded] = useState(false)
   const [aiPreview, setAiPreview] = useState<{ draft_title: string; draft_body: string } | null>(null)
   const [resubmitIntervalLocal, setResubmitIntervalLocal] = useState<string>(
     report.resubmit_interval_days != null ? String(report.resubmit_interval_days) : 'default'
@@ -281,7 +284,13 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
       method: 'POST',
       cache: 'no-store',
     })
-      .then((res) => res.ok ? res.json() : null)
+      .then((res) => {
+        if (!res.ok) {
+          markReadKeyRef.current = null
+          return null
+        }
+        return res.json()
+      })
       .then((data: { marked?: boolean } | null) => {
         if (data?.marked) {
           window.dispatchEvent(new CustomEvent(REPORT_READ_UPDATED_EVENT, { detail: { reportId: report.id } }))
@@ -1148,6 +1157,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
                     )}
                   </div>
                 )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={screenshotList[activeScreenshotIdx]?.url}
                   alt="Listing screenshot"
@@ -1760,11 +1770,13 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
         <Card>
         <CardContent className="pt-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-th-text-muted">
-          <span>
-            {t('reports.monitoring.daysMonitored' as Parameters<typeof t>[0]).replace('{days}', String(
-              Math.floor((Date.now() - new Date(monitoringStartedAt).getTime()) / (1000 * 60 * 60 * 24))
-            ))}
-          </span>
+          {now !== null && (
+            <span>
+              {t('reports.monitoring.daysMonitored' as Parameters<typeof t>[0]).replace('{days}', String(
+                Math.floor((now - new Date(monitoringStartedAt).getTime()) / (1000 * 60 * 60 * 24))
+              ))}
+            </span>
+          )}
           {snapshots && (
             <span>
               {t('reports.monitoring.snapshotCount' as Parameters<typeof t>[0]).replace('{count}', String(snapshots.length))}
@@ -1826,7 +1838,8 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
       {/* Case Thread (R03) + Activity Log (R05) — 기본 접힘 */}
       {report.br_case_status && (
         <Card>
-          <div
+          <button
+            type="button"
             className="cursor-pointer select-none px-6 py-4"
             onClick={() => setCaseThreadExpanded((v) => !v)}
           >
@@ -1834,7 +1847,7 @@ export const ReportDetailContent = ({ report, listing, listingId, creatorName, c
               <h2 className="font-semibold text-th-text">Case Thread</h2>
               <svg className={`h-4 w-4 text-th-text-muted transition-transform ${caseThreadExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </div>
-          </div>
+          </button>
           {caseThreadExpanded && (
             <CardContent>
               <div className="mb-3 flex items-center gap-1 rounded-lg bg-th-bg-secondary p-0.5">

@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // POST /api/reports/:id/clone — 기존 케이스 복사 → 새 draft 생성
-export const POST = withAuth(async (req, { params }) => {
+export const POST = withAuth(async (req, { user, params }) => {
   const { id } = params
   let force = false
 
@@ -23,14 +23,6 @@ export const POST = withAuth(async (req, { params }) => {
   }
 
   const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-
-  if (!authUser) {
-    return NextResponse.json(
-      { error: { code: 'AUTH_ERROR', message: 'Unauthorized' } },
-      { status: 401 },
-    )
-  }
 
   // 원본 리포트 조회
   const { data: source, error: fetchError } = await supabase
@@ -103,7 +95,7 @@ export const POST = withAuth(async (req, { params }) => {
       note: source.note ? `[Cloned] ${source.note}` : `[Cloned from ${id.slice(0, 8)}]`,
       parent_report_id: id,
       status: 'draft',
-      created_by: authUser.id,
+      created_by: user.id,
     })
     .select('id')
     .single()

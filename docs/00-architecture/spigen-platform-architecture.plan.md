@@ -619,20 +619,31 @@ src/
 레이어 3: SKU 담당 (product_assignments)  → "마켓 안에서 어느 SKU 담당인가" (Product Library 이후)
 ```
 
-### 12.2 모듈별 적용
+### 12.2 모듈 성격 분류
 
-| 모듈 | 레이어 1 | 레이어 2 | 레이어 3 | 브랜드 분리 |
-|------|:-:|:-:|:-:|:-:|
-| IP Protection | company | ❌ | ❌ | ❌ |
-| AD Optimizer | business_unit | ✅ | ✅ (향후) | ✅ |
-| Listing Management | business_unit | ✅ | ✅ (향후) | ✅ |
-| Product Library | business_unit | ✅ | ✅ (향후) | ✅ |
-| Product Planning | company | ❌ | ❌ | ❌ |
-| Finance | team | ✅ | ✅ (향후) | ✅ |
-| OMS | business_unit | ✅ | ✅ (향후) | ✅ |
-| Reimbursement | business_unit | ✅ | ✅ (향후) | ✅ |
+8개 모듈은 데이터 스코프 기준으로 4가지 성격으로 나뉜다.
 
-### 12.3 브랜드 (등록 완료)
+| 성격 | 모듈 | 설명 |
+|:--|:--|:--|
+| **전사 공통** | Product Library | 마스터 데이터 (제품 카탈로그/에셋/스펙). 누가 봐도 동일한 데이터. 브랜드별 구분은 있으나 마켓 무관 |
+| **전사 고정** | IP Protection | 회사 전체 지적재산권 보호. 채널/팀 구분 없이 전사 단일 뷰 |
+| **채널 단위** | Reimbursement, Product Planning | 마켓플레이스 채널에서 발생하는 액티비티. US FBA 환급과 JP FBA 환급은 별개 프로세스. 기획도 채널별 출시 전략이 다름 |
+| **권한별 뷰** | AD, Listing, Finance, OMS | 전사 데이터이지만 역할에 따라 보이는 범위가 다름. 대표→전사 통합, 매니저→사업부, 오퍼레이터→담당 채널 |
+
+### 12.3 모듈별 권한 적용
+
+| 모듈 | 성격 | 레이어 1 | 레이어 2 | 레이어 3 | 브랜드 분리 |
+|------|:--|:-:|:-:|:-:|:-:|
+| IP Protection | 전사 고정 | company | ❌ | ❌ | ❌ |
+| Product Library | 전사 공통 | company | 브랜드만 (마켓 무관) | ❌ | ✅ (브랜드별) |
+| Product Planning | 채널 단위 | channel | ✅ 브랜드×마켓 | ❌ | ✅ |
+| Reimbursement | 채널 단위 | channel | ✅ 브랜드×마켓 | ❌ | ✅ |
+| AD Optimizer | 권한별 뷰 | business_unit | ✅ | ✅ (향후) | ✅ |
+| Listing Management | 권한별 뷰 | business_unit | ✅ | ✅ (향후) | ✅ |
+| Finance | 권한별 뷰 | business_unit | ✅ | ✅ (향후) | ✅ |
+| OMS | 권한별 뷰 | business_unit | ✅ | ✅ (향후) | ✅ |
+
+### 12.4 브랜드 (등록 완료)
 
 | 브랜드 | 설명 | 마켓 |
 |--------|------|------|
@@ -640,13 +651,14 @@ src/
 | Legato | 골프공 | US |
 | Cyrill | 추후 화장품 | - |
 
-### 12.4 아키텍처 결정사항
+### 12.5 아키텍처 결정사항
 
 | 결정 | 내용 | 날짜 |
 |------|------|------|
 | Turborepo 불필요 | 같은 제품, 같은 인증/DB/UI. GitHub Actions CI로 빌드 에러 차단. 7개 모듈이어도 단일 앱이 맞음 | 2026-03-25 |
 | 멀티 브랜드 | AD 시작 시 70명 사용자 → 브랜드×마켓별 권한 분리 필수 | 2026-03-25 |
 | OMS 뷰 분리 | 오퍼레이터: 브랜드별 분리, 매니저: 전체 통합 뷰 (권한으로 해결) | 2026-03-25 |
+| 모듈 성격 4분류 | 전사 공통(Product Library) / 전사 고정(IP) / 채널 단위(Reimbursement, Planning) / 권한별 뷰(AD, Listing, Finance, OMS). "팀별 액티비티"가 아닌 데이터 스코프 기준 분류 | 2026-03-27 |
 
 > 상세: `docs/01-plan/features/org-permission-system.plan.md`
 
@@ -658,3 +670,4 @@ src/
 |---------|------|---------|--------|
 | 0.1 | 2026-03-19 | Initial draft | CTO Lead (Claude) |
 | 0.2 | 2026-03-26 | Logistics→OMS, Turborepo 불필요 확정, 3-레이어 권한 모델, 브랜드/마켓 DB+UI 반영, Phase 1 진행 상황 업데이트 | CTO Lead (Claude) |
+| 0.3 | 2026-03-27 | 모듈 성격 4분류 도입 (전사 공통/전사 고정/채널 단위/권한별 뷰). Product Library→전사 공통, Reimbursement·Product Planning→채널 단위, Finance·OMS→권한별 뷰 재분류 | Jayden |

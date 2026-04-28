@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
@@ -77,9 +77,9 @@ export const GET = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // POST /api/reports — 신고 생성
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req, { user }) => {
   const body = (await req.json()) as CreateReportRequest
-  const { listing_id, user_violation_type, violation_category, note, related_asins } = body
+  const { listing_id, user_violation_type, violation_category, related_asins } = body
 
   if (!listing_id || !user_violation_type || !violation_category) {
     return NextResponse.json(
@@ -126,9 +126,6 @@ export const POST = withAuth(async (req) => {
     )
   }
 
-  // 사용자 ID
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-
   const { data, error } = await supabase
     .from('reports')
     .insert({
@@ -137,7 +134,7 @@ export const POST = withAuth(async (req) => {
       violation_category,
       status: 'draft',
       related_asins: related_asins ?? [],
-      created_by: authUser!.id,
+      created_by: user.id,
     })
     .select()
     .single()

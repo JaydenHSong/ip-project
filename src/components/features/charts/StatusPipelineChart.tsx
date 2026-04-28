@@ -10,7 +10,6 @@ import {
   Tooltip,
 } from 'recharts'
 import { CHART_COLORS } from '@/constants/chart-colors'
-import { useI18n } from '@/lib/i18n/context'
 
 type StatusPipelineChartProps = {
   data: { status: string; statusLabel: string; count: number }[]
@@ -18,8 +17,6 @@ type StatusPipelineChartProps = {
 }
 
 export const StatusPipelineChart = ({ data, onClickItem }: StatusPipelineChartProps) => {
-  const { t } = useI18n()
-
   return (
     <div>
       <div role="img" aria-label="Report status pipeline chart" className="h-[200px] md:h-[240px]">
@@ -64,4 +61,3 @@ export const StatusPipelineChart = ({ data, onClickItem }: StatusPipelineChartPr
     </div>
   )
 }
-

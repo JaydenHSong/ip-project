@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { notifyDraftReady } from '@/lib/notifications/google-chat'
 
 // POST /api/reports/:id/submit-review — draft/rejected → pending_review
 export const POST = withAuth(async (req, { params }) => {
@@ -63,12 +62,6 @@ export const POST = withAuth(async (req, { params }) => {
   }
 
   // 알림 (fire-and-forget)
-  const { data: listing } = await supabase
-    .from('listings')
-    .select('asin')
-    .eq('id', report.listing_id)
-    .single()
-
   // 드래프트 알림 제거 — 에러 시에만 알림
 
   return NextResponse.json(data)

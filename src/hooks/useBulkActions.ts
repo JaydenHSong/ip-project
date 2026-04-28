@@ -65,7 +65,7 @@ export function useBulkActions(
     formatMessage: (r) => `Approved: ${r.approved}, Failed: ${r.failed}, Skipped: ${r.skipped}`,
   }), [execute])
 
-  const submit = useCallback((action: 'submit_review' | 'submit_sc') => execute('bulk-submit', { action }, {
+  const submit = useCallback(() => execute('bulk-submit', { action: 'submit_review' }, {
     successTitle: 'Submitted',
     formatMessage: (r) => `Submitted: ${r.submitted}, Failed: ${r.failed}, Skipped: ${r.skipped}`,
   }), [execute])

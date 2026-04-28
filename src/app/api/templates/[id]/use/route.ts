@@ -1,10 +1,10 @@
 // POST /api/templates/:id/use — Increment usage_count
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo'
 
-export const POST = withAuth(async (req, { params }) => {
+export const POST = withAuth(async (_req, { params }) => {
   const id = params.id || null
   if (!id) {
     return NextResponse.json(

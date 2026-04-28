@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { buildBrSubmitData } from '@/lib/reports/br-data'
+import { buildBrSubmitData, extractBrExtraFieldsFromNote } from '@/lib/reports/br-data'
 import { isBrSubmittable, type BrFormTypeCode } from '@/constants/br-form-types'
 
 type BulkApproveRequest = {
@@ -9,7 +9,7 @@ type BulkApproveRequest = {
 }
 
 // POST /api/reports/bulk-approve — 일괄 승인 → BR 대상이면 br_submitting, 아니면 monitoring
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req, { user }) => {
   const body = (await req.json()) as BulkApproveRequest
 
   if (!body.report_ids?.length) {
@@ -27,13 +27,12 @@ export const POST = withAuth(async (req) => {
   }
 
   const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
   const now = new Date().toISOString()
 
   // pending_review 상태인 리포트만 조회
   const { data: reports, error: fetchError } = await supabase
     .from('reports')
-    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, draft_evidence, listing_id')
+    .select('id, status, user_violation_type, br_form_type, draft_body, draft_title, draft_subject, draft_evidence, listing_id, note')
     .in('id', body.report_ids)
     .eq('status', 'pending_review')
 
@@ -74,6 +73,7 @@ export const POST = withAuth(async (req) => {
             draft_subject: report.draft_subject ?? null,
           },
           listing: { asin: listing.asin, url: null, marketplace: listing.marketplace, seller_storefront_url: null },
+          extraFields: extractBrExtraFieldsFromNote(report.note),
         })
       : null
 
@@ -81,7 +81,7 @@ export const POST = withAuth(async (req) => {
       .from('reports')
       .update({
         status: brReportable ? 'br_submitting' : 'monitoring',
-        approved_by: authUser!.id,
+        approved_by: user.id,
         approved_at: now,
         br_submit_data: brSubmitData,
       })

@@ -28,9 +28,16 @@ type ReportMobileCardProps = {
 
 export const ReportMobileCard = ({ report, onClick }: ReportMobileCardProps) => {
   return (
-    <button
-      type="button"
+    <div
+      role="link"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onClick()
+        }
+      }}
       className="w-full text-left"
     >
       <div className="rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
@@ -43,7 +50,15 @@ export const ReportMobileCard = ({ report, onClick }: ReportMobileCardProps) => 
         </div>
         <p className="mt-2 font-mono text-sm text-th-text">
           {report.listings?.asin ? (
-            <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline">{report.listings.asin}</a>
+            <a
+              href={getAmazonUrl(report.listings.asin, report.listings.marketplace)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-th-accent hover:underline"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {report.listings.asin}
+            </a>
           ) : '—'}
           {(report.related_asins?.length ?? 0) > 0 && (
             <span className="ml-1.5 inline-flex items-center rounded bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
@@ -74,6 +89,6 @@ export const ReportMobileCard = ({ report, onClick }: ReportMobileCardProps) => 
           </div>
         </div>
       </div>
-    </button>
+    </div>
   )
 }

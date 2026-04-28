@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { notifyRejected } from '@/lib/notifications/google-chat'
 import type { RejectReportRequest } from '@/types/api'
 
 // POST /api/reports/:id/reject — 반려
-export const POST = withAuth(async (req, { params }) => {
+export const POST = withAuth(async (req, { user, params }) => {
   const { id } = params
 
   if (!id) {
@@ -47,13 +46,11 @@ export const POST = withAuth(async (req, { params }) => {
     )
   }
 
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-
   const { data, error } = await supabase
     .from('reports')
     .update({
       status: 'rejected',
-      rejected_by: authUser!.id,
+      rejected_by: user.id,
       rejected_at: new Date().toISOString(),
       rejection_reason: body.rejection_reason,
       rejection_category: body.rejection_category,
@@ -70,12 +67,6 @@ export const POST = withAuth(async (req, { params }) => {
   }
 
   // 알림 (fire-and-forget)
-  const { data: listing } = await supabase
-    .from('listings')
-    .select('asin')
-    .eq('id', report.listing_id)
-    .single()
-
   // 반려 알림 제거 — 에러 시에만 알림
 
   return NextResponse.json(data)

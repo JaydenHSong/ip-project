@@ -1,6 +1,5 @@
 'use client'
 
-import type { ReactNode } from 'react'
 import Link from 'next/link'
 import {
   FileText,
@@ -44,7 +43,7 @@ export const StatsWidget = () => {
       prevValue: prev?.activeCampaigns ?? 0,
       icon: Search,
       color: 'text-blue-400',
-      href: '/campaigns',
+      href: '/ip/campaigns',
     },
     {
       label: t('dashboard.pendingReports'),
@@ -69,7 +68,7 @@ export const StatsWidget = () => {
       prevValue: prev?.totalListings ?? 0,
       icon: FileText,
       color: 'text-emerald-400',
-      href: '/campaigns',
+      href: '/ip/campaigns',
     },
     {
       label: t('dashboard.resolutionRate'),

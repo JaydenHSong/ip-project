@@ -15,19 +15,59 @@ export const GET = withAuth(async (req: NextRequest) => {
 
   // 활성 상태의 리포트만 (resolved/archived 제외)
   const activeStatuses = ['draft', 'pending_review', 'approved', 'monitoring', 'br_submitting']
+  const { data: matchedListings, error: listingError } = await supabase
+    .from('listings')
+    .select('id')
+    .eq('asin', asin)
+    .eq('marketplace', marketplace)
 
-  const { data } = await supabase
+  if (listingError) {
+    return NextResponse.json(
+      { error: { code: 'DB_ERROR', message: listingError.message } },
+      { status: 500 },
+    )
+  }
+
+  const listingIds = (matchedListings ?? []).map((listing) => listing.id)
+
+  let listingMatches: Array<{ id: string; status: string; report_number: number; created_at: string }> = []
+  if (listingIds.length > 0) {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('id, status, report_number, created_at')
+      .in('status', activeStatuses)
+      .in('listing_id', listingIds)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      return NextResponse.json(
+        { error: { code: 'DB_ERROR', message: error.message } },
+        { status: 500 },
+      )
+    }
+
+    listingMatches = data ?? []
+  }
+
+  const { data: snapshotMatches, error: snapshotError } = await supabase
     .from('reports')
-    .select('id, status, report_number, listing_id, listings!reports_listing_id_fkey(asin, marketplace)')
+    .select('id, status, report_number, created_at')
     .in('status', activeStatuses)
+    .is('listing_id', null)
+    .filter('listing_snapshot->>asin', 'eq', asin)
+    .filter('listing_snapshot->>marketplace', 'eq', marketplace)
     .order('created_at', { ascending: false })
 
-  // listings join을 통해 ASIN + marketplace 매칭
-  const matches = (data ?? []).filter((r) => {
-    const listingArr = r.listings as { asin: string; marketplace: string }[] | null
-    const listing = Array.isArray(listingArr) ? listingArr[0] ?? null : listingArr
-    return listing?.asin === asin && listing?.marketplace === marketplace
-  })
+  if (snapshotError) {
+    return NextResponse.json(
+      { error: { code: 'DB_ERROR', message: snapshotError.message } },
+      { status: 500 },
+    )
+  }
+
+  const matches = [...listingMatches, ...(snapshotMatches ?? [])]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .filter((report, index, reports) => reports.findIndex((item) => item.id === report.id) === index)
 
   if (matches.length === 0) {
     return NextResponse.json({ exists: false, reports: [] })

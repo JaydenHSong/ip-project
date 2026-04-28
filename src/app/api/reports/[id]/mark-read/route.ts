@@ -31,12 +31,19 @@ export const POST = withAuth(async (_req, { user, params }) => {
     return NextResponse.json({ marked: false })
   }
 
-  await supabase
+  const { error: upsertError } = await supabase
     .from('report_read_status')
     .upsert(
       { report_id: id, user_id: user.id, read_at: new Date().toISOString() },
       { onConflict: 'report_id,user_id' },
     )
+
+  if (upsertError) {
+    return NextResponse.json(
+      { error: { code: 'DB_ERROR', message: upsertError.message } },
+      { status: 500 },
+    )
+  }
 
   return NextResponse.json({ marked: true })
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])

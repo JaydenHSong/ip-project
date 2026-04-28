@@ -41,7 +41,7 @@ const FREQUENCY_OPTIONS = CAMPAIGN_FREQUENCIES.map((f) => ({
   label: FREQUENCY_LABELS[f] ?? f,
 }))
 
-export const CampaignForm = ({ initialData, campaignId, embedded, onSuccess }: CampaignFormProps) => {
+export const CampaignForm = ({ initialData, campaignId, onSuccess }: CampaignFormProps) => {
   const router = useRouter()
   const { t } = useI18n()
   const isEdit = !!campaignId
@@ -90,7 +90,7 @@ export const CampaignForm = ({ initialData, campaignId, embedded, onSuccess }: C
     if (onSuccess) {
       onSuccess()
     } else {
-      router.push(`/campaigns/${data.id}`)
+      router.push(`/ip/campaigns/${data.id}`)
       router.refresh()
     }
   }

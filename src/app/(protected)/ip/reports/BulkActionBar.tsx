@@ -7,9 +7,10 @@ type BulkActionBarProps = {
   selectedCount: number
   selectedStatuses: Record<string, number>
   canEdit: boolean
+  canDelete: boolean
   bulkLoading: string | null
   onApprove: () => void
-  onSubmit: (action: 'submit_review' | 'submit_sc') => void
+  onSubmit: () => void
   onDelete: () => void
   onDeselect: () => void
 }
@@ -18,6 +19,7 @@ export const BulkActionBar = ({
   selectedCount,
   selectedStatuses,
   canEdit,
+  canDelete,
   bulkLoading,
   onApprove,
   onSubmit,
@@ -37,7 +39,7 @@ export const BulkActionBar = ({
           size="sm"
           variant="outline"
           loading={bulkLoading === 'bulk-submit'}
-          onClick={() => onSubmit('submit_review')}
+          onClick={onSubmit}
         >
           {t('reports.bulk.submitReview' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['draft']))}
         </Button>
@@ -51,17 +53,7 @@ export const BulkActionBar = ({
           {t('reports.bulk.approve' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['pending_review']))}
         </Button>
       )}
-      {(selectedStatuses['approved'] ?? 0) > 0 && canEdit && (
-        <Button
-          size="sm"
-          variant="outline"
-          loading={bulkLoading === 'bulk-submit'}
-          onClick={() => onSubmit('submit_sc')}
-        >
-          {t('reports.bulk.submitSc' as Parameters<typeof t>[0]).replace('{count}', String(selectedStatuses['approved']))}
-        </Button>
-      )}
-      {canEdit && (
+      {canDelete && (
         <Button
           size="sm"
           variant="outline"

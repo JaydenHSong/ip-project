@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ViolationBadge } from '@/components/ui/ViolationBadge'
+import { useHydratedNow } from '@/hooks/useHydratedNow'
+import { formatDate } from '@/lib/utils/date'
 import type { ReportStatus } from '@/types/reports'
 import { Clock, ExternalLink } from 'lucide-react'
 
@@ -32,18 +34,21 @@ const BR_CASE_STATUS_LABEL: Record<string, { label: string; color: string }> = {
   closed: { label: 'Closed', color: 'text-th-text-muted' },
 }
 
-const formatRelativeDate = (dateStr: string): string => {
-  const diff = Date.now() - new Date(dateStr).getTime()
+const formatRelativeDate = (dateStr: string, now: number | null): string => {
+  if (now === null) return formatDate(dateStr)
+
+  const diff = Math.max(0, now - new Date(dateStr).getTime())
   const days = Math.floor(diff / 86400000)
   if (days === 0) return 'Today'
   if (days === 1) return 'Yesterday'
   if (days < 30) return `${days}d ago`
   if (days < 365) return `${Math.floor(days / 30)}mo ago`
-  return new Date(dateStr).toLocaleDateString('en-CA')
+  return formatDate(dateStr)
 }
 
 export const RelatedReports = ({ reports, currentReportId, onNavigate }: RelatedReportsProps) => {
   const router = useRouter()
+  const now = useHydratedNow()
 
   if (reports.length === 0) return null
 
@@ -74,7 +79,7 @@ export const RelatedReports = ({ reports, currentReportId, onNavigate }: Related
               type="button"
               onClick={() => !isCurrent && (onNavigate ? onNavigate(r.id) : router.push(`/ip/reports/${r.id}`))}
               disabled={isCurrent}
-              className={`relative flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+              className={`group relative flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
                 isCurrent
                   ? 'bg-th-accent-soft/20 cursor-default'
                   : 'hover:bg-th-bg-hover'
@@ -104,7 +109,7 @@ export const RelatedReports = ({ reports, currentReportId, onNavigate }: Related
                     </span>
                   )}
                   <span className="ml-auto shrink-0 text-[11px] text-th-text-muted">
-                    {formatRelativeDate(r.created_at)}
+                    {formatRelativeDate(r.created_at, now)}
                   </span>
                 </div>
                 {r.br_case_id && (

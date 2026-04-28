@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { sanitizeSearchTerm } from '@/lib/utils/sanitize'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_TEMPLATES } from '@/lib/demo/data'
+
+const isTemplateAdmin = (role: string): boolean => role === 'owner' || role === 'admin'
 
 // GET /api/templates — 템플릿 목록 (필터 지원)
 export const GET = withAuth(async (req) => {
@@ -72,7 +74,7 @@ export const GET = withAuth(async (req) => {
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // POST /api/templates — 템플릿 생성
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req, { user }) => {
   const body = await req.json()
   const { title, body: templateBody, category, violation_types, marketplace, tags, is_default } =
     body as {
@@ -92,6 +94,13 @@ export const POST = withAuth(async (req) => {
     )
   }
 
+  if (is_default === true && !isTemplateAdmin(user.role)) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'Only admin can create default templates.' } },
+      { status: 403 },
+    )
+  }
+
   if (isDemoMode()) {
     return NextResponse.json({
       id: `tmpl-${Date.now()}`,
@@ -101,7 +110,7 @@ export const POST = withAuth(async (req) => {
       violation_types: violation_types ?? [],
       marketplace: marketplace ?? [],
       tags: tags ?? [],
-      is_default: is_default ?? false,
+      is_default: isTemplateAdmin(user.role) ? (is_default ?? false) : false,
       usage_count: 0,
       created_by: 'demo-user-001',
       created_at: new Date().toISOString(),
@@ -110,9 +119,6 @@ export const POST = withAuth(async (req) => {
   }
 
   const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
 
   const { data, error } = await supabase
     .from('report_templates')
@@ -123,8 +129,8 @@ export const POST = withAuth(async (req) => {
       violation_types: violation_types ?? [],
       marketplace: marketplace ?? [],
       tags: tags ?? [],
-      is_default: is_default ?? false,
-      created_by: authUser!.id,
+      is_default: isTemplateAdmin(user.role) ? (is_default ?? false) : false,
+      created_by: user.id,
     })
     .select()
     .single()

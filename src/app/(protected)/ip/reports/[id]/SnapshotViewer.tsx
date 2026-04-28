@@ -5,6 +5,7 @@ import { useI18n } from '@/lib/i18n/context'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { formatDate, formatDateTime } from '@/lib/utils/date'
 import type { ReportSnapshot } from '@/types/monitoring'
 
 type SnapshotViewerProps = {
@@ -131,6 +132,7 @@ export const SnapshotViewer = ({ initialSnapshot, followupSnapshots }: SnapshotV
             {initialSnapshot?.screenshot_url && (
               <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-wider text-th-text-tertiary">Initial Screenshot</p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={initialSnapshot.screenshot_url}
                   alt="Initial listing"
@@ -141,6 +143,7 @@ export const SnapshotViewer = ({ initialSnapshot, followupSnapshots }: SnapshotV
             {current?.screenshot_url && (
               <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-wider text-th-text-tertiary">Follow-up #{currentIndex + 1}</p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={current.screenshot_url}
                   alt="Follow-up listing"
@@ -167,9 +170,9 @@ export const SnapshotViewer = ({ initialSnapshot, followupSnapshots }: SnapshotV
                         ? 'bg-st-warning-bg text-st-warning-text hover:bg-st-warning-bg/80'
                         : 'bg-th-bg-tertiary text-th-text-muted hover:bg-th-bg-hover'
                   }`}
-                  title={`${new Date(snap.crawled_at).toLocaleDateString('en-CA')} — ${snap.change_type ?? 'no_change'}`}
+                  title={`${formatDate(snap.crawled_at)} — ${snap.change_type ?? 'no_change'}`}
                 >
-                  {new Date(snap.crawled_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  {formatMonthDay(snap.crawled_at)}
                 </button>
               ))}
             </div>
@@ -213,7 +216,7 @@ const SnapshotDataView = ({ data, crawledAt }: { data: Record<string, unknown>; 
         </div>
       ))}
       <p className="mt-2 text-xs text-th-text-muted">
-        {new Date(crawledAt).toLocaleDateString('en-CA')} {new Date(crawledAt).toLocaleTimeString('en-CA')}
+        {formatDateTime(crawledAt)}
       </p>
     </div>
   )
@@ -221,3 +224,10 @@ const SnapshotDataView = ({ data, crawledAt }: { data: Record<string, unknown>; 
 
 const truncate = (str: string, max: number): string =>
   str.length > max ? `${str.slice(0, max)}...` : str
+
+const formatMonthDay = (dateStr: string): string =>
+  new Date(dateStr).toLocaleDateString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    month: 'short',
+    day: 'numeric',
+  })

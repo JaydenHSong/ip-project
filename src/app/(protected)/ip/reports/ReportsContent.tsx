@@ -19,6 +19,7 @@ import { BrCaseQueueBar } from '@/components/features/BrCaseQueueBar'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useColumnVisibility } from '@/hooks/useColumnVisibility'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
+import { useHydratedNow } from '@/hooks/useHydratedNow'
 import { getBrFormTypeLabel } from '@/constants/br-form-types'
 import { REPORT_QUEUE_COLUMNS, getVisibleColumns, getVisibleColumnWidths, columnsHash } from '@/constants/table-columns'
 import { ColumnVisibilityToggle } from '@/components/ui/ColumnVisibilityToggle'
@@ -27,7 +28,6 @@ import type { ReportStatus } from '@/types/reports'
 import { OwnerToggle } from '@/components/ui/OwnerToggle'
 import type { Role } from '@/types/users'
 import type { TableFilters as TableFiltersType } from '@/types/table'
-import { useToast } from '@/hooks/useToast'
 import { useBulkActions } from '@/hooks/useBulkActions'
 import { BulkActionBar } from './BulkActionBar'
 import { ReportMobileCard } from './ReportMobileCard'
@@ -88,9 +88,7 @@ type ReportsContentProps = {
 
 export const ReportsContent = ({
   reports,
-  totalPages,
   totalCount,
-  page,
   statusFilter,
   brFormTypeFilter,
   smartQueue,
@@ -107,7 +105,10 @@ export const ReportsContent = ({
 }: ReportsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
-  const { addToast } = useToast()
+  const now = useHydratedNow()
+  const isAdmin = userRole === 'owner' || userRole === 'admin'
+  const canEdit = isAdmin || userRole === 'editor'
+  const canCreate = canEdit
   const [filters, setFilters] = useState<TableFiltersType>({ search: searchQuery, violationType: '', marketplace: '', dateFrom, dateTo })
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [, startTransition] = useTransition()
@@ -171,10 +172,10 @@ export const ReportsContent = ({
     }
   }, [])
   const searchParamsHook = useSearchParams()
-  const shouldOpenNewReport = searchParamsHook.get('new') === '1'
+  const shouldOpenNewReport = canCreate && searchParamsHook.get('new') === '1'
   const [showNewReport, setShowNewReport] = useState(shouldOpenNewReport)
-  const [prefillAsin, setPrefillAsin] = useState(() => shouldOpenNewReport ? (searchParamsHook.get('asin') ?? '') : '')
-  const [prefillMarketplace, setPrefillMarketplace] = useState(() => shouldOpenNewReport ? (searchParamsHook.get('marketplace') ?? '') : '')
+  const [prefillAsin] = useState(() => shouldOpenNewReport ? (searchParamsHook.get('asin') ?? '') : '')
+  const [prefillMarketplace] = useState(() => shouldOpenNewReport ? (searchParamsHook.get('marketplace') ?? '') : '')
   const [previewReportId, setPreviewReportId] = useState<string | null>(previewId)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const clearSelection = useCallback(() => setSelectedIds(new Set()), [])
@@ -223,8 +224,12 @@ export const ReportsContent = ({
     () => sortedData.filter((report) => {
       const nextStatus = statusOverrides[report.id]
       if (!nextStatus) return true
-      if (statusFilter === 'monitoring' && nextStatus !== 'monitoring') return false
-      return true
+
+      if (statusFilter === 'answered') return nextStatus === 'monitoring'
+      if (statusFilter === 'monitoring') return ['monitoring', 'br_submitting'].includes(nextStatus)
+      if (statusFilter) return nextStatus === statusFilter
+
+      return ['draft', 'pending_review', 'approved', 'rejected', 'br_submitting', 'monitoring'].includes(nextStatus)
     }),
     [sortedData, statusOverrides, statusFilter],
   )
@@ -285,8 +290,7 @@ export const ReportsContent = ({
     return counts
   })()
 
-  const isAdmin = userRole === 'owner' || userRole === 'admin'
-  const canEdit = isAdmin || userRole === 'editor'
+  const canBulkDelete = isAdmin || Object.keys(selectedStatuses).every((status) => ['draft', 'pending_review'].includes(status))
 
   // Bulk actions are handled by useBulkActions hook
 
@@ -314,9 +318,11 @@ export const ReportsContent = ({
               />
             )}
           </div>
-          <Button size="sm" onClick={() => setShowNewReport(true)}>
-            {t('reports.new.title')}
-          </Button>
+          {canCreate && (
+            <Button size="sm" onClick={() => setShowNewReport(true)}>
+              {t('reports.new.title')}
+            </Button>
+          )}
         </div>
         {brFormTypeFilter && (
           <div className="flex items-center gap-2">
@@ -368,6 +374,7 @@ export const ReportsContent = ({
         selectedCount={selectedIds.size}
         selectedStatuses={selectedStatuses}
         canEdit={canEdit}
+        canDelete={canBulkDelete}
         bulkLoading={bulkActions.loading}
         onApprove={bulkActions.approve}
         onSubmit={bulkActions.submit}
@@ -461,7 +468,7 @@ export const ReportsContent = ({
                       row.br_submitted_at ? new Date(row.br_submitted_at as string).getTime() : 0,
                       report.created_at ? new Date(report.created_at).getTime() : 0,
                     ) : 0
-                    const idle = lastActivity > 0 ? Date.now() - lastActivity : 0
+                    const idle = lastActivity > 0 && now !== null ? now - lastActivity : 0
                     const isClone = idle > cloneThresholdDays * 86400000 && idle <= maxMonitoringDays * 86400000 && row.br_case_status !== 'closed'
                     return (
                       <td key="status" className="px-4 py-3.5">

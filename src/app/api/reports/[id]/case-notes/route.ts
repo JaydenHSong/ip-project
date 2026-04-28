@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // POST /api/reports/[id]/case-notes — 내부 메모 작성
-export const POST = withAuth(async (req, { params }) => {
+export const POST = withAuth(async (req, { user, params }) => {
   const { id } = params
 
   if (!id) {
@@ -20,17 +20,13 @@ export const POST = withAuth(async (req, { params }) => {
   }
 
   const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) {
-    return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
-  }
 
   // 메모 생성
   const { data: note, error } = await supabase
     .from('br_case_notes')
     .insert({
       report_id: id,
-      user_id: authUser.id,
+      user_id: user.id,
       body: body.body.trim(),
     })
     .select('*, users!br_case_notes_user_id_fkey(name)')
@@ -45,7 +41,7 @@ export const POST = withAuth(async (req, { params }) => {
     report_id: id,
     event_type: 'br_note_added',
     new_value: body.body.trim().substring(0, 100),
-    actor_id: authUser.id,
+    actor_id: user.id,
   })
 
   return NextResponse.json(note, { status: 201 })

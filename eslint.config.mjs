@@ -28,8 +28,15 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     // Generated / external files:
+    ".claude/**",
+    ".cursor/**",
+    ".vercel/**",
+    ".playwright/**",
+    "test-results/**",
     "playwright-report/**",
     "crawl-results/**",
+    "crawler/dist/**",
+    "extension/dist/**",
   ]),
 ]);
 

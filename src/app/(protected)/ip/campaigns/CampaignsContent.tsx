@@ -15,6 +15,7 @@ import { MARKETPLACES, type MarketplaceCode } from '@/constants/marketplaces'
 import type { Role } from '@/types/users'
 import { useToast } from '@/hooks/useToast'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
+import { formatDate } from '@/lib/utils/date'
 import { Modal } from '@/components/ui/Modal'
 
 const FREQ_LABEL: Record<string, string> = {
@@ -49,7 +50,7 @@ type CampaignsContentProps = {
   ownerFilter: 'my' | 'all'
 }
 
-export const CampaignsContent = ({ campaigns, totalPages, totalCount, page, statusFilter, canCreate, userRole, ownerFilter }: CampaignsContentProps) => {
+export const CampaignsContent = ({ campaigns, totalCount, statusFilter, canCreate, userRole, ownerFilter }: CampaignsContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
   const { addToast } = useToast()
@@ -176,7 +177,7 @@ export const CampaignsContent = ({ campaigns, totalPages, totalCount, page, stat
         {statusFilters.map((s) => (
           <Link
             key={s.value}
-            href={s.value ? `/campaigns?status=${s.value}` : '/campaigns'}
+            href={s.value ? `/ip/campaigns?status=${s.value}` : '/ip/campaigns'}
             className={`snap-start whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               statusFilter === s.value
                 ? 'bg-surface-card text-th-text shadow-sm'
@@ -198,7 +199,7 @@ export const CampaignsContent = ({ campaigns, totalPages, totalCount, page, stat
           infiniteData.map((campaign) => (
             <Link
               key={campaign.id}
-              href={`/campaigns/${campaign.id}`}
+              href={`/ip/campaigns/${campaign.id}`}
               className="block"
             >
               <div className="rounded-xl border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover">
@@ -284,7 +285,7 @@ export const CampaignsContent = ({ campaigns, totalPages, totalCount, page, stat
                 <tr
                   key={campaign.id}
                   className={`cursor-pointer bg-surface-card transition-colors hover:bg-th-bg-hover ${selectedIds.has(campaign.id) ? 'bg-th-bg-hover' : ''}`}
-                  onClick={() => router.push(`/campaigns/${campaign.id}`)}
+                  onClick={() => router.push(`/ip/campaigns/${campaign.id}`)}
                 >
                   {canDelete && (
                     <td className="w-10 px-3 py-3" onClick={(e) => e.stopPropagation()}>
@@ -313,7 +314,7 @@ export const CampaignsContent = ({ campaigns, totalPages, totalCount, page, stat
                     <StatusBadge status={campaign.status as 'active' | 'paused' | 'completed' | 'scheduled'} type="campaign" />
                   </td>
                   <td className="px-4 py-3.5 text-th-text-secondary">{campaign.users?.name ?? '—'}</td>
-                  <td className="px-4 py-3.5 text-th-text-muted">{new Date(campaign.created_at).toLocaleDateString('en-CA')}</td>
+                  <td className="px-4 py-3.5 text-th-text-muted">{formatDate(campaign.created_at)}</td>
                 </tr>
               ))
             )}
