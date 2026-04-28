@@ -51,7 +51,7 @@ const CampaignsPage = async ({
       query = query.eq('created_by', user.id)
     }
 
-    const { data, error, count } = await query
+    const { data, count } = await query
     totalCount = count ?? 0
     // 실제 DB listings count 조회 (total_listings 컬럼은 부정확할 수 있음)
     if (data && data.length > 0) {

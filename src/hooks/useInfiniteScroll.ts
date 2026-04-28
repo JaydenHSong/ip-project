@@ -62,9 +62,15 @@ export const useInfiniteScroll = <T>({
   const [isLoading, setIsLoading] = useState(false)
   const [total, setTotal] = useState(totalCount)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const requestKeyRef = useRef(0)
+  const abortRef = useRef<AbortController | null>(null)
 
   // 필터/초기 데이터 변경 시 리셋
   useEffect(() => {
+    requestKeyRef.current += 1
+    abortRef.current?.abort()
+    abortRef.current = null
+    setIsLoading(false)
     setData(mergeUniqueItems([], initialData))
     setOffset(initialData.length)
     setTotal(totalCount)
@@ -75,6 +81,10 @@ export const useInfiniteScroll = <T>({
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return
     setIsLoading(true)
+    const requestKey = requestKeyRef.current
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
 
     try {
       const params = new URLSearchParams({
@@ -83,17 +93,25 @@ export const useInfiniteScroll = <T>({
         limit: String(pageSize),
       })
 
-      const res = await fetch(`${fetchUrl}?${params.toString()}`)
+      const res = await fetch(`${fetchUrl}?${params.toString()}`, {
+        signal: controller.signal,
+        cache: 'no-store',
+      })
       if (!res.ok) throw new Error('Fetch failed')
 
       const result = (await res.json()) as { data: T[]; totalCount: number }
+      if (requestKeyRef.current !== requestKey) return
       setData((prev) => mergeUniqueItems(prev, result.data))
       setOffset((prev) => prev + result.data.length)
       setTotal(result.totalCount)
-    } catch {
+    } catch (error) {
+      if ((error as { name?: string }).name === 'AbortError') return
       // 에러 시 다음 스크롤에서 재시도
     } finally {
-      setIsLoading(false)
+      if (requestKeyRef.current === requestKey) {
+        setIsLoading(false)
+        if (abortRef.current === controller) abortRef.current = null
+      }
     }
   }, [isLoading, hasMore, offset, pageSize, fetchUrl, filterParams])
 

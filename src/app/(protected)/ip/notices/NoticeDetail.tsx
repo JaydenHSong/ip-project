@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { X, Pin } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { Badge } from '@/components/ui/Badge'
+import { formatDateTime } from '@/lib/utils/date'
 import type { Notice, NoticeCategory } from '@/types/notices'
 
 const CATEGORY_VARIANTS: Record<NoticeCategory, 'success' | 'info' | 'warning' | 'default'> = {
@@ -53,7 +54,7 @@ export const NoticeDetail = ({ notice, onClose, onRead }: NoticeDetailProps) => 
 
         <div className="mb-4 flex items-center gap-3 text-xs text-th-text-muted">
           <span>{notice.users?.name ?? tNotices('categories.system')}</span>
-          <span>{new Date(notice.created_at).toLocaleString()}</span>
+          <span>{formatDateTime(notice.created_at)}</span>
         </div>
 
         <div className="max-h-80 overflow-y-auto rounded-lg bg-th-bg-secondary p-4">

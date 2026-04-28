@@ -17,6 +17,7 @@ type InlineTemplateListProps = {
   currentViolationType?: string
   onApply: (interpolatedBody: string, templateTitle: string) => void
   compact?: boolean
+  canManageDefaults?: boolean
 }
 
 export const InlineTemplateList = ({
@@ -25,6 +26,7 @@ export const InlineTemplateList = ({
   currentViolationType,
   onApply,
   compact = false,
+  canManageDefaults = false,
 }: InlineTemplateListProps) => {
   const { t } = useI18n()
   const [templates, setTemplates] = useState<ReportTemplate[]>([])
@@ -91,7 +93,10 @@ export const InlineTemplateList = ({
   }
 
   const toggleStar = (tmpl: ReportTemplate) => {
+    if (!canManageDefaults) return
+
     const next = !tmpl.is_default
+    const previous = templates
     setTemplates((prev) => {
       const updated = prev.map((t) => (t.id === tmpl.id ? { ...t, is_default: next } : t))
       return [...updated].sort((a, b) => {
@@ -106,7 +111,13 @@ export const InlineTemplateList = ({
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_default: next }),
-    }).catch(() => {})
+    }).then((res) => {
+      if (!res.ok) {
+        setTemplates(previous)
+      }
+    }).catch(() => {
+      setTemplates(previous)
+    })
   }
 
   const categories = BR_FORM_TYPE_CODES
@@ -226,13 +237,17 @@ export const InlineTemplateList = ({
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); toggleStar(tmpl) }}
-                          className="shrink-0 transition-colors hover:scale-110"
-                        >
-                          <Star className={`h-3.5 w-3.5 ${tmpl.is_default ? 'fill-yellow-400 text-yellow-400' : 'text-th-text-muted/40 hover:text-yellow-400'}`} />
-                        </button>
+                        {canManageDefaults ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleStar(tmpl) }}
+                            className="shrink-0 transition-colors hover:scale-110"
+                          >
+                            <Star className={`h-3.5 w-3.5 ${tmpl.is_default ? 'fill-yellow-400 text-yellow-400' : 'text-th-text-muted/40 hover:text-yellow-400'}`} />
+                          </button>
+                        ) : (
+                          <Star className={`h-3.5 w-3.5 shrink-0 ${tmpl.is_default ? 'fill-yellow-400 text-yellow-400' : 'text-th-text-muted/40'}`} />
+                        )}
                         {isMatch && (
                           <span className="shrink-0 rounded-full bg-th-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-th-accent-text">
                             Match

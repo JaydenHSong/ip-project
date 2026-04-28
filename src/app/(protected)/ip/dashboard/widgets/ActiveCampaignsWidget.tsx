@@ -74,7 +74,7 @@ export const ActiveCampaignsWidget = () => {
       ) : (
         <div className="divide-y divide-th-border rounded-lg border border-th-border">
           {campaigns.map((campaign) => (
-            <Link key={campaign.id} href={`/campaigns/${campaign.id}`}>
+            <Link key={campaign.id} href={`/ip/campaigns/${campaign.id}`}>
               <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-th-bg-hover active:bg-th-bg-hover">
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-sm font-medium text-th-text">{campaign.keyword}</p>

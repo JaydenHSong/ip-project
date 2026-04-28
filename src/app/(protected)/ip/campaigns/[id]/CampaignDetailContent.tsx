@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ExternalLink, FileWarning, ClipboardList, ShieldCheck, X, Trash2, AlertTriangle } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import { getAmazonUrl } from '@/lib/utils/amazon-url'
+import { formatDate } from '@/lib/utils/date'
 import { BackButton } from '@/components/ui/BackButton'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
@@ -16,7 +17,6 @@ import { Modal } from '@/components/ui/Modal'
 import { SlidePanel } from '@/components/ui/SlidePanel'
 import { CampaignStats } from '@/components/features/CampaignStats'
 import { CampaignActions } from './CampaignActions'
-import { ReportActions } from '@/app/(protected)/ip/reports/[id]/ReportActions'
 import type { ReportStatus } from '@/types/reports'
 import type { Role } from '@/types/users'
 
@@ -222,13 +222,13 @@ export const CampaignDetailContent = ({
             <div>
               <dt className="text-sm text-th-text-tertiary">{t('campaigns.detail.startDate')}</dt>
               <dd className="mt-1 text-sm font-medium text-th-text">
-                {new Date(campaign.start_date).toLocaleDateString('en-CA')}
+                {formatDate(campaign.start_date)}
               </dd>
             </div>
             <div>
               <dt className="text-sm text-th-text-tertiary">{t('campaigns.detail.endDate')}</dt>
               <dd className="mt-1 text-sm font-medium text-th-text">
-                {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString('en-CA') : t('campaigns.detail.noEndDate')}
+                {campaign.end_date ? formatDate(campaign.end_date) : t('campaigns.detail.noEndDate')}
               </dd>
             </div>
             <div>
@@ -310,6 +310,7 @@ export const CampaignDetailContent = ({
                           <div className="flex items-center gap-2.5">
                             {listing.screenshot_url && (
                               <div className="h-9 w-9 shrink-0 overflow-hidden rounded border border-th-border bg-th-bg-secondary">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={listing.screenshot_url} alt="" className="h-full w-full object-cover" />
                               </div>
                             )}
@@ -373,6 +374,7 @@ export const CampaignDetailContent = ({
                   )}
                   {listing.screenshot_url && (
                     <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-th-border bg-th-bg-secondary">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={listing.screenshot_url}
                         alt=""
@@ -499,6 +501,7 @@ export const CampaignDetailContent = ({
                   onClick={() => setShowScreenshot(true)}
                   className="group w-full overflow-hidden rounded-lg border border-th-border bg-th-bg-secondary"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={screenshotUrl}
                     alt="Page screenshot"
@@ -520,6 +523,7 @@ export const CampaignDetailContent = ({
                 >
                   <X className="h-5 w-5" />
                 </button>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={screenshotUrl}
                   alt="Page screenshot"
@@ -595,7 +599,7 @@ export const CampaignDetailContent = ({
                     <div className="flex items-center justify-between">
                       <StatusBadge status={report.status as ReportStatus} type="report" size="md" />
                       <span className="text-xs text-th-text-muted">
-                        {new Date(report.created_at).toLocaleDateString('en-CA')}
+                        {formatDate(report.created_at)}
                       </span>
                     </div>
                     <div className="mt-2.5 flex items-center gap-2">

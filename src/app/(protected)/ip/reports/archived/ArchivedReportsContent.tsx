@@ -15,6 +15,7 @@ import { useSortableTable } from '@/hooks/useSortableTable'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 import { useFilterableTable } from '@/hooks/useFilterableTable'
 import { useToast } from '@/hooks/useToast'
+import { formatDate, formatDateTime } from '@/lib/utils/date'
 import type { ReportStatus } from '@/types/reports'
 import type { TableFilters as TableFiltersType } from '@/types/table'
 
@@ -121,14 +122,25 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
           sortedData.map((report) => (
             <div
               key={report.id}
+              role="button"
+              tabIndex={0}
               className="cursor-pointer rounded-lg border border-th-border bg-surface-card p-4 transition-colors active:bg-th-bg-hover"
               onClick={() => setPreviewId(report.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  setPreviewId(report.id)
+                }
+              }}
             >
               <div className="flex items-start justify-between">
                 <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                 <StatusBadge status={report.status as ReportStatus} type="report" />
               </div>
-              <Link href={`/ip/reports/${report.id}`}>
+              <Link
+                href={`/ip/reports/${report.id}`}
+                onClick={(event) => event.stopPropagation()}
+              >
                 <p className="mt-2 font-mono text-sm text-th-text hover:text-th-accent-text">
                   {report.listings?.asin ?? '—'}
                 </p>
@@ -139,14 +151,17 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
               )}
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-xs text-th-text-muted">
-                  {report.archived_at ? new Date(report.archived_at).toLocaleDateString('en-CA') : '—'}
+                  {formatDate(report.archived_at)}
                 </span>
                 {canAct && (
                   <Button
                     variant="outline"
                     size="sm"
                     loading={unarchiving === report.id}
-                    onClick={() => handleUnarchive(report.id)}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      void handleUnarchive(report.id)
+                    }}
                   >
                     {t('reports.detail.unarchive' as Parameters<typeof t>[0])}
                   </Button>
@@ -213,7 +228,11 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                     <ViolationBadge code={report.user_violation_type ?? report.br_form_type ?? report.violation_type} violationCategory={report.violation_category} showLabel={false} />
                   </td>
                   <td className="px-4 py-3.5">
-                    <Link href={`/ip/reports/${report.id}`} className="font-mono text-th-text hover:text-th-accent-text">
+                    <Link
+                      href={`/ip/reports/${report.id}`}
+                      className="font-mono text-th-text hover:text-th-accent-text"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       {report.listings?.asin ?? '—'}
                     </Link>
                   </td>
@@ -224,7 +243,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                     {report.archive_reason ?? '—'}
                   </td>
                   <td className="px-4 py-3.5 text-th-text-muted">
-                    {report.archived_at ? new Date(report.archived_at).toLocaleDateString('en-CA') : '—'}
+                    {formatDate(report.archived_at)}
                   </td>
                   {canAct && (
                     <td className="px-4 py-3.5">
@@ -232,7 +251,10 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
                         variant="outline"
                         size="sm"
                         loading={unarchiving === report.id}
-                        onClick={() => handleUnarchive(report.id)}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void handleUnarchive(report.id)
+                        }}
                       >
                         {t('reports.detail.unarchive' as Parameters<typeof t>[0])}
                       </Button>
@@ -306,7 +328,7 @@ export const ArchivedReportsContent = ({ reports, userRole }: ArchivedReportsCon
             <div className="flex items-center justify-between text-xs text-th-text-muted">
               <span>
                 {previewReport.archived_at
-                  ? `${t('reports.detail.archivedAt' as Parameters<typeof t>[0])}: ${new Date(previewReport.archived_at).toLocaleString()}`
+                  ? `${t('reports.detail.archivedAt' as Parameters<typeof t>[0])}: ${formatDateTime(previewReport.archived_at)}`
                   : ''}
               </span>
               <Link

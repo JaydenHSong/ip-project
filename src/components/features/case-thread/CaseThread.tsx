@@ -6,7 +6,6 @@ import { CaseNote } from './CaseNote'
 import { CaseEvent } from './CaseEvent'
 import { AddNoteForm } from './AddNoteForm'
 import { ReplyForm } from './ReplyForm'
-import { CaseCloseButton } from './CaseCloseButton'
 import type { BrCaseEventType } from '@/types/br-case'
 
 type ThreadItem = {

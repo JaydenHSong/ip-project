@@ -157,51 +157,90 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
     if (selectedIds.size === 0) return
     setBulkLoading('brResubmit')
     try {
-      await fetch('/api/reports/bulk-br-resubmit', {
+      const res = await fetch('/api/reports/bulk-br-resubmit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ report_ids: [...selectedIds] }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => null) as { error?: { message?: string } } | null
+        throw new Error(err?.error?.message ?? 'Bulk BR resubmit failed')
+      }
+      const result = await res.json() as { submitted?: number; skipped?: number; failed?: number; total?: number }
       setSelectedIds(new Set())
+      const hasPartial = (result.skipped ?? 0) > 0 || (result.failed ?? 0) > 0
+      addToast({
+        type: hasPartial ? 'warning' : 'success',
+        title: hasPartial ? 'Partially resubmitted' : 'Resubmitted',
+        message: `Submitted: ${result.submitted ?? 0}, Skipped: ${result.skipped ?? 0}, Failed: ${result.failed ?? 0}`,
+      })
       router.refresh()
+    } catch (e) {
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setBulkLoading(null)
     }
-  }, [selectedIds, router])
+  }, [selectedIds, router, addToast])
 
   const handleBulkArchive = useCallback(async () => {
     if (selectedIds.size === 0) return
     setBulkLoading('archive')
     try {
-      await fetch('/api/reports/bulk-archive', {
+      const res = await fetch('/api/reports/bulk-archive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ report_ids: [...selectedIds] }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => null) as { error?: { message?: string } } | null
+        throw new Error(err?.error?.message ?? 'Bulk archive failed')
+      }
+      const result = await res.json() as { archived?: number; skipped?: number }
       setSelectedIds(new Set())
+      const hasPartial = (result.skipped ?? 0) > 0
+      addToast({
+        type: hasPartial ? 'warning' : 'success',
+        title: hasPartial ? 'Partially archived' : 'Archived',
+        message: `Archived: ${result.archived ?? 0}, Skipped: ${result.skipped ?? 0}`,
+      })
       router.refresh()
+    } catch (e) {
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setBulkLoading(null)
     }
-  }, [selectedIds, router])
+  }, [selectedIds, router, addToast])
 
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
   const handleBulkDelete = useCallback(async () => {
     if (selectedIds.size === 0) return
     setBulkLoading('delete')
     try {
-      await fetch('/api/reports/bulk-delete', {
+      const res = await fetch('/api/reports/bulk-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ report_ids: [...selectedIds] }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => null) as { error?: { message?: string } } | null
+        throw new Error(err?.error?.message ?? 'Bulk delete failed')
+      }
+      const result = await res.json() as { deleted?: number; failed?: number }
       setSelectedIds(new Set())
       setShowBulkDeleteConfirm(false)
+      const hasPartial = (result.failed ?? 0) > 0
+      addToast({
+        type: hasPartial ? 'warning' : 'success',
+        title: hasPartial ? 'Partially deleted' : 'Deleted',
+        message: `Deleted: ${result.deleted ?? 0}, Failed: ${result.failed ?? 0}`,
+      })
       router.refresh()
+    } catch (e) {
+      addToast({ type: 'error', title: 'Action failed', message: e instanceof Error ? e.message : 'Unknown error' })
     } finally {
       setBulkLoading(null)
     }
-  }, [selectedIds, router])
+  }, [selectedIds, router, addToast])
 
   const handleUnarchive = useCallback(async (reportId: string) => {
     setUnarchiving(reportId)
@@ -396,7 +435,7 @@ export const CompletedReportsContent = ({ reports, statusFilter, userRole, owner
               </div>
               <p className="mt-2 font-mono text-sm">
                 {report.listings?.asin ? (
-                  <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline">{report.listings.asin}</a>
+                  <a href={getAmazonUrl(report.listings.asin, report.listings.marketplace)} target="_blank" rel="noopener noreferrer" className="text-th-accent hover:underline" onClick={(e) => e.stopPropagation()}>{report.listings.asin}</a>
                 ) : '—'}
               </p>
               <p className="mt-1 truncate text-sm text-th-text-secondary">{report.listings?.title ?? '—'}</p>

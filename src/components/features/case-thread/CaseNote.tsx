@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Textarea } from '@/components/ui/Textarea'
+import { formatDateTime } from '@/lib/utils/date'
 
 type CaseNoteProps = {
   id: string
@@ -54,7 +55,7 @@ export const CaseNote = ({ id, reportId, body, userName, createdAt, isOwner, onU
           🔒 Internal Note
         </span>
         <span className="text-xs text-th-text-muted">{userName ?? 'Unknown'}</span>
-        <span className="text-xs text-th-text-muted">{new Date(createdAt).toLocaleString()}</span>
+        <span className="text-xs text-th-text-muted">{formatDateTime(createdAt)}</span>
         {isOwner && !editing && (
           <div className="ml-auto flex gap-1">
             <button

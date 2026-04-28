@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { formatDateTime } from '@/lib/utils/date'
 
 type CaseMessageProps = {
   direction: 'inbound' | 'outbound'
@@ -14,7 +15,7 @@ type CaseMessageProps = {
 export const CaseMessage = ({ direction, sender, body, sentAt, collapsed = false }: CaseMessageProps) => {
   const [isCollapsed, setIsCollapsed] = useState(collapsed)
   const isInbound = direction === 'inbound'
-  const formattedDate = new Date(sentAt).toLocaleString()
+  const formattedDate = formatDateTime(sentAt)
 
   // 첫 줄 또는 첫 100자
   const firstLine = body.split('\n').filter(Boolean)[0] ?? ''

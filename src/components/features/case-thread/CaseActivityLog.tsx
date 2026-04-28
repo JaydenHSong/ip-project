@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { formatDateTime } from '@/lib/utils/date'
 
 type EventRow = {
   id: string
@@ -96,7 +97,7 @@ export const CaseActivityLog = ({ reportId }: CaseActivityLogProps) => {
                 <p className="mt-0.5 text-xs text-th-text-secondary">{detail}</p>
               )}
               <p className="mt-0.5 text-xs text-th-text-muted">
-                {new Date(event.created_at).toLocaleString()}
+                {formatDateTime(event.created_at)}
               </p>
             </div>
           </div>

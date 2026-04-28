@@ -44,7 +44,12 @@ export const AiPerformanceCard = ({ data, onClickDisagreement }: AiPerformanceCa
           className={onClickDisagreement ? 'cursor-pointer rounded-md p-1 -m-1 transition-colors hover:bg-th-bg-hover' : ''}
           role={onClickDisagreement ? 'button' : undefined}
           tabIndex={onClickDisagreement ? 0 : undefined}
-          onKeyDown={onClickDisagreement ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClickDisagreement() } : undefined}
+          onKeyDown={onClickDisagreement ? (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onClickDisagreement()
+            }
+          } : undefined}
         >
           <ProgressBar
             value={data.disagreementRate}

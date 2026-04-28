@@ -1,6 +1,5 @@
 'use client'
 
-import { useI18n } from '@/lib/i18n/context'
 import { getBrFormTypeLabel } from '@/constants/br-form-types'
 
 // V코드 → BR form type 라벨 변환 (레거시 데이터 호환)
@@ -95,8 +94,6 @@ export const AiAnalysisTab = ({
   disagreementFlag,
   policyReferences,
 }: AiAnalysisTabProps) => {
-  const { t } = useI18n()
-
   if (!aiAnalysis && !aiViolationType) {
     return (
       <div className="p-6 text-center text-th-text-muted">

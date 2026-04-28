@@ -13,6 +13,8 @@ import { NoticeForm } from './NoticeForm'
 import { NoticeDetail } from './NoticeDetail'
 import type { Notice, NoticeCategory } from '@/types/notices'
 import type { Role } from '@/types/users'
+import { useHydratedNow } from '@/hooks/useHydratedNow'
+import { formatDate } from '@/lib/utils/date'
 import { useResizableColumns } from '@/hooks/useResizableColumns'
 
 const CATEGORY_VARIANTS: Record<NoticeCategory, 'success' | 'info' | 'warning' | 'default'> = {
@@ -42,14 +44,12 @@ const buildUrl = (params: Record<string, string>): string => {
     if (v) sp.set(k, v)
   }
   const qs = sp.toString()
-  return `/notices${qs ? `?${qs}` : ''}`
+  return `/ip/notices${qs ? `?${qs}` : ''}`
 }
 
 export const NoticesContent = ({
   notices,
-  totalPages,
   totalCount,
-  page,
   categoryFilter,
   userRole,
   readNoticeIds,
@@ -60,6 +60,7 @@ export const NoticesContent = ({
 }: NoticesContentProps) => {
   const { t } = useI18n()
   const router = useRouter()
+  const now = useHydratedNow()
 
   // Infinite scroll
   const infiniteFilterParams = useMemo(() => {
@@ -101,7 +102,6 @@ export const NoticesContent = ({
     minWidths: minNoticeColWidths,
   })
 
-  const [now] = useState(() => Date.now())
   const tNotices = (key: string): string => t(`notices.${key}` as Parameters<typeof t>[0])
 
   const isRead = (id: string): boolean => localReadIds.has(id)
@@ -182,6 +182,8 @@ export const NoticesContent = ({
   }, [localReadIds])
 
   const formatTimeAgo = (dateStr: string): string => {
+    if (now === null) return formatDate(dateStr)
+
     const diff = now - new Date(dateStr).getTime()
     const mins = Math.floor(diff / 60000)
     if (mins < 60) return `${mins}m`
