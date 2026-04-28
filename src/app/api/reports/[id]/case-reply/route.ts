@@ -8,7 +8,7 @@ type CaseReplyRequest = {
 }
 
 // POST /api/reports/[id]/case-reply — 답장 텍스트 + 첨부파일 등록 (pending 상태)
-export const POST = withAuth(async (req, { params }) => {
+export const POST = withAuth(async (req, { user, params }) => {
   const { id } = params
 
   if (!id) {
@@ -25,10 +25,6 @@ export const POST = withAuth(async (req, { params }) => {
   }
 
   const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) {
-    return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
-  }
 
   // 리포트 확인 — br_case_id가 있어야 답장 가능
   const { data: report, error: fetchError } = await supabase
@@ -93,7 +89,7 @@ export const POST = withAuth(async (req, { params }) => {
     event_type: 'br_reply_sent',
     new_value: 'Reply queued for delivery',
     metadata: { text_length: body.text.trim().length, attachments: (body.attachments ?? []).length },
-    actor_id: authUser.id,
+    actor_id: user.id,
   })
 
   return NextResponse.json({ status: 'ok', message: 'Reply queued for delivery' }, { status: 201 })

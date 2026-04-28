@@ -9,7 +9,7 @@ type BulkApproveRequest = {
 }
 
 // POST /api/reports/bulk-approve — 일괄 승인 → BR 대상이면 br_submitting, 아니면 monitoring
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req, { user }) => {
   const body = (await req.json()) as BulkApproveRequest
 
   if (!body.report_ids?.length) {
@@ -27,7 +27,6 @@ export const POST = withAuth(async (req) => {
   }
 
   const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
   const now = new Date().toISOString()
 
   // pending_review 상태인 리포트만 조회
@@ -82,7 +81,7 @@ export const POST = withAuth(async (req) => {
       .from('reports')
       .update({
         status: brReportable ? 'br_submitting' : 'monitoring',
-        approved_by: authUser!.id,
+        approved_by: user.id,
         approved_at: now,
         br_submit_data: brSubmitData,
       })

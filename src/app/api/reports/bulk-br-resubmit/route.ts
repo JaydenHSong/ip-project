@@ -32,7 +32,8 @@ export const POST = withAuth(async (req, { user }) => {
   }
 
   let submitted = 0
-  let skipped = 0
+  let skipped = report_ids.length - reports.length
+  let failed = 0
 
   for (const report of reports) {
     const brFormType = (report.br_form_type ?? 'other_policy') as BrFormTypeCode
@@ -69,7 +70,7 @@ export const POST = withAuth(async (req, { user }) => {
       continue
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('reports')
       .update({
         status: 'br_submitting',
@@ -81,7 +82,11 @@ export const POST = withAuth(async (req, { user }) => {
       })
       .eq('id', report.id)
 
-    submitted++
+    if (updateError) {
+      failed++
+    } else {
+      submitted++
+    }
   }
 
   // audit log
@@ -90,8 +95,8 @@ export const POST = withAuth(async (req, { user }) => {
     user_id: user.id,
     action: 'bulk_br_resubmit',
     resource_type: 'report',
-    details: { submitted, skipped, total: report_ids.length, report_ids },
+    details: { submitted, skipped, failed, total: report_ids.length, report_ids },
   })
 
-  return NextResponse.json({ submitted, skipped, total: report_ids.length })
+  return NextResponse.json({ submitted, skipped, failed, total: report_ids.length })
 }, ['owner', 'admin'])

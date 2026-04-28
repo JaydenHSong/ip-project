@@ -1,11 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/demo'
 import { DEMO_TEMPLATES } from '@/lib/demo/data'
 
+const isTemplateAdmin = (role: string): boolean => role === 'owner' || role === 'admin'
+
 // GET /api/templates/:id
-export const GET = withAuth(async (req, { params }) => {
+export const GET = withAuth(async (_req, { params }) => {
   const id = params.id || null
   if (!id) {
     return NextResponse.json(
@@ -43,7 +45,7 @@ export const GET = withAuth(async (req, { params }) => {
 }, ['owner', 'admin', 'editor', 'viewer_plus', 'viewer'])
 
 // PATCH /api/templates/:id
-export const PATCH = withAuth(async (req, { params }) => {
+export const PATCH = withAuth(async (req, { user, params }) => {
   const id = params.id || null
   if (!id) {
     return NextResponse.json(
@@ -78,6 +80,49 @@ export const PATCH = withAuth(async (req, { params }) => {
   }
 
   const supabase = await createClient()
+  const { data: existing, error: existingError } = await supabase
+    .from('report_templates')
+    .select('id, created_by, is_default')
+    .eq('id', id)
+    .single()
+
+  if (existingError || !existing) {
+    return NextResponse.json(
+      { error: { code: 'NOT_FOUND', message: 'Template not found.' } },
+      { status: 404 },
+    )
+  }
+
+  const isAdmin = isTemplateAdmin(user.role)
+  const ownsTemplate = existing.created_by === user.id
+  const requestedDefault = 'is_default' in updates ? updates.is_default === true : existing.is_default
+  const defaultChanged = requestedDefault !== existing.is_default
+
+  if (!isAdmin && !ownsTemplate) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'You can only edit your own templates.' } },
+      { status: 403 },
+    )
+  }
+
+  if (!isAdmin && existing.is_default) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'Default templates can only be edited by admin.' } },
+      { status: 403 },
+    )
+  }
+
+  if (!isAdmin && defaultChanged) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'Only admin can change default template status.' } },
+      { status: 403 },
+    )
+  }
+
+  if (!isAdmin && !defaultChanged) {
+    delete updates.is_default
+  }
+
   const { data, error } = await supabase
     .from('report_templates')
     .update({ ...updates, updated_at: new Date().toISOString() })
@@ -96,7 +141,7 @@ export const PATCH = withAuth(async (req, { params }) => {
 }, ['owner', 'admin', 'editor'])
 
 // DELETE /api/templates/:id
-export const DELETE = withAuth(async (req, { params }) => {
+export const DELETE = withAuth(async (_req, { user, params }) => {
   const id = params.id || null
   if (!id) {
     return NextResponse.json(
@@ -110,6 +155,36 @@ export const DELETE = withAuth(async (req, { params }) => {
   }
 
   const supabase = await createClient()
+  const { data: existing, error: existingError } = await supabase
+    .from('report_templates')
+    .select('id, created_by, is_default')
+    .eq('id', id)
+    .single()
+
+  if (existingError || !existing) {
+    return NextResponse.json(
+      { error: { code: 'NOT_FOUND', message: 'Template not found.' } },
+      { status: 404 },
+    )
+  }
+
+  const isAdmin = isTemplateAdmin(user.role)
+  const ownsTemplate = existing.created_by === user.id
+
+  if (!isAdmin && !ownsTemplate) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'You can only delete your own templates.' } },
+      { status: 403 },
+    )
+  }
+
+  if (!isAdmin && existing.is_default) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'Default templates can only be deleted by admin.' } },
+      { status: 403 },
+    )
+  }
+
   const { error } = await supabase.from('report_templates').delete().eq('id', id)
 
   if (error) {

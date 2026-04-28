@@ -8,12 +8,19 @@ type BulkSubmitRequest = {
 }
 
 // POST /api/reports/bulk-submit — 일괄 Submit (Review 전송)
-export const POST = withAuth(async (req, { user }) => {
+export const POST = withAuth(async (req) => {
   const body = (await req.json()) as BulkSubmitRequest
 
   if (!body.report_ids?.length || !body.action) {
     return NextResponse.json(
       { error: { code: 'VALIDATION_ERROR', message: 'report_ids and action required' } },
+      { status: 400 },
+    )
+  }
+
+  if (body.action !== 'submit_review') {
+    return NextResponse.json(
+      { error: { code: 'VALIDATION_ERROR', message: 'Unsupported bulk submit action' } },
       { status: 400 },
     )
   }

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // POST /api/reports/:id/cancel — 취소
-export const POST = withAuth(async (req, { params }) => {
+export const POST = withAuth(async (req, { user, params }) => {
   const { id } = params
 
   if (!id) {
@@ -39,13 +39,11 @@ export const POST = withAuth(async (req, { params }) => {
     )
   }
 
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-
   const { data, error } = await supabase
     .from('reports')
     .update({
       status: 'cancelled',
-      cancelled_by: authUser!.id,
+      cancelled_by: user.id,
       cancelled_at: new Date().toISOString(),
       cancellation_reason: cancellationReason ?? null,
     })

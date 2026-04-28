@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
-import { notifyApproved } from '@/lib/notifications/google-chat'
 import { buildBrSubmitData, extractBrExtraFieldsFromNote, mergeBrExtraFields, normalizeBrExtraFields } from '@/lib/reports/br-data'
 import type { BrExtraFields } from '@/lib/reports/br-data'
 import type { ApproveReportRequest } from '@/types/api'
@@ -9,7 +8,7 @@ import type { BrFormType } from '@/types/reports'
 import { isBrSubmittable, BR_FORM_TYPE_CODES, type BrFormTypeCode } from '@/constants/br-form-types'
 
 // POST /api/reports/:id/approve — 승인 → BR 대상이면 br_submitting, 아니면 monitoring
-export const POST = withAuth(async (req, { params }) => {
+export const POST = withAuth(async (req, { user, params }) => {
   const { id } = params
 
   if (!id) {
@@ -53,7 +52,6 @@ export const POST = withAuth(async (req, { params }) => {
     .eq('id', report.listing_id)
     .single()
 
-  const { data: { user: authUser } } = await supabase.auth.getUser()
   const now = new Date().toISOString()
 
   // BR 데이터 준비 (BR 대상 폼 타입인 경우에만)
@@ -81,7 +79,7 @@ export const POST = withAuth(async (req, { params }) => {
 
   const updates: Record<string, unknown> = {
     status: brReportable ? 'br_submitting' : 'monitoring',
-    approved_by: authUser!.id,
+    approved_by: user.id,
     approved_at: now,
     br_submit_data: brSubmitData,
   }
@@ -97,7 +95,7 @@ export const POST = withAuth(async (req, { params }) => {
     || (body.edited_draft_subject !== undefined && body.edited_draft_subject !== report.draft_subject)
   if (wasEdited) {
     updates.original_draft_body = report.original_draft_body ?? report.draft_body
-    updates.edited_by = authUser!.id
+    updates.edited_by = user.id
     updates.edited_at = now
   }
 

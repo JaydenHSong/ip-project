@@ -3,7 +3,7 @@ import { withAuth } from '@/lib/auth/middleware'
 import { createClient } from '@/lib/supabase/server'
 
 // POST /api/reports/[id]/case-close — 케이스 닫기 요청
-export const POST = withAuth(async (req, { params }) => {
+export const POST = withAuth(async (req, { user, params }) => {
   const { id } = params
 
   if (!id) {
@@ -11,10 +11,6 @@ export const POST = withAuth(async (req, { params }) => {
   }
 
   const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) {
-    return NextResponse.json({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } }, { status: 401 })
-  }
 
   // 리포트 확인
   const { data: report, error: fetchError } = await supabase
@@ -64,7 +60,7 @@ export const POST = withAuth(async (req, { params }) => {
     old_value: report.br_case_status,
     new_value: 'closed',
     metadata: { closed_by: 'user' },
-    actor_id: authUser.id,
+    actor_id: user.id,
   })
 
   return NextResponse.json({ status: 'ok', message: 'Case closed' })
