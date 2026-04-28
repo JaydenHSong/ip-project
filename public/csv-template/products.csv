@@ -1,0 +1,7 @@
+sku,asin,marketplace,is_primary,product_name,product_name_ko,device_model,color,model_name_ko,version,ean_barcode,unit_price,origin_country,brand_id,parent_sku
+ACS09879,B0EXAMPLE1,US,true,iPhone 17 Pro Max Thin Fit Mag Fit Black,아이폰17프로맥스 씬핏맥핏 블랙,iPhone 17 Pro Max,Black,씬핏맥핏,V1,8800283310085,3.80,KR,00000000-0000-0000-0000-000000000000,
+ACS09879,B0EXAMPLE2,DE,false,iPhone 17 Pro Max Thin Fit Mag Fit Black,아이폰17프로맥스 씬핏맥핏 블랙,iPhone 17 Pro Max,Black,씬핏맥핏,V1,8800283310085,3.80,KR,00000000-0000-0000-0000-000000000000,
+ACS09879,B0EXAMPLE3,JP,false,iPhone 17 Pro Max Thin Fit Mag Fit Black,아이폰17프로맥스 씬핏맥핏 블랙,iPhone 17 Pro Max,Black,씬핏맥핏,V1,8800283310085,3.80,KR,00000000-0000-0000-0000-000000000000,
+ACS09880,B0EXAMPLE5,US,true,iPhone 17 Pro Max Thin Fit Mag Fit Abyss Green,아이폰17프로맥스 씬핏맥핏 어비스그린,iPhone 17 Pro Max,Abyss Green,씬핏맥핏,V1,8800283310092,3.80,KR,00000000-0000-0000-0000-000000000000,
+ACS09881,B0EXAMPLE7,US,true,iPhone 17 Pro Max Thin Fit Mag Fit Gunmetal,아이폰17프로맥스 씬핏맥핏 건메탈,iPhone 17 Pro Max,Gunmetal,씬핏맥핏,V1,8800283310108,3.80,KR,00000000-0000-0000-0000-000000000000,
+ACS09886,B0EXAMPLE11,US,true,iPhone 17 Pro Max Rugged Armor Mag Fit Matte Black,아이폰17프로맥스 러기드아머맥핏 매트블랙,iPhone 17 Pro Max,Matte Black,러기드아머맥핏,V2,8800283310153,3.80,KR,00000000-0000-0000-0000-000000000000,

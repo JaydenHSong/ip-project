@@ -61,8 +61,11 @@ const MODULES: ModuleConfig[] = [
     name: 'Product Library',
     icon: 'package',
     path: '/products',
-    status: 'coming_soon',
-    menuItems: [],
+    status: 'active',
+    menuItems: [
+      { label: 'Catalog', labelKey: 'nav.productsCatalog', path: '/products', icon: 'library' },
+      { label: 'ASIN Mapping', labelKey: 'nav.productsMapping', path: '/products/mapping', icon: 'link' },
+    ],
   },
   {
     key: 'planning',

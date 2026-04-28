@@ -90,13 +90,20 @@ docs/design-exports/
 # Use anchored pattern so src/lib/supabase/ is NOT ignored.
 /supabase/
 
-# Tests (local only)
+# Tests (local only — but track in-source unit tests + products-sync e2e specs)
 e2e/
-tests/
+tests/*
+!tests/e2e/
+tests/e2e/*
+!tests/e2e/products-sync-*.spec.ts
+!src/**/tests/
+!src/**/tests/**
 playwright.config.ts
 
-# Scripts (local only)
-scripts/
+# Scripts (local only — but track products-sync verify scripts for CI)
+/scripts/
+tools/scripts/*
+!tools/scripts/verify-products.sh
 
 # Skills reference (local only)
 skills/

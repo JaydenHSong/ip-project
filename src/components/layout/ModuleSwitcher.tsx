@@ -47,12 +47,11 @@ export const ModuleSwitcher = ({ currentModule, collapsed, userRole = 'viewer' }
   const handleSelect = (mod: ModuleConfig) => {
     setOpen(false)
     if (mod.status !== 'active') return
-    // IP 모듈은 기존 URL 유지
-    if (mod.key === 'ip') {
-      router.push('/ip/dashboard')
-    } else {
-      router.push(mod.path + '/dashboard')
-    }
+    // Landing path: use first menu item if defined, else module root, else /dashboard suffix.
+    // IP module historically uses /ip/dashboard; products module uses /products (no dashboard subroute).
+    const landing = mod.menuItems[0]?.path
+      ?? (mod.key === 'ip' ? '/ip/dashboard' : mod.path)
+    router.push(landing)
   }
 
   return (

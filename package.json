@@ -11,6 +11,8 @@
     "harness:ads": "node tools/harness/ads-preset-check.mjs",
     "harness:ads:staged": "node tools/harness/ads-preset-check.mjs --staged",
     "harness:ads:full": "pnpm typecheck && pnpm lint && pnpm harness:ads",
+    "verify:products": "bash tools/scripts/verify-products.sh",
+    "test:sync": "tsx --test src/modules/products/features/sync/tests/domain/*.spec.ts",
     "test": "echo \"No tests configured yet\"",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
